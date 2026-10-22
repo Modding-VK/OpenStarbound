@@ -197,8 +197,10 @@ ItemDatabase::ItemConfig ItemDatabase::itemConfig(String const& itemName, Json p
   auto const& data = itemData(itemName);
 
   ItemConfig itemConfig;
-  itemConfig.config = data.baseConfig;
+  if (data.assetsConfig)
+    itemConfig.config = Root::singleton().assets()->json(*data.assetsConfig);
   itemConfig.directory = data.directory;
+  itemConfig.config = jsonMerge(itemConfig.config, data.customConfig);
   itemConfig.parameters = parameters;
 
   if (auto builder = itemConfig.config.optString("builder")) {
@@ -578,7 +580,7 @@ void ItemDatabase::addItemSet(ItemType type, String const& extension) {
     try {
       auto config = assets->json(file);
       data.type = type;
-      data.baseConfig = config;
+      data.assetsConfig = file;
       data.name = config.get("itemName").toString();
       data.friendlyName = config.getString("shortdescription", {});
       data.itemTags = config.opt("itemTags").apply(jsonToStringSet).value();
@@ -626,7 +628,7 @@ void ItemDatabase::addObjectDropItem(String const& objectPath, Json const& objec
   // execute scripts intended for objects
   customConfig.remove("scripts");
 
-  data.baseConfig = std::move(customConfig);
+  data.customConfig = std::move(customConfig);
 
   if (m_items.contains(data.name))
     throw ItemException(strf("Object drop '{}' shares name with existing item", data.name));
@@ -735,7 +737,7 @@ void ItemDatabase::addBlueprints() {
 
       configInfo["price"] = baseItem->price();
 
-      blueprintData.baseConfig = std::move(configInfo);
+      blueprintData.customConfig = std::move(configInfo);
       blueprintData.directory = itemData(baseDesc.name()).directory;
 
       m_items[blueprintData.name] = blueprintData;
@@ -771,7 +773,7 @@ void ItemDatabase::addCodexes() {
       customConfig["shortdescription"] = codexPair.second->title();
       customConfig["description"] = codexPair.second->description();
       customConfig["codexIcon"] = codexPair.second->icon();
-      codexItemData.baseConfig = customConfig;
+      codexItemData.customConfig = customConfig;
 
       m_items[codexItemName] = codexItemData;
     } catch (std::exception const& e) {
