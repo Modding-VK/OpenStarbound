@@ -61,3 +61,14 @@ Entity callbacks can therefore observe spatial changes made by earlier
 callbacks in the same tick. Parallelizing this loop directly could change
 simulation and mod-visible behavior; first measure and document dependencies,
 then design a controlled snapshot/commit boundary if profiling justifies it.
+
+## First engine change under evaluation
+
+`ItemDatabase` retains each item's immutable base configuration after the asset
+scan. `itemConfig` reuses that JSON value instead of retrieving the asset and
+recursively merging the same static configuration for every request. Per-request
+Lua builders still run with the caller's parameters, level, and seed; generated
+item data is not cached. This removes repeated setup work but has no measured
+performance claim yet. Compare the same gameplay scenario and record the build,
+mods, seed, entity count, world update rate, and profiler settings before drawing
+a conclusion.

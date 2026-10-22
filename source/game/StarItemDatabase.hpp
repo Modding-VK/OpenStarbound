@@ -156,8 +156,8 @@ private:
     String friendlyName;
     StringSet itemTags;
     StringList agingScripts;
-    Maybe<String> assetsConfig;
-    JsonObject customConfig;
+    // The immutable base config, before any per-request builder script runs.
+    Json baseConfig;
     String directory;
     String filename;
   };
