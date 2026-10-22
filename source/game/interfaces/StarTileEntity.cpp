@@ -38,6 +38,11 @@ List<MaterialSpace> TileEntity::materialSpaces() const {
   return {};
 }
 
+List<MaterialSpace> const& TileEntity::materialSpacesRef() const {
+  static List<MaterialSpace> const empty;
+  return empty;
+}
+
 bool TileEntity::damageTiles(List<Vec2I> const&, Vec2F const&, TileDamage const&) {
   return false;
 }

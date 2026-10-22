@@ -48,6 +48,9 @@ public:
   // TileEntities may register some of their occupied spaces with metamaterials
   // to generate collidable regions
   virtual List<MaterialSpace> materialSpaces() const;
+  // Reference accessor for per-tick server checks that only need to compare
+  // material spaces without copying the list.
+  virtual List<MaterialSpace> const& materialSpacesRef() const;
   
   // Returns whether the entity was destroyed
   virtual bool damageTiles(List<Vec2I> const& positions, Vec2F const& sourcePosition, TileDamage const& tileDamage);

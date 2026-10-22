@@ -2129,7 +2129,8 @@ void WorldServer::updateTileEntityTiles(TileEntityPtr const& entity, bool removi
 
   auto& spaces = m_tileEntitySpaces[entity->entityId()];
 
-  List<MaterialSpace> newMaterialSpaces = removing ? List<MaterialSpace>() : entity->materialSpaces();
+  static List<MaterialSpace> const emptyMaterialSpaces;
+  List<MaterialSpace> const& newMaterialSpaces = removing ? emptyMaterialSpaces : entity->materialSpacesRef();
   List<Vec2I> newRoots = removing || entity->ephemeral() ? List<Vec2I>() : entity->roots();
 
   if (!removing && spaces.materials == newMaterialSpaces && spaces.roots == newRoots)

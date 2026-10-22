@@ -75,6 +75,11 @@ through helper methods. Compiled bytecode remains cached, while each builder
 still gets a fresh context and executes normally. The effect has not been
 measured.
 
+The server's per-tick tile-entity check now reads the stored material-space
+list by reference for `Object` entities. It still compares the same values and
+applies tile changes through the same path, while avoiding a temporary list
+copy. The effect has not been measured.
+
 ## Uploaded startup reference
 
 The pre-change OpenStarbound 0.1.15.1 log (source ID

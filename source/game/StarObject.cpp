@@ -376,6 +376,10 @@ List<MaterialSpace> Object::materialSpaces() const {
   return m_materialSpaces.get();
 }
 
+List<MaterialSpace> const& Object::materialSpacesRef() const {
+  return m_materialSpaces.get();
+}
+
 List<Vec2I> Object::roots() const {
   if (m_config->rooting) {
     if (auto orientation = currentOrientation()) {

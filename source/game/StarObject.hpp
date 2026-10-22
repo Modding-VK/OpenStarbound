@@ -75,6 +75,7 @@ public:
 
   virtual List<Vec2I> spaces() const override;
   virtual List<MaterialSpace> materialSpaces() const override;
+  virtual List<MaterialSpace> const& materialSpacesRef() const override;
   virtual List<Vec2I> roots() const override;
 
   Direction direction() const;
