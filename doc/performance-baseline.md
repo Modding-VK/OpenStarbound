@@ -66,6 +66,10 @@ revisions:
 dist/planet_generation_benchmark --type garden --size small --seed 123456789 --sectors 32
 ```
 
+Run it from the game installation directory containing the usual `sbinit.config`.
+The benchmark uses that file's asset sources, so include the same mod stack,
+including Frackin' Universe, in each comparison.
+
 The benchmark constructs a terrestrial planet, selects a run of surface
 sectors away from the spawn area, and synchronously activates those sectors.
 Its report separates `baseTiles`, `microDungeons`, `caveLiquid`, `finalize`, and
