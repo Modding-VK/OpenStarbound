@@ -179,8 +179,10 @@ void LuaRoot::ScriptCache::clear() {
 
 void LuaRoot::ScriptCache::loadContextScript(LuaContext& context, String const& assetPath) {
   RecursiveMutexLocker locker(mutex);
-  if (!scriptLoaded(assetPath))
-    loadScript(context.engine(), assetPath);
+  if (!scripts.contains(assetPath)) {
+    auto assets = Root::singleton().assets();
+    scripts[assetPath] = context.engine().compile(*assets->bytes(assetPath), assetPath);
+  }
   context.load(scripts.get(assetPath));
 }
 

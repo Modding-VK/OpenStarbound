@@ -77,3 +77,9 @@ a conclusion.
 and the merger is empty. This avoids copying an immutable object map for a
 no-op merge. It applies to callers outside `ItemDatabase` as well and has no
 measured performance claim yet.
+
+`LuaRoot::ScriptCache::loadContextScript` now checks the compiled-script map
+while holding its existing lock instead of reacquiring the recursive lock
+through helper methods. Compiled bytecode remains cached, while each builder
+still gets a fresh context and executes normally. The effect has not been
+measured.
