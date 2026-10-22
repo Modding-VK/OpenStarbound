@@ -72,3 +72,8 @@ item data is not cached. This removes repeated setup work but has no measured
 performance claim yet. Compare the same gameplay scenario and record the build,
 mods, seed, entity count, world update rate, and profiler settings before drawing
 a conclusion.
+
+`jsonMerge` also returns the base value directly when both inputs are objects
+and the merger is empty. This avoids copying an immutable object map for a
+no-op merge. It applies to callers outside `ItemDatabase` as well and has no
+measured performance claim yet.

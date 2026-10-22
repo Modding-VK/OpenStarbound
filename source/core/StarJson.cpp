@@ -1037,6 +1037,11 @@ Json const* Json::ptr(String const& key) const {
 
 Json jsonMerge(Json const& base, Json const& merger) {
   if (base.type() == Json::Type::Object && merger.type() == Json::Type::Object) {
+    // Json is immutable and implicitly shared, so an empty object is a no-op.
+    // Return the base directly instead of copying its object map.
+    if (merger.size() == 0)
+      return base;
+
     JsonObject merged = base.toObject();
     for (auto const& p : merger.toObject()) {
       auto res = merged.insert(p);
