@@ -62,6 +62,12 @@ ADD_EXECUTABLE (world_benchmark EXCLUDE_FROM_ALL
   world_benchmark.cpp)
 TARGET_LINK_LIBRARIES (world_benchmark ${STAR_EXT_LIBS})
 
+# This benchmark is opt-in because it is a developer tool and requires game assets at runtime.
+ADD_EXECUTABLE (planet_generation_benchmark EXCLUDE_FROM_ALL
+  $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base> $<TARGET_OBJECTS:star_game>
+  planet_generation_benchmark.cpp)
+TARGET_LINK_LIBRARIES (planet_generation_benchmark ${STAR_EXT_LIBS})
+
 #ADD_EXECUTABLE (generation_benchmark
 #  $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base> $<TARGET_OBJECTS:star_game>
 #  generation_benchmark.cpp)

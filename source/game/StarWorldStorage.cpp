@@ -11,6 +11,7 @@
 #include "StarAssets.hpp"
 #include "StarMaterialDatabase.hpp"
 #include "StarLiquidsDatabase.hpp"
+#include "StarTime.hpp"
 
 namespace Star {
 
@@ -204,6 +205,43 @@ void WorldStorage::triggerTerraformSector(Sector sector) {
 
 RpcPromise<Vec2I> WorldStorage::enqueuePlacement(List<BiomeItemDistribution> distributions, Maybe<DungeonId> id) {
   return m_generatorFacade->enqueuePlacement(std::move(distributions), id);
+}
+
+void WorldStorage::setGenerationProfilingEnabled(bool enabled) {
+  m_generationProfilingEnabled = enabled;
+  m_generationProfile = {};
+}
+
+Json WorldStorage::generationProfilingData() const {
+  static constexpr std::array<char const*, GenerationProfileStageCount> stageNames{{
+    "baseTiles",
+    "microDungeons",
+    "caveLiquid",
+    "finalize",
+    "terraform"
+  }};
+
+  JsonObject profile;
+  for (size_t i = 0; i < stageNames.size(); ++i) {
+    auto const& timing = m_generationProfile[i];
+    JsonObject stage;
+    stage.set("samples", timing.samples);
+    stage.set("totalMilliseconds", timing.totalSeconds * 1000.0);
+    stage.set("meanMilliseconds", timing.samples ? timing.totalSeconds * 1000.0 / timing.samples : 0.0);
+    stage.set("maximumMilliseconds", timing.maximumSeconds * 1000.0);
+    profile.set(stageNames[i], std::move(stage));
+  }
+  return profile;
+}
+
+void WorldStorage::recordGenerationProfile(size_t stage, double elapsedSeconds) {
+  if (!m_generationProfilingEnabled)
+    return;
+
+  auto& timing = m_generationProfile[stage];
+  ++timing.samples;
+  timing.totalSeconds += elapsedSeconds;
+  timing.maximumSeconds = max(timing.maximumSeconds, elapsedSeconds);
 }
 
 Maybe<float> WorldStorage::sectorTimeToLive(Sector sector) const {
@@ -626,7 +664,10 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
   auto& metadata = m_sectorMetadata[sector];
 
   if (targetGenerationLevel == SectorGenerationLevel::Complete && metadata.generationLevel == SectorGenerationLevel::Terraform) {
+    double profileStart = m_generationProfilingEnabled ? Time::monotonicTime() : 0.0;
     m_generatorFacade->terraformSector(this, sector);
+    if (m_generationProfilingEnabled)
+      recordGenerationProfile(4, Time::monotonicTime() - profileStart);
     metadata.generationLevel = SectorGenerationLevel::Complete;
     metadata.timeToLive = randomizedSectorTTL();
     return {true, 1};
@@ -651,7 +692,10 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
       }
     }
 
+    double profileStart = m_generationProfilingEnabled ? Time::monotonicTime() : 0.0;
     m_generatorFacade->generateSectorLevel(this, sector, currentGeneration);
+    if (m_generationProfilingEnabled)
+      recordGenerationProfile((size_t)currentGeneration - 1, Time::monotonicTime() - profileStart);
     metadata.generationLevel = currentGeneration;
 
     ++totalGeneratedLevels;

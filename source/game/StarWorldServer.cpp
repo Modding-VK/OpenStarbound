@@ -945,6 +945,7 @@ List<EntityId> WorldServer::entityIds() const {
 void WorldServer::setUpdateProfilingEnabled(bool enabled) {
   m_updateProfilingEnabled = enabled;
   m_updateProfile = {};
+  m_worldStorage->setGenerationProfilingEnabled(enabled);
 }
 
 Json WorldServer::updateProfilingData() const {
@@ -974,6 +975,7 @@ Json WorldServer::updateProfilingData() const {
     stage.set("maximumMilliseconds", timing.maximumSeconds * 1000.0);
     profile.set(stageNames[i], std::move(stage));
   }
+  profile.set("worldGenerationStages", m_worldStorage->generationProfilingData());
   return profile;
 }
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include "StarBTreeDatabase.hpp"
 #include "StarVersioningDatabase.hpp"
 #include "StarEntity.hpp"
@@ -158,6 +160,9 @@ public:
   // given.  If sectorOrdering is given, then it will be used to prioritize the
   // queued sectors.
   void generateQueue(Maybe<size_t> sectorGenerationLevelLimit, function<bool(Sector, Sector)> sectorOrdering = {});
+  // Enable opt-in timing of the individual terrain generation stages.
+  void setGenerationProfilingEnabled(bool enabled);
+  Json generationProfilingData() const;
   // Ticks down the TTL on sectors and generation queue entries, stores old
   // sectors, expires old generation queue entries, and unloads any zombie
   // entities.
@@ -181,6 +186,14 @@ public:
   void setFloatingDungeonWorld(bool floatingDungeonWorld);
 
 private:
+  struct GenerationProfileTiming {
+    uint64_t samples = 0;
+    double totalSeconds = 0.0;
+    double maximumSeconds = 0.0;
+  };
+
+  static constexpr size_t GenerationProfileStageCount = 5;
+
   enum class StoreType : uint8_t {
     Metadata = 0,
     TileSector = 1,
@@ -277,6 +290,8 @@ private:
   // one side because they are within range.
   List<Sector> adjacentSectors(Sector const& sector) const;
 
+  void recordGenerationProfile(size_t stage, double elapsedSeconds);
+
   // Replace the sector uniques for this sector with the given set
   void updateSectorUniques(Sector const& sector, UniqueIndexStore const& sectorUniques);
   // Merge the stored sector uniques for this sector with the given set
@@ -296,6 +311,9 @@ private:
   WorldGeneratorFacadePtr m_generatorFacade;
 
   bool m_floatingDungeonWorld;
+
+  bool m_generationProfilingEnabled = false;
+  std::array<GenerationProfileTiming, GenerationProfileStageCount> m_generationProfile{};
 
   StableHashMap<Sector, SectorMetadata> m_sectorMetadata;
   OrderedHashMap<Sector, float> m_generationQueue;

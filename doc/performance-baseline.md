@@ -2,10 +2,9 @@
 
 ## Goal
 
-Record repeatable measurements before changing simulation behavior. The first
-baseline is the aggregate server-world update cost from `world_benchmark`; it
-does not measure individual update stages or represent a full multiplayer
-session.
+Record repeatable measurements before changing simulation behavior. The tools
+measure aggregate server-world update cost and terrestrial sector generation;
+neither represents a full multiplayer session.
 
 ## Build
 
@@ -51,6 +50,30 @@ separate profiled run to locate expensive phases. Script callbacks triggered
 inside entity updates are timed under `entities`; the `scriptContexts` phase
 covers the separate world script contexts. Phase totals omit benchmark-side
 work such as the periodic `signalRegion` calls.
+
+## Terrestrial sector generation
+
+Build the opt-in planet generation benchmark:
+
+```sh
+cmake --build build/linux-release --target planet_generation_benchmark
+```
+
+Run it with the same game assets, planet type, size, and seed when comparing
+revisions:
+
+```sh
+dist/planet_generation_benchmark --type garden --size small --seed 123456789 --sectors 32
+```
+
+The benchmark constructs a terrestrial planet, selects a run of surface
+sectors away from the spawn area, and synchronously activates those sectors.
+Its report separates `baseTiles`, `microDungeons`, `caveLiquid`, `finalize`, and
+`terraform`, with sample count, total, mean, and maximum time. Counts include
+adjacent lower generation levels created to satisfy the existing border
+dependency rules. These timings identify which synchronous stage dominates
+before moving work to workers; terrain caches and world mutations still need an
+explicit snapshot and ordered-commit design before parallel execution.
 
 ## Current audit constraints
 
