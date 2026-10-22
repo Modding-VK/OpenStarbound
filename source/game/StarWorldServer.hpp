@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include "StarWorld.hpp"
 #include "StarWorldClientState.hpp"
 #include "StarCollisionGenerator.hpp"
@@ -125,6 +127,9 @@ public:
   float expiryTime();
 
   void update(float dt);
+  // Enable opt-in wall-clock timing of the major WorldServer::update phases.
+  void setUpdateProfilingEnabled(bool enabled);
+  Json updateProfilingData() const;
 
   ConnectionId connection() const override;
   WorldGeometry geometry() const override;
@@ -303,6 +308,31 @@ public:
   void setConnectionHasPermission(ConnectionId const& connectionId, WorldPermissionType const& permission, bool const& hasPermission);
 
 private:
+  enum class UpdateProfileStage : size_t {
+    SetupAndActions,
+    Entities,
+    ScriptContexts,
+    Damage,
+    Wiring,
+    Sky,
+    Weather,
+    Liquids,
+    FallingBlocks,
+    BlockDamage,
+    WorldStorageTick,
+    WorldStorageGeneration,
+    CleanupAndNetworking,
+    Count
+  };
+
+  struct UpdateProfileTiming {
+    uint64_t samples = 0;
+    double totalSeconds = 0.0;
+    double maximumSeconds = 0.0;
+  };
+
+  static constexpr size_t UpdateProfileStageCount = static_cast<size_t>(UpdateProfileStage::Count);
+
   // general data for a client, should be the same whether main or subworld.
   struct ClientInfo {
     bool local = false;
@@ -423,6 +453,8 @@ private:
   WorldGeometry m_geometry;
   double m_currentTime;
   uint64_t m_currentStep;
+  bool m_updateProfilingEnabled = false;
+  std::array<UpdateProfileTiming, UpdateProfileStageCount> m_updateProfile{};
   mutable CellularLightIntensityCalculator m_lightIntensityCalculator;
   SkyPtr m_sky;
 

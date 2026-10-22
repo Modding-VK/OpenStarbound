@@ -1,6 +1,7 @@
 #include "StarWorldServer.hpp"
 #include "StarLogging.hpp"
 #include "StarIterator.hpp"
+#include "StarTime.hpp"
 #include "StarDataStreamExtra.hpp"
 #include "StarBiome.hpp"
 #include "StarWireProcessor.hpp"
@@ -941,7 +942,57 @@ List<EntityId> WorldServer::entityIds() const {
   return m_entityMap->entityIds();
 }
 
+void WorldServer::setUpdateProfilingEnabled(bool enabled) {
+  m_updateProfilingEnabled = enabled;
+  m_updateProfile = {};
+}
+
+Json WorldServer::updateProfilingData() const {
+  static constexpr std::array<char const*, UpdateProfileStageCount> stageNames{{
+    "setupAndActions",
+    "entities",
+    "scriptContexts",
+    "damage",
+    "wiring",
+    "sky",
+    "weather",
+    "liquids",
+    "fallingBlocks",
+    "blockDamage",
+    "worldStorageTick",
+    "worldStorageGeneration",
+    "cleanupAndNetworking"
+  }};
+
+  JsonObject profile;
+  for (size_t i = 0; i < stageNames.size(); ++i) {
+    auto const& timing = m_updateProfile[i];
+    JsonObject stage;
+    stage.set("samples", timing.samples);
+    stage.set("totalMilliseconds", timing.totalSeconds * 1000.0);
+    stage.set("meanMilliseconds", timing.samples ? timing.totalSeconds * 1000.0 / timing.samples : 0.0);
+    stage.set("maximumMilliseconds", timing.maximumSeconds * 1000.0);
+    profile.set(stageNames[i], std::move(stage));
+  }
+  return profile;
+}
+
 void WorldServer::update(float dt) {
+  bool profileEnabled = m_updateProfilingEnabled;
+  double profileStageStart = profileEnabled ? Time::monotonicTime() : 0.0;
+  auto recordProfileStage = [&](UpdateProfileStage stage) {
+    if (!profileEnabled)
+      return;
+
+    double now = Time::monotonicTime();
+    double elapsed = now - profileStageStart;
+    auto& timing = m_updateProfile[static_cast<size_t>(stage)];
+    ++timing.samples;
+    timing.totalSeconds += elapsed;
+    timing.maximumSeconds = max(timing.maximumSeconds, elapsed);
+    profileStageStart = now;
+  };
+
   m_currentTime += dt;
   ++m_currentStep;
   for (auto const& pair : m_clientInfo) {
@@ -982,6 +1033,8 @@ void WorldServer::update(float dt) {
   if (doBreakChecks)
     m_needsGlobalBreakCheck = false;
 
+  recordProfileStage(UpdateProfileStage::SetupAndActions);
+
   List<EntityId> toRemove;
   m_entityMap->updateAllEntities([&](EntityPtr const& entity) {
       entity->update(dt, m_currentStep);
@@ -1001,14 +1054,24 @@ void WorldServer::update(float dt) {
       return a->entityType() < b->entityType();
     });
 
+  recordProfileStage(UpdateProfileStage::Entities);
+
   for (auto& pair : m_scriptContexts)
     pair.second->update(pair.second->updateDt(dt));
 
+  recordProfileStage(UpdateProfileStage::ScriptContexts);
+
   updateDamage(dt);
+  recordProfileStage(UpdateProfileStage::Damage);
+
   if (shouldRunThisStep("wiringUpdate"))
     m_wireProcessor->process();
 
+  recordProfileStage(UpdateProfileStage::Wiring);
+
   m_sky->update(dt);
+
+  recordProfileStage(UpdateProfileStage::Sky);
 
   StringMap<List<RectI>> weatherClientWindows;
   List<RectI> clientMonitoringRegions;
@@ -1035,20 +1098,30 @@ void WorldServer::update(float dt) {
       addEntity(std::move(projectile));
   }
 
+  recordProfileStage(UpdateProfileStage::Weather);
+
   if (shouldRunThisStep("liquidUpdate")) {
     m_liquidEngine->setProcessingLimit(m_fidelityConfig.optUInt("liquidEngineBackgroundProcessingLimit"));
     m_liquidEngine->setNoProcessingLimitRegions(clientMonitoringRegions);
     m_liquidEngine->update();
   }
 
+  recordProfileStage(UpdateProfileStage::Liquids);
+
   if (shouldRunThisStep("fallingBlocksUpdate"))
     m_fallingBlocksAgent->update();
+
+  recordProfileStage(UpdateProfileStage::FallingBlocks);
 
   if (auto delta = shouldRunThisStep("blockDamageUpdate"))
     updateDamagedBlocks(*delta * dt);
 
+  recordProfileStage(UpdateProfileStage::BlockDamage);
+
   if (auto delta = shouldRunThisStep("worldStorageTick"))
     m_worldStorage->tick(*delta * GlobalTimestep, &m_worldId);
+
+  recordProfileStage(UpdateProfileStage::WorldStorageTick);
 
   if (auto delta = shouldRunThisStep("worldStorageGenerate")) {
     m_worldStorage->generateQueue(m_fidelityConfig.optUInt("worldStorageGenerationLevelLimit"), [this](WorldStorage::Sector a, WorldStorage::Sector b) {
@@ -1065,6 +1138,8 @@ void WorldServer::update(float dt) {
         return distanceToClosestPlayer(a) < distanceToClosestPlayer(b);
       });
   }
+
+  recordProfileStage(UpdateProfileStage::WorldStorageGeneration);
 
   for (EntityId entityId : toRemove)
     removeEntity(entityId, true);
@@ -1101,6 +1176,8 @@ void WorldServer::update(float dt) {
   LogMap::set(strf("server_{}_time", m_worldId), strf("age = {:4.2f}, day = {:4.2f}/{:4.2f}s", epochTime(), timeOfDay(), dayLength()));
   LogMap::set(strf("server_{}_active_liquid", m_worldId), m_liquidEngine->activeCells());
   LogMap::set(strf("server_{}_lua_mem", m_worldId), m_luaRoot->luaMemoryUsage());
+
+  recordProfileStage(UpdateProfileStage::CleanupAndNetworking);
 }
 
 WorldGeometry WorldServer::geometry() const {

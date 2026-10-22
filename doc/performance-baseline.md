@@ -38,10 +38,19 @@ directory when its Lua root shuts down. Record the commit, compiler, build type,
 CPU model, dungeon, seed, fidelity, and each run's elapsed time and average FPS
 with the result.
 
-The tool reports aggregate simulation throughput and entity count. It does not
-yet attribute time to entity updates, scripts, wiring, liquids, or world
-generation. Those stages need separate instrumentation before optimizing any
-one of them.
+The tool always reports aggregate simulation throughput and entity count. Add
+`--stage-profiling` to also print per-phase sample count, total, mean, and maximum
+time in milliseconds for setup/actions, entities, world script contexts, damage,
+wiring, sky, weather, liquids, falling blocks, block damage, world storage,
+generation, and cleanup/networking. The `worldStorageGeneration` phase includes
+the synchronous sector generation performed by `generateQueue`.
+
+The phase timers are disabled by default. When enabled, they add clock reads to
+each world update, so use the unprofiled run for throughput comparisons and a
+separate profiled run to locate expensive phases. Script callbacks triggered
+inside entity updates are timed under `entities`; the `scriptContexts` phase
+covers the separate world script contexts. Phase totals omit benchmark-side
+work such as the periodic `signalRegion` calls.
 
 ## Current audit constraints
 

@@ -16,7 +16,8 @@ int main(int argc, char** argv) {
     rootLoader.addParameter("signalevery", "signal steps", OptionParser::Optional, "number of steps to wait between scanning and signaling all entities to stay alive, default 120");
     rootLoader.addParameter("reportevery", "report steps", OptionParser::Optional, "number of steps between each progress report, default 0 (do not report progress)");
     rootLoader.addParameter("fidelity", "server fidelity", OptionParser::Optional, "fidelity to run the server with, default high");
-    rootLoader.addSwitch("profiling", "whether to use lua profiling, prints the profile with info logging");
+    rootLoader.addSwitch("profiling", "whether to profile Lua scripts and write a .luaprofile file on shutdown");
+    rootLoader.addSwitch("stage-profiling", "whether to collect WorldServer::update phase timings");
     rootLoader.addSwitch("unsafe", "enables unsafe lua libraries");
     RootUPtr root;
     OptionParser::Options options;
@@ -62,6 +63,8 @@ int main(int argc, char** argv) {
     double sumTime = 0.0;
     for (uint64_t i = 0; i < times; ++i) {
       WorldServer worldServer(worldTemplate, File::ephemeralFile());
+      if (options.switches.contains("stage-profiling"))
+        worldServer.setUpdateProfilingEnabled(true);
 
       coutf("Starting world simulation for {} steps\n", steps);
       double start = Time::monotonicTime();
@@ -86,6 +89,8 @@ int main(int argc, char** argv) {
       double totalTime = Time::monotonicTime() - start;
       coutf("Finished run of running dungeon world '{}' with seed {} for {} steps in {} seconds, average FPS: {}\n",
             dungeon, worldSeed, steps, totalTime, steps / totalTime);
+      if (options.switches.contains("stage-profiling"))
+        coutf("World update phase timings (milliseconds): {}\n", worldServer.updateProfilingData().repr(1));
       sumTime += totalTime;
     }
 
