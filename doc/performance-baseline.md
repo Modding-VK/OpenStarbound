@@ -61,7 +61,8 @@ Entity callbacks can therefore observe spatial changes made by earlier
 callbacks in the same tick. Parallelizing this loop directly could change
 simulation and mod-visible behavior; first measure and document dependencies,
 then design a controlled snapshot/commit boundary if profiling justifies it.
-## First low-risk changes under evaluation
+
+## Low-risk changes under evaluation
 
 `jsonMerge` also returns the base value directly when both inputs are objects
 and the merger is empty. This avoids copying an immutable object map for a
@@ -73,3 +74,14 @@ while holding its existing lock instead of reacquiring the recursive lock
 through helper methods. Compiled bytecode remains cached, while each builder
 still gets a fresh context and executes normally. The effect has not been
 measured.
+
+## Uploaded startup reference
+
+The pre-change OpenStarbound 0.1.15.1 log (source ID
+`e604e078e89310f1212dd20f5cd01bd59d25300b`) reports Frackin' Universe 6.5.8 and
+`Root: Loaded ItemDatabase` in 9.653 seconds. The game then entered a world and
+shut down cleanly. This was a Windows x86_64 run with a larger mod stack, so use
+it only as a reference when the same setup is repeated; it contains no runtime
+frame-rate or CPU measurements. The log already has three missing object-script
+warnings from the ATI bridge scan and a missing StarExtensions warning for Zoom
+Keybinds.
