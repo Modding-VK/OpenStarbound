@@ -80,6 +80,11 @@ list by reference for `Object` entities. It still compares the same values and
 applies tile changes through the same path, while avoiding a temporary list
 copy. The effect has not been measured.
 
+`world.entityQuery` now writes matching IDs directly into the returned Lua
+table when no result ordering is requested. Queries requesting `nearest` or
+`random` keep the intermediate entity list needed for sorting. The effect has
+not been measured.
+
 ## Uploaded startup reference
 
 The pre-change OpenStarbound 0.1.15.1 log (source ID

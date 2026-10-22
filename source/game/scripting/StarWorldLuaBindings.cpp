@@ -148,8 +148,36 @@ namespace LuaBindings {
       return true;
     };
 
-    List<shared_ptr<EntityT>> entities;
+    LuaTable entityIds = engine.createTable();
+    int entityIdsIndex = 1;
 
+    if (!order) {
+      auto appendEntityId = [&](EntityPtr const& entity) {
+        if (auto ofType = as<EntityT>(entity)) {
+          if (innerSelector(ofType))
+            entityIds.set(entityIdsIndex++, ofType->entityId());
+        }
+      };
+
+      if (lineQuery) {
+        world->forEachEntityLine(lineQuery->min(), lineQuery->max(), appendEntityId);
+      } else if (polyQuery) {
+        world->forEachEntity(polyQuery->boundBox(), appendEntityId);
+      } else if (rectQuery) {
+        world->forEachEntity(*rectQuery, appendEntityId);
+      } else if (radiusQuery) {
+        RectF region(radiusQuery->first - Vec2F::filled(radiusQuery->second),
+            radiusQuery->first + Vec2F::filled(radiusQuery->second));
+        world->forEachEntity(region, appendEntityId);
+      } else {
+        // Global query. forAllEntities snapshots its entries so callbacks may add entities.
+        world->forAllEntities(appendEntityId);
+      }
+
+      return entityIds;
+    }
+
+    List<shared_ptr<EntityT>> entities;
     if (lineQuery) {
       entities = world->lineQuery<EntityT>(lineQuery->min(), lineQuery->max(), innerSelector);
     } else if (polyQuery) {
@@ -192,8 +220,6 @@ namespace LuaBindings {
       }
     }
 
-    LuaTable entityIds = engine.createTable();
-    int entityIdsIndex = 1;
     for (auto entity : entities)
       entityIds.set(entityIdsIndex++, entity->entityId());
 
