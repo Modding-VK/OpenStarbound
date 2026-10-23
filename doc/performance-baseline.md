@@ -6,6 +6,42 @@ Record repeatable measurements before changing simulation behavior. The tools
 measure aggregate server-world update cost and terrestrial sector generation;
 neither represents a full multiplayer session.
 
+## Accepted exploration reference — 2026-10-23
+
+Use source revision `684e6ae0ee211d7f470f17813347c32cf9a39614` on
+`perf/threading-audit` as the reference client for subsequent optimization
+comparisons. The user tested this Windows x86_64 build and confirmed that the
+lighting regression was corrected. The accompanying log identifies NVIDIA
+RTX 3050 / driver 621.01 and Frackin' Universe 6.5.8 with additional mods;
+it records world visits and a graceful shutdown. See `lighting-regression.md`.
+
+This is a functional reference for the reported lighting issue, not a measured
+performance baseline or a claim that all gameplay and multiplayer paths have
+been validated. It already includes the earlier optimization commits. Preserve
+the old upstream reference `e604e078` separately when measuring cumulative
+changes against the user's original client. Neither uploaded log supplies
+frame-time distributions or per-stage exploration timings.
+
+For the next local comparison:
+
+1. Keep the reference client and a copy of its configuration, mod versions,
+   player, and universe. Use separate working copies restored from the same
+   snapshot for each build, so one run cannot pre-generate the other's terrain.
+2. Record two scenarios separately: revisiting already generated terrain and
+   entering previously ungenerated terrain. Use the same route, travel speed,
+   zoom, resolution, graphics settings, and recording method in each comparison.
+3. Keep a log and recording per run, identified by source revision and scenario.
+   If frame-time capture is available, retain the samples and report median,
+   p95/p99, and stall counts using the same threshold and duration. Do not infer
+   a CPU bottleneck or a speedup from average FPS or startup timings alone.
+4. Use the opt-in stage benchmarks below for attribution. Their controlled
+   workloads complement the interactive runs; they do not measure the entire
+   rendering, disk-loading, and multiplayer experience.
+
+The latest log also reports a missing `osbprintedmap8x4` object while loading
+the ship. Track it separately as an unresolved asset compatibility issue; its
+presence does not establish a cause for the exploration stalls.
+
 ## Build
 
 Build the developer-only target from the source directory:

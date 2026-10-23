@@ -26,8 +26,8 @@ The shared-texture redesign was introduced in upstream commit `687e4653`,
 which is included in this branch's base `61c50860`. The earlier working log
 identifies `e604e078`, a different source revision despite the same displayed
 application version. Our optimization commits did not edit the renderer before
-this correction. The code defect explains the observed rendering symptom;
-the user's Windows scenario has not yet been rerun with the correction.
+this correction. The user subsequently confirmed that the corrected Windows
+client no longer exhibits lighting failures (see validation below).
 
 ## Correction
 
@@ -41,16 +41,21 @@ the user's Windows scenario has not yet been rerun with the correction.
 The correction is confined to renderer resource reloads. It does not change
 light propagation calculations, world generation, Lua execution, or save data.
 
-## Validation status and local follow-up
+## Validation status
 
 The modified `StarRenderer_opengl.cpp` translation unit compiled successfully
-using the configured Linux release build. No runtime regression tests were run;
-this is not a Windows graphics or gameplay validation.
+using the configured Linux release build. No automated runtime regression tests
+were run in the cloud environment.
 
-Build a new Windows client from `perf/threading-audit`; the previously downloaded
-`9f755f9e` binary does not contain this fix. With the same mods and graphics
-settings, revisit the recorded location and check daylight, enclosed darkness,
-held lights, placed lights, and emissive objects. Toggle HDR and antialiasing
-individually, then restart with those settings saved to cover startup reloads.
-Keep the new log and a short recording for comparison before drawing conclusions
-about exploration performance.
+On 2026-10-23, the user supplied a Windows log identifying corrected revision
+`684e6ae0ee211d7f470f17813347c32cf9a39614` and explicitly reported:
+"Sem falhas de iluminação, corrigido" (no lighting failures, corrected).
+The session ran from 01:20:21 to 01:23:54, recreated `lightMap` during startup
+and at 01:21:00, visited planetary worlds and the ship, and stopped gracefully.
+There are no logged shader/OpenGL errors. The visual confirmation comes from
+the user; the log alone does not establish visual correctness or exhaustive
+coverage of graphics settings.
+
+This revision is the accepted reference for subsequent exploration performance
+comparisons; see `performance-baseline.md`. The log also reports a missing ship
+object, `osbprintedmap8x4`, which remains a separate unresolved asset issue.
