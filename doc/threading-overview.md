@@ -92,6 +92,30 @@ Os mundos ativos têm WorldServerThreads distintos; portanto, mundos diferentes 
 3. Mapear locks, filas e mensagens que sincronizam universo, cliente, mundo e rede.
 4. Identificar tarefas que possam usar dados imutáveis ou snapshots e só então avaliar paralelismo, preservando ordem observável para mods e multiplayer.
 
+## Verificação pendente: logging versus scripts
+
+Na próxima auditoria, confirmar se as mensagens emitidas por `Logger` durante
+eventos, NPCs e contextos Lua são processadas na própria thread que executa o
+callback ou se são encaminhadas para uma thread dedicada de logging. Verificar
+separadamente:
+
+- `WorldServerThread` durante `WorldServer::update`, incluindo `EntityMap` e
+  callbacks de NPCs/entidades;
+- contextos Lua de mundo e scripts de entidades;
+- `ScriptableThread` criada explicitamente por Lua;
+- `WorldClientThread` e a thread principal do cliente;
+- `Logger::log`, o mutex interno e cada `LogSink`, especialmente o sink de
+  arquivo.
+
+Registrar, para cada caminho, a thread que produz a mensagem, a thread que
+executa formatação e escrita, o tempo bloqueado no logger e se o sink faz I/O
+síncrono. A conclusão deve ser baseada em instrumentação temporária com ID da
+thread e timestamps monotônicos, comparada a um callback Lua/NPC conhecido.
+Não concluir que o logger é assíncrono apenas porque possui mutex: um mutex
+protege chamadas concorrentes, mas não cria uma fila nem outra thread. Também
+verificar se mensagens de alta frequência podem bloquear o tick do mundo ou
+alterar a ordem observável dos logs.
+
 ## Código consultado
 
 - source/application/StarMainApplication_sdl.cpp: loop principal do cliente.
