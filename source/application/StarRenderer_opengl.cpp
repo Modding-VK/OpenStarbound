@@ -306,7 +306,17 @@ OpenGlRenderer::GlFrameBuffer::~GlFrameBuffer() {
 }
 
 void OpenGlRenderer::loadConfig(Json const& config) {
+  flushImmediatePrimitives();
+
+  Maybe<String> currentEffectName;
+  for (auto const& effect : m_effects) {
+    if (&effect.second == m_currentEffect)
+      currentEffectName = effect.first;
+  }
+  m_currentEffect = nullptr;
+  m_currentFrameBuffer.reset();
   m_frameBuffers.clear();
+  m_textures.clear();
 
   // Effects will keep any framebuffer textures they use
   // alive indefinitely, so clear them out here as well
@@ -342,8 +352,32 @@ void OpenGlRenderer::loadConfig(Json const& config) {
     auto tex = createGlTexture(textureAddressing,textureFiltering,initialSize);
     m_textures[pair.first] = tex;
   }
+
+  // Shared textures (including lightMap) have new objects after a reload.
+  // Reconnect every effect, including effects that are currently inactive.
+  for (auto& effect : m_effects) {
+    for (auto& texture : effect.second.textures) {
+      if (auto sharedTexture = m_textures.ptr(texture.first))
+        texture.second.textureValue = *sharedTexture;
+    }
+
+    // Framebuffer inputs take precedence over shared textures with the same
+    // name. Leave them unset so switchEffectConfig resolves the new buffers.
+    for (auto const& input : effect.second.config.getArray("frameBufferTextures", {})) {
+      if (input.optString("framebuffer")) {
+        if (auto texture = effect.second.textures.ptr(input.getString("texture")))
+          texture->textureValue.reset();
+      }
+    }
+  }
+
   setScreenSize(m_screenSize);
   m_config = config;
+
+  // Also restore the active effect's framebuffer and texture-size uniforms.
+  // Otherwise selecting the same effect would return early after a reload.
+  if (currentEffectName)
+    switchEffectConfig(*currentEffectName);
 }
 
 void OpenGlRenderer::loadEffectConfig(String const& name, Json const& effectConfig, StringMap<String> const& shaders) {
