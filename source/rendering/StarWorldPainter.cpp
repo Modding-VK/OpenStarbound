@@ -8,6 +8,7 @@
 namespace Star {
 
 WorldPainter::WorldPainter() {
+  m_explorationProfile = ExplorationProfile::create("painter");
   m_assets = Root::singleton().assets();
 
   m_camera.setScreenSize({800, 600});
@@ -23,6 +24,11 @@ WorldPainter::WorldPainter() {
   m_entityBarSize = jsonToVec2F(m_assets->json("/rendering.config:entityBarSize"));
   m_entityBarIconOffset = jsonToVec2F(m_assets->json("/rendering.config:entityBarIconOffset"));
   m_preloadTextureChance = m_assets->json("/rendering.config:preloadTextureChance").toFloat();
+}
+
+WorldPainter::~WorldPainter() {
+  if (m_explorationProfile)
+    m_explorationProfile->report(true);
 }
 
 void WorldPainter::renderInit(RendererPtr renderer) {
@@ -50,12 +56,17 @@ void WorldPainter::update(float dt) {
 }
 
 void WorldPainter::render(WorldRenderData& renderData, function<bool()> lightWaiter) {
+  if (m_explorationProfile)
+    m_explorationProfile->report();
+  ExplorationProfile::Scope total(m_explorationProfile.get(), "painter.total");
+  ExplorationProfile::Scope timing(m_explorationProfile.get(), "painter.tileSetup");
   m_camera.setScreenSize(m_renderer->screenSize());
   m_camera.setTargetPixelRatio(Root::singleton().configuration()->get("zoomLevel").toFloat());
 
   m_assets = Root::singleton().assets();
 
   m_tilePainter->setup(m_camera, renderData);
+  timing.next("painter.environment");
 
   // Stars, Debris Fields, Sky, and Orbiters
 
@@ -76,7 +87,9 @@ void WorldPainter::render(WorldRenderData& renderData, function<bool()> lightWai
 
   m_renderer->flush();
 
+  timing.next("painter.lightWait");
   bool lightMapUpdated = lightWaiter ? lightWaiter() : false;
+  timing.next("painter.lightUpload");
 
   m_renderer->setEffectParameter("lightMapEnabled", !renderData.isFullbright);
   if (renderData.isFullbright) {
@@ -93,6 +106,7 @@ void WorldPainter::render(WorldRenderData& renderData, function<bool()> lightWai
   }
 
   // Parallax layers
+  timing.next("painter.worldDraw");
 
   auto parallaxDelta = m_camera.worldGeometry().diff(m_camera.centerWorldPosition(), m_previousCameraCenter);
   if (parallaxDelta.magnitude() > 10)
@@ -155,6 +169,7 @@ void WorldPainter::render(WorldRenderData& renderData, function<bool()> lightWai
   if (dimLevel != 0)
     m_renderer->render(renderFlatRect(RectF::withSize({}, Vec2F(m_camera.screenSize())), Vec4B(renderData.dimColor, dimLevel), 0.0f));
 
+  timing.next("painter.cleanup");
   int64_t textureTimeout = m_assets->json("/rendering.config:textureTimeout").toInt();
   m_textPainter->cleanup(textureTimeout);
   m_drawablePainter->cleanup(textureTimeout);

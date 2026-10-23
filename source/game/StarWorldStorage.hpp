@@ -9,6 +9,7 @@
 #include "StarWorldTiles.hpp"
 #include "StarRpcPromise.hpp"
 #include "StarBiomePlacement.hpp"
+#include "StarExplorationProfile.hpp"
 
 namespace Star {
 
@@ -163,6 +164,7 @@ public:
   // Enable opt-in timing of the individual terrain generation stages.
   void setGenerationProfilingEnabled(bool enabled);
   Json generationProfilingData() const;
+  void setExplorationProfile(ExplorationProfilePtr profile);
   // Ticks down the TTL on sectors and generation queue entries, stores old
   // sectors, expires old generation queue entries, and unloads any zombie
   // entities.
@@ -239,11 +241,11 @@ private:
   static ByteArray writeWorldMetadata(WorldMetadataStore const& metadata);
 
   static ByteArray entitySectorKey(Sector const& sector);
-  static EntitySectorStore readEntitySector(ByteArray const& data);
+  static EntitySectorStore readEntitySector(ByteArray const& data, ExplorationProfile* profile = nullptr);
   static ByteArray writeEntitySector(EntitySectorStore const& store);
 
   static ByteArray tileSectorKey(Sector const& sector);
-  static TileSectorStore readTileSector(ByteArray const& data);
+  static TileSectorStore readTileSector(ByteArray const& data, ExplorationProfile* profile = nullptr);
   static ByteArray writeTileSector(TileSectorStore const& store);
 
   static ByteArray uniqueIndexKey(String const& uniqueId);
@@ -313,6 +315,7 @@ private:
   bool m_floatingDungeonWorld;
 
   bool m_generationProfilingEnabled = false;
+  ExplorationProfilePtr m_explorationProfile;
   std::array<GenerationProfileTiming, GenerationProfileStageCount> m_generationProfile{};
 
   StableHashMap<Sector, SectorMetadata> m_sectorMetadata;

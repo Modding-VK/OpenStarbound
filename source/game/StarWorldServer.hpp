@@ -17,6 +17,7 @@
 #include "StarWorldRenderData.hpp"
 #include "StarWarping.hpp"
 #include "StarRpcPromise.hpp"
+#include "StarExplorationProfile.hpp"
 
 namespace Star {
 
@@ -454,6 +455,7 @@ private:
   double m_currentTime;
   uint64_t m_currentStep;
   bool m_updateProfilingEnabled = false;
+  ExplorationProfilePtr m_explorationProfile;
   std::array<UpdateProfileTiming, UpdateProfileStageCount> m_updateProfile{};
   mutable CellularLightIntensityCalculator m_lightIntensityCalculator;
   SkyPtr m_sky;

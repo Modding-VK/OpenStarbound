@@ -16,6 +16,7 @@
 #include "StarLuaRoot.hpp"
 #include "StarLuaComponents.hpp"
 #include "StarTickRateMonitor.hpp"
+#include "StarExplorationProfile.hpp"
 
 namespace Star {
 
@@ -328,6 +329,7 @@ private:
   Maybe<ConnectionId> m_clientId;
 
   PlayerPtr m_mainPlayer;
+  ExplorationProfilePtr m_explorationProfile;
 
   bool m_collisionDebug;
 

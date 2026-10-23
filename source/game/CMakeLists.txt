@@ -47,6 +47,7 @@ SET (star_game_HEADERS
     StarEmoteProcessor.hpp
     StarEntityFactory.hpp
     StarEntityMap.hpp
+    StarExplorationProfile.hpp
     StarEntityRendering.hpp
     StarEntityRenderingTypes.hpp
     StarEntitySplash.hpp
@@ -321,6 +322,7 @@ SET (star_game_SOURCES
     StarEmoteProcessor.cpp
     StarEntityFactory.cpp
     StarEntityMap.cpp
+    StarExplorationProfile.cpp
     StarEntityRendering.cpp
     StarEntityRenderingTypes.cpp
     StarEntitySplash.cpp

@@ -44,6 +44,11 @@ presence does not establish a cause for the exploration stalls.
 
 ## Build
 
+For measurements during actual gameplay, use the optional runtime diagnostics
+documented in [exploration-profiling.md](exploration-profiling.md), including the
+Windows configuration and two exploration scenarios. They are disabled by default
+and are independent of the benchmark profiling switches below.
+
 Build the developer-only target from the source directory:
 
 ```sh

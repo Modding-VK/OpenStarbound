@@ -6,6 +6,7 @@
 #include "StarTextPainter.hpp"
 #include "StarDrawablePainter.hpp"
 #include "StarRenderer.hpp"
+#include "StarExplorationProfile.hpp"
 
 namespace Star {
 
@@ -15,6 +16,7 @@ STAR_CLASS(WorldPainter);
 class WorldPainter {
 public:
   WorldPainter();
+  ~WorldPainter();
 
   void renderInit(RendererPtr renderer);
 
@@ -36,6 +38,7 @@ private:
   void drawDrawableSet(List<Drawable>& drawable);
 
   WorldCamera m_camera;
+  ExplorationProfilePtr m_explorationProfile;
 
   RendererPtr m_renderer;
 

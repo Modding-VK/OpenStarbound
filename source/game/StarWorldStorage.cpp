@@ -212,6 +212,10 @@ void WorldStorage::setGenerationProfilingEnabled(bool enabled) {
   m_generationProfile = {};
 }
 
+void WorldStorage::setExplorationProfile(ExplorationProfilePtr profile) {
+  m_explorationProfile = std::move(profile);
+}
+
 Json WorldStorage::generationProfilingData() const {
   static constexpr std::array<char const*, GenerationProfileStageCount> stageNames{{
     "baseTiles",
@@ -289,6 +293,7 @@ EntityId WorldStorage::loadUniqueEntity(String const& uniqueId) {
 void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, function<bool(Sector, Sector)> sectorOrdering) {
   try {
     if (sectorOrdering) {
+      ExplorationProfile::Scope timing(m_explorationProfile.get(), "generation.queueSort");
       m_generationQueue.sort([&sectorOrdering](auto const& a, auto const& b) {
           return sectorOrdering(a.first, b.first);
         });
@@ -430,9 +435,11 @@ void WorldStorage::unloadAll(bool force) {
 }
 
 void WorldStorage::sync() {
+  ExplorationProfile::Scope timing(m_explorationProfile.get(), "storage.sync.total");
   try {
     for (auto const& pair : m_sectorMetadata)
       syncSector(pair.first);
+    ExplorationProfile::Scope commitTiming(m_explorationProfile.get(), "storage.sync.commit");
     m_db.commit();
   } catch (std::exception const& e) {
     m_db.rollback();
@@ -507,8 +514,10 @@ ByteArray WorldStorage::entitySectorKey(Sector const& sector) {
   return ds.takeData();
 }
 
-WorldStorage::EntitySectorStore WorldStorage::readEntitySector(ByteArray const& data) {
+WorldStorage::EntitySectorStore WorldStorage::readEntitySector(ByteArray const& data, ExplorationProfile* profile) {
+  ExplorationProfile::Scope timing(profile, "storage.entities.decompress");
   DataStreamBuffer ds(uncompressData(data));
+  timing.next("storage.entities.deserialize");
   auto store = ds.read<EntitySectorStore>();
   for (auto& entity : store) {
     VersionedJson::readSubVersioning(ds, entity);
@@ -533,13 +542,15 @@ ByteArray WorldStorage::tileSectorKey(Sector const& sector) {
   return ds.takeData();
 }
 
-WorldStorage::TileSectorStore WorldStorage::readTileSector(ByteArray const& data) {
+WorldStorage::TileSectorStore WorldStorage::readTileSector(ByteArray const& data, ExplorationProfile* profile) {
   auto& root = Root::singleton();
   auto matDatabase = root.materialDatabase();
   auto liqDatabase = root.liquidsDatabase();
   auto storageConfig = root.assets()->json("/worldstorage.config");
 
+  ExplorationProfile::Scope timing(profile, "storage.tiles.decompress");
   DataStreamBuffer ds(uncompressData(data));
+  timing.next("storage.tiles.deserialize");
   TileSectorStore store;
   ds.vuread(store.generationLevel);
   ds.vuread(store.tileSerializationVersion);
@@ -664,6 +675,7 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
   auto& metadata = m_sectorMetadata[sector];
 
   if (targetGenerationLevel == SectorGenerationLevel::Complete && metadata.generationLevel == SectorGenerationLevel::Terraform) {
+    ExplorationProfile::Scope timing(m_explorationProfile.get(), "generation.terraform");
     double profileStart = m_generationProfilingEnabled ? Time::monotonicTime() : 0.0;
     m_generatorFacade->terraformSector(this, sector);
     if (m_generationProfilingEnabled)
@@ -692,8 +704,13 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
       }
     }
 
+    static char const* const generationStages[] = {
+      "generation.baseTiles", "generation.microDungeons", "generation.caveLiquid", "generation.finalize", "generation.terraform"
+    };
+    ExplorationProfile::Scope timing(m_explorationProfile.get(), generationStages[(size_t)currentGeneration - 1]);
     double profileStart = m_generationProfilingEnabled ? Time::monotonicTime() : 0.0;
     m_generatorFacade->generateSectorLevel(this, sector, currentGeneration);
+    timing.stop();
     if (m_generationProfilingEnabled)
       recordGenerationProfile((size_t)currentGeneration - 1, Time::monotonicTime() - profileStart);
     metadata.generationLevel = currentGeneration;
@@ -728,24 +745,45 @@ void WorldStorage::loadSectorToLevel(Sector const& sector, SectorLoadLevel targe
     }
 
     if (currentLoad == SectorLoadLevel::Tiles) {
-      if (auto res = m_db.find(tileSectorKey(sector))) {
-        TileSectorStore sectorStore = readTileSector(*res);
-
+      ExplorationProfile::Scope total(m_explorationProfile.get(), "storage.tiles.total");
+      ExplorationProfile::Scope timing(m_explorationProfile.get(), "storage.tiles.read");
+      auto res = m_db.find(tileSectorKey(sector));
+      timing.stop();
+      if (res) {
+        if (m_explorationProfile) {
+          m_explorationProfile->count("tileSectorsFromStorage");
+          m_explorationProfile->count("tileBytesFromStorage", res->size());
+        }
+        TileSectorStore sectorStore = readTileSector(*res, m_explorationProfile.get());
+        timing.next("storage.tiles.install");
         m_tileArray->loadSector(sector, std::move(sectorStore.tiles));
 
         metadata.generationLevel = sectorStore.generationLevel;
       } else {
+        if (m_explorationProfile)
+          m_explorationProfile->count("tileSectorsDefault");
+        timing.next("storage.tiles.installDefault");
         if (!m_tileArray->sectorLoaded(sector))
           m_tileArray->loadDefaultSector(sector);
       }
 
       metadata.loadLevel = currentLoad;
+      timing.next("storage.tiles.callbacks");
       m_generatorFacade->sectorLoadLevelChanged(this, sector, currentLoad);
 
     } else if (currentLoad == SectorLoadLevel::Entities) {
+      ExplorationProfile::Scope total(m_explorationProfile.get(), "storage.entities.total");
       List<EntityPtr> addedEntities;
-      if (auto res = m_db.find(entitySectorKey(sector))) {
-        EntitySectorStore sectorStore = readEntitySector(*res);
+      ExplorationProfile::Scope timing(m_explorationProfile.get(), "storage.entities.read");
+      auto res = m_db.find(entitySectorKey(sector));
+      timing.stop();
+      if (res) {
+        if (m_explorationProfile) {
+          m_explorationProfile->count("entitySectorsFromStorage");
+          m_explorationProfile->count("entityBytesFromStorage", res->size());
+        }
+        EntitySectorStore sectorStore = readEntitySector(*res, m_explorationProfile.get());
+        timing.next("storage.entities.create");
         for (auto const& entityStore : sectorStore) {
           try {
             addedEntities.append(entityFactory->loadVersionedEntity(entityStore));
@@ -755,6 +793,9 @@ void WorldStorage::loadSectorToLevel(Sector const& sector, SectorLoadLevel targe
         }
       }
 
+      timing.next("storage.entities.init");
+      if (m_explorationProfile)
+        m_explorationProfile->count("entitiesLoaded", addedEntities.size());
       UniqueIndexStore readUniques;
       for (auto const& entity : addedEntities) {
         m_generatorFacade->initEntity(this, m_entityMap->reserveEntityId(), entity);
@@ -765,15 +806,18 @@ void WorldStorage::loadSectorToLevel(Sector const& sector, SectorLoadLevel targe
 
       // Update the stored unique ids on load, in case a desync has happened
       // and there are stale entries in the index.
+      timing.next("storage.entities.uniqueIndex");
       updateSectorUniques(sector, readUniques);
 
       metadata.loadLevel = currentLoad;
+      timing.next("storage.entities.callbacks");
       m_generatorFacade->sectorLoadLevelChanged(this, sector, currentLoad);
     }
   }
 }
 
 bool WorldStorage::unloadSectorToLevel(Sector const& sector, SectorLoadLevel targetLoadLevel, bool force) {
+  ExplorationProfile::Scope timing(m_explorationProfile.get(), "storage.unloadAttempt");
   if (!m_tileArray->sectorValid(sector) || targetLoadLevel == SectorLoadLevel::Loaded)
     return true;
 
@@ -861,6 +905,7 @@ bool WorldStorage::unloadSectorToLevel(Sector const& sector, SectorLoadLevel tar
 }
 
 void WorldStorage::syncSector(Sector const& sector) {
+  ExplorationProfile::Scope timing(m_explorationProfile.get(), "storage.sync.sector");
   if (!m_tileArray->sectorValid(sector))
     return;
 

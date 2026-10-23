@@ -47,6 +47,11 @@ Json const BaseDefaultConfiguration = Json::parseJson(R"JSON(
       },
 
       "gameServerPort" : 21025,
+      "explorationProfiling" : {
+        "enabled" : false,
+        "intervalSeconds" : 5,
+        "slowOperationMilliseconds" : 50
+      },
 )JSON"
 #ifdef STAR_SYSTEM_WINDOWS
                                                       R"JSON(

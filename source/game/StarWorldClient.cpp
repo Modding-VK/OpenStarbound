@@ -46,6 +46,7 @@ WorldClient::WorldClient(PlayerPtr mainPlayer, LuaRootPtr luaRoot, UniverseClien
   
   m_headless = false;
   m_subWorldId = MainClientWorldId;
+  m_explorationProfile = ExplorationProfile::create("client", strf("slot:{}", m_subWorldId));
 
   m_currentStep = 0;
   m_currentTime = 0;
@@ -128,6 +129,7 @@ WorldClient::WorldClient(ClientSubWorldId subWorldId, UniverseClient* universe) 
 
   m_inWorld = false;
   m_subWorldId = subWorldId;
+  m_explorationProfile = ExplorationProfile::create("client", strf("slot:{}", m_subWorldId));
 
   m_luaRoot = make_shared<LuaRoot>();
   m_luaRoot->luaEngine().setNullTerminated(false);
@@ -157,6 +159,8 @@ WorldClient::WorldClient(ClientSubWorldId subWorldId, UniverseClient* universe) 
 }
 
 WorldClient::~WorldClient() {
+  if (m_explorationProfile)
+    m_explorationProfile->report(true);
   if (m_lightingThread) {
     m_stopLightingThread = true;
     {
@@ -537,6 +541,7 @@ WorldClientState& WorldClient::clientState() {
 void WorldClient::render(WorldRenderData& renderData, unsigned bufferTiles) {
   if (m_headless)
     return;
+  ExplorationProfile::Scope timing(m_explorationProfile.get(), "client.prepareRenderData");
   
   if (!m_lightingThread && m_asyncLighting)
     m_lightingThread = Thread::invoke("WorldClient::lightingMain", mem_fn(&WorldClient::lightingMain), this);
@@ -939,6 +944,11 @@ void WorldClient::setCollisionDebug(bool collisionDebug) {
 }
 
 void WorldClient::handleIncomingPackets(List<PacketPtr> const& packets) {
+  if (m_explorationProfile) {
+    m_explorationProfile->report();
+    m_explorationProfile->count("packetsApplied", packets.size());
+  }
+  ExplorationProfile::Scope timing(m_explorationProfile.get(), "client.applyPacketBatch");
   auto& root = Root::singleton();
   auto materialDatabase = root.materialDatabase();
   auto itemDatabase = root.itemDatabase();
@@ -956,6 +966,7 @@ void WorldClient::handleIncomingPackets(List<PacketPtr> const& packets) {
       clearWorld();
 
     } else if (auto entityCreate = as<EntityCreatePacket>(packet)) {
+      ExplorationProfile::Scope entityTiming(m_explorationProfile.get(), "client.createEntity");
       if (m_entityMap->entity(entityCreate->entityId)) {
         Logger::error("WorldClient received entity create packet with duplicate entity id {}, deleting old entity.", entityCreate->entityId);
         removeEntity(entityCreate->entityId, false);
@@ -1012,6 +1023,9 @@ void WorldClient::handleIncomingPackets(List<PacketPtr> const& packets) {
       m_centralStructure = WorldStructure(structurePacket->structureData);
 
     } else if (auto tileArrayUpdate = as<TileArrayUpdatePacket>(packet)) {
+      ExplorationProfile::Scope tileTiming(m_explorationProfile.get(), "client.applyTileArray");
+      if (m_explorationProfile)
+        m_explorationProfile->count("tileArrayPackets");
       RectI tileRegion = RectI::withSize(tileArrayUpdate->min, Vec2I(tileArrayUpdate->array.size()));
 
       // NOTE: We're creating client side sectors on tileArrayUpdate here, and
@@ -1322,6 +1336,10 @@ void WorldClient::update(float dt) {
   
   if (!inWorld())
     return;
+
+  if (m_explorationProfile)
+    m_explorationProfile->report();
+  ExplorationProfile::Scope timing(m_explorationProfile.get(), "client.update");
 
   auto assets = Root::singleton().assets();
 
@@ -2050,6 +2068,9 @@ void WorldClient::lightingMain() {
 }
 
 void WorldClient::initWorld(WorldStartPacket const& startPacket) {
+  ExplorationProfile::Scope timing(m_explorationProfile.get(), "client.initWorld");
+  if (m_explorationProfile)
+    m_explorationProfile->count("worldStarts");
   clearWorld();
   m_outgoingPackets.append(make_shared<WorldStartAcknowledgePacket>());
 

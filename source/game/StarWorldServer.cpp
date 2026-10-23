@@ -30,6 +30,14 @@
 
 namespace Star {
 
+namespace {
+char const* const UpdateProfileStageNames[] = {
+  "setupAndActions", "entities", "scriptContexts", "damage", "wiring",
+  "sky", "weather", "liquids", "fallingBlocks", "blockDamage",
+  "worldStorageTick", "worldStorageGeneration", "cleanupAndNetworking"
+};
+}
+
 EnumMap<WorldServerFidelity> const WorldServerFidelityNames{
   {WorldServerFidelity::Minimum, "minimum"},
   {WorldServerFidelity::Low, "low"},
@@ -75,6 +83,8 @@ WorldServer::WorldServer(WorldChunks const& chunks) {
 }
 
 WorldServer::~WorldServer() {
+  if (m_explorationProfile)
+    m_explorationProfile->report(true);
   for (auto& p : m_scriptContexts)
     p.second->uninit();
 
@@ -86,6 +96,8 @@ WorldServer::~WorldServer() {
 
 void WorldServer::setWorldId(String worldId) {
   m_worldId = std::move(worldId);
+  if (m_explorationProfile)
+    m_explorationProfile->setContext(m_worldId);
 }
 
 String const& WorldServer::worldId() const {
@@ -949,38 +961,26 @@ void WorldServer::setUpdateProfilingEnabled(bool enabled) {
 }
 
 Json WorldServer::updateProfilingData() const {
-  static constexpr std::array<char const*, UpdateProfileStageCount> stageNames{{
-    "setupAndActions",
-    "entities",
-    "scriptContexts",
-    "damage",
-    "wiring",
-    "sky",
-    "weather",
-    "liquids",
-    "fallingBlocks",
-    "blockDamage",
-    "worldStorageTick",
-    "worldStorageGeneration",
-    "cleanupAndNetworking"
-  }};
-
+  static_assert(sizeof(UpdateProfileStageNames) / sizeof(*UpdateProfileStageNames) == UpdateProfileStageCount);
   JsonObject profile;
-  for (size_t i = 0; i < stageNames.size(); ++i) {
+  for (size_t i = 0; i < UpdateProfileStageCount; ++i) {
     auto const& timing = m_updateProfile[i];
     JsonObject stage;
     stage.set("samples", timing.samples);
     stage.set("totalMilliseconds", timing.totalSeconds * 1000.0);
     stage.set("meanMilliseconds", timing.samples ? timing.totalSeconds * 1000.0 / timing.samples : 0.0);
     stage.set("maximumMilliseconds", timing.maximumSeconds * 1000.0);
-    profile.set(stageNames[i], std::move(stage));
+    profile.set(UpdateProfileStageNames[i], std::move(stage));
   }
   profile.set("worldGenerationStages", m_worldStorage->generationProfilingData());
   return profile;
 }
 
 void WorldServer::update(float dt) {
-  bool profileEnabled = m_updateProfilingEnabled;
+  if (m_explorationProfile)
+    m_explorationProfile->report();
+  ExplorationProfile::Scope updateScope(m_explorationProfile.get(), "serverUpdate");
+  bool profileEnabled = m_updateProfilingEnabled || m_explorationProfile;
   double profileStageStart = profileEnabled ? Time::monotonicTime() : 0.0;
   auto recordProfileStage = [&](UpdateProfileStage stage) {
     if (!profileEnabled)
@@ -988,10 +988,14 @@ void WorldServer::update(float dt) {
 
     double now = Time::monotonicTime();
     double elapsed = now - profileStageStart;
-    auto& timing = m_updateProfile[static_cast<size_t>(stage)];
-    ++timing.samples;
-    timing.totalSeconds += elapsed;
-    timing.maximumSeconds = max(timing.maximumSeconds, elapsed);
+    if (m_updateProfilingEnabled) {
+      auto& timing = m_updateProfile[static_cast<size_t>(stage)];
+      ++timing.samples;
+      timing.totalSeconds += elapsed;
+      timing.maximumSeconds = max(timing.maximumSeconds, elapsed);
+    }
+    if (m_explorationProfile)
+      m_explorationProfile->record(UpdateProfileStageNames[static_cast<size_t>(stage)], elapsed);
     profileStageStart = now;
   };
 
@@ -1863,6 +1867,8 @@ bool WorldServer::isFloatingDungeonWorld() const {
 }
 
 void WorldServer::init(bool firstTime) {
+  m_explorationProfile = ExplorationProfile::create("server", m_worldId);
+  m_worldStorage->setExplorationProfile(m_explorationProfile);
   auto& root = Root::singleton();
   auto assets = root.assets();
   auto liquidsDatabase = root.liquidsDatabase();
