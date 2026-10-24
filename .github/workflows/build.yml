@@ -29,7 +29,10 @@ on:
 
   push:
     paths:
+      - '.github/workflows/build.yml'
       - 'assets/**'
+      - 'scripts/ci/**'
+      - 'scripts/inno/**'
       - 'source/**'
       - 'toolchains/**'
       - 'triplets/**'
@@ -38,7 +41,10 @@ on:
 
   pull_request:
     paths:
+      - '.github/workflows/build.yml'
       - 'assets/**'
+      - 'scripts/ci/**'
+      - 'scripts/inno/**'
       - 'source/**'
       - 'toolchains/**'
       - 'triplets/**'
