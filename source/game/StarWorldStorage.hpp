@@ -169,7 +169,8 @@ public:
   // increases of SectorGenerationLevel by the sectorGenerationLevelLimit, if
   // given.  If sectorOrdering is given, then it will be used to prioritize the
   // queued sectors.
-  void generateQueue(Maybe<size_t> sectorGenerationLevelLimit, function<bool(Sector, Sector)> sectorOrdering = {});
+  void generateQueue(Maybe<size_t> sectorGenerationLevelLimit, double timeLimit,
+      function<bool(Sector, Sector)> sectorOrdering = {});
   // Enable opt-in timing of the individual terrain generation stages.
   void setGenerationProfilingEnabled(bool enabled);
   Json generationProfilingData() const;
@@ -281,7 +282,7 @@ private:
   // levels increased.  If any sector's generation level is brought up at all,
   // it will also reset the TTL for that sector.
   pair<bool, size_t> generateSectorToLevel(Sector const& sector, SectorGenerationLevel targetGenerationLevel,
-      size_t sectorGenerationLevelLimit = NPos, bool allowAsync = false);
+      size_t sectorGenerationLevelLimit, bool allowAsync, double generationDeadline);
 
   // Bring the sector up to the given load level, and all surrounding sectors
   // as appropriate.  If the load level is brought up, also resets the TTL.

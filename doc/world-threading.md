@@ -82,6 +82,28 @@ Only `BaseTiles` is asynchronous in this phase. Microdungeons, cave liquids,
 finalization, entity construction, Lua initialization, tile installation, and
 network updates remain on the world thread.
 
+## Generation time budget
+
+The remaining generation stages write shared tiles and can create entities, so
+they keep their serial execution. To prevent several completed stages from
+accumulating in one world update, the generation queue has a per-tick wall-clock
+budget. It stops between complete generation stages and resumes the same sector
+on the following tick; no partial microdungeon or finalization result is exposed.
+
+The budget is selected by server fidelity in `worldserver.config`:
+
+| Fidelity | Budget per generation tick |
+| --- | ---: |
+| `minimum` | 6 ms |
+| `low` | 8 ms |
+| `medium` | 12 ms |
+| `high` | 16 ms |
+
+One individual stage can exceed its budget because it is completed atomically.
+The limit prevents multiple such stages from being combined into a much longer
+single update. It complements `worldStorageGenerationLevelLimit`, which limits
+the number of completed stages rather than elapsed time.
+
 ## Profiling
 
 With exploration profiling enabled, worker execution is reported as

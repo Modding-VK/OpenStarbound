@@ -1131,7 +1131,8 @@ void WorldServer::update(float dt) {
   recordProfileStage(UpdateProfileStage::WorldStorageTick);
 
   if (auto delta = shouldRunThisStep("worldStorageGenerate")) {
-    m_worldStorage->generateQueue(m_fidelityConfig.optUInt("worldStorageGenerationLevelLimit"), [this](WorldStorage::Sector a, WorldStorage::Sector b) {
+    double generationTimeLimit = m_fidelityConfig.optUInt("worldStorageGenerationTimeLimit").value(12) / 1000.0;
+    m_worldStorage->generateQueue(m_fidelityConfig.optUInt("worldStorageGenerationLevelLimit"), generationTimeLimit, [this](WorldStorage::Sector a, WorldStorage::Sector b) {
         auto distanceToClosestPlayer = [this](WorldStorage::Sector sector) {
           Vec2F sectorCenter = RectF(*m_worldStorage->regionForSector(sector)).center();
           float distance = highest<float>();

@@ -109,6 +109,7 @@ Campos principais:
 | `generation.queueSort` | Ordenação da fila por proximidade dos jogadores. |
 | `generation.baseTiles`, `.microDungeons`, `.caveLiquid`, `.finalize`, `.terraform` | Chamadas das etapas de geração; dependências de setores vizinhos são processadas pelo caminho existente. |
 | `generation.baseTiles.worker` | Tempo de relógio gasto por um worker na preparação isolada dos tiles básicos quando `worldThreading.sectorWorkers` está habilitado. Inclui a reconstrução do snapshot privado na primeira tarefa de cada worker ou após uma revisão do template; as tarefas seguintes reutilizam esse snapshot. Não representa espera da thread do mundo. |
+| `generation.timeBudgetExhausted` | Número de atualizações que alcançaram o orçamento de geração com setores ainda pendentes. O trabalho é retomado no tick seguinte, entre etapas completas. |
 | `storage.tiles.read`, `storage.entities.read` | Busca no banco de setores, incluindo consultas sem resultado. Pode usar caches; não é tempo de leitura física do disco. |
 | `storage.*.decompress` | Descompressão dos dados recuperados para carregar setores. |
 | `storage.*.deserialize` | Decodificação dos tiles/entidades armazenados, incluindo validação de tiles. |

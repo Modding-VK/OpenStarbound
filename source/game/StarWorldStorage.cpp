@@ -164,7 +164,7 @@ void WorldStorage::loadSector(Sector sector) {
 
 void WorldStorage::activateSector(Sector sector) {
   try {
-    generateSectorToLevel(sector, SectorGenerationLevel::Complete);
+    generateSectorToLevel(sector, SectorGenerationLevel::Complete, NPos, false, highest<double>());
     setSectorTimeToLive(sector, randomizedSectorTTL());
   } catch (std::exception const& e) {
     m_db.rollback();
@@ -191,7 +191,7 @@ void WorldStorage::triggerTerraformSector(Sector sector) {
     loadSectorToLevel(sector, SectorLoadLevel::Loaded);
     if (auto p = m_sectorMetadata.ptr(sector)) {
       if (p->generationLevel < SectorGenerationLevel::Complete)
-        generateSectorToLevel(sector, SectorGenerationLevel::Complete);
+        generateSectorToLevel(sector, SectorGenerationLevel::Complete, NPos, false, highest<double>());
 
       p->generationLevel = SectorGenerationLevel::Terraform;
       m_tileArray->markSectorDirty(sector);
@@ -292,8 +292,10 @@ EntityId WorldStorage::loadUniqueEntity(String const& uniqueId) {
   return {};
 }
 
-void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, function<bool(Sector, Sector)> sectorOrdering) {
+void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, double timeLimit,
+    function<bool(Sector, Sector)> sectorOrdering) {
   try {
+    double generationDeadline = Time::monotonicTime() + max(0.0, timeLimit);
     if (sectorOrdering) {
       ExplorationProfile::Scope timing(m_explorationProfile.get(), "generation.queueSort");
       m_generationQueue.sort([&sectorOrdering](auto const& a, auto const& b) {
@@ -304,13 +306,13 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, funct
     bool schedulingOnly = false;
     size_t visitedSectors = 0;
     while (!m_generationQueue.empty()) {
-      if (sectorGenerationLevelLimit && *sectorGenerationLevelLimit == 0)
+      if ((sectorGenerationLevelLimit && *sectorGenerationLevelLimit == 0) || Time::monotonicTime() >= generationDeadline)
         break;
 
       auto sector = m_generationQueue.firstKey();
       auto targetLevel = schedulingOnly ? SectorGenerationLevel::BaseTiles : SectorGenerationLevel::Complete;
       auto p = generateSectorToLevel(sector, targetLevel,
-          sectorGenerationLevelLimit.value(NPos), true);
+          sectorGenerationLevelLimit.value(NPos), true, generationDeadline);
       if (!schedulingOnly && p.first) {
         m_generationQueue.removeFirst();
       } else if (!schedulingOnly) {
@@ -328,6 +330,8 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, funct
       if (schedulingOnly && ++visitedSectors >= m_generationQueue.size())
         break;
     }
+    if (!m_generationQueue.empty() && Time::monotonicTime() >= generationDeadline && m_explorationProfile)
+      m_explorationProfile->count("generation.timeBudgetExhausted");
   } catch (std::exception const& e) {
     m_db.rollback();
     m_db.close();
@@ -686,7 +690,10 @@ float WorldStorage::randomizedSectorTTL() const {
 }
 
 pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, SectorGenerationLevel targetGenerationLevel,
-    size_t sectorGenerationLevelLimit, bool allowAsync) {
+    size_t sectorGenerationLevelLimit, bool allowAsync, double generationDeadline) {
+  if (Time::monotonicTime() >= generationDeadline)
+    return {false, 0};
+
   if (!m_tileArray->sectorValid(sector))
     return {false, 0};
 
@@ -719,7 +726,7 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
     if (stepDownGeneration != SectorGenerationLevel::None) {
       for (auto adjacentSector : adjacentSectors(sector)) {
         auto p = generateSectorToLevel(adjacentSector, stepDownGeneration,
-            sectorGenerationLevelLimit - totalGeneratedLevels, allowAsync);
+            sectorGenerationLevelLimit - totalGeneratedLevels, allowAsync, generationDeadline);
         totalGeneratedLevels += p.second;
         if (!p.first || totalGeneratedLevels >= sectorGenerationLevelLimit)
           return {false, totalGeneratedLevels};
@@ -755,7 +762,7 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
     m_tileArray->markSectorDirty(sector);
 
     ++totalGeneratedLevels;
-    if (totalGeneratedLevels >= sectorGenerationLevelLimit)
+    if (totalGeneratedLevels >= sectorGenerationLevelLimit || Time::monotonicTime() >= generationDeadline)
       return {metadata.generationLevel == targetGenerationLevel, totalGeneratedLevels};
   }
 
