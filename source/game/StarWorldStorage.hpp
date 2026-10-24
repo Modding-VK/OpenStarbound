@@ -337,6 +337,7 @@ private:
   // passing through WorldStorage.
   StableHashMap<Sector, uint64_t> m_syncedTileRevisions;
   OrderedHashMap<Sector, float> m_generationQueue;
+  HashMap<Sector, double> m_generationQueuedAt;
   BTreeDatabase m_db;
 };
 

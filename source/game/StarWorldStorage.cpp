@@ -182,6 +182,8 @@ void WorldStorage::queueSectorActivation(Sector sector) {
   }
 
   auto p = m_generationQueue.insert(sector, m_generationQueueTimeToLive);
+  if (p.second && m_explorationProfile)
+    m_generationQueuedAt[sector] = Time::monotonicTime();
   p.first->second = m_generationQueueTimeToLive;
   m_generationQueue.toFront(p.first);
 }
@@ -296,6 +298,15 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     function<bool(Sector, Sector)> sectorOrdering) {
   try {
     double generationDeadline = Time::monotonicTime() + max(0.0, timeLimit);
+    if (m_explorationProfile && !m_generationQueue.empty()) {
+      m_explorationProfile->count("generation.queueDepthSamples");
+      m_explorationProfile->count("generation.queueDepthTotal", m_generationQueue.size());
+      double oldestQueuedAt = Time::monotonicTime();
+      for (auto const& entry : m_generationQueuedAt)
+        oldestQueuedAt = min(oldestQueuedAt, entry.second);
+      m_explorationProfile->record("generation.oldestQueuedAge",
+          Time::monotonicTime() - oldestQueuedAt);
+    }
     if (sectorOrdering) {
       ExplorationProfile::Scope timing(m_explorationProfile.get(), "generation.queueSort");
       m_generationQueue.sort([&sectorOrdering](auto const& a, auto const& b) {
@@ -315,6 +326,13 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
           sectorGenerationLevelLimit.value(NPos), true, generationDeadline);
       if (!schedulingOnly && p.first) {
         m_generationQueue.removeFirst();
+        if (auto queuedAt = m_generationQueuedAt.ptr(sector)) {
+          if (m_explorationProfile) {
+            m_explorationProfile->record("generation.sectorWait", Time::monotonicTime() - *queuedAt);
+            m_explorationProfile->count("generation.sectorsCompleted");
+          }
+          m_generationQueuedAt.remove(sector);
+        }
       } else if (!schedulingOnly) {
         // Preserve ordered processing of higher generation levels. Once the
         // first requested sector blocks on asynchronous base tiles, later
@@ -342,9 +360,15 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
 void WorldStorage::tick(float dt, String const* worldId) {
   try {
     // Tick down generation queue entries, and erase any that are expired.
-    eraseWhere(m_generationQueue, [dt](auto& p) {
+    eraseWhere(m_generationQueue, [this, dt](auto& p) {
         p.second -= dt;
-        return p.second <= 0.0f;
+        if (p.second <= 0.0f) {
+          m_generationQueuedAt.remove(p.first);
+          if (m_explorationProfile)
+            m_explorationProfile->count("generation.sectorsExpired");
+          return true;
+        }
+        return false;
       });
 
     // Tick down sector TTL values

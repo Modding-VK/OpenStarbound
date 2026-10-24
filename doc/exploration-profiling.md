@@ -79,6 +79,16 @@ da partida. As estatísticas são zeradas após cada relatório.
 
 Campos principais:
 
+Na geração de setores, `generation.queueDepthTotal` dividido por
+`generation.queueDepthSamples` dá a profundidade média observada da fila.
+`generation.oldestQueuedAge` mede, em segundos, a idade do pedido mais antigo
+em cada amostragem. `generation.sectorWait` mede, em segundos, o tempo entre o
+primeiro pedido e a conclusão de cada setor. `generation.sectorsCompleted` e
+`generation.sectorsExpired` distinguem trabalho concluído de pedidos removidos
+após expirarem. Compare essas medidas com `generation.timeBudgetExhausted` e
+com os tempos de `generation.microDungeons` para investigar estruturas que
+aparecem lentamente durante a exploração.
+
 - `component`: `server`, `client` ou `painter`.
 - `instance`: distingue coletores dentro do processo.
 - `context`: identifica o mundo no servidor e o slot no cliente. O pintor não
