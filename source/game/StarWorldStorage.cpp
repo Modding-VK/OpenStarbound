@@ -299,15 +299,32 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, funct
         });
     }
 
+    bool schedulingOnly = false;
+    size_t visitedSectors = 0;
     while (!m_generationQueue.empty()) {
       if (sectorGenerationLevelLimit && *sectorGenerationLevelLimit == 0)
         break;
 
-      auto p = generateSectorToLevel(m_generationQueue.firstKey(), SectorGenerationLevel::Complete, sectorGenerationLevelLimit.value(NPos));
-      if (p.first)
+      auto sector = m_generationQueue.firstKey();
+      auto targetLevel = schedulingOnly ? SectorGenerationLevel::BaseTiles : SectorGenerationLevel::Complete;
+      auto p = generateSectorToLevel(sector, targetLevel,
+          sectorGenerationLevelLimit.value(NPos), true);
+      if (!schedulingOnly && p.first) {
         m_generationQueue.removeFirst();
+      } else if (!schedulingOnly) {
+        // Preserve ordered processing of higher generation levels. Once the
+        // first requested sector blocks on asynchronous base tiles, later
+        // sectors may only schedule or commit their independent BaseTiles
+        // stage during this pass.
+        schedulingOnly = true;
+        m_generationQueue.toBack(sector);
+      } else {
+        m_generationQueue.toBack(sector);
+      }
       if (sectorGenerationLevelLimit)
         *sectorGenerationLevelLimit -= p.second;
+      if (schedulingOnly && ++visitedSectors >= m_generationQueue.size())
+        break;
     }
   } catch (std::exception const& e) {
     m_db.rollback();
@@ -666,7 +683,8 @@ float WorldStorage::randomizedSectorTTL() const {
   return Random::randf(m_sectorTimeToLive[0], m_sectorTimeToLive[1]);
 }
 
-pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, SectorGenerationLevel targetGenerationLevel, size_t sectorGenerationLevelLimit) {
+pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, SectorGenerationLevel targetGenerationLevel,
+    size_t sectorGenerationLevelLimit, bool allowAsync) {
   if (!m_tileArray->sectorValid(sector))
     return {false, 0};
 
@@ -697,7 +715,8 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
 
     if (stepDownGeneration != SectorGenerationLevel::None) {
       for (auto adjacentSector : adjacentSectors(sector)) {
-        auto p = generateSectorToLevel(adjacentSector, stepDownGeneration, sectorGenerationLevelLimit - totalGeneratedLevels);
+        auto p = generateSectorToLevel(adjacentSector, stepDownGeneration,
+            sectorGenerationLevelLimit - totalGeneratedLevels, allowAsync);
         totalGeneratedLevels += p.second;
         if (!p.first || totalGeneratedLevels >= sectorGenerationLevelLimit)
           return {false, totalGeneratedLevels};
@@ -707,12 +726,26 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
     static char const* const generationStages[] = {
       "generation.baseTiles", "generation.microDungeons", "generation.caveLiquid", "generation.finalize", "generation.terraform"
     };
-    ExplorationProfile::Scope timing(m_explorationProfile.get(), generationStages[(size_t)currentGeneration - 1]);
+    static char const* const workerStages[] = {
+      "generation.baseTiles.worker", "generation.microDungeons.worker",
+      "generation.caveLiquid.worker", "generation.finalize.worker", "generation.terraform.worker"
+    };
+    size_t stageIndex = (size_t)currentGeneration - 1;
+    ExplorationProfile::Scope timing(m_explorationProfile.get(), generationStages[stageIndex]);
     double profileStart = m_generationProfilingEnabled ? Time::monotonicTime() : 0.0;
-    m_generatorFacade->generateSectorLevel(this, sector, currentGeneration);
+    auto generationResult = m_generatorFacade->generateSectorLevel(this, sector, currentGeneration, allowAsync);
+    if (!generationResult.complete) {
+      timing.stop();
+      return {false, totalGeneratedLevels};
+    }
     timing.stop();
-    if (m_generationProfilingEnabled)
-      recordGenerationProfile((size_t)currentGeneration - 1, Time::monotonicTime() - profileStart);
+    if (generationResult.workerElapsedSeconds) {
+      if (m_explorationProfile)
+        m_explorationProfile->record(workerStages[stageIndex], *generationResult.workerElapsedSeconds);
+      recordGenerationProfile(stageIndex, *generationResult.workerElapsedSeconds);
+    } else if (m_generationProfilingEnabled) {
+      recordGenerationProfile(stageIndex, Time::monotonicTime() - profileStart);
+    }
     metadata.generationLevel = currentGeneration;
 
     ++totalGeneratedLevels;

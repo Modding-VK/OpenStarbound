@@ -25,6 +25,7 @@
 #include "StarLiquidsDatabase.hpp"
 #include "StarStagehand.hpp"
 #include "StarVehicleDatabase.hpp"
+#include "StarTime.hpp"
 
 namespace Star {
 
@@ -46,6 +47,61 @@ CollisionKind biomeForegroundCollision(MaterialDatabaseConstPtr const& materialD
     return currentCollision;
 
   return newCollision;
+}
+
+void prepareBaseTileArray(WorldTemplatePtr const& planet, MaterialDatabaseConstPtr const& materialDatabase,
+    RectI const& sectorRegion, ServerTileSectorArray::Array& tiles) {
+  for (int x = sectorRegion.xMin(); x < sectorRegion.xMax(); ++x) {
+    for (int y = sectorRegion.yMin(); y < sectorRegion.yMax(); ++y) {
+      ServerTile& tile = tiles(x - sectorRegion.xMin(), y - sectorRegion.yMin());
+      auto blockInfo = planet->blockInfo(x, y);
+
+      tile.blockBiomeIndex = blockInfo.blockBiomeIndex;
+      tile.environmentBiomeIndex = blockInfo.environmentBiomeIndex;
+      tile.biomeTransition = blockInfo.biomeTransition;
+
+      if (tile.foreground == NullMaterialId) {
+        tile.foreground = blockInfo.foreground;
+        tile.foregroundColorVariant = DefaultMaterialColorVariant;
+        tile.foregroundHueShift = planet->biomeMaterialHueShift(tile.blockBiomeIndex, tile.foreground);
+
+        if (materialDatabase->supportsMod(tile.foreground, blockInfo.foregroundMod)) {
+          tile.foregroundMod = blockInfo.foregroundMod;
+          tile.foregroundModHueShift = planet->biomeModHueShift(tile.blockBiomeIndex, tile.foregroundMod);
+        }
+      }
+
+      if (tile.background == NullMaterialId) {
+        tile.background = blockInfo.background;
+        tile.backgroundColorVariant = DefaultMaterialColorVariant;
+        tile.backgroundHueShift = planet->biomeMaterialHueShift(tile.blockBiomeIndex, tile.background);
+
+        if (materialDatabase->supportsMod(tile.background, blockInfo.backgroundMod)) {
+          tile.backgroundMod = blockInfo.backgroundMod;
+          tile.backgroundModHueShift = planet->biomeModHueShift(tile.blockBiomeIndex, tile.backgroundMod);
+        }
+      }
+
+      if (tile.foreground != EmptyMaterialId) {
+        tile.liquid = LiquidStore();
+      } else if (blockInfo.oceanLiquid != EmptyLiquidId && y < blockInfo.oceanLiquidLevel) {
+        float pressure = blockInfo.oceanLiquidLevel - y;
+        if (tile.background == EmptyMaterialId)
+          tile.liquid = LiquidStore::endless(blockInfo.oceanLiquid, pressure);
+        else if (blockInfo.encloseLiquids)
+          tile.liquid = LiquidStore::filled(blockInfo.oceanLiquid, 1.0f, pressure);
+      }
+    }
+  }
+}
+
+WorkerPool& worldSectorWorkerPool() {
+  static WorkerPool pool = [] {
+    auto threadingConfig = Root::singleton().configuration()->get("worldThreading", JsonObject());
+    unsigned sectorWorkers = clamp<unsigned>(threadingConfig.getUInt("sectorWorkers", 0), 0, 8);
+    return WorkerPool("WorldSectorGeneration", sectorWorkers);
+  }();
+  return pool;
 }
 
 }
@@ -667,9 +723,10 @@ WorldGenerator::WorldGenerator(WorldServer* server) : m_worldServer(server) {
   m_microDungeonFactory = make_shared<MicroDungeonFactory>();
 }
 
-void WorldGenerator::generateSectorLevel(WorldStorage* worldStorage, Sector const& sector, SectorGenerationLevel generationLevel) {
+SectorGenerationResult WorldGenerator::generateSectorLevel(WorldStorage* worldStorage, Sector const& sector,
+    SectorGenerationLevel generationLevel, bool allowAsync) {
   if (generationLevel == SectorGenerationLevel::BaseTiles) {
-    prepareTiles(worldStorage, sector);
+    return prepareTilesAsync(worldStorage, sector, allowAsync);
   } else if (generationLevel == SectorGenerationLevel::MicroDungeons) {
     if (!worldStorage->floatingDungeonWorld())
       generateMicroDungeons(worldStorage, sector);
@@ -683,6 +740,7 @@ void WorldGenerator::generateSectorLevel(WorldStorage* worldStorage, Sector cons
       prepareSectorBiomeBlocks(worldStorage, sector);
     m_worldServer->activateLiquidRegion(worldStorage->tileArray()->sectorRegion(sector));
   }
+  return {true, {}};
 }
 
 void WorldGenerator::sectorLoadLevelChanged(WorldStorage* worldStorage, Sector const& sector, SectorLoadLevel loadLevel) {
@@ -784,56 +842,65 @@ void WorldGenerator::replaceBiomeBlocks(ServerTile* tile) {
 void WorldGenerator::prepareTiles(WorldStorage* worldStorage, ServerTileSectorArray::Sector const& sector) {
   auto materialDatabase = Root::singleton().materialDatabase();
   auto planet = m_worldServer->worldTemplate();
-  // Generate sector.
   auto tileArray = worldStorage->tileArray();
   RectI sectorRegion = tileArray->sectorRegion(sector);
-  for (int x = sectorRegion.xMin(); x < sectorRegion.xMax(); ++x) {
-    for (int y = sectorRegion.yMin(); y < sectorRegion.yMax(); ++y) {
-      Vec2I pos(x, y);
-      ServerTile* tile = tileArray->modifyTile(pos);
-      starAssert(tile);
-      if (!tile)
-        continue;
+  auto tiles = tileArray->sectorArray(sector);
+  starAssert(tiles);
+  prepareBaseTileArray(planet, materialDatabase, sectorRegion, *tiles);
+}
 
-      auto blockInfo = planet->blockInfo(pos[0], pos[1]);
+SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStorage,
+    ServerTileSectorArray::Sector const& sector, bool allowAsync) {
+  auto pending = m_pendingBaseTiles.ptr(sector);
+  if (pending) {
+    if (allowAsync && !pending->promise->poll())
+      return {false, {}};
 
-      tile->blockBiomeIndex = blockInfo.blockBiomeIndex;
-      tile->environmentBiomeIndex = blockInfo.environmentBiomeIndex;
-      tile->biomeTransition = blockInfo.biomeTransition;
-
-      if (tile->foreground == NullMaterialId) {
-        tile->foreground = blockInfo.foreground;
-        tile->foregroundColorVariant = DefaultMaterialColorVariant;
-        tile->foregroundHueShift = planet->biomeMaterialHueShift(tile->blockBiomeIndex, tile->foreground);
-
-        if (materialDatabase->supportsMod(tile->foreground, blockInfo.foregroundMod)) {
-          tile->foregroundMod = blockInfo.foregroundMod;
-          tile->foregroundModHueShift = planet->biomeModHueShift(tile->blockBiomeIndex, tile->foregroundMod);
-        }
+    auto result = std::move(pending->promise->get());
+    bool snapshotStillCurrent = worldStorage->tileArray()->sectorArray(sector) == pending->sourceTiles
+        && m_worldServer->worldTemplate().get() == pending->sourceTemplate;
+    m_pendingBaseTiles.remove(sector);
+    if (!snapshotStillCurrent) {
+      if (!allowAsync) {
+        prepareTiles(worldStorage, sector);
+        return {true, {}};
       }
-
-      if (tile->background == NullMaterialId) {
-        tile->background = blockInfo.background;
-        tile->backgroundColorVariant = DefaultMaterialColorVariant;
-        tile->backgroundHueShift = planet->biomeMaterialHueShift(tile->blockBiomeIndex, tile->background);
-
-        if (materialDatabase->supportsMod(tile->background, blockInfo.backgroundMod)) {
-          tile->backgroundMod = blockInfo.backgroundMod;
-          tile->backgroundModHueShift = planet->biomeModHueShift(tile->blockBiomeIndex, tile->backgroundMod);
-        }
-      }
-
-      if (tile->foreground != EmptyMaterialId) {
-        tile->liquid = LiquidStore();
-      } else if (blockInfo.oceanLiquid != EmptyLiquidId && pos[1] < blockInfo.oceanLiquidLevel) {
-        float pressure = blockInfo.oceanLiquidLevel - pos[1];
-        if (tile->background == EmptyMaterialId)
-          tile->liquid = LiquidStore::endless(blockInfo.oceanLiquid, pressure);
-        else if (blockInfo.encloseLiquids)
-          tile->liquid = LiquidStore::filled(blockInfo.oceanLiquid, 1.0f, pressure);
-      }
+      return prepareTilesAsync(worldStorage, sector, true);
     }
+    worldStorage->tileArray()->loadSector(sector, std::move(result.tiles));
+    return {true, result.elapsedSeconds};
   }
+
+  auto& workerPool = worldSectorWorkerPool();
+  if (!allowAsync || workerPool.getWorkerCount() == 0) {
+    prepareTiles(worldStorage, sector);
+    return {true, {}};
+  }
+
+  if (m_pendingBaseTiles.size() >= workerPool.getWorkerCount() * 2)
+    return {false, {}};
+
+  auto tileArray = worldStorage->tileArray();
+  auto sourceTiles = tileArray->sectorArray(sector);
+  auto tiles = tileArray->copySector(sector);
+  starAssert(sourceTiles);
+  starAssert(tiles);
+  auto tilesHolder = make_shared<ServerTileSectorArray::ArrayPtr>(std::move(tiles));
+  auto sectorRegion = tileArray->sectorRegion(sector);
+  auto planet = m_worldServer->worldTemplate();
+  auto materialDatabase = Root::singleton().materialDatabase();
+  auto promise = workerPool.addProducer<PreparedBaseTiles>(
+      [planet, materialDatabase, sectorRegion, tilesHolder]() mutable {
+        double start = Time::monotonicTime();
+        prepareBaseTileArray(planet, materialDatabase, sectorRegion, **tilesHolder);
+        return PreparedBaseTiles{std::move(*tilesHolder), Time::monotonicTime() - start};
+      });
+  m_pendingBaseTiles[sector] = PendingBaseTiles{
+    sourceTiles,
+    planet.get(),
+    make_shared<WorkerPoolPromise<PreparedBaseTiles>>(std::move(promise))
+  };
+  return {false, {}};
 }
 
 void WorldGenerator::generateMicroDungeons(WorldStorage* worldStorage, ServerTileSectorArray::Sector const& sector) {

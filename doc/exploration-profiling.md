@@ -108,6 +108,7 @@ Campos principais:
 | `worldStorageGeneration` | Processamento da fila de geração, incluindo carregamento e dependências. |
 | `generation.queueSort` | Ordenação da fila por proximidade dos jogadores. |
 | `generation.baseTiles`, `.microDungeons`, `.caveLiquid`, `.finalize`, `.terraform` | Chamadas das etapas de geração; dependências de setores vizinhos são processadas pelo caminho existente. |
+| `generation.baseTiles.worker` | Tempo de CPU gasto por um worker na preparação isolada dos tiles básicos quando `worldThreading.sectorWorkers` está habilitado. Não representa espera da thread do mundo. |
 | `storage.tiles.read`, `storage.entities.read` | Busca no banco de setores, incluindo consultas sem resultado. Pode usar caches; não é tempo de leitura física do disco. |
 | `storage.*.decompress` | Descompressão dos dados recuperados para carregar setores. |
 | `storage.*.deserialize` | Decodificação dos tiles/entidades armazenados, incluindo validação de tiles. |
@@ -181,6 +182,10 @@ para atribuição, preserve a mesma configuração entre coletas e confirme qual
 ganho posterior com `enabled: false`.
 Mantenha o diagnóstico desativado ao usar os benchmarks para comparações de
 throughput; os modos próprios de profiling desses utilitários continuam separados.
+
+A fila experimental de geração e sua configuração são descritas em
+[world-threading.md](world-threading.md). Áreas já geradas não exercitam o
+estágio assíncrono `BaseTiles`.
 
 ## Validação desta implementação
 

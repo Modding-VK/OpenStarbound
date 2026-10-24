@@ -7,10 +7,12 @@
 #include "StarMicroDungeon.hpp"
 #include "StarCellularLiquid.hpp"
 #include "StarBiomePlacement.hpp"
+#include "StarWorkerPool.hpp"
 
 namespace Star {
 
 STAR_CLASS(WorldServer);
+STAR_CLASS(WorldTemplate);
 STAR_CLASS(FallingBlocksWorld);
 STAR_CLASS(DungeonGeneratorWorld);
 STAR_CLASS(SpawnerWorld);
@@ -116,7 +118,8 @@ class WorldGenerator : public WorldGeneratorFacade {
 public:
   WorldGenerator(WorldServer* server);
 
-  void generateSectorLevel(WorldStorage* worldStorage, Sector const& sector, SectorGenerationLevel generationLevel) override;
+  SectorGenerationResult generateSectorLevel(WorldStorage* worldStorage, Sector const& sector,
+      SectorGenerationLevel generationLevel, bool allowAsync) override;
   void sectorLoadLevelChanged(WorldStorage* worldStorage, Sector const& sector, SectorLoadLevel loadLevel) override;
   void terraformSector(WorldStorage* worldStorage, Sector const& sector) override;
   void initEntity(WorldStorage* worldStorage, EntityId entityId, EntityPtr const& entity) override;
@@ -135,7 +138,21 @@ private:
     bool fulfilled;
   };
 
+  struct PreparedBaseTiles {
+    ServerTileSectorArray::ArrayPtr tiles;
+    double elapsedSeconds;
+  };
+
+  typedef shared_ptr<WorkerPoolPromise<PreparedBaseTiles>> BaseTilePromisePtr;
+
+  struct PendingBaseTiles {
+    ServerTileSectorArray::Array const* sourceTiles;
+    WorldTemplate const* sourceTemplate;
+    BaseTilePromisePtr promise;
+  };
+
   void prepareTiles(WorldStorage* worldStorage, Sector const& sector);
+  SectorGenerationResult prepareTilesAsync(WorldStorage* worldStorage, Sector const& sector, bool allowAsync);
   void generateMicroDungeons(WorldStorage* worldStorage, Sector const& sector);
   void generateCaveLiquid(WorldStorage* worldStorage, Sector const& sector);
   void prepareSector(WorldStorage* worldStorage, Sector const& sector);
@@ -156,6 +173,7 @@ private:
   WorldServer* m_worldServer;
   MicroDungeonFactoryPtr m_microDungeonFactory;
   List<QueuedPlacement> m_queuedPlacements;
+  HashMap<Sector, PendingBaseTiles> m_pendingBaseTiles;
 };
 
 }

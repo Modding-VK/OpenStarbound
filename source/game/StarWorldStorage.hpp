@@ -41,6 +41,11 @@ enum class SectorGenerationLevel : uint8_t {
   Terraform = 5
 };
 
+struct SectorGenerationResult {
+  bool complete;
+  Maybe<double> workerElapsedSeconds;
+};
+
 struct WorldGeneratorFacade {
   typedef ServerTileSectorArray::Sector Sector;
 
@@ -48,7 +53,11 @@ struct WorldGeneratorFacade {
   virtual ~WorldGeneratorFacade() {}
 
   // Should bring a given sector from generationLevel - 1 to generationLevel.
-  virtual void generateSectorLevel(WorldStorage* storage, Sector const& sector, SectorGenerationLevel generationLevel) = 0;
+  // Brings a sector to the requested generation level. When allowAsync is
+  // true, implementations may start isolated work and return false until its
+  // result has been committed on the world thread.
+  virtual SectorGenerationResult generateSectorLevel(WorldStorage* storage, Sector const& sector,
+      SectorGenerationLevel generationLevel, bool allowAsync) = 0;
 
   virtual void sectorLoadLevelChanged(WorldStorage* storage, Sector const& sector, SectorLoadLevel loadLevel) = 0;
 
@@ -271,7 +280,8 @@ private:
   // given sector was fully generated, and the total number of generation
   // levels increased.  If any sector's generation level is brought up at all,
   // it will also reset the TTL for that sector.
-  pair<bool, size_t> generateSectorToLevel(Sector const& sector, SectorGenerationLevel targetGenerationLevel, size_t sectorGenerationLevelLimit = NPos);
+  pair<bool, size_t> generateSectorToLevel(Sector const& sector, SectorGenerationLevel targetGenerationLevel,
+      size_t sectorGenerationLevelLimit = NPos, bool allowAsync = false);
 
   // Bring the sector up to the given load level, and all surrounding sectors
   // as appropriate.  If the load level is brought up, also resets the TTL.

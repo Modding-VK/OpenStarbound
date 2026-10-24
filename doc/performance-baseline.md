@@ -197,6 +197,12 @@ table when no result ordering is requested. Queries requesting `nearest` or
 `random` keep the intermediate entity list needed for sorting. The effect has
 not been measured.
 
+Queued `BaseTiles` generation can now run in an isolated, process-wide worker
+pool when `worldThreading.sectorWorkers` is greater than zero. Workers receive
+owned sector copies; `WorldServerThread` validates and commits completed
+results. The synchronous path remains the default. Configuration, scope, and
+current limitations are documented in [world-threading.md](world-threading.md).
+
 ## Uploaded startup reference
 
 The pre-change OpenStarbound 0.1.15.1 log (source ID
