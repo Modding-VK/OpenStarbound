@@ -140,6 +140,8 @@ public:
   // Queue the given sector for activation, if it is not already active.  If
   // the sector is loaded at all, also resets the TTL.
   void queueSectorActivation(Sector sector);
+  // Prepare only base tiles outside the active area; entities stay unloaded.
+  void queueSectorPrefetch(Sector sector);
 
   // Immediately (synchronously) fully generates the sector, then flags it as requiring
   // terraforming (biome reapplication) which will be handled by the normal generation process
@@ -337,6 +339,7 @@ private:
   // passing through WorldStorage.
   StableHashMap<Sector, uint64_t> m_syncedTileRevisions;
   OrderedHashMap<Sector, float> m_generationQueue;
+  OrderedHashMap<Sector, float> m_prefetchQueue;
   HashMap<Sector, double> m_generationQueuedAt;
   BTreeDatabase m_db;
 };

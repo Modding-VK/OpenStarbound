@@ -1169,11 +1169,20 @@ void WorldServer::update(float dt) {
 
   bool sendRemoteUpdates = m_entityUpdateTimer.wrapTick(dt);
   unsigned prefetchPad = min<unsigned>(m_fidelityConfig.optUInt("worldStoragePrefetchPad").value(0), 32);
-  Vec2I activeRegionPad = jsonToVec2I(m_serverConfig.get("playerActiveRegionPad"))
-      + Vec2I(prefetchPad, prefetchPad);
+  Vec2I activeRegionPad = jsonToVec2I(m_serverConfig.get("playerActiveRegionPad"));
+  Vec2I prefetchRegionPad = activeRegionPad + Vec2I(prefetchPad, prefetchPad);
+  bool prefetchEnabled = prefetchPad > 0 && Root::singleton().configuration()
+      ->get("worldThreading", JsonObject()).getUInt("sectorWorkers", 0) > 0;
   for (auto const& pair : m_clientInfo) {
-    for (auto const& monitoredRegion : pair.second->monitoringRegions(m_entityMap))
+    for (auto const& monitoredRegion : pair.second->monitoringRegions(m_entityMap)) {
       signalRegion(monitoredRegion.padded(activeRegionPad));
+      if (prefetchEnabled) {
+        for (auto const& sector : m_worldStorage->sectorsForRegion(monitoredRegion.padded(prefetchRegionPad))) {
+          if (!m_worldStorage->regionForSector(sector)->intersects(monitoredRegion.padded(activeRegionPad)))
+            m_worldStorage->queueSectorPrefetch(sector);
+        }
+      }
+    }
     queueUpdatePackets(pair.first, sendRemoteUpdates);
   }
   m_netStateCache.clear();

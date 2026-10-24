@@ -106,14 +106,14 @@ the number of completed stages rather than elapsed time.
 
 ## Earlier sector activation
 
-The server now requests sectors beyond the client's monitored area, in addition
-to the existing `playerActiveRegionPad`. `worldStoragePrefetchPad` adds 0, 8,
-16, or 24 tiles on each side for minimum, low, medium, or high fidelity. The
-value is capped at 32 tiles. The existing distance ordering keeps nearer
-sectors first. This can start base tile worker jobs earlier as the player moves
-and give structures more time to finish before they enter view. It also loads
-entities in the extra area, so larger values consume more memory and world
-thread time. The setting does not make microdungeons or entity scripts parallel.
+The server prepares base tiles beyond the active area without loading entities
+there. `worldStoragePrefetchPad` adds 0, 8, 16, or 24 tiles on each side for
+minimum, low, medium, or high fidelity. The value is capped at 32 tiles and is
+used only when `worldThreading.sectorWorkers` is positive. Active sectors keep
+their existing priority; background preparation uses the remaining generation
+time in each update. This can start base tile jobs earlier as the player moves.
+Microdungeons, finalization, and entity scripts still run when the sector
+becomes active. More prefetched tiles can increase memory and storage use.
 
 ## Profiling
 

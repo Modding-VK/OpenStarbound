@@ -174,6 +174,7 @@ void WorldStorage::activateSector(Sector sector) {
 }
 
 void WorldStorage::queueSectorActivation(Sector sector) {
+  m_prefetchQueue.remove(sector);
   if (auto p = m_sectorMetadata.ptr(sector)) {
     p->timeToLive = randomizedSectorTTL();
     // Don't bother queueing the sector if it is already fully loaded
@@ -186,6 +187,17 @@ void WorldStorage::queueSectorActivation(Sector sector) {
     m_generationQueuedAt[sector] = Time::monotonicTime();
   p.first->second = m_generationQueueTimeToLive;
   m_generationQueue.toFront(p.first);
+}
+
+void WorldStorage::queueSectorPrefetch(Sector sector) {
+  if (!m_tileArray->sectorValid(sector) || m_generationQueue.contains(sector))
+    return;
+  if (auto metadata = m_sectorMetadata.ptr(sector)) {
+    if (metadata->generationLevel >= SectorGenerationLevel::BaseTiles)
+      return;
+  }
+  auto inserted = m_prefetchQueue.insert(sector, m_generationQueueTimeToLive);
+  inserted.first->second = m_generationQueueTimeToLive;
 }
 
 void WorldStorage::triggerTerraformSector(Sector sector) {
@@ -350,6 +362,33 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     }
     if (!m_generationQueue.empty() && Time::monotonicTime() >= generationDeadline && m_explorationProfile)
       m_explorationProfile->count("generation.timeBudgetExhausted");
+    // Background preparation uses only time left after visible sectors. It
+    // never initializes entities or runs the shared microdungeon stages.
+    size_t examined = 0;
+    size_t pending = m_prefetchQueue.size();
+    while (m_generationQueue.empty() && !m_prefetchQueue.empty()
+        && examined++ < pending && Time::monotonicTime() < generationDeadline) {
+      auto sector = m_prefetchQueue.firstKey();
+      if (m_generationQueue.contains(sector)) {
+        m_prefetchQueue.removeFirst();
+        continue;
+      }
+      loadSectorToLevel(sector, SectorLoadLevel::Tiles);
+      auto& metadata = m_sectorMetadata[sector];
+      if (metadata.generationLevel < SectorGenerationLevel::BaseTiles) {
+        auto result = m_generatorFacade->generateSectorLevel(this, sector, SectorGenerationLevel::BaseTiles, true);
+        if (result.complete) {
+          metadata.generationLevel = SectorGenerationLevel::BaseTiles;
+          m_tileArray->markSectorDirty(sector);
+          if (m_explorationProfile)
+            m_explorationProfile->count("generation.prefetchCompleted");
+        }
+      }
+      if (metadata.generationLevel >= SectorGenerationLevel::BaseTiles)
+        m_prefetchQueue.removeFirst();
+      else
+        m_prefetchQueue.toBack(sector);
+    }
   } catch (std::exception const& e) {
     m_db.rollback();
     m_db.close();
@@ -369,6 +408,10 @@ void WorldStorage::tick(float dt, String const* worldId) {
           return true;
         }
         return false;
+      });
+    eraseWhere(m_prefetchQueue, [dt](auto& p) {
+        p.second -= dt;
+        return p.second <= 0.0f;
       });
 
     // Tick down sector TTL values
