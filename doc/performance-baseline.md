@@ -206,6 +206,15 @@ first worker implementation. The synchronous path remains the default.
 Configuration, scope, and current limitations are documented in
 [world-threading.md](world-threading.md).
 
+A Windows run of `8f113215` with two workers confirmed the cache-isolation fix:
+657 worker results completed across two visits to the same Frackin' Universe
+planet, no access violation occurred, and the application stopped gracefully.
+It also measured a mean worker duration of about 50.25 ms because that revision
+rebuilt the complete template snapshot for every sector. The follow-up keeps
+one snapshot per worker and source-template revision, preserving isolation while
+removing that repeated construction cost. This run is correctness evidence; its
+route and generated-sector mix are not a controlled performance comparison.
+
 ## Uploaded startup reference
 
 The pre-change OpenStarbound 0.1.15.1 log (source ID

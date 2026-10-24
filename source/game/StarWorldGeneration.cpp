@@ -95,6 +95,23 @@ void prepareBaseTileArray(WorldTemplatePtr const& planet, MaterialDatabaseConstP
   }
 }
 
+WorldTemplatePtr workerWorldTemplate(WorldTemplatePtr const& sourceTemplate,
+    uint64_t sourceRevision, Json const& templateStore) {
+  static thread_local weak_ptr<WorldTemplate> cachedSourceTemplate;
+  static thread_local uint64_t cachedSourceRevision = 0;
+  static thread_local WorldTemplatePtr cachedWorkerTemplate;
+
+  if (!cachedWorkerTemplate || cachedSourceTemplate.lock() != sourceTemplate
+      || cachedSourceRevision != sourceRevision) {
+    auto workerTemplate = make_shared<WorldTemplate>(templateStore);
+    cachedSourceTemplate = sourceTemplate;
+    cachedSourceRevision = sourceRevision;
+    cachedWorkerTemplate = std::move(workerTemplate);
+  }
+
+  return cachedWorkerTemplate;
+}
+
 WorkerPool& worldSectorWorkerPool() {
   static WorkerPool pool = [] {
     auto threadingConfig = Root::singleton().configuration()->get("worldThreading", JsonObject());
@@ -889,13 +906,18 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
   auto tilesHolder = make_shared<ServerTileSectorArray::ArrayPtr>(std::move(tiles));
   auto sectorRegion = tileArray->sectorRegion(sector);
   auto planet = m_worldServer->worldTemplate();
-  auto templateStore = planet->store();
   auto templateRevision = planet->generationRevision();
+  if (m_baseTileTemplateSource != planet || m_baseTileTemplateRevision != templateRevision) {
+    m_baseTileTemplateSource = planet;
+    m_baseTileTemplateRevision = templateRevision;
+    m_baseTileTemplateStore = planet->store();
+  }
+  auto templateStore = m_baseTileTemplateStore;
   auto materialDatabase = Root::singleton().materialDatabase();
   auto promise = workerPool.addProducer<PreparedBaseTiles>(
-      [templateStore, materialDatabase, sectorRegion, tilesHolder]() mutable {
+      [planet, templateRevision, templateStore, materialDatabase, sectorRegion, tilesHolder]() mutable {
         double start = Time::monotonicTime();
-        auto workerPlanet = make_shared<WorldTemplate>(templateStore);
+        auto workerPlanet = workerWorldTemplate(planet, templateRevision, templateStore);
         prepareBaseTileArray(workerPlanet, materialDatabase, sectorRegion, **tilesHolder);
         return PreparedBaseTiles{std::move(*tilesHolder), Time::monotonicTime() - start};
       });

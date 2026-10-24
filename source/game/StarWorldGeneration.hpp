@@ -175,6 +175,9 @@ private:
   MicroDungeonFactoryPtr m_microDungeonFactory;
   List<QueuedPlacement> m_queuedPlacements;
   HashMap<Sector, PendingBaseTiles> m_pendingBaseTiles;
+  WorldTemplatePtr m_baseTileTemplateSource;
+  uint64_t m_baseTileTemplateRevision = 0;
+  Json m_baseTileTemplateStore;
 };
 
 }

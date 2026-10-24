@@ -4,11 +4,12 @@
 
 `WorldServerThread` remains the only writer of live world state. Worker jobs
 receive owned copies or immutable inputs, and their results are committed by
-the world thread only after validation. Each base-tile job reconstructs an
-independent `WorldTemplate` from a snapshot, so its template and terrain
-selector caches are not shared with the live world or another job. Existing
-entity scripts, networking, physics, damage, and entity insertion keep their
-serial ordering.
+the world thread only after validation. Each worker reconstructs an independent
+`WorldTemplate` from a snapshot, so its template and terrain
+selector caches are not shared with the live world or another worker. A worker
+reuses that private template for later jobs while the source template and its
+generation revision remain unchanged. Existing entity scripts, networking,
+physics, damage, and entity insertion keep their serial ordering.
 
 ```mermaid
 flowchart LR
@@ -46,9 +47,10 @@ worker. A Windows run with `sectorWorkers` set to `2` exposed simultaneous
 access from `prepareBaseTileArray` and spawning to `WorldTemplate::getBlockInfo`,
 ending in an access violation inside `HashLruCache`. Bypassing only that cache
 would still be unsafe because several terrain selectors own mutable caches.
-The corrected implementation gives every job a reconstructed template with its
-own complete selector tree and rejects its result when the live template
-revision has changed.
+The corrected implementation gives every worker a reconstructed template with
+its own complete selector tree and rejects a job result when the live template
+revision has changed. Worker-local reuse avoids rebuilding the selector tree
+for every sector without sharing its caches across threads.
 
 Each world permits at most two pending jobs per global worker. A pending sector is
 rotated behind other requested sectors, and the world thread stops polling
@@ -75,8 +77,9 @@ network updates remain on the world thread.
 ## Profiling
 
 With exploration profiling enabled, worker execution is reported as
-`generation.baseTiles.worker`. This is wall-clock duration inside the worker,
-including reconstruction of its private template snapshot.
+`generation.baseTiles.worker`. This is wall-clock duration inside the worker.
+It includes reconstruction of the private template when that worker first sees
+a source template or a new revision; later jobs reuse it.
 The existing `generation.baseTiles` stage then
 measures scheduling, polling, and commit overhead. The developer generation
 profile attributes completed worker time to `baseTiles` and avoids counting the
