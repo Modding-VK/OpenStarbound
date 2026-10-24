@@ -130,6 +130,50 @@ callbacks in the same tick. Parallelizing this loop directly could change
 simulation and mod-visible behavior; first measure and document dependencies,
 then design a controlled snapshot/commit boundary if profiling justifies it.
 
+## Frackin' Universe router trace — 2026-10-23
+
+The Windows x86_64 run from source revision `2f7ca884` revisited the generated
+world `CelestialWorld:383737864:-48324405:61106789:8` for 139.2 seconds of
+profiler windows. Object updates consumed 94.93 seconds, of which 85.93 seconds
+were measured inside periodic Lua updates. Logging inside entity updates was
+below the profiler's measurable resolution in every reported entity category.
+
+The slow-entity records attribute at least 71.87 seconds to three Frackin'
+Universe `network_router` objects. This lower bound only includes individual
+updates lasting at least 50 ms:
+
+| Entity | Position | Slow updates | Mean | Maximum |
+| --- | --- | ---: | ---: | ---: |
+| 11 | `(863, 1011)` | 79 | 459.82 ms | 671.16 ms |
+| 295 | `(921, 1043)` | 79 | 309.47 ms | 396.91 ms |
+| 461 | `(944, 1095)` | 78 | 142.27 ms | 233.62 ms |
+
+All these updates ran on the same world-server thread. The server update reached
+1013.12 ms and its entity phase reached 1011.20 ms, consistent with multiple
+router updates accumulating serially in one simulation tick. In comparison,
+`worldStorageGeneration` totaled 1.40 seconds and peaked at 98.35 ms during the
+whole capture. This run therefore demonstrates a persistent entity-script
+bottleneck in an already generated area; it does not characterize new terrain
+generation.
+
+Inspection of Frackin' Universe tag `6.5.8` at revision `329e714b` explains the
+scaling. `kheAA_router.lua` rebuilds its input and output graph on each routing
+pass, scans each source item against each target container, and may scan every
+target slot. Those inner loops repeatedly call container functions across the
+Lua/C++ boundary. `checkFilter` also calls `world.containerItems(entity.id())`
+for each candidate source item even though `update` already stored that same
+result in `self.routerItems`. The engine converts complete item descriptions to
+and from JSON at several of these boundaries.
+
+Parallel updates are unsafe for this workload because routers can read and
+mutate the same containers and synchronously call scripts on connected entities.
+A safe sequence is to remove redundant work while retaining serial semantics,
+then add an atomic batch-transfer API only if profiling still justifies an
+opt-in mod change. As a first engine-side correction, both Lua implementations
+of `containerItemAt` retain a const reference to the bag's item list instead of
+copying the complete `List<ItemPtr>` for every queried slot. The returned JSON,
+slot validation, call order, and mutation behavior remain unchanged.
+
 ## Low-risk changes under evaluation
 
 `jsonMerge` also returns the base value directly when both inputs are objects

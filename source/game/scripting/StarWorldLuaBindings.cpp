@@ -1816,7 +1816,7 @@ namespace LuaBindings {
   Json WorldEntityCallbacks::containerItemAt(World* world, EntityId entityId, size_t offset) {
     if (auto container = world->get<ContainerObject>(entityId)) {
       auto itemDb = Root::singleton().itemDatabase();
-      auto items = container->itemBag()->items();
+      auto const& items = container->itemBag()->items();
       if (offset < items.size()) {
         return itemDb->toJson(items.at(offset));
       }

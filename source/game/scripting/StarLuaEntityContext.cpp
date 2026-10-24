@@ -726,7 +726,7 @@ LuaMethods<EntityContext> LuaUserDataMethods<EntityContext>::make() {
         auto const& entity = context.entity;
         if (auto container = as<ContainerObject>(entity)) {
             auto itemDb = Root::singleton().itemDatabase();
-            auto items = container->itemBag()->items();
+            auto const& items = container->itemBag()->items();
             if (offset < items.size()) {
                 return itemDb->toJson(items.at(offset));
             }
