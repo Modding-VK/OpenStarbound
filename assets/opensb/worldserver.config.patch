@@ -1,9 +1,9 @@
 {
   "scriptContexts" : { "OpenStarbound" : ["/scripts/opensb/worldserver/worldserver.lua"] },
   "fidelitySettings" : {
-    "minimum" : { "worldStorageGenerationTimeLimit" : 6 },
-    "low" : { "worldStorageGenerationTimeLimit" : 8 },
-    "medium" : { "worldStorageGenerationTimeLimit" : 12 },
-    "high" : { "worldStorageGenerationTimeLimit" : 16 }
+    "minimum" : { "worldStorageGenerationTimeLimit" : 6, "worldStoragePrefetchPad" : 0 },
+    "low" : { "worldStorageGenerationTimeLimit" : 8, "worldStoragePrefetchPad" : 8 },
+    "medium" : { "worldStorageGenerationTimeLimit" : 12, "worldStoragePrefetchPad" : 16 },
+    "high" : { "worldStorageGenerationTimeLimit" : 16, "worldStoragePrefetchPad" : 24 }
   }
 }

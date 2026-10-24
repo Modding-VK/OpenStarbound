@@ -104,6 +104,17 @@ The limit prevents multiple such stages from being combined into a much longer
 single update. It complements `worldStorageGenerationLevelLimit`, which limits
 the number of completed stages rather than elapsed time.
 
+## Earlier sector activation
+
+The server now requests sectors beyond the client's monitored area, in addition
+to the existing `playerActiveRegionPad`. `worldStoragePrefetchPad` adds 0, 8,
+16, or 24 tiles on each side for minimum, low, medium, or high fidelity. The
+value is capped at 32 tiles. The existing distance ordering keeps nearer
+sectors first. This can start base tile worker jobs earlier as the player moves
+and give structures more time to finish before they enter view. It also loads
+entities in the extra area, so larger values consume more memory and world
+thread time. The setting does not make microdungeons or entity scripts parallel.
+
 ## Profiling
 
 With exploration profiling enabled, worker execution is reported as
