@@ -174,6 +174,15 @@ of `containerItemAt` retain a const reference to the bag's item list instead of
 copying the complete `List<ItemPtr>` for every queried slot. The returned JSON,
 slot validation, call order, and mutation behavior remain unchanged.
 
+A later `e3ab55fa` run reproduced this independently of terrain generation.
+Router entity 11 at `(863, 1011)` produced 11 slow updates, totaling at least
+5.11 seconds and peaking at 676.56 ms. Router entity 524 at `(944, 1095)`
+produced 10 slow updates, totaling at least 1.34 seconds and peaking at
+172.34 ms. Almost the entire duration was inside Lua, logging remained zero,
+and both ran on the same world-server thread. During the new-terrain portion
+of the same session, entity updates instead averaged 0.16 ms and never exceeded
+0.59 ms.
+
 ## Low-risk changes under evaluation
 
 `jsonMerge` also returns the base value directly when both inputs are objects
@@ -214,6 +223,17 @@ rebuilt the complete template snapshot for every sector. The follow-up keeps
 one snapshot per worker and source-template revision, preserving isolation while
 removing that repeated construction cost. This run is correctness evidence; its
 route and generated-sector mix are not a controlled performance comparison.
+
+The subsequent Windows run of `e3ab55fa` validated worker-local template reuse.
+The first two completed jobs, one for each worker, averaged 39.81 ms while their
+private templates were reconstructed. The following 62 jobs averaged between
+1.72 and 1.85 ms in their reporting windows; across all 64 jobs the mean was
+3.03 ms and the maximum was 39.97 ms. This is a 94% reduction in aggregate mean
+worker duration from `8f113215`, with no fatal error and a graceful shutdown.
+During the 50.1-second new-terrain world instance, server updates averaged
+0.77 ms and peaked at 19.40 ms. The capture contained 79 initially empty tile
+sectors and 730 sectors loaded from storage, so it validates the cache reuse
+but is not a throughput comparison against the earlier route.
 
 ## Uploaded startup reference
 
