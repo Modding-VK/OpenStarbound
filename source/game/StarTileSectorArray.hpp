@@ -58,6 +58,12 @@ public:
   // Take a sector out of the sector array.
   ArrayPtr unloadSector(Sector const& sector);
 
+  // Revision used by persistent world storage to detect tile sectors that
+  // changed since their last disk sync. Mutating accessors advance it before
+  // handing out writable tile data.
+  uint64_t sectorRevision(Sector const& sector) const;
+  void markSectorDirty(Sector const& sector);
+
   bool sectorLoaded(Sector sector) const;
   List<Sector> loadedSectors() const;
   size_t loadedSectorCount() const;
@@ -139,6 +145,7 @@ private:
   Vec2U m_worldSize;
   Tile m_default;
   SectorArray m_tileSectors;
+  StableHashMap<Sector, uint64_t> m_sectorRevisions;
 };
 
 template <typename Tile, unsigned SectorSize>
@@ -158,6 +165,7 @@ void TileSectorArray<Tile, SectorSize>::init(Vec2U const& size, Tile defaultTile
   // Initialize to enough sectors to fit world size at least.
   m_tileSectors.init((size[0] + SectorSize - 1) / SectorSize, (size[1] + SectorSize - 1) / SectorSize);
   m_default = std::move(defaultTile);
+  m_sectorRevisions.clear();
 }
 
 template <typename Tile, unsigned SectorSize>
@@ -239,6 +247,17 @@ auto TileSectorArray<Tile, SectorSize>::unloadSector(Sector const& sector) -> Ar
 }
 
 template <typename Tile, unsigned SectorSize>
+uint64_t TileSectorArray<Tile, SectorSize>::sectorRevision(Sector const& sector) const {
+  return m_sectorRevisions.value(sector, 0);
+}
+
+template <typename Tile, unsigned SectorSize>
+void TileSectorArray<Tile, SectorSize>::markSectorDirty(Sector const& sector) {
+  if (sectorValid(sector))
+    ++m_sectorRevisions[sector];
+}
+
+template <typename Tile, unsigned SectorSize>
 bool TileSectorArray<Tile, SectorSize>::sectorLoaded(Sector sector) const {
   if (sectorValid(sector))
     return m_tileSectors.sectorLoaded(sector);
@@ -266,9 +285,10 @@ auto TileSectorArray<Tile, SectorSize>::sectorArray(Sector sector) const -> Arra
 
 template <typename Tile, unsigned SectorSize>
 auto TileSectorArray<Tile, SectorSize>::sectorArray(Sector sector) -> Array * {
-  if (sectorValid(sector))
+  if (sectorValid(sector)) {
+    markSectorDirty(sector);
     return m_tileSectors.sector(sector);
-  else
+  } else
     return nullptr;
 }
 
@@ -306,7 +326,10 @@ Tile* TileSectorArray<Tile, SectorSize>::modifyTile(Vec2I const& pos) {
   unsigned xind = (unsigned)pmod<int>(pos[0], m_worldSize[0]);
   unsigned yind = (unsigned)pos[1];
 
-  return m_tileSectors.get(xind, yind);
+  auto* tile = m_tileSectors.get(xind, yind);
+  if (tile)
+    markSectorDirty(m_tileSectors.sectorFor(xind, yind));
+  return tile;
 }
 
 template <typename Tile, unsigned SectorSize>

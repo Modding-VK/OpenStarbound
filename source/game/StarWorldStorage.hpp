@@ -294,6 +294,8 @@ private:
 
   // Sync this sector to disk without unloading it.
   void syncSector(Sector const& sector);
+  bool tileSectorDirty(Sector const& sector) const;
+  void markTileSectorSynced(Sector const& sector);
 
   // Returns the sectors within WorldSectorSize of the given sector.  This is
   // *not exactly the same* as the surrounding 9 sectors in a square pattern,
@@ -329,6 +331,10 @@ private:
   std::array<GenerationProfileTiming, GenerationProfileStageCount> m_generationProfile{};
 
   StableHashMap<Sector, SectorMetadata> m_sectorMetadata;
+  // Tile data exposes mutation revisions through TileSectorArray. Entity state
+  // remains fully synchronized because scripts can mutate entities without
+  // passing through WorldStorage.
+  StableHashMap<Sector, uint64_t> m_syncedTileRevisions;
   OrderedHashMap<Sector, float> m_generationQueue;
   BTreeDatabase m_db;
 };

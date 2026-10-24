@@ -194,6 +194,7 @@ void WorldStorage::triggerTerraformSector(Sector sector) {
         generateSectorToLevel(sector, SectorGenerationLevel::Complete);
 
       p->generationLevel = SectorGenerationLevel::Terraform;
+      m_tileArray->markSectorDirty(sector);
     } else {
       throw WorldStorageException(strf("Couldn't flag sector {} for terraforming; metadata unavailable", sector));
     }
@@ -700,6 +701,7 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
     if (m_generationProfilingEnabled)
       recordGenerationProfile(4, Time::monotonicTime() - profileStart);
     metadata.generationLevel = SectorGenerationLevel::Complete;
+    m_tileArray->markSectorDirty(sector);
     metadata.timeToLive = randomizedSectorTTL();
     return {true, 1};
   }
@@ -748,6 +750,9 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
       recordGenerationProfile(stageIndex, Time::monotonicTime() - profileStart);
     }
     metadata.generationLevel = currentGeneration;
+    // A generation stage can alter an array directly or update its persisted
+    // generation level without passing through modifyTile().
+    m_tileArray->markSectorDirty(sector);
 
     ++totalGeneratedLevels;
     if (totalGeneratedLevels >= sectorGenerationLevelLimit)
@@ -791,6 +796,7 @@ void WorldStorage::loadSectorToLevel(Sector const& sector, SectorLoadLevel targe
         TileSectorStore sectorStore = readTileSector(*res, m_explorationProfile.get());
         timing.next("storage.tiles.install");
         m_tileArray->loadSector(sector, std::move(sectorStore.tiles));
+        markTileSectorSynced(sector);
 
         metadata.generationLevel = sectorStore.generationLevel;
       } else {
@@ -799,6 +805,10 @@ void WorldStorage::loadSectorToLevel(Sector const& sector, SectorLoadLevel targe
         timing.next("storage.tiles.installDefault");
         if (!m_tileArray->sectorLoaded(sector))
           m_tileArray->loadDefaultSector(sector);
+        // New sectors have no database record yet. Persist the default state
+        // on the next sync so a crash cannot change their generation history.
+        m_tileArray->markSectorDirty(sector);
+        m_syncedTileRevisions.remove(sector);
       }
 
       metadata.loadLevel = currentLoad;
@@ -929,6 +939,7 @@ bool WorldStorage::unloadSectorToLevel(Sector const& sector, SectorLoadLevel tar
       sectorStore.tiles = m_tileArray->unloadSector(sector);
       sectorStore.generationLevel = metadata.generationLevel;
       m_db.insert(tileSectorKey(sector), writeTileSector(sectorStore));
+      m_syncedTileRevisions.remove(sector);
       m_sectorMetadata.remove(sector);
       m_generatorFacade->sectorLoadLevelChanged(this, sector, SectorLoadLevel::None);
       return true;
@@ -968,12 +979,26 @@ void WorldStorage::syncSector(Sector const& sector) {
     updateSectorUniques(sector, storedUniques);
   }
 
-  if (metadata.loadLevel >= SectorLoadLevel::Tiles) {
+  if (metadata.loadLevel >= SectorLoadLevel::Tiles && tileSectorDirty(sector)) {
+    ExplorationProfile::Scope tileTiming(m_explorationProfile.get(), "storage.sync.tiles");
     TileSectorStore sectorStore;
     sectorStore.tiles = m_tileArray->copySector(sector);
     sectorStore.generationLevel = metadata.generationLevel;
     m_db.insert(tileSectorKey(sector), writeTileSector(sectorStore));
+    markTileSectorSynced(sector);
+    if (m_explorationProfile)
+      m_explorationProfile->count("storage.sync.dirtyTiles");
+  } else if (metadata.loadLevel >= SectorLoadLevel::Tiles && m_explorationProfile) {
+    m_explorationProfile->count("storage.sync.cleanTiles");
   }
+}
+
+bool WorldStorage::tileSectorDirty(Sector const& sector) const {
+  return m_tileArray->sectorRevision(sector) != m_syncedTileRevisions.value(sector, 0);
+}
+
+void WorldStorage::markTileSectorSynced(Sector const& sector) {
+  m_syncedTileRevisions[sector] = m_tileArray->sectorRevision(sector);
 }
 
 List<WorldStorage::Sector> WorldStorage::adjacentSectors(Sector const& sector) const {

@@ -120,6 +120,8 @@ Campos principais:
 | `storage.tiles.total`, `storage.entities.total` | Total de uma mudança de nível, após carregar as dependências adjacentes explícitas. |
 | `storage.unloadAttempt` | Tentativa de descarregar setor; pode manter entidades ativas e inclui persistência quando realizada. |
 | `storage.sync.total`, `.sector`, `.commit` | Salvamento periódico, trabalho por setor e commit do banco; pode ocorrer fora de `serverUpdate`. |
+| `storage.sync.tiles` | Cópia, serialização e compressão dos tiles de um setor alterado. Setores sem alterações de tiles não entram nesta etapa. |
+| `storage.sync.dirtyTiles`, `.cleanTiles` | Quantidade de setores de tiles gravados e ignorados durante o salvamento periódico. Entidades persistentes continuam sendo sincronizadas para preservar alterações feitas por scripts. |
 
 O servidor também informa as fases já existentes de dano, fiação, céu, clima,
 líquidos, blocos em queda e envio de atualizações. `tileSectorsFromStorage` não
