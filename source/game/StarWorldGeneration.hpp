@@ -149,6 +149,7 @@ private:
     ServerTileSectorArray::Array const* sourceTiles;
     WorldTemplate const* sourceTemplate;
     uint64_t sourceTemplateRevision;
+    double lastRequestedTime;
     BaseTilePromisePtr promise;
   };
 

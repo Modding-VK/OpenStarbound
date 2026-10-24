@@ -235,6 +235,16 @@ During the 50.1-second new-terrain world instance, server updates averaged
 sectors and 730 sectors loaded from storage, so it validates the cache reuse
 but is not a throughput comparison against the earlier route.
 
+The same capture exposed a queue-liveness regression after the fast worker
+results had been validated. Worker completions stopped after 64 results, while
+`generation.baseTiles` continued to be polled in later windows and the player
+encountered an unloaded sector boundary. Generation queue entries did not
+refresh their own TTL when repeatedly signaled. Expired entries could therefore
+leave completed dependency jobs in the bounded pending map; four such orphans
+prevented any new job from being scheduled. Queue signals now refresh that TTL,
+sector unloads detach pending results, and a full map evicts its least recently
+requested completed result before refusing new work.
+
 ## Uploaded startup reference
 
 The pre-change OpenStarbound 0.1.15.1 log (source ID

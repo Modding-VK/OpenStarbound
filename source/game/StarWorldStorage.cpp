@@ -182,6 +182,7 @@ void WorldStorage::queueSectorActivation(Sector sector) {
   }
 
   auto p = m_generationQueue.insert(sector, m_generationQueueTimeToLive);
+  p.first->second = m_generationQueueTimeToLive;
   m_generationQueue.toFront(p.first);
 }
 

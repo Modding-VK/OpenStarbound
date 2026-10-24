@@ -58,6 +58,14 @@ after one pass without progress. This allows independent jobs to fill the pool
 without busy-waiting. Active worlds share the threads, avoiding a new set of
 threads for every planet, ship, and instance world.
 
+Queued-sector signals refresh their generation TTL. If an unneeded sector is
+eventually unloaded, its pending result is detached; the owned worker inputs
+remain valid until the task exits. When the bounded pending map is full, a
+completed result that has gone longest without being requested is discarded
+before a new job is scheduled. This prevents expired dependency jobs from
+occupying every slot and permanently blocking generation at the player's
+sector boundary.
+
 Enable the experiment in `storage/starbound.config`:
 
 ```json

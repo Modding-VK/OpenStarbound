@@ -761,6 +761,9 @@ SectorGenerationResult WorldGenerator::generateSectorLevel(WorldStorage* worldSt
 }
 
 void WorldGenerator::sectorLoadLevelChanged(WorldStorage* worldStorage, Sector const& sector, SectorLoadLevel loadLevel) {
+  if (loadLevel == SectorLoadLevel::None)
+    m_pendingBaseTiles.remove(sector);
+
   if (loadLevel == SectorLoadLevel::Loaded) {
     if (worldStorage->sectorGenerationLevel(sector) == SectorGenerationLevel::Complete)
       m_worldServer->activateLiquidRegion(worldStorage->tileArray()->sectorRegion(sector));
@@ -868,8 +871,10 @@ void WorldGenerator::prepareTiles(WorldStorage* worldStorage, ServerTileSectorAr
 
 SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStorage,
     ServerTileSectorArray::Sector const& sector, bool allowAsync) {
+  double now = Time::monotonicTime();
   auto pending = m_pendingBaseTiles.ptr(sector);
   if (pending) {
+    pending->lastRequestedTime = now;
     if (allowAsync && !pending->promise->poll())
       return {false, {}};
 
@@ -895,8 +900,22 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
     return {true, {}};
   }
 
-  if (m_pendingBaseTiles.size() >= workerPool.getWorkerCount() * 2)
-    return {false, {}};
+  size_t pendingLimit = workerPool.getWorkerCount() * 2;
+  if (m_pendingBaseTiles.size() >= pendingLimit) {
+    Maybe<Sector> oldestCompletedSector;
+    double oldestRequestTime = now;
+    for (auto const& pair : m_pendingBaseTiles) {
+      if (pair.second.promise->done() && pair.second.lastRequestedTime <= oldestRequestTime) {
+        oldestCompletedSector = pair.first;
+        oldestRequestTime = pair.second.lastRequestedTime;
+      }
+    }
+
+    if (oldestCompletedSector)
+      m_pendingBaseTiles.remove(*oldestCompletedSector);
+    if (m_pendingBaseTiles.size() >= pendingLimit)
+      return {false, {}};
+  }
 
   auto tileArray = worldStorage->tileArray();
   auto sourceTiles = tileArray->sectorArray(sector);
@@ -925,6 +944,7 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
     sourceTiles,
     planet.get(),
     templateRevision,
+    now,
     make_shared<WorkerPoolPromise<PreparedBaseTiles>>(std::move(promise))
   };
   return {false, {}};
