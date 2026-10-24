@@ -114,18 +114,32 @@ WorldLayoutPtr WorldTemplate::worldLayout() const {
   return m_layout;
 }
 
+uint64_t WorldTemplate::generationRevision() const {
+  return m_generationRevision;
+}
+
 void WorldTemplate::setWorldParameters(VisitableWorldParametersPtr newParameters) {
   m_worldParameters = take(newParameters);
   setupWeatherDomains();
+  m_blockCache.clear();
+  ++m_generationRevision;
 }
 
 void WorldTemplate::setWorldLayout(WorldLayoutPtr newLayout) {
   m_layout = take(newLayout);
   m_blockCache.clear();
+  ++m_generationRevision;
 }
 
 void WorldTemplate::setSkyParameters(SkyParameters newParameters) {
   m_skyParameters = take(newParameters);
+}
+
+String WorldTemplate::setLayerEnvironmentBiome(Vec2I const& position) {
+  auto biomeName = m_layout->setLayerEnvironmentBiome(position);
+  m_blockCache.clear();
+  ++m_generationRevision;
+  return biomeName;
 }
 
 uint64_t WorldTemplate::worldSeed() const {
@@ -193,16 +207,19 @@ Maybe<Vec2I> WorldTemplate::findSensiblePlayerStart() const {
 void WorldTemplate::addCustomTerrainRegion(PolyF poly) {
   m_customTerrainRegions.append({poly, poly.boundBox(), true});
   m_blockCache.clear();
+  ++m_generationRevision;
 }
 
 void WorldTemplate::addCustomSpaceRegion(PolyF poly) {
   m_customTerrainRegions.append({poly, poly.boundBox(), false});
   m_blockCache.clear();
+  ++m_generationRevision;
 }
 
 void WorldTemplate::clearCustomTerrains() {
   m_customTerrainRegions.clear();
   m_blockCache.clear();
+  ++m_generationRevision;
 }
 
 List<RectI> WorldTemplate::previewAddBiomeRegion(Vec2I const& position, int width) {
@@ -237,6 +254,7 @@ void WorldTemplate::addBiomeRegion(Vec2I const& position, String const& biomeNam
   if (auto terrestrialParameters = as<TerrestrialWorldParameters>(m_worldParameters)) {
     m_layout->addBiomeRegion(*terrestrialParameters, m_seed, position, biomeName, subBlockSelector, width);
     m_blockCache.clear();
+    ++m_generationRevision;
   } else {
     Logger::error("Cannot add biome region to non-terrestrial world!");
     // throw StarException("Cannot add biome region to non-terrestrial world!");
@@ -247,6 +265,7 @@ void WorldTemplate::expandBiomeRegion(Vec2I const& position, int newWidth) {
   if (auto terrestrialParameters = as<TerrestrialWorldParameters>(m_worldParameters)) {
     m_layout->expandBiomeRegion(position, newWidth);
     m_blockCache.clear();
+    ++m_generationRevision;
   } else {
     Logger::error("Cannot expand biome region on non-terrestrial world!");
     // throw StarException("Cannot expand biome region on non-terrestrial world!");

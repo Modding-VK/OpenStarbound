@@ -858,7 +858,8 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
 
     auto result = std::move(pending->promise->get());
     bool snapshotStillCurrent = worldStorage->tileArray()->sectorArray(sector) == pending->sourceTiles
-        && m_worldServer->worldTemplate().get() == pending->sourceTemplate;
+        && m_worldServer->worldTemplate().get() == pending->sourceTemplate
+        && m_worldServer->worldTemplate()->generationRevision() == pending->sourceTemplateRevision;
     m_pendingBaseTiles.remove(sector);
     if (!snapshotStillCurrent) {
       if (!allowAsync) {
@@ -888,16 +889,20 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
   auto tilesHolder = make_shared<ServerTileSectorArray::ArrayPtr>(std::move(tiles));
   auto sectorRegion = tileArray->sectorRegion(sector);
   auto planet = m_worldServer->worldTemplate();
+  auto templateStore = planet->store();
+  auto templateRevision = planet->generationRevision();
   auto materialDatabase = Root::singleton().materialDatabase();
   auto promise = workerPool.addProducer<PreparedBaseTiles>(
-      [planet, materialDatabase, sectorRegion, tilesHolder]() mutable {
+      [templateStore, materialDatabase, sectorRegion, tilesHolder]() mutable {
         double start = Time::monotonicTime();
-        prepareBaseTileArray(planet, materialDatabase, sectorRegion, **tilesHolder);
+        auto workerPlanet = make_shared<WorldTemplate>(templateStore);
+        prepareBaseTileArray(workerPlanet, materialDatabase, sectorRegion, **tilesHolder);
         return PreparedBaseTiles{std::move(*tilesHolder), Time::monotonicTime() - start};
       });
   m_pendingBaseTiles[sector] = PendingBaseTiles{
     sourceTiles,
     planet.get(),
+    templateRevision,
     make_shared<WorkerPoolPromise<PreparedBaseTiles>>(std::move(promise))
   };
   return {false, {}};

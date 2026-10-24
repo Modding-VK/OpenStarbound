@@ -96,10 +96,12 @@ public:
   VisitableWorldParametersConstPtr worldParameters() const;
   SkyParameters skyParameters() const;
   WorldLayoutPtr worldLayout() const;
+  uint64_t generationRevision() const;
 
   void setWorldParameters(VisitableWorldParametersPtr newParameters);
   void setWorldLayout(WorldLayoutPtr newLayout);
   void setSkyParameters(SkyParameters newParameters);
+  String setLayerEnvironmentBiome(Vec2I const& position);
 
   uint64_t worldSeed() const;
   String worldName() const;
@@ -215,6 +217,7 @@ private:
   WorldGeometry m_geometry;
   WorldLayoutPtr m_layout;
   String m_worldName;
+  uint64_t m_generationRevision = 0;
 
   List<WeatherDomain> m_weatherDomains;
   List<WeatherLayer> m_weatherLayers;

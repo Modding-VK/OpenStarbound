@@ -148,6 +148,7 @@ private:
   struct PendingBaseTiles {
     ServerTileSectorArray::Array const* sourceTiles;
     WorldTemplate const* sourceTemplate;
+    uint64_t sourceTemplateRevision;
     BaseTilePromisePtr promise;
   };
 

@@ -199,9 +199,12 @@ not been measured.
 
 Queued `BaseTiles` generation can now run in an isolated, process-wide worker
 pool when `worldThreading.sectorWorkers` is greater than zero. Workers receive
-owned sector copies; `WorldServerThread` validates and commits completed
-results. The synchronous path remains the default. Configuration, scope, and
-current limitations are documented in [world-threading.md](world-threading.md).
+owned sector copies and independently reconstructed world-template snapshots;
+`WorldServerThread` validates and commits completed results. This avoids sharing
+the mutable terrain-generation caches that caused an access violation in the
+first worker implementation. The synchronous path remains the default.
+Configuration, scope, and current limitations are documented in
+[world-threading.md](world-threading.md).
 
 ## Uploaded startup reference
 

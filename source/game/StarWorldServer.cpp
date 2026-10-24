@@ -1688,7 +1688,7 @@ bool WorldServer::pregenerateExpandBiome(Vec2I const& position, int newWidth) {
 }
 
 void WorldServer::setLayerEnvironmentBiome(Vec2I const& position) {
-  auto biomeName = m_worldTemplate->worldLayout()->setLayerEnvironmentBiome(position);
+  auto biomeName = m_worldTemplate->setLayerEnvironmentBiome(position);
 
   auto layoutJson = m_worldTemplate->worldLayout()->toJson();
   for (auto const& pair : m_clientInfo)
