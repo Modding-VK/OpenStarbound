@@ -1,6 +1,7 @@
 name: Build
 permissions:
   actions: read
+  contents: write
 
 concurrency:
   group: build-${{ github.workflow }}-${{ github.ref }}
@@ -26,6 +27,10 @@ on:
         type: boolean
         description: macOS
         default: false
+      publish_windows_release:
+        type: boolean
+        description: Publicar o instalador do Windows como ativo de uma Release
+        default: true
 
   push:
     paths:
@@ -180,6 +185,16 @@ jobs:
           archive: true
           compression-level: 0
           if-no-files-found: error
+
+      - name: Publish Windows Installer Release
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_windows_release == true }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: windows-build-${{ github.run_number }}
+          name: OpenStarbound Windows build ${{ github.run_number }}
+          prerelease: true
+          generate_release_notes: false
+          files: installer/OpenStarbound-Windows-Installer.exe
   
   build_linux:
     name: Build OpenStarbound Linux x86_64
