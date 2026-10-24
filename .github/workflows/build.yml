@@ -2,6 +2,10 @@ name: Build
 permissions:
   actions: read
 
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
   
 on:
   workflow_dispatch:
@@ -62,15 +66,12 @@ jobs:
         with:
           llvm-version: 22
 
-      - name: setup 7-Zip action
-        uses: milliewalky/setup-7-zip@v2
-
       - name: sccache
         uses: hendrikmuhs/ccache-action@v1.2
         with:
           variant: sccache
           key: ${{ github.job }}-${{ runner.os }}
-          max-size: 1000M
+          max-size: 2000M
 
       - name: vcpkg
         uses: lukka/run-vcpkg@v11
@@ -105,36 +106,31 @@ jobs:
       - name: Assemble Files
         working-directory: ${{ github.workspace }}
         run: |
-          scripts/ci/windows/assemble.bat
-          ren client.zip OpenStarbound-Windows-Client.zip
-          ren server.zip OpenStarbound-Windows-Server.zip
-
-      - name: Prepare Artifacts
-        working-directory: ${{ github.workspace }}
-        run: |
-          7z -bb3 -mtp=2 -mm=Deflate64 -mx=9 a dist.zip -r dist\
-          ren dist.zip OpenStarbound-Windows-All-DevOnly.zip
+          scripts/ci/windows/assemble.bat --skip-archives
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v7.0.1
         with:
           name: OpenStarbound-Windows-All-DevOnly
-          path: OpenStarbound-Windows-All-DevOnly.zip
-          archive: false
+          path: dist/
+          compression-level: 1
+          if-no-files-found: error
 
       - name: Upload Client
         uses: actions/upload-artifact@v7.0.1
         with:
           name: OpenStarbound-Windows-Client
-          path: OpenStarbound-Windows-Client.zip
-          archive: false
+          path: client_distribution/
+          compression-level: 1
+          if-no-files-found: error
 
       - name: Upload Server
         uses: actions/upload-artifact@v7.0.1
         with:
           name: OpenStarbound-Windows-Server
-          path: OpenStarbound-Windows-Server.zip
-          archive: false
+          path: server_distribution/
+          compression-level: 1
+          if-no-files-found: error
           
       - name: Install Inno Setup
         run: |
@@ -177,6 +173,7 @@ jobs:
           path: installer/OpenStarbound-Windows-Installer.exe
           archive: true
           compression-level: 0
+          if-no-files-found: error
   
   build_linux:
     name: Build OpenStarbound Linux x86_64
