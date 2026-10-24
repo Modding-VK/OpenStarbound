@@ -68,6 +68,11 @@ public:
 
   static void log(LogLevel level, char const* msg);
 
+  // Installs a caller-owned accumulator for synchronous Logger::log time on
+  // the current thread. Returns the previous accumulator, if any. The pointer
+  // must remain valid until it is restored.
+  static double* setThreadLogTimeAccumulator(double* accumulator);
+
   template <typename... Args>
   static void logf(LogLevel level, char const* msg, Args const&... args);
 
@@ -88,6 +93,7 @@ private:
   static HashSet<LogSinkPtr> s_sinks;
   static Array<bool, 4> s_loggable;
   static Mutex s_mutex;
+  static thread_local double* s_threadLogTimeAccumulator;
 };
 
 // For logging data that is very high frequency. It is a map of debug values to

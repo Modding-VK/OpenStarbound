@@ -1043,6 +1043,7 @@ void WorldServer::update(float dt) {
 
   List<EntityId> toRemove;
   m_entityMap->updateAllEntities([&](EntityPtr const& entity) {
+      ExplorationProfile::EntityScope entityProfile(m_explorationProfile.get(), *entity);
       entity->update(dt, m_currentStep);
 
       if (auto tileEntity = as<TileEntity>(entity)) {

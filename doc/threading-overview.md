@@ -94,27 +94,25 @@ Os mundos ativos têm WorldServerThreads distintos; portanto, mundos diferentes 
 
 ## Verificação pendente: logging versus scripts
 
-Na próxima auditoria, confirmar se as mensagens emitidas por `Logger` durante
-eventos, NPCs e contextos Lua são processadas na própria thread que executa o
-callback ou se são encaminhadas para uma thread dedicada de logging. Verificar
-separadamente:
+A inspeção de `Logger::log` confirmou que ele percorre os sinks diretamente sob
+um mutex global. `FileLogSink::log` escreve no arquivo durante essa chamada; não
+há fila ou thread dedicada nesse caminho. Assim, mensagens emitidas durante o
+update de NPCs, objetos ou eventos executam e podem bloquear a mesma thread que
+chamou o logger. A instrumentação de exploração passa a medir esse tempo dentro
+das atualizações de entidades. Ainda verificar separadamente:
 
 - `WorldServerThread` durante `WorldServer::update`, incluindo `EntityMap` e
   callbacks de NPCs/entidades;
 - contextos Lua de mundo e scripts de entidades;
 - `ScriptableThread` criada explicitamente por Lua;
 - `WorldClientThread` e a thread principal do cliente;
-- `Logger::log`, o mutex interno e cada `LogSink`, especialmente o sink de
-  arquivo.
+- contenção real no mutex do logger e custo do sink de arquivo sob cargas de
+  mods com mensagens frequentes;
 
-Registrar, para cada caminho, a thread que produz a mensagem, a thread que
-executa formatação e escrita, o tempo bloqueado no logger e se o sink faz I/O
-síncrono. A conclusão deve ser baseada em instrumentação temporária com ID da
-thread e timestamps monotônicos, comparada a um callback Lua/NPC conhecido.
-Não concluir que o logger é assíncrono apenas porque possui mutex: um mutex
-protege chamadas concorrentes, mas não cria uma fila nem outra thread. Também
-verificar se mensagens de alta frequência podem bloquear o tick do mundo ou
-alterar a ordem observável dos logs.
+Registrar, para cada caminho, a thread que produz a mensagem, o tempo bloqueado
+no logger e a contribuição no tempo total da entidade. A medição atual inclui o
+mutex e os sinks, mas não a formatação feita antes de `Logger::log`. Também
+verificar se mensagens de alta frequência alteram a ordem observável dos logs.
 
 ## Código consultado
 

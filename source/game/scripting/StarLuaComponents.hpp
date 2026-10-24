@@ -7,6 +7,7 @@
 #include "StarWorldLuaBindings.hpp"
 #include "StarEntity.hpp"
 #include "StarEntityLuaBindings.hpp"
+#include "StarExplorationProfile.hpp"
 #include "StarRpcPromise.hpp"
 #include "StarLuaGameConverters.hpp"
 
@@ -407,6 +408,7 @@ Maybe<Ret> LuaUpdatableComponent<Base>::update(V&&... args) {
   
   Base::cleanThreads();
   
+  ExplorationProfile::EntityLuaScope profilingScope;
   return Base::template invoke<Ret>("update", std::forward<V>(args)...);
 }
 

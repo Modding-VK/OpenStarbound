@@ -50,7 +50,8 @@ Json const BaseDefaultConfiguration = Json::parseJson(R"JSON(
       "explorationProfiling" : {
         "enabled" : false,
         "intervalSeconds" : 5,
-        "slowOperationMilliseconds" : 50
+        "slowOperationMilliseconds" : 50,
+        "entityDetailLimit" : 12
       },
 )JSON"
 #ifdef STAR_SYSTEM_WINDOWS

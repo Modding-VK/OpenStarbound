@@ -66,6 +66,7 @@ void Logger::removeStdoutSink() {
 }
 
 void Logger::log(LogLevel level, char const* msg) {
+  double start = s_threadLogTimeAccumulator ? Time::monotonicTime() : 0.0;
   if (loggable(level)) {
     MutexLocker locker(s_mutex);
     for (auto const& l : s_sinks) {
@@ -73,6 +74,14 @@ void Logger::log(LogLevel level, char const* msg) {
         l->log(msg, level);
     }
   }
+  if (s_threadLogTimeAccumulator)
+    *s_threadLogTimeAccumulator += Time::monotonicTime() - start;
+}
+
+double* Logger::setThreadLogTimeAccumulator(double* accumulator) {
+  auto previous = s_threadLogTimeAccumulator;
+  s_threadLogTimeAccumulator = accumulator;
+  return previous;
 }
 
 bool Logger::loggable(LogLevel level) {
@@ -91,6 +100,7 @@ shared_ptr<StdoutLogSink> Logger::s_stdoutSink = make_shared<StdoutLogSink>();
 HashSet<LogSinkPtr> Logger::s_sinks{s_stdoutSink};
 Array<bool, 4> Logger::s_loggable = Array<bool, 4>{false, true, true, true};
 Mutex Logger::s_mutex;
+thread_local double* Logger::s_threadLogTimeAccumulator = nullptr;
 
 String LogMap::getValue(String const& key) {
   MutexLocker locker(s_logMapMutex);

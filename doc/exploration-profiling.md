@@ -27,7 +27,8 @@ diagnóstico desativado para comparar desempenho final.
    "explorationProfiling" : {
      "enabled" : true,
      "intervalSeconds" : 5,
-     "slowOperationMilliseconds" : 50
+     "slowOperationMilliseconds" : 50,
+     "entityDetailLimit" : 12
    }
    ```
 
@@ -88,6 +89,12 @@ Campos principais:
   (amostras com duração maior ou igual ao limiar).
 - `counts`: setores encontrados no armazenamento, setores inicialmente vazios,
   bytes comprimidos recuperados, entidades carregadas e pacotes aplicados.
+- `entityTypes`: custo agregado de cada categoria (`Object`, `Npc`, `Monster`,
+  etc.), incluindo subtotais de Lua e logging.
+- `slowEntities`: as atualizações individuais mais lentas da janela, limitadas
+  por `entityDetailLimit` (1–50; padrão 12). Cada entrada informa tipo, ID,
+  nome, subtipo quando disponível, posição, identificador da thread e tempos
+  total, Lua e logging.
 - `final`: último resumo antes da destruição; a limpeza posterior não está incluída.
 
 ### Servidor e armazenamento
@@ -95,7 +102,7 @@ Campos principais:
 | Etapa | Interpretação |
 | --- | --- |
 | `serverUpdate` | Duração de uma atualização do mundo; não inclui espera entre ticks nem toda a atividade de `WorldServerThread`. |
-| `entities` | Atualização das entidades, incluindo scripts disparados por elas. |
+| `entities` | Atualização das entidades, incluindo scripts disparados por elas. `entityTypes` divide essa fase por categoria. |
 | `scriptContexts` | Contextos de script do mundo; não representa todos os scripts. |
 | `worldStorageTick` | Manutenção e descarregamento de setores. |
 | `worldStorageGeneration` | Processamento da fila de geração, incluindo carregamento e dependências. |
@@ -157,6 +164,21 @@ decodificação de rede, apresentação do frame e trabalho assíncrono da GPU.
 O log pode conter relatórios de vários mundos ativos. Relatórios usam o logger
 normal e têm custo de serialização/E/S; a gravação de um coletor ocorre fora de
 seus próprios timers, mas pode afetar o agendamento de outros trabalhos.
+
+O campo `luaTotalMilliseconds` mede somente a chamada periódica `update` dos
+componentes Lua enquanto uma entidade está sendo atualizada. Ele não inclui
+todos os callbacks Lua possíveis (por exemplo, inicialização, mensagens ou
+callbacks acionados em outras fases). `loggingTotalMilliseconds` mede o tempo
+dentro de `Logger::log`, incluindo espera no mutex e sinks síncronos na mesma
+thread; a formatação anterior à chamada não entra nesse subtotal. Lua e logging
+são partes do tempo total da entidade e podem se sobrepor quando Lua registra
+uma mensagem. Não some esses campos ao total.
+
+O detalhamento adiciona duas leituras do relógio para cada atualização de
+entidade e leituras adicionais para callbacks Lua e logging. Isso torna a
+segunda camada mais intrusiva que o diagnóstico agregado anterior. Use-a apenas
+para atribuição, preserve a mesma configuração entre coletas e confirme qualquer
+ganho posterior com `enabled: false`.
 Mantenha o diagnóstico desativado ao usar os benchmarks para comparações de
 throughput; os modos próprios de profiling desses utilitários continuam separados.
 
