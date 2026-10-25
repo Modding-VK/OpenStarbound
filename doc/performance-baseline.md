@@ -269,6 +269,56 @@ largest individual NPC update was 65.2 ms and the largest object update was
 inclusive). These substage totals overlap the NPC totals and must not be added
 to them.
 
+Per-world breakdown (world numbers follow visit order in this log; timings
+are accumulated measurements within each world, not elapsed session time):
+
+| World | Server window | NPC updates / time | Object updates / time | Longest world tick | Longest sector queue wait |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 1 | 16:54:07–16:55:08 | 72,570 / 9.8 s | 870,329 / 1.4 s | 169 ms | 29.7 s |
+| 2 | 16:55:12–16:55:57 | 33,484 / 10.0 s | 292,224 / 0.6 s | 33 ms | 83 ms |
+| 3 | 16:55:58–16:58:48 | 206,934 / 20.8 s | 3,072,701 / 8.2 s | 531 ms | 250 ms |
+| 4 | 16:58:51–16:59:36 | 1,442 / 0.6 s | 1,421,985 / 36.2 s | 976 ms | 2.76 s |
+
+World 1 completed 368 queued sectors and exhausted its generation time budget
+178 times. It recorded 215 microdungeon stage samples totaling 1.48 s, with
+a 162 ms maximum. Its oldest queued sector reached 35.1 s. The queue wait is
+wall-clock age from enqueue to completion: simultaneous waits overlap, so the
+718 s sum of all sector waits is **not** CPU time on the world thread.
+
+World 4 has a distinct object/script bottleneck. Object updates consumed 36.2 s
+of its 46.8 s accumulated `serverUpdate` time (about 77%); 33.5 s of object
+time was reported inside Lua callbacks. There were 99 object updates over the
+50 ms slow-operation threshold and 98 slow-entity records retained. Of those
+records, 97 are `network_router` and one is `normalalveary`. The largest
+`network_router` update was 538 ms. Object logging measured zero milliseconds
+in this capture. Lua callback time includes synchronous engine calls invoked
+by scripts, so these numbers alone cannot separate script computation from
+interaction with storage, other objects, or the world. Slow-entity records are
+bounded per reporting window and are not a complete per-object accounting.
+
+World 4 completed 102 sectors, with a maximum queue wait of 2.76 s and 16
+generation budget exhaustions. Its measured base-tile worker and microdungeon
+stages were zero, so this log does not support attributing those particular
+world-4 stalls to expensive terrain or dungeon generation. Object load and
+sector wait overlap in the same visit, but the aggregate report does not prove
+that a specific router delayed a specific sector. World 3 mainly measured NPC
+time (20.8 s) and contained the longest individual NPC update (65.2 ms).
+
+Client and painter reports span the entire session and have a single context,
+so they cannot be mapped exactly to the four server worlds. Across the session,
+`painter.environment` accumulated 108.8 s and `painter.total` 137.8 s; the
+largest painter frame was 437 ms. The client recorded a 382 ms packet batch
+maximum, mostly during world initialization. These are separate stages and
+cannot be added to server-thread time to estimate one CPU core's utilization.
+
+The log has no crash. Startup reports three missing mod script assets (chicken
+nest, makeshift reactor, bunk bed), and two dungeon-object placement warnings
+occur at 16:55:55. No evidence in this capture links those warnings to the
+world-4 router stalls. A useful next capture would keep a reproducible route
+and world snapshot, then split `network_router` Lua callback time into local
+work and synchronous calls to other entities/storage; compare the same route
+with router activity disabled or reduced.
+
 This is an observational diagnostic capture, not a paired benchmark: four
 world contexts contribute and no matching universe snapshot or route was
 supplied. The object maximum indicates a separate long-tail investigation is
