@@ -48,6 +48,7 @@ Json const BaseDefaultConfiguration = Json::parseJson(R"JSON(
 
       "gameServerPort" : 21025,
       "explorationProfiling" : {
+        "npcDetails" : false,
         "enabled" : false,
         "intervalSeconds" : 5,
         "slowOperationMilliseconds" : 50,

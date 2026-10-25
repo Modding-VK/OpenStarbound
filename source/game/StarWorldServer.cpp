@@ -1146,6 +1146,8 @@ void WorldServer::update(float dt) {
   m_performanceEntitySecondsThisTick = 0;
   {
     STAR_TRACE_ZONE("WorldServer entities");
+    bool npcDetails = m_explorationProfile && m_explorationProfile->npcDetailsEnabled();
+    uint64_t updatedNpcs = 0;
     WorldPerformanceCategory entityGroup = WorldPerformanceCategory::OtherEntities;
     bool groupStarted = false;
     double groupStart = 0;
@@ -1157,6 +1159,8 @@ void WorldServer::update(float dt) {
       }
     };
     m_entityMap->updateAllEntities([&](EntityPtr const& entity) {
+      if (npcDetails && entity->entityType() == EntityType::Npc)
+        ++updatedNpcs;
       WorldPerformanceCategory category = WorldPerformanceCategory::OtherEntities;
       if (performanceSamplingThisTick) {
         if (entity->entityType() == EntityType::Npc)
@@ -1201,6 +1205,8 @@ void WorldServer::update(float dt) {
     });
     if (performanceSamplingThisTick)
       flushEntityGroup(Time::monotonicTime());
+    if (npcDetails)
+      m_explorationProfile->recordNpcPopulation(updatedNpcs);
   }
 
   recordProfileStage(UpdateProfileStage::Entities);
@@ -3315,6 +3321,7 @@ bool WorldServer::canReachEntity(Vec2F const& position, float radius, EntityId t
 }
 
 RpcPromise<InteractAction> WorldServer::interact(InteractRequest const& request) {
+  ExplorationProfile::NpcScope profile(ExplorationProfile::NpcStage::WorldInteract);
   if (auto entity = as<InteractiveEntity>(m_entityMap->entity(request.targetId)))
     return RpcPromise<InteractAction>::createFulfilled(entity->interact(request));
   else

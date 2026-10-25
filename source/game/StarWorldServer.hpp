@@ -315,6 +315,9 @@ public:
   
   void setConnectionHasPermission(ConnectionId const& connectionId, WorldPermissionType const& permission, bool const& hasPermission);
 
+  // Diagnostics only; caller must already own the world's serialized access.
+  ExplorationProfile* explorationProfile() const { return m_explorationProfile.get(); }
+
 private:
   enum class UpdateProfileStage : size_t {
     SetupAndActions,

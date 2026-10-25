@@ -4,6 +4,8 @@
 #include "StarWorld.hpp"
 #include "StarLiquidTypes.hpp"
 #include "StarJsonExtra.hpp"
+#include "StarExplorationProfile.hpp"
+#include "StarTrace.hpp"
 
 namespace Star {
 
@@ -68,7 +70,11 @@ namespace PlatformerAStar {
   }
 
   Maybe<bool> PathFinder::explore(Maybe<unsigned> maxExploreNodes) {
-    return m_astar->explore(maxExploreNodes);
+    STAR_TRACE_ZONE("Platformer path explore");
+    ExplorationProfile::NpcScope profile(ExplorationProfile::NpcStage::PathExplore);
+    auto result = m_astar->explore(maxExploreNodes);
+    ExplorationProfile::recordNpcPathResult(result);
+    return result;
   }
 
   Maybe<Path> const& PathFinder::result() const {
@@ -76,6 +82,8 @@ namespace PlatformerAStar {
   }
 
   void PathFinder::initAStar() {
+    STAR_TRACE_ZONE("Platformer path init");
+    ExplorationProfile::NpcScope profile(ExplorationProfile::NpcStage::PathInit);
     auto heuristicCostFn = [this](Node const& fromNode, Node const& toNode) -> float {
       return heuristicCost(fromNode.position, toNode.position);
     };

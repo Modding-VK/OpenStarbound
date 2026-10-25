@@ -2026,6 +2026,7 @@ namespace LuaBindings {
   }
 
   Maybe<LuaValue> WorldEntityCallbacks::callScriptedEntity(World* world, WorldCaller caller, EntityId entityId, String const& function, LuaVariadic<LuaValue> const& args) {
+    ExplorationProfile::NpcScope profile(ExplorationProfile::NpcStage::ScriptedEntityCall);
     auto entity = as<ScriptedEntity>(world->entity(entityId));
     if (!entity)
       throw StarException::format("Entity {} does not exist", entityId);
@@ -2044,6 +2045,7 @@ namespace LuaBindings {
   }
 
   RpcPromise<Json> WorldEntityCallbacks::sendEntityMessage(World* world, WorldCaller caller, LuaEngine& engine, LuaValue entityId, String const& message, LuaVariadic<Json> args) {
+    ExplorationProfile::NpcScope profile(ExplorationProfile::NpcStage::SendEntityMessage);
     if (entityId.is<LuaString>()) {
       if (world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Interact)) {
         return world->sendEntityMessage(engine.luaTo<String>(entityId), message, JsonArray::from(std::move(args)));

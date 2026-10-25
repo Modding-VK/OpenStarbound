@@ -110,6 +110,8 @@ bool LuaBaseComponent::init() {
 
   if (m_context->containsPath("init")) {
     try {
+      STAR_TRACE_ZONE("Lua component init callback");
+      ExplorationProfile::NpcScope profile(ExplorationProfile::NpcStage::LuaInit);
       m_context->invokePath("init");
     } catch (LuaException const& e) {
       Logger::error("Exception while calling script init: {}", outputException(e, true));
@@ -126,6 +128,8 @@ void LuaBaseComponent::uninit() {
   if (m_context) {
     if (m_context->containsPath("uninit")) {
       try {
+        STAR_TRACE_ZONE("Lua component uninit callback");
+        ExplorationProfile::NpcScope profile(ExplorationProfile::NpcStage::LuaUninit);
         m_context->invokePath("uninit");
       } catch (LuaException const& e) {
         Logger::error("Exception while calling script uninit: {}", outputException(e, true));

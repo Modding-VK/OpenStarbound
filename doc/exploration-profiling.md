@@ -48,6 +48,12 @@ cliente não é transmitida pela rede.
 
 ## Próxima coleta
 
+Para separar as etapas internas dos NPCs, habilitar também `npcDetails: true`
+conforme [npc-profiling.md](npc-profiling.md). Essa extensão adiciona `npcStages`
+e contadores de população/pathfinding. Os tempos de `stages` e `entityTypes`
+também passam a incluir limites superiores aproximados de p50/p95/p99 por
+histogramas fixos; não somar percentis entre janelas.
+
 Faça duas sessões separadas, conservando os mesmos mods, resolução, zoom,
 configurações gráficas e meio/velocidade de deslocamento:
 

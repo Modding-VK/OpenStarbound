@@ -8,7 +8,8 @@ se o custo dos NPCs justifica mover trabalho para outras threads.
 As fases, contratos e critérios de aprovação para executar esta pesquisa estão
 no [plano de ação de rework dos NPCs](npc-ai-rework-action-plan.md).
 O primeiro marco prevê medição e comparação paralela sem aplicar efeitos;
-todas as fases de implementação permanecem pendentes.
+a fase 0 recebeu [instrumentação detalhada](npc-profiling.md), ainda sem coleta
+de baseline. As fases de paralelismo permanecem pendentes.
 
 ## Histórico desta investigação
 

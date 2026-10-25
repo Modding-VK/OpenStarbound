@@ -5,8 +5,10 @@ Plano elaborado em 25/10/2026 na branch `perf/threading-audit`, com base na
 histórico de decisões ali registrado. Integra o
 [backlog de desempenho](performance-backlog.md).
 
-**Estado: planejamento documentado; todas as fases de implementação estão
-pendentes.** O primeiro marco executável compreende as fases 0–2: medição,
+**Estado: fase 0 em execução; fases 1–7 pendentes.** A
+[instrumentação detalhada](npc-profiling.md) foi acrescentada; baseline,
+latência de reação, inventário e aprovação da fase 0 ainda estão pendentes.
+O primeiro marco executável compreende as fases 0–2: medição,
 fronteira de leitura e comparação paralela sem efeitos. Este documento não
 comprova ganho de desempenho nem significa que os NPCs já usam workers.
 
@@ -124,13 +126,14 @@ O mutex protege os registros de coordenação, não substitui essa validação.
 
 ## 3. Fases, dependências e critérios de avanço
 
-Todas as fases começam pendentes. A fase seguinte depende da aprovação da
+As fases começam pendentes; a fase 0 já recebeu instrumentação inicial.
+A fase seguinte depende da aprovação da
 anterior; descobrir uma limitação pode exigir retornar à fronteira de leitura.
 Não iniciar migração ampla enquanto o primeiro marco não produzir evidências.
 
 | Fase | Entrega | Dependência | Estado |
 | --- | --- | --- | --- |
-| 0 | Baseline e inventário de acessos | Nenhuma | Pendente |
+| 0 | Baseline e inventário de acessos | Nenhuma | Em execução; coleta pendente |
 | 1 | Contrato de leitura e snapshots | 0 aprovada | Pendente |
 | 2 | Comparação paralela sem efeitos | 1 aprovada | Pendente |
 | 3 | Pathfinding ativo opcional | 2 aprovada | Pendente |
@@ -141,6 +144,8 @@ Não iniciar migração ampla enquanto o primeiro marco não produzir evidência
 
 ### Fase 0 — Medição e inventário
 
+- [x] Acrescentar escopos de etapas NPC, callbacks, pathfinding, interações e
+      percentis limitados em memória; ver [cobertura e limites](npc-profiling.md).
 - [ ] Separar custo de Lua periódico, outros callbacks, pathfinding, movimento,
       status, logging e interações, evitando somar tempos inclusivos duplicados.
 - [ ] Mapear leituras, escritas, chamadas síncronas, RNG e produtores de mudanças
@@ -155,8 +160,9 @@ Não iniciar migração ampla enquanto o primeiro marco não produzir evidência
 acessos a estado compartilhado. Se o custo não justificar a migração, registrar
 a decisão de suspender o caminho ativo. Não aumentar limites sem nova medição.
 
-**Registro:** commit/build: pendente; cenário/artefatos: pendentes; métricas e
-limites: pendentes; revisão/decisão: pendente; questões abertas: inventário inicial.
+**Registro:** instrumentação: commit desta entrega (histórico de `npc-profiling.md`);
+build Windows e cenário/artefatos: pendentes; métricas reais e limites: pendentes;
+revisão/decisão: pendente; questões abertas: inventário e marcadores de reação.
 
 ### Fase 1 — Fronteira de leitura
 
@@ -329,7 +335,8 @@ as limitações de cobertura.
 - [x] Registrar arquitetura, invariantes e dependências neste plano.
 - [x] Definir primeiro marco sem aplicação de efeitos (fases 0–2).
 - [x] Vincular pesquisa de NPCs e backlog geral a este documento.
-- [ ] Iniciar fase 0 e preencher seu registro com evidência real.
+- [x] Iniciar fase 0 com a instrumentação detalhada.
+- [ ] Preencher o registro da fase 0 com coleta e evidência de comportamento.
 
 ### Processo para futuras implementações
 

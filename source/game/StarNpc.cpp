@@ -1,5 +1,6 @@
 #include "StarNpc.hpp"
 #include "StarTrace.hpp"
+#include "StarExplorationProfile.hpp"
 #include "StarDataStreamExtra.hpp"
 #include "StarWorld.hpp"
 #include "StarRoot.hpp"
@@ -173,6 +174,7 @@ ClientEntityMode Npc::clientEntityMode() const {
 }
 
 void Npc::init(World* world, EntityId entityId, EntityMode mode, ConnectionId originConnection) {
+  ExplorationProfile::NpcScope profile(world, ExplorationProfile::NpcStage::Init);
   Entity::init(world, entityId, mode, originConnection);
   m_movementController->init(world);
   m_movementController->setIgnorePhysicsEntities({entityId});
@@ -213,6 +215,7 @@ void Npc::init(World* world, EntityId entityId, EntityMode mode, ConnectionId or
 }
 
 void Npc::uninit() {
+  ExplorationProfile::NpcScope profile(inWorld() ? world() : nullptr, ExplorationProfile::NpcStage::Uninit);
   if (isMaster()) {
     m_movementController->resetAnchorState();
     m_scriptComponent.uninit();
@@ -340,6 +343,7 @@ Maybe<PolyF> Npc::hitPoly() const {
 }
 
 List<DamageNotification> Npc::applyDamage(DamageRequest const& damage) {
+  ExplorationProfile::NpcScope profile(inWorld() ? world() : nullptr, ExplorationProfile::NpcStage::Damage);
   if (!inWorld())
     return {};
 
@@ -367,6 +371,7 @@ List<DamageNotification> Npc::selfDamageNotifications() {
 }
 
 bool Npc::shouldDestroy() const {
+  ExplorationProfile::NpcScope profile(inWorld() ? world() : nullptr, ExplorationProfile::NpcStage::ShouldDestroy);
   if (auto res = m_scriptComponent.invoke<bool>("shouldDie"))
     return *res;
   else if (!m_statusController->resourcePositive("health") || m_scriptComponent.error())
@@ -376,6 +381,7 @@ bool Npc::shouldDestroy() const {
 }
 
 void Npc::destroy(RenderCallback* renderCallback) {
+  ExplorationProfile::NpcScope profile(inWorld() ? world() : nullptr, ExplorationProfile::NpcStage::Destroy);
   m_scriptComponent.invoke("die");
 
   if (isMaster() && !m_dropPools.get().empty()) {
@@ -396,6 +402,7 @@ void Npc::destroy(RenderCallback* renderCallback) {
 }
 
 void Npc::damagedOther(DamageNotification const& damage) {
+  ExplorationProfile::NpcScope profile(inWorld() ? world() : nullptr, ExplorationProfile::NpcStage::DamagedOther);
   if (inWorld() && isMaster())
     m_statusController->damagedOther(damage);
 }
@@ -405,11 +412,13 @@ void Npc::update(float dt, uint64_t) {
   if (!inWorld())
     return;
 
+  ExplorationProfile::NpcScope profile(world(), ExplorationProfile::NpcStage::Update);
   m_movementController->setTimestep(dt);
 
   if (isMaster()) {
     {
       STAR_TRACE_ZONE("Npc script");
+      ExplorationProfile::NpcScope scriptProfile(ExplorationProfile::NpcStage::ScriptDispatch);
       m_scriptComponent.update(m_scriptComponent.updateDt(dt));
     }
 
@@ -447,10 +456,21 @@ void Npc::update(float dt, uint64_t) {
     m_statusController->setPersistentEffects("armor", m_armor->statusEffects(m_disableWornArmor.get()));
     m_statusController->setPersistentEffects("tools", m_tools->statusEffects());
 
-    m_movementController->tickMaster(dt);
-    m_statusController->tickMaster(dt);
-
-    tickShared(dt);
+    {
+      STAR_TRACE_ZONE("Npc movement");
+      ExplorationProfile::NpcScope movementProfile(ExplorationProfile::NpcStage::Movement);
+      m_movementController->tickMaster(dt);
+    }
+    {
+      STAR_TRACE_ZONE("Npc status");
+      ExplorationProfile::NpcScope statusProfile(ExplorationProfile::NpcStage::Status);
+      m_statusController->tickMaster(dt);
+    }
+    {
+      STAR_TRACE_ZONE("Npc shared update");
+      ExplorationProfile::NpcScope sharedProfile(ExplorationProfile::NpcStage::Shared);
+      tickShared(dt);
+    }
 
     if (!is<LoungeAnchor>(m_movementController->entityAnchor())) {
       if (m_movementController->groundMovement()) {
@@ -603,6 +623,7 @@ bool Npc::aggressive() const {
 }
 
 Maybe<LuaValue> Npc::callScript(String const& func, LuaVariadic<LuaValue> const& args) {
+  ExplorationProfile::NpcScope profile(inWorld() ? world() : nullptr, ExplorationProfile::NpcStage::CallScript);
   return m_scriptComponent.invoke(func, args);
 }
 
@@ -1063,6 +1084,7 @@ bool Npc::isInteractive() const {
 }
 
 InteractAction Npc::interact(InteractRequest const& request) {
+  ExplorationProfile::NpcScope profile(inWorld() ? world() : nullptr, ExplorationProfile::NpcStage::Interact);
   auto result = m_scriptComponent.invoke<Json>("interact",
       JsonObject{{"sourceId", request.sourceId}, {"sourcePosition", jsonFromVec2F(request.sourcePosition)}}).value();
 
@@ -1137,6 +1159,7 @@ List<LightSource> Npc::lightSources() const {
 }
 
 Maybe<ChainableJsonMessageResponse> Npc::receiveMessage(ConnectionId sendingConnection, String const& message, JsonArray const& args) {
+  ExplorationProfile::NpcScope profile(inWorld() ? world() : nullptr, ExplorationProfile::NpcStage::ReceiveMessage);
   Maybe<ChainableJsonMessageResponse> result = m_scriptComponent.handleMessage(message, world()->connection() == sendingConnection, args);
   if (!result)
     result = m_statusController->receiveMessage(message, world()->connection() == sendingConnection, args);

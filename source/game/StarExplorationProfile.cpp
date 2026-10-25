@@ -6,6 +6,7 @@
 #include "StarNpc.hpp"
 #include "StarRoot.hpp"
 #include "StarTime.hpp"
+#include "StarWorldServer.hpp"
 
 #include <atomic>
 #include <cmath>
@@ -14,6 +15,7 @@
 namespace Star {
 
 thread_local ExplorationProfile::EntityScope* ExplorationProfile::s_currentEntityScope = nullptr;
+thread_local ExplorationProfile::NpcScope* ExplorationProfile::s_currentNpcScope = nullptr;
 
 ExplorationProfilePtr ExplorationProfile::create(String component, String context) {
   auto config = Root::singleton().configuration()->get("explorationProfiling", JsonObject());
@@ -30,6 +32,7 @@ ExplorationProfilePtr ExplorationProfile::create(String component, String contex
   profile->m_interval = std::isfinite(interval) ? clamp(interval, 1.0, 60.0) : 5.0;
   profile->m_slowSeconds = (std::isfinite(slowMs) ? clamp(slowMs, 1.0, 60000.0) : 50.0) / 1000.0;
   profile->m_entityDetailLimit = (unsigned)clamp<uint64_t>(config.getUInt("entityDetailLimit", 12), 1, 50);
+  profile->m_npcDetails = profile->m_component == "server" && config.getBool("npcDetails", false);
   profile->m_windowStart = Time::monotonicTime();
   Logger::info("[ExplorationProfile] enabled component={} instance={} context={}",
       profile->m_component, profile->m_instance, profile->m_context);
@@ -97,12 +100,108 @@ void ExplorationProfile::setContext(String context) {
   m_context = std::move(context);
 }
 
+ExplorationProfile* ExplorationProfile::npcProfile(World* world) {
+  auto server = dynamic_cast<WorldServer*>(world);
+  auto profile = server ? server->explorationProfile() : nullptr;
+  return profile && profile->m_npcDetails ? profile : nullptr;
+}
+
+ExplorationProfile::NpcScope::NpcScope(World* world, NpcStage stage)
+  : NpcScope(npcProfile(world), stage) {}
+
+ExplorationProfile::NpcScope::NpcScope(NpcStage stage)
+  : NpcScope(s_currentNpcScope ? s_currentNpcScope->m_profile : nullptr, stage) {}
+
+ExplorationProfile::NpcScope::NpcScope(ExplorationProfile* profile, NpcStage stage)
+  : m_profile(profile), m_previous(s_currentNpcScope), m_stage(stage) {
+  // Also mask a previous context when entering an unprofiled world/client.
+  if (m_profile || m_previous)
+    s_currentNpcScope = this;
+  if (m_profile) {
+    m_previousLogAccumulator = Logger::setThreadLogTimeAccumulator(&m_loggingSeconds);
+    m_start = Time::monotonicTime();
+  }
+}
+
+ExplorationProfile::NpcScope::~NpcScope() {
+  if (m_profile) {
+    double elapsed = Time::monotonicTime() - m_start;
+    Logger::setThreadLogTimeAccumulator(m_previousLogAccumulator);
+    // Preserve the existing entity logging subtotal and inclusive parent logs.
+    if (m_previousLogAccumulator)
+      *m_previousLogAccumulator += m_loggingSeconds;
+    if (m_previous && m_previous->m_profile == m_profile)
+      m_previous->m_childSeconds += elapsed;
+    auto& timing = m_profile->m_npcTimings[static_cast<size_t>(m_stage)];
+    timing.add(elapsed, m_profile->m_slowSeconds);
+    timing.exclusiveSeconds += max(0.0, elapsed - m_childSeconds);
+    timing.loggingSeconds += m_loggingSeconds;
+  }
+  if (m_profile || m_previous)
+    s_currentNpcScope = m_previous;
+}
+
+void ExplorationProfile::recordNpcPathResult(Maybe<bool> result) {
+  if (s_currentNpcScope && s_currentNpcScope->m_profile)
+    ++s_currentNpcScope->m_profile->m_npcPathResults[result ? (*result ? 1 : 2) : 0];
+}
+
+void ExplorationProfile::recordNpcPopulation(uint64_t updatedEntities) {
+  if (m_npcDetails) {
+    ++m_npcPopulationSamples;
+    m_npcUpdatedEntities += updatedEntities;
+    m_npcMaximumUpdatedEntities = max(m_npcMaximumUpdatedEntities, updatedEntities);
+  }
+}
+
+void ExplorationProfile::Timing::add(double seconds, double slowSeconds) {
+  ++samples;
+  slowSamples += seconds >= slowSeconds;
+  totalSeconds += seconds;
+  maximumSeconds = max(maximumSeconds, seconds);
+  size_t bucket = 0;
+  double microseconds = seconds * 1000000;
+  if (microseconds >= 1) {
+    int exponent;
+    double mantissa = std::frexp(microseconds, &exponent) * 2;
+    bucket = min(HistogramSize - 1,
+        static_cast<size_t>(1 + (exponent - 1) * 8 + static_cast<int>((mantissa - 1) * 8)));
+  }
+  ++histogram[bucket];
+}
+
+double ExplorationProfile::Timing::percentileUpperMilliseconds(unsigned percentile) const {
+  if (!samples)
+    return 0;
+  uint64_t rank = (samples / 100) * percentile + ((samples % 100) * percentile + 99) / 100;
+  uint64_t accumulated = 0;
+  for (size_t i = 0; i < HistogramSize; ++i) {
+    accumulated += histogram[i];
+    if (accumulated >= rank) {
+      if (i == HistogramSize - 1)
+        return maximumSeconds * 1000;
+      double upperUs = i == 0 ? 1.0 : std::ldexp(1.0 + ((i - 1) % 8 + 1) / 8.0, (i - 1) / 8);
+      return min(maximumSeconds * 1000, upperUs / 1000);
+    }
+  }
+  return maximumSeconds * 1000;
+}
+
+JsonObject ExplorationProfile::Timing::toJson() const {
+  return JsonObject{
+    {"samples", samples}, {"slowSamples", slowSamples},
+    {"totalMilliseconds", totalSeconds * 1000},
+    {"meanMilliseconds", samples ? totalSeconds * 1000 / samples : 0},
+    {"maximumMilliseconds", maximumSeconds * 1000},
+    {"p50UpperMilliseconds", percentileUpperMilliseconds(50)},
+    {"p95UpperMilliseconds", percentileUpperMilliseconds(95)},
+    {"p99UpperMilliseconds", percentileUpperMilliseconds(99)}
+  };
+}
+
 void ExplorationProfile::record(char const* stage, double seconds) {
   auto& timing = m_timings[stage];
-  ++timing.samples;
-  timing.slowSamples += seconds >= m_slowSeconds;
-  timing.totalSeconds += seconds;
-  timing.maximumSeconds = max(timing.maximumSeconds, seconds);
+  timing.add(seconds, m_slowSeconds);
 }
 
 void ExplorationProfile::count(char const* counter, uint64_t amount) {
@@ -112,10 +211,7 @@ void ExplorationProfile::count(char const* counter, uint64_t amount) {
 void ExplorationProfile::recordEntity(Entity const& entity, double totalSeconds, double luaSeconds, double loggingSeconds) {
   String type = EntityTypeNames.getRight(entity.entityType());
   auto& timing = m_entityTimings[type];
-  ++timing.samples;
-  timing.slowSamples += totalSeconds >= m_slowSeconds;
-  timing.totalSeconds += totalSeconds;
-  timing.maximumSeconds = max(timing.maximumSeconds, totalSeconds);
+  timing.add(totalSeconds, m_slowSeconds);
   timing.luaSeconds += luaSeconds;
   timing.loggingSeconds += loggingSeconds;
 
@@ -161,13 +257,7 @@ void ExplorationProfile::report(bool final) {
     auto& timing = entry.second;
     if (!timing.samples)
       continue;
-    stages.set(entry.first, JsonObject{
-      {"samples", timing.samples},
-      {"slowSamples", timing.slowSamples},
-      {"totalMilliseconds", timing.totalSeconds * 1000},
-      {"meanMilliseconds", timing.totalSeconds * 1000 / timing.samples},
-      {"maximumMilliseconds", timing.maximumSeconds * 1000}
-    });
+    stages.set(entry.first, timing.toJson());
     timing = {};
   }
   JsonObject counts;
@@ -181,15 +271,10 @@ void ExplorationProfile::report(bool final) {
     auto& timing = entry.second;
     if (!timing.samples)
       continue;
-    entityTypes.set(entry.first, JsonObject{
-      {"samples", timing.samples},
-      {"slowSamples", timing.slowSamples},
-      {"totalMilliseconds", timing.totalSeconds * 1000},
-      {"meanMilliseconds", timing.totalSeconds * 1000 / timing.samples},
-      {"maximumMilliseconds", timing.maximumSeconds * 1000},
-      {"luaTotalMilliseconds", timing.luaSeconds * 1000},
-      {"loggingTotalMilliseconds", timing.loggingSeconds * 1000}
-    });
+    auto json = timing.toJson();
+    json.set("luaTotalMilliseconds", timing.luaSeconds * 1000);
+    json.set("loggingTotalMilliseconds", timing.loggingSeconds * 1000);
+    entityTypes.set(entry.first, std::move(json));
     timing = {};
   }
   std::sort(m_slowEntities.begin(), m_slowEntities.end(), [](auto const& a, auto const& b) {
@@ -206,13 +291,43 @@ void ExplorationProfile::report(bool final) {
     });
   }
   m_slowEntities.clear();
-  if (!stages.empty() || !counts.empty() || !entityTypes.empty() || !slowEntities.empty()) {
+  static char const* const npcStageNames[] = {
+    "update", "scriptDispatch", "movement", "status", "shared", "init", "uninit", "damage",
+    "damagedOther", "shouldDestroy", "destroy", "interact", "receiveMessage", "callScript",
+    "lua.update", "lua.invoke", "lua.init", "lua.uninit", "lua.message", "lua.threadMessage", "lua.eval",
+    "pathfinding.init", "pathfinding.explore", "outgoing.callScriptedEntity", "outgoing.sendEntityMessage", "outgoing.interact"
+  };
+  static_assert(sizeof(npcStageNames) / sizeof(*npcStageNames) == static_cast<size_t>(NpcStage::Count), "NPC stage labels");
+  JsonObject npcStages;
+  for (size_t i = 0; i < m_npcTimings.size(); ++i) {
+    auto& timing = m_npcTimings[i];
+    if (!timing.samples)
+      continue;
+    auto json = timing.toJson();
+    json.set("exclusiveMilliseconds", timing.exclusiveSeconds * 1000);
+    json.set("loggingTotalMilliseconds", timing.loggingSeconds * 1000);
+    npcStages.set(npcStageNames[i], std::move(json));
+    timing = {};
+  }
+  if (m_npcDetails) {
+    counts.set("npc.pathfinding.pendingExploreCalls", m_npcPathResults[0]);
+    counts.set("npc.pathfinding.successfulExploreCalls", m_npcPathResults[1]);
+    counts.set("npc.pathfinding.failedExploreCalls", m_npcPathResults[2]);
+    counts.set("npc.populationTickSamples", m_npcPopulationSamples);
+    counts.set("npc.updatedEntitiesTotal", m_npcUpdatedEntities);
+    counts.set("npc.maximumUpdatedEntitiesPerTick", m_npcMaximumUpdatedEntities);
+    m_npcPathResults = {};
+    m_npcPopulationSamples = m_npcUpdatedEntities = m_npcMaximumUpdatedEntities = 0;
+  }
+  if (!stages.empty() || !counts.empty() || !entityTypes.empty() || !slowEntities.empty() || !npcStages.empty()) {
     Json report = JsonObject{
       {"component", m_component}, {"context", m_context}, {"instance", m_instance},
       {"windowMilliseconds", (now - m_windowStart) * 1000},
       {"slowOperationMilliseconds", m_slowSeconds * 1000}, {"final", final},
       {"stages", std::move(stages)}, {"counts", std::move(counts)},
-      {"entityTypes", std::move(entityTypes)}, {"slowEntities", std::move(slowEntities)}
+      {"entityTypes", std::move(entityTypes)}, {"slowEntities", std::move(slowEntities)},
+      {"npcDetails", m_npcDetails}, {"npcStages", std::move(npcStages)},
+      {"percentileMethod", "histogram-upper-bound-8-buckets-per-octave-1us"}
     };
     Logger::info("[ExplorationProfile] {}", report.printJson(0, true));
   }

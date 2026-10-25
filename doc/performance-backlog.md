@@ -13,7 +13,8 @@ As pesquisas de operações estão separadas entre
 O [plano de ação de rework dos NPCs](npc-ai-rework-action-plan.md) organiza
 as fases e seus critérios de aprovação. O primeiro marco é medir, isolar
 leituras e comparar cálculos paralelos sem aplicar efeitos (fases 0–2);
-as fases de implementação estão pendentes.
+a fase 0 recebeu [instrumentação detalhada de NPCs](npc-profiling.md), mas
+baseline e aprovação ainda estão pendentes. As fases 1–7 não foram iniciadas.
 O plano de workers e API para modders desses objetos está em
 [object-worker-architecture-plan.md](object-worker-architecture-plan.md).
 Novas dependências e ferramentas seguem a política de

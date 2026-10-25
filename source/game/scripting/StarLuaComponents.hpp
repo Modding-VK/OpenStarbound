@@ -10,6 +10,7 @@
 #include "StarExplorationProfile.hpp"
 #include "StarRpcPromise.hpp"
 #include "StarLuaGameConverters.hpp"
+#include "StarTrace.hpp"
 
 namespace Star {
 
@@ -250,6 +251,9 @@ Maybe<Ret> LuaBaseComponent::invoke(String const& name, V&&... args) {
     auto method = m_context->getPath(name);
     if (method == LuaNil)
       return {};
+    STAR_TRACE_ZONE("Lua component invoke");
+    ExplorationProfile::NpcScope profile(name == "update"
+        ? ExplorationProfile::NpcStage::LuaUpdate : ExplorationProfile::NpcStage::LuaInvoke);
     return m_context->luaTo<LuaFunction>(std::move(method)).invoke<Ret>(std::forward<V>(args)...);
   } catch (LuaException const& e) {
     Logger::error("Exception while invoking lua function '{}'. {}", name, outputException(e, true));
@@ -264,6 +268,8 @@ Maybe<LuaValue> LuaBaseComponent::eval(String const& code) {
     return {};
 
   try {
+    STAR_TRACE_ZONE("Lua component eval");
+    ExplorationProfile::NpcScope profile(ExplorationProfile::NpcStage::LuaEval);
     return m_context->eval<Ret>(code);
   } catch (LuaException const& e) {
     Logger::error("Exception while evaluating lua in context: {}", outputException(e, true));
@@ -357,6 +363,8 @@ Maybe<ChainableJsonMessageResponse> LuaUpdatableComponent<Base>::handleThreadMes
 
   if (auto handler = m_threadMessageHandlers.ptr(message.message)) {
     try {
+      STAR_TRACE_ZONE("Lua thread message handler");
+      ExplorationProfile::NpcScope profile(ExplorationProfile::NpcStage::LuaThreadMessage);
       return handler->function->template invoke<ChainableJsonMessageResponse>(message.originThread, message.message, luaUnpack(message.args));
     } catch (LuaException const& e) {
       Logger::error(
@@ -488,10 +496,12 @@ Maybe<ChainableJsonMessageResponse> LuaMessageHandlingComponent<Base>::handleMes
 
   if (auto handler = m_messageHandlers.ptr(message)) {
     try {
+      if (handler->localOnly && !localMessage)
+        return {};
+      STAR_TRACE_ZONE("Lua entity message handler");
+      ExplorationProfile::NpcScope profile(ExplorationProfile::NpcStage::LuaMessage);
       if (handler->localOnly) {
-        if (!localMessage)
-          return {};
-        else if (handler->passName)
+        if (handler->passName)
           return handler->function->template invoke<ChainableJsonMessageResponse>(message, luaUnpack(args));
         else
           return handler->function->template invoke<ChainableJsonMessageResponse>(luaUnpack(args));
