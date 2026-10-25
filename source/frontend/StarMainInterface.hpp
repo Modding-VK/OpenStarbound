@@ -8,6 +8,7 @@
 #include "StarMainInterfaceTypes.hpp"
 #include "StarWarping.hpp"
 #include "StarWorldPerformance.hpp"
+#include "StarWorkerPool.hpp"
 
 #include <array>
 
@@ -178,6 +179,7 @@ private:
   void renderWindows();
   void renderDebug();
   void renderPerformance();
+  void renderThreads();
 
   void updateCursor();
   void renderCursor();
@@ -240,6 +242,10 @@ private:
   RectF m_debugTextRect{RectF::null()};
   Maybe<WorldPerformanceSnapshot> m_performanceSnapshot;
   PerformanceOverlayCache m_performanceCache;
+  double m_threadPanelNextRead = 0;
+  double m_threadPanelLastRead = 0;
+  std::vector<WorkerPool::Snapshot> m_threadSnapshots;
+  std::vector<float> m_threadUtilization;
 
   NameplatePainterPtr m_nameplatePainter;
   QuestIndicatorPainterPtr m_questIndicatorPainter;

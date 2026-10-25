@@ -13,6 +13,7 @@
 #include "StarInterfaceLuaBindings.hpp"
 #include "StarInput.hpp"
 #include "StarWorldPerformance.hpp"
+#include "StarWorkerPool.hpp"
 
 namespace Star {
 
@@ -63,6 +64,7 @@ ClientCommandProcessor::ClientCommandProcessor(UniverseClientPtr universeClient,
 ClientCommandProcessor::~ClientCommandProcessor() {
   WorldPerformanceOverlay::setEnabled(false);
   WorldPerformanceOverlay::setDetailed(false);
+  WorkerPool::setMonitoringEnabled(false);
 }
 
 bool ClientCommandProcessor::adminCommandAllowed() const {
@@ -156,13 +158,23 @@ bool ClientCommandProcessor::debugHudEnabled() const {
   return m_debugHudEnabled;
 }
 
+bool ClientCommandProcessor::threadPanelEnabled() const {
+  return m_debugThreadsEnabled;
+}
+
+unsigned ClientCommandProcessor::threadPanelPage() const {
+  return m_threadPanelPage;
+}
+
 void ClientCommandProcessor::setHudVisible(bool visible) {
   m_hudVisible = visible;
   updatePerformanceOverlay();
 }
 
 void ClientCommandProcessor::updatePerformanceOverlay() {
-  WorldPerformanceOverlay::setEnabled(m_debugDisplayEnabled && m_debugHudEnabled && m_hudVisible);
+  WorldPerformanceOverlay::setEnabled(m_hudVisible &&
+      ((m_debugDisplayEnabled && m_debugHudEnabled) || m_debugThreadsEnabled));
+  WorkerPool::setMonitoringEnabled(m_hudVisible && m_debugThreadsEnabled);
 }
 
 bool ClientCommandProcessor::fixedCameraEnabled() const {
@@ -193,6 +205,20 @@ String ClientCommandProcessor::gravity() {
 
 String ClientCommandProcessor::debug(String const& argumentsString) {
   auto arguments = m_parser.tokenizeToStringList(argumentsString);
+  if (!arguments.empty() && arguments.at(0).equalsIgnoreCase("threads")) {
+    if (arguments.size() > 1 && arguments.at(1).equalsIgnoreCase("next")) {
+      ++m_threadPanelPage;
+      return "Thread panel: next page";
+    }
+    if (arguments.size() > 1 && arguments.at(1).equalsIgnoreCase("previous")) {
+      if (m_threadPanelPage) --m_threadPanelPage;
+      return "Thread panel: previous page";
+    }
+    m_debugThreadsEnabled = !m_debugThreadsEnabled;
+    m_threadPanelPage = 0;
+    updatePerformanceOverlay();
+    return strf("Thread panel {}", m_debugThreadsEnabled ? "enabled" : "disabled");
+  }
   if (!arguments.empty() && arguments.at(0).equalsIgnoreCase("perf")) {
     m_debugPerformanceDetailed = !m_debugPerformanceDetailed;
     WorldPerformanceOverlay::setDetailed(m_debugPerformanceDetailed);

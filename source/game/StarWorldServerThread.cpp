@@ -6,6 +6,7 @@
 #include "StarTrace.hpp"
 #include "StarAssets.hpp"
 #include "StarPlayer.hpp"
+#include "StarWorkerPool.hpp"
 
 namespace Star {
 
@@ -229,6 +230,7 @@ void WorldServerThread::run() {
     while (!m_stop && !m_errorOccurred) {
       STAR_TRACE_ZONE("WorldServerThread tick");
       STAR_TRACE_FRAME("WorldServerThread");
+      int64_t threadWorkStart = WorkerPool::monitoring() ? Time::monotonicMicroseconds() : 0;
       bool performanceEnabled = m_worldServer->performanceOverlayActive();
       double tickStart = performanceEnabled ? Time::monotonicTime() : 0;
       auto fidelity = lockedFidelity.value(automaticFidelity);
@@ -260,6 +262,9 @@ void WorldServerThread::run() {
       }
 
       int64_t spareMilliseconds = floor(spareTime * 1000);
+      if (threadWorkStart)
+        WorkerPool::recordDedicatedWork("World server " + printWorldId(m_worldId),
+            Time::monotonicMicroseconds() - threadWorkStart);
       double busySeconds = performanceEnabled ? Time::monotonicTime() - tickStart : 0;
       double idleSeconds = 0;
       if (spareMilliseconds > 0) {

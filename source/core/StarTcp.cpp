@@ -1,4 +1,6 @@
 #include "StarTcp.hpp"
+#include "StarWorkerPool.hpp"
+#include "StarTime.hpp"
 #include "StarLogging.hpp"
 #include "StarNetImpl.hpp"
 
@@ -204,8 +206,12 @@ void TcpServer::setAcceptCallback(AcceptCallback callback, unsigned timeout) {
               Logger::error("TcpServer caught exception accepting connection {}", outputException(e, false));
             }
 
-            if (conn)
+            if (conn) {
+              int64_t workStart = WorkerPool::monitoring() ? Time::monotonicMicroseconds() : 0;
               m_callback(conn);
+              if (workStart)
+                WorkerPool::recordDedicatedWork("TCP accept callbacks", Time::monotonicMicroseconds() - workStart);
+            }
 
             if (!m_listenSocket->isActive())
               break;

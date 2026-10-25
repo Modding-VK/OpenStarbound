@@ -1,5 +1,8 @@
 # Painel de desempenho do mundo
 
+O painel complementar de threads e pools e o comando `/debug threads` estão
+descritos em [thread-panel.md](thread-panel.md).
+
 ## Objetivo e estado
 
 Implementação na branch `perf/threading-audit`, em 25/10/2026. O

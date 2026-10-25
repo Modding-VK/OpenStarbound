@@ -1,6 +1,7 @@
 #pragma once
 
 #include "StarThread.hpp"
+#include <vector>
 
 namespace Star {
 
@@ -86,6 +87,22 @@ private:
 
 class WorkerPool {
 public:
+  struct Snapshot {
+    String name;
+    unsigned workers = 0;
+    unsigned active = 0;
+    uint64_t submitted = 0;
+    uint64_t completed = 0;
+    uint64_t busyMicroseconds = 0;
+    size_t queued = 0;
+    size_t peakQueued = 0;
+    bool dedicated = false;
+  };
+  static void setMonitoringEnabled(bool enabled);
+  static std::vector<Snapshot> snapshots();
+  static void recordLightingWork(uint64_t microseconds);
+  static bool monitoring();
+  static void recordDedicatedWork(String const& name, uint64_t microseconds);
   // Creates a stopped pool
   WorkerPool(String name);
   // Creates a started pool
@@ -124,7 +141,18 @@ public:
   // Returns the current number of worker threads.
   size_t getWorkerCount() const;
 
+public: // Shared only with the diagnostic registry; no gameplay ownership.
+  struct Monitor {
+    explicit Monitor(String name) : name(std::move(name)) {}
+    String name;
+    atomic<unsigned> workers{0}, active{0};
+    atomic<uint64_t> submitted{0}, completed{0}, busyMicroseconds{0};
+    atomic<int64_t> lastObservedMicroseconds{0};
+    atomic<size_t> queued{0}, peakQueued{0};
+    bool dedicated = false;
+  };
 private:
+  void runWork(function<void()>& work);
   class WorkerThread : public Thread {
   public:
     // Starts automatically
@@ -141,6 +169,7 @@ private:
   void queueWork(function<void()> work);
 
   String m_name;
+  shared_ptr<Monitor> m_monitor;
   Mutex m_threadMutex;
   List<unique_ptr<WorkerThread>> m_workerThreads;
 

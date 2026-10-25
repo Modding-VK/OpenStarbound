@@ -5,6 +5,8 @@
 #include "StarLogging.hpp"
 #include "StarAssets.hpp"
 #include "StarPlayer.hpp"
+#include "StarWorkerPool.hpp"
+#include "StarTime.hpp"
 
 namespace Star {
 
@@ -97,7 +99,11 @@ void WorldClientThread::run() {
     while (!m_stop && !m_errorOccurred) {
       LogMap::set(strf("client_{}_update", m_subWorldId), strf("{:4.2f}Hz", tickApproacher.rate()));
 
+      int64_t workStart = WorkerPool::monitoring() ? Time::monotonicMicroseconds() : 0;
       update();
+      if (workStart)
+        WorkerPool::recordDedicatedWork(strf("Client subworld {}", m_subWorldId),
+            Time::monotonicMicroseconds() - workStart);
       tickApproacher.setTargetTickRate(1.0f / GlobalTimestep);
       tickApproacher.tick();
 

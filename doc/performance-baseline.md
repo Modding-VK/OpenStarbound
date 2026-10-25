@@ -255,3 +255,23 @@ it only as a reference when the same setup is repeated; it contains no runtime
 frame-rate or CPU measurements. The log already has three missing object-script
 warnings from the ATI bridge scan and a missing StarExtensions warning for Zoom
 Keybinds.
+
+## NPC diagnostic log supplied with the HUD report — 2026-10-25
+
+The user supplied a `starbound.log` after enabling `explorationProfiling` with
+`npcDetails: true`. It contains 69 server reporting windows across four world
+contexts, plus 67 client and 67 painter windows. Across the server windows,
+`entityTypes.Npc` accumulated about 41.1 s over 314,430 updates, while
+`entityTypes.Object` accumulated about 46.3 s over 5,657,239 updates. The
+largest individual NPC update was 65.2 ms and the largest object update was
+537.6 ms. The NPC detail sections record 49,434 path exploration calls
+(about 5.7 s inclusive) and 424,690 `lua.update` invocations (about 19.5 s
+inclusive). These substage totals overlap the NPC totals and must not be added
+to them.
+
+This is an observational diagnostic capture, not a paired benchmark: four
+world contexts contribute and no matching universe snapshot or route was
+supplied. The object maximum indicates a separate long-tail investigation is
+still relevant. Neither aggregate total identifies which event caused a
+specific visible pause. Keep gameplay and build validation separate from this
+log analysis.

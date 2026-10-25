@@ -100,6 +100,7 @@ Root::Root(Settings settings) : RootBase() {
   m_maintenanceThread = Thread::invoke("Root::maintenanceMain", [this]() {
       MutexLocker locker(m_maintenanceStopMutex);
       while (!m_stopMaintenanceThread) {
+        int64_t workStart = WorkerPool::monitoring() ? Time::monotonicMicroseconds() : 0;
         m_reloadListeners.clearExpiredListeners();
 
         {
@@ -151,6 +152,9 @@ Root::Root(Settings settings) : RootBase() {
           MutexLocker locker(m_configurationMutex);
           writeConfig();
         }
+
+        if (workStart)
+          WorkerPool::recordDedicatedWork("Root maintenance", Time::monotonicMicroseconds() - workStart);
 
         m_maintenanceStopCondition.wait(m_maintenanceStopMutex, RootMaintenanceSleep);
       }

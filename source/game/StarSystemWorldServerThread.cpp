@@ -1,6 +1,8 @@
 #include "StarSystemWorldServerThread.hpp"
 #include "StarTickRateMonitor.hpp"
 #include "StarNetPackets.hpp"
+#include "StarWorkerPool.hpp"
+#include "StarTime.hpp"
 
 namespace Star {
 
@@ -56,6 +58,7 @@ void SystemWorldServerThread::run() {
   while (!m_stop) {
     LogMap::set(strf("system_{}_update_rate", m_systemLocation), strf("{:4.2f}Hz", tickApproacher.rate()));
 
+    int64_t workStart = WorkerPool::monitoring() ? Time::monotonicMicroseconds() : 0;
     update();
 
     m_periodicStorage -= 1.0 / tickApproacher.rate();
@@ -64,6 +67,9 @@ void SystemWorldServerThread::run() {
       m_periodicStorage = 300.0; // store every 5 minutes
       store();
     }
+    if (workStart)
+      WorkerPool::recordDedicatedWork(strf("System world {}", m_systemLocation),
+          Time::monotonicMicroseconds() - workStart);
 
     tickApproacher.tick();
 

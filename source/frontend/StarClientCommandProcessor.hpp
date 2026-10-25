@@ -21,6 +21,8 @@ public:
 
   bool debugDisplayEnabled() const;
   bool debugHudEnabled() const;
+  bool threadPanelEnabled() const;
+  unsigned threadPanelPage() const;
   void setHudVisible(bool visible);
   bool fixedCameraEnabled() const;
 
@@ -77,6 +79,8 @@ private:
   bool m_debugHudEnabled = true;
   bool m_hudVisible = true;
   bool m_debugPerformanceDetailed = false;
+  bool m_debugThreadsEnabled = false;
+  unsigned m_threadPanelPage = 0;
   bool m_fixedCameraEnabled = false;
 };
 

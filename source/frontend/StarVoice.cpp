@@ -3,6 +3,7 @@
 #include "StarJsonExtra.hpp"
 #include "StarApplicationController.hpp"
 #include "StarTime.hpp"
+#include "StarWorkerPool.hpp"
 #include "StarRoot.hpp"
 #include "StarLogging.hpp"
 #include "StarInterpolation.hpp"
@@ -700,6 +701,7 @@ void Voice::thread() {
     if (m_stopThread)
       return;
 
+    int64_t workStart = WorkerPool::monitoring() ? Time::monotonicMicroseconds() : 0;
     {
       MutexLocker locker(m_captureMutex);
       ByteArray encoded(VOICE_MAX_PACKET_SIZE, 0);
@@ -743,6 +745,8 @@ void Voice::thread() {
       }
     }
 
+    if (workStart)
+      WorkerPool::recordDedicatedWork("Voice encoding thread", Time::monotonicMicroseconds() - workStart);
     continue;
 
     locker.unlock();

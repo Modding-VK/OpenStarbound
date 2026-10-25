@@ -1,4 +1,6 @@
 #include "StarUniverseServer.hpp"
+#include "StarWorkerPool.hpp"
+#include "StarTime.hpp"
 #include "StarAiDatabase.hpp"
 #include "StarAssets.hpp"
 #include "StarBiomeDatabase.hpp"
@@ -619,6 +621,7 @@ void UniverseServer::run() {
 
     LogMap::set("universe_time", m_universeClock->time());
 
+    int64_t workStart = WorkerPool::monitoring() ? Time::monotonicMicroseconds() : 0;
     try {
       updateLua();
       processUniverseFlags();
@@ -644,6 +647,9 @@ void UniverseServer::run() {
     } catch (std::exception const& e) {
       Logger::error("UniverseServer: exception caught: {}", outputException(e, true));
     }
+
+    if (workStart)
+      WorkerPool::recordDedicatedWork("Universe server", Time::monotonicMicroseconds() - workStart);
 
     Thread::sleep(mainWakeupInterval);
   }

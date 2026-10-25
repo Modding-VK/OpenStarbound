@@ -1,4 +1,5 @@
 #include "StarWorldClient.hpp"
+#include "StarWorkerPool.hpp"
 #include "StarTrace.hpp"
 #include "StarAssets.hpp"
 #include "StarIterator.hpp"
@@ -2066,7 +2067,10 @@ void WorldClient::lightingMain() {
 
     int64_t start = Time::monotonicMicroseconds();
     lightingCalc();
-    LogMap::set("client_render_world_async_light_calc", strf(u8"{:05d}\u00b5s", Time::monotonicMicroseconds() - start));
+    auto elapsed = Time::monotonicMicroseconds() - start;
+    if (WorkerPool::monitoring())
+      WorkerPool::recordLightingWork(elapsed);
+    LogMap::set("client_render_world_async_light_calc", strf(u8"{:05d}\u00b5s", elapsed));
   }
 }
 

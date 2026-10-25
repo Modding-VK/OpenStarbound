@@ -913,7 +913,7 @@ Vec2F MainInterface::cursorWorldPosition() const {
 }
 
 bool MainInterface::isDebugDisplayed() {
-  return m_clientCommandProcessor->debugDisplayEnabled();
+  return m_clientCommandProcessor->debugDisplayEnabled() || m_clientCommandProcessor->threadPanelEnabled();
 }
 
 void MainInterface::doChat(String const& chat, bool addToHistory) {
@@ -1455,7 +1455,8 @@ void MainInterface::renderDebug() {
   }
   SpatialLogger::setObserved(true);
 
-  if (m_clientCommandProcessor->debugHudEnabled()) {
+  if (m_clientCommandProcessor->debugHudEnabled() && m_clientCommandProcessor->debugDisplayEnabled()
+      && !m_clientCommandProcessor->threadPanelEnabled()) {
     auto assets = Root::singleton().assets();
     m_guiContext->setTextStyle(m_config->debugTextStyle);
     m_guiContext->setLineSpacing(0.5f);
@@ -1503,6 +1504,9 @@ void MainInterface::renderDebug() {
     m_performanceSnapshot = {};
     m_performanceNextRead = 0;
   }
+
+  if (m_clientCommandProcessor->threadPanelEnabled())
+    renderThreads();
 
   auto const& camera = m_worldPainter->camera();
 
@@ -1644,6 +1648,115 @@ void MainInterface::renderPerformance() {
     m_guiContext->drawQuad(bar.rect, bar.color);
   m_guiContext->drawLine(Vec2F(left + 12.0f, top - 347.0f + 27.5f),
       Vec2F(right - 12.0f, top - 347.0f + 27.5f), Vec4B{245, 245, 245, 180});
+}
+
+void MainInterface::renderThreads() {
+  double now = Time::monotonicTime();
+  if (now >= m_threadPanelNextRead) {
+    auto previous = std::move(m_threadSnapshots);
+    double elapsed = now - m_threadPanelLastRead;
+    m_threadSnapshots = WorkerPool::snapshots();
+    m_threadUtilization.clear();
+    for (auto const& current : m_threadSnapshots) {
+      float utilization = 0;
+      if (elapsed > 0 && current.workers) {
+        for (auto const& old : previous) {
+          if (old.name == current.name && current.busyMicroseconds >= old.busyMicroseconds) {
+            utilization = clamp((float)((current.busyMicroseconds - old.busyMicroseconds)
+                / (elapsed * 1000000.0 * current.workers)), 0.0f, 1.0f);
+            break;
+          }
+        }
+      }
+      m_threadUtilization.push_back(utilization);
+    }
+    m_threadPanelLastRead = now;
+    m_threadPanelNextRead = now + 0.5;
+  }
+
+  float width = min(760.0f, max(1.0f, windowWidth() - 32.0f));
+  float left = (windowWidth() - width) / 2.0f;
+  float rowHeight = 84.0f;
+  size_t total = m_threadSnapshots.size() + 1; // The local world thread is the first row.
+  size_t rowsPerPage = max<size_t>(1, (size_t)max(1.0f, (windowHeight() - 100.0f) / rowHeight));
+  size_t pages = (total + rowsPerPage - 1) / rowsPerPage;
+  size_t page = m_clientCommandProcessor->threadPanelPage() % pages;
+  size_t first = page * rowsPerPage;
+  size_t last = min(total, first + rowsPerPage);
+  float height = 44.0f + (last - first) * rowHeight;
+  float top = (windowHeight() + height) / 2.0f;
+  m_guiContext->drawQuad(RectF::withSize(Vec2F(left, top - height), Vec2F(width, height)),
+      Vec4B{12, 18, 28, 225});
+  m_guiContext->setTextStyle(m_config->debugTextStyle);
+  m_guiContext->setFontColor(Vec4B{235, 240, 245, 255});
+  m_guiContext->renderText(strf("Threads and pools  |  page {}/{}  |  /debug threads next",
+      page + 1, pages), TextPositioning{Vec2F(left + 14, top - 24)});
+
+  for (size_t index = first; index < last; ++index) {
+    float rowTop = top - 40.0f - (index - first) * rowHeight;
+    float graphX = left + 14.0f;
+    float graphWidth = min(150.0f, max(50.0f, width * 0.25f));
+    float textX = graphX + graphWidth + 18.0f;
+    m_guiContext->drawQuad(RectF::withSize(Vec2F(left + 8, rowTop - 76), Vec2F(width - 16, 76)),
+        Vec4B{32, 42, 56, 225});
+    String title, firstLine, secondLine, thirdLine;
+    float busyFraction = 0, queueFraction = 0;
+    if (index == 0) {
+      title = "Local world thread";
+      auto worldId = printWorldId(m_client->clientContext()->playerWorldId());
+      if (auto sample = WorldPerformanceOverlay::latest(worldId)) {
+        busyFraction = sample->windowSeconds > 0
+            ? clamp((float)(sample->busySeconds / sample->windowSeconds), 0.0f, 1.0f) : 0;
+        queueFraction = sample->peakQueuedSectors > 0
+            ? (float)sample->queuedSectors / sample->peakQueuedSectors : 0;
+        firstLine = strf("Busy: {:.0f}%  |  ticks: {}  |  over budget: {}",
+            busyFraction * 100, sample->ticks, sample->overBudgetTicks);
+        secondLine = strf("Sector queue: {}  |  peak: {}  |  oldest: {:.0f} ms",
+            sample->queuedSectors, sample->peakQueuedSectors, sample->oldestQueuedMilliseconds);
+        thirdLine = strf("Longest tick: {:.1f} ms", sample->maximumTickMilliseconds);
+      } else {
+        firstLine = "Waiting for a local world sample";
+        secondLine = "Remote server threads are not available on this client";
+      }
+    } else {
+      auto const& pool = m_threadSnapshots[index - 1];
+      // Pool names can originate in mod-defined script threads; avoid markup
+      // and line breaks changing the layout of neighboring cards.
+      title = pool.name.replace("^", "_").replace("\n", " ").replace("\r", " ");
+      busyFraction = m_threadUtilization[index - 1];
+      queueFraction = pool.peakQueued ? (float)pool.queued / pool.peakQueued : 0;
+      firstLine = pool.dedicated
+          ? strf("Measured work: {:.0f}%  |  dedicated thread", busyFraction * 100)
+          : strf("Busy time: {:.0f}%  |  active: {}/{} workers",
+              busyFraction * 100, pool.active, pool.workers);
+      secondLine = pool.dedicated
+          ? strf("Dedicated thread  |  measured calls: {}", pool.submitted)
+          : strf("Queued: {}  |  peak: {}  |  submitted: {}",
+              pool.queued, pool.peakQueued, pool.submitted);
+      thirdLine = strf("Completed: {}  |  cumulative work: {:.0f} ms",
+          pool.completed, pool.busyMicroseconds / 1000.0);
+    }
+    size_t maxChars = max<size_t>(12, (size_t)max(12.0f, (width - (textX - left) - 18.0f) / 8.0f));
+    auto fit = [maxChars](String value) {
+      return value.size() > maxChars ? value.substr(0, maxChars - 3) + "..." : value;
+    };
+    m_guiContext->setFontColor(Vec4B{235, 240, 245, 255});
+    m_guiContext->renderText(fit(title), TextPositioning{Vec2F(textX, rowTop - 14)});
+    m_guiContext->renderText(fit(firstLine), TextPositioning{Vec2F(textX, rowTop - 31)});
+    m_guiContext->renderText(fit(secondLine), TextPositioning{Vec2F(textX, rowTop - 48)});
+    m_guiContext->renderText(fit(thirdLine), TextPositioning{Vec2F(textX, rowTop - 65)});
+    m_guiContext->renderText("Busy", TextPositioning{Vec2F(graphX, rowTop - 13)});
+    m_guiContext->drawQuad(RectF::withSize(Vec2F(graphX, rowTop - 30), Vec2F(graphWidth, 13)),
+        Vec4B{75, 85, 100, 255});
+    m_guiContext->drawQuad(RectF::withSize(Vec2F(graphX, rowTop - 30),
+        Vec2F(graphWidth * busyFraction, 13)), Vec4B{75, 202, 186, 255});
+    m_guiContext->renderText(index > 0 && m_threadSnapshots[index - 1].dedicated ? "No queue" : "Queue",
+        TextPositioning{Vec2F(graphX, rowTop - 41)});
+    m_guiContext->drawQuad(RectF::withSize(Vec2F(graphX, rowTop - 58), Vec2F(graphWidth, 13)),
+        Vec4B{75, 85, 100, 255});
+    m_guiContext->drawQuad(RectF::withSize(Vec2F(graphX, rowTop - 58),
+        Vec2F(graphWidth * clamp(queueFraction, 0.0f, 1.0f), 13)), Vec4B{244, 174, 73, 255});
+  }
 }
 
 void MainInterface::updateCursor() {

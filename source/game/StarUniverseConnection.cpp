@@ -1,6 +1,8 @@
 #include "StarUniverseConnection.hpp"
 #include "StarFormat.hpp"
 #include "StarLogging.hpp"
+#include "StarWorkerPool.hpp"
+#include "StarTime.hpp"
 #include <thread>
 
 namespace Star {
@@ -145,6 +147,7 @@ UniverseConnectionServer::UniverseConnectionServer(PacketReceiveCallback packetR
 
           bool dataTransmitted = false;
           size_t handledCount = 0;
+          int64_t workStart = WorkerPool::monitoring() ? Time::monotonicMicroseconds() : 0;
           for (auto& p : connections) {
             if (p.second->workerIndex != i)
               continue;
@@ -187,6 +190,9 @@ UniverseConnectionServer::UniverseConnectionServer(PacketReceiveCallback packetR
             }
           }
           m_workerStats[i].connectionsHandled = handledCount;
+
+          if (workStart && handledCount)
+            WorkerPool::recordDedicatedWork(strf("Network worker {}", i), Time::monotonicMicroseconds() - workStart);
 
           if (!dataTransmitted)
             Thread::sleep(PacketSocketPollSleep);

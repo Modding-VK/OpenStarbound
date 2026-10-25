@@ -1,4 +1,6 @@
 #include "StarScriptableThread.hpp"
+#include "StarWorkerPool.hpp"
+#include "StarTime.hpp"
 #include "StarLuaRoot.hpp"
 #include "StarConfigLuaBindings.hpp"
 #include "StarTickRateMonitor.hpp"
@@ -110,7 +112,11 @@ void ScriptableThread::run() {
       if (m_logMapped)
         LogMap::set(strf("lua_{}_update", m_name), strf("{:4.2f}Hz", tickApproacher.rate()));
 
+      int64_t workStart = WorkerPool::monitoring() ? Time::monotonicMicroseconds() : 0;
       update();
+      if (workStart)
+        WorkerPool::recordDedicatedWork(strf("Lua thread {}", m_name),
+            Time::monotonicMicroseconds() - workStart);
       tickApproacher.setTargetTickRate(1.0f / m_timestep);
       tickApproacher.tick();
 
