@@ -31,8 +31,11 @@ dados de servidores.
 Cada alteração relevante deve apontar branch, commit, motivo, arquivos
 modificados, compatibilidade afetada e evidência. O template de pull request
 fornece esse registro. Bibliotecas e ferramentas externas seguem a política de
-procedência, versão fixa e integridade verificada. Uma build diagnóstica deve
-identificar commit e opções de compilação.
+procedência, versão fixa, integridade verificada e autoria descrita em
+[`dependency-sources.md`](dependency-sources.md). Uma build diagnóstica deve
+identificar commit e opções de compilação. A revisão de mudanças de primeira
+parte deve conferir se referências externas foram usadas como contexto ou
+importadas deliberadamente com licença, atribuição e escopo registrados.
 
 ## 4. Revisão independente
 

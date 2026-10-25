@@ -14,6 +14,13 @@ data, or complete environment dumps in source, logs, artifacts, tool output, or
 responses. Inspect logs and traces for sensitive information before sharing.
 Run external code only from an official source pinned and verified according to
 [`doc/dependency-sources.md`](doc/dependency-sources.md).
+Use other projects to understand behavior, interfaces, and design tradeoffs;
+write this project's changes independently. Do not paste or closely paraphrase
+external implementation code into first-party files. Any intentional reuse
+must pass the provenance, license, attribution, and review rules in
+[`doc/dependency-sources.md`](doc/dependency-sources.md). Keep inherited
+OpenStarbound/Starbound code attributed to its existing source; do not present
+it as newly authored here.
 
 Document the purpose, compatibility effects, and evidence for changes to
 threading, Lua, persistence, world generation, rendering, multiplayer, and

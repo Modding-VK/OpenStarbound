@@ -21,6 +21,44 @@ devem ser verificadas separadamente. Manter bibliotecas opcionais fora da build
 normal quando não são necessárias, para não aumentar downloads e superfície de
 dependências em cada execução do Actions.
 
+## Autoria e reutilização de código
+
+Referências externas podem orientar hipóteses, interfaces e escolhas de
+arquitetura. Implementar as alterações de primeira parte a partir dos
+requisitos e contratos deste projeto, sem copiar ou parafrasear de perto a
+implementação de outro repositório, inclusive por meio de código gerado por
+agentes. Para uma referência técnica relevante, registrar projeto, URL e
+revisão consultada, além das decisões que foram adotadas ou descartadas.
+Semelhança de algoritmo ou uso de uma API pública não prova, por si só, cópia;
+uma revisão humana deve examinar trechos com estrutura ou expressão
+suspeitamente semelhantes antes do merge.
+
+Se for necessário incorporar código de terceiros, tratá-lo como uma importação
+explícita, não como código próprio: verificar titulares e licença aplicável,
+compatibilidade com a distribuição pretendida, preservar avisos e atribuições,
+isolar a origem e registrar exatamente os arquivos/trechos importados e suas
+alterações. Revisar também os requisitos de distribuição binária. Ausência
+de licença identificável não concede permissão de reutilização. Não remover
+créditos de arquivos herdados.
+
+O uso de xStarbound como referência para o Tracy limita-se à seleção de
+questões a medir e pontos conceituais de instrumentação. A implementação de
+zonas no OpenStarbound deve ser escrita a partir dos próprios fluxos da
+engine. Tracy é uma dependência separada, obtida do mantenedor oficial e
+distribuída no pacote diagnóstico com sua licença; não deve ser apresentada
+como código autoral do projeto.
+
+### Procedência herdada a esclarecer
+
+Este repositório é um fork de OpenStarbound, e o `README.md` do upstream
+declara derivação do código de Starbound. Não foi localizado um arquivo de
+licença geral na raiz deste checkout em 25/10/2026; `doc/OPENSOURCE.md`
+contém avisos de bibliotecas de terceiros, não resolve sozinho os direitos
+do código principal. A procedência e os direitos de redistribuição dessa base
+herdada requerem análise própria antes de qualquer afirmação de licença
+geral ou de autoria integral do fork. Não adicionar uma licença para a base
+herdada sem confirmação dos direitos correspondentes.
+
 ## Aplicação ao Tracy
 
 Usar apenas o repositório oficial `wolfpld/tracy` e uma revisão fixa. Na opção

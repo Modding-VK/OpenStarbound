@@ -7,6 +7,8 @@ Descreva o problema observado e o motivo da mudança.
 - Subsistemas e arquivos principais:
 - Efeito esperado em mods, saves, multiplayer e outras plataformas:
 - Dependências novas ou atualizadas, com fonte oficial, versão e hash:
+- Referências externas consultadas (URL e revisão) e decisões inspiradas:
+- Código externo incorporado, licença, atribuição e arquivos afetados (ou "nenhum"):
 
 ## Evidência
 
