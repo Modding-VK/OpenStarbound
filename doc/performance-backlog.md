@@ -62,6 +62,8 @@ prova que a estrutura ficou pronta antes: ele cobre só os tiles básicos.
   outras entidades; medir contenção, custo de snapshots e descartes; demonstrar
   equivalência de comportamento para mods, multiplayer, persistência e ordem de
   eventos. Não tratar este item como extensão automática da fila de pathfinding.
+  Histórico, evidências e desenho hipotético em
+  [npc-ai-parallelism-hypotheses.md](npc-ai-parallelism-hypotheses.md).
 - Medir separadamente inicialização e callbacks Lua de entidades; o contador
   atual `luaTotalMilliseconds` cobre apenas o `update` periódico.
 - Considerar instalador comum sem PDBs e símbolos em artefato separado para
