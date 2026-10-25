@@ -95,7 +95,12 @@ Elas são conectadas pelo gerador de dungeons; não equivalem a 20 microdungeons
 independentes. O mod também contém
 [`fumantizi_villa.json`](https://github.com/sayterdarkwynd/FrackinUniverse/blob/6.5.8/dungeons/fu_racialencounters/fumantizi_villa.json),
 um encontro distinto. Não sabemos qual mecanismo produziu o vilarejo visto
-no teste anterior.
+no trecho visual específico sem correlacionar posição e horário. Porém, um
+`starbound.log` já fornecido pelo usuário confirma que o planeta
+`383738425:-48324202:-255713414:2` recebeu `mantiziestate` em `[478, 1000]`.
+O mesmo log mostra `Creating celestial world` às 14:16:47 e `Placing dungeon
+mantiziestate at [478, 1000]` às 14:16:49. Ele não registra a duração isolada
+da montagem dessa dungeon.
 
 Na **primeira criação do mundo**, o servidor percorre as dungeons previstas
 no template, escolhe uma posição a partir dos parâmetros do planeta e da
@@ -107,6 +112,61 @@ Mundos especiais do tipo *floating dungeon* forçam a geração das regiões
 retornadas; o caminho normal não faz isso para todas as dungeons. Assim, a
 montagem antecipada da cidade não prova que seus setores já estão completos
 e prontos para serem enviados ao cliente.
+
+### Custos internos da montagem composta
+
+O caminho confirmado em [StarDungeonGenerator.cpp](../source/game/StarDungeonGenerator.cpp)
+e [StarWorldGeneration.cpp](../source/game/StarWorldGeneration.cpp) é:
+
+1. `DungeonDefinitions` consulta um cache LRU de até 20 definições. Ao carregar
+   uma definição TMX, lê e decodifica seus mapas, tilesets e conectores.
+2. O gerador escolhe a âncora e examina cada conector aberto. Para encontrar
+   opções, `findConnectablePart` percorre todas as peças e seus conectores.
+   Cada candidato passa por limites de quantidade/distância, combinações,
+   sobreposição, ameaça e, quando necessário, consultas aos tiles do mundo.
+   A escolha usa pesos e a sequência do gerador aleatório.
+3. Uma peça aprovada verifica entidades existentes, pinta em **dez fases**
+   (`Clear`, paredes, mods, objetos, árvores, itens de bioma, fios, itens,
+   NPCs e IDs de dungeon) e percorre o mapa inteiro em cada fase. Há ainda
+   passagens para descobrir tiles modificados e preservados. Uma candidata
+   rejeitada também pode exigir uma passagem para testar colocação.
+4. O `DungeonGeneratorWriter` reúne alterações e depois as aplica ao mundo:
+   materiais, objetos, plantas, NPCs, fios, itens, líquidos e IDs. Escritas
+   de tile passam por `modifyServerTile`, que invalida colisão em uma região
+   de influência, informa o motor de líquidos e prepara atualizações de rede.
+   Mesmo sem clientes próximos, parte dessas operações é executada.
+
+O FU define, por exemplo, senado de 80 × 60 tiles, villa de 134 × 60, fazenda
+de 60 × 60 e um tipo de moradia de 60 × 60. Esses tamanhos mostram que as
+passagens repetidas podem ser relevantes, mas o código e o log atual **não
+quantificam** o custo de cada fase. A definição e os mapas já são cacheados
+enquanto permanecerem no LRU; simplesmente adicionar outro cache de arquivos
+não é uma prioridade fundamentada.
+
+Oportunidades a avaliar em ordem de risco crescente:
+
+- Indexar previamente conectores compatíveis por tipo/direção, sem alterar a
+  ordem das opções nem o consumo de números aleatórios. Isso reduz buscas
+  repetidas em cidades com muitas peças.
+- Preparar, junto com a definição TMX, listas de operações por fase ou uma
+  representação compacta das células relevantes. Deve preservar a ordem das
+  camadas e dos objetos, inclusive regras e brushes de mods.
+- Medir rejeições em `canPlace` e ordenar somente verificações comprovadamente
+  independentes e baratas antes das consultas ao mundo.
+- Estudar aplicação de tiles em lote, com invalidação de colisão e notificações
+  por região. Exige provar equivalência em líquidos, objetos, proteção,
+  callbacks e atualização dos clientes.
+- Só considerar cálculo paralelo da montagem após definir um snapshot do mundo
+  e commit ordenado; peças ligadas por conectores e conflitos não podem ser
+  colocadas livremente em paralelo.
+
+Instrumentar separadamente carregamento da definição, busca de conectores,
+quantidade de candidatos tentados/aceitos, `canPlace`, pintura por fase,
+`flushLiquid`, aplicação de tiles, criação de entidades e `flush` total.
+O profiler atual mede `serverUpdate` e geração de setores, mas não fornece
+essa decomposição da montagem inicial. Um benchmark só de dungeon composta,
+com a mesma semente, assets e mod stack, permitiria comparar alternativas
+sem confundir compilação, entrada no planeta e carregamento posterior.
 
 ## 4. Hipótese: setores físicos de 64 × 64
 
@@ -158,9 +218,9 @@ colocação de peças, terreno, líquidos, entidades e persistência para não
 sobrescrever a dungeon nem alterar seu conteúdo.
 
 Essa estratégia não antecipa automaticamente microdungeons ou encontros
-escolhidos durante a geração local posterior. Também não devemos assumir que
-o vilarejo observado era `mantiziestate` sem confirmar seu nome e posição no
-log ou nos dados do planeta.
+escolhidos durante a geração local posterior. Para o planeta registrado no
+log, `mantiziestate` foi de fato montada; ainda falta correlacionar a posição
+visitada no vídeo e medir se seus setores chegaram incompletos ao cliente.
 
 ## 6. Hipótese: paralelizar o cálculo de microdungeons
 
@@ -241,8 +301,9 @@ até o setor visível ficar completo, uso de RAM e picos da thread do mundo.
 
 ## 9. Como decidir entre as abordagens
 
-Primeiro, identificar a dungeon do caso Mantizi no log (`Placing dungeon ...
-at ...`) e medir o percurso com a build Windows #21. Usar o procedimento de
+O log já identifica `mantiziestate` em `[478, 1000]` para um planeta do teste.
+Correlacionar essa posição com o percurso e medir com a build Windows #21.
+Usar o procedimento de
 [performance-backlog.md](performance-backlog.md) e
 [exploration-profiling.md](exploration-profiling.md). A build compila, mas a
 fila de prefetch ainda aguarda validação local.
@@ -252,6 +313,7 @@ fila de prefetch ainda aguarda validação local.
 | Tiles básicos aguardam workers | Capacidade, ordenação e alcance do prefetch |
 | Microdungeons dominam o tempo de geração | Cálculo em snapshot e aplicação serial |
 | Dungeon composta já montada, mas setores aparecem tarde | Pré-geração de suas regiões ou caminho de leitura, ativação e envio |
+| Primeira criação do planeta domina o atraso | Instrumentar montagem composta; avaliar índices de conectores e passagens TMX antes de paralelismo |
 | Leitura/descompressão de setores salvos domina a revisita | Cache limitado e leitura antecipada com validação de revisão |
 | Muitos pedidos de prefetch nunca são usados | Reduzir alcance ou priorizar direção e velocidade do jogador |
 | Espera ocorre à frente de deslocamento horizontal contínuo | Comparar margem horizontal maior e previsão de movimento |
