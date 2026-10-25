@@ -8,6 +8,8 @@ O plano de instrumentação por linha do tempo está em
 As pesquisas de operações estão separadas entre
 [IA dos NPCs](npc-ai-parallelism-hypotheses.md) e
 [objetos e roteadores](object-operations.md).
+O plano de workers e API para modders desses objetos está em
+[object-worker-architecture-plan.md](object-worker-architecture-plan.md).
 Novas dependências e ferramentas seguem a política de
 [procedência de código externo](dependency-sources.md); suas pendências de CI
 estão listadas nesse documento.

@@ -5,6 +5,8 @@ Descreve o comportamento de objetos do OpenStarbound, com foco nos roteadores
 do Frackin' Universe, e hipóteses de otimização. **Não há worker para updates
 de objetos implementado.** A pesquisa sobre NPCs está em
 [npc-ai-parallelism-hypotheses.md](npc-ai-parallelism-hypotheses.md).
+O desenho de uma thread de apoio e API opt-in para modders está em
+[object-worker-architecture-plan.md](object-worker-architecture-plan.md).
 
 ## O que é um objeto
 
