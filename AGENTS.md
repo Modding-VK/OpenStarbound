@@ -37,3 +37,7 @@ Normal builds and diagnostic builds must be distinguishable by commit and build
 options. Keep Tracy and other diagnostic dependencies out of normal builds.
 Publishing a release requires an explicit release request and the dedicated
 release path; a successful build alone is not publication authorization.
+
+Provide installers for supported build variants whenever packaging is available.
+Windows normal and Tracy builds both produce installers, with diagnostic
+packages clearly identified. Keep workflow execution manual.

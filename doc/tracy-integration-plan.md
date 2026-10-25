@@ -43,8 +43,10 @@ usa um diretório de build separado. Em `Build` > `Run workflow`,
 selecionar a branch de revisão, manter `windows` ligado e marcar `tracy`.
 Os artefatos se chamam `OpenStarbound-Windows-Tracy-Client` e
 `OpenStarbound-Windows-Tracy-Server`; contêm PDBs do jogo, a licença
-e `win/tracy-build.txt` com commit, preset e revisão. Esta opção não
-gera instalador nem release. As execuções são manuais; com `tracy` desmarcado,
+e `win/tracy-build.txt` com commit, preset e revisão. Esta opção
+gera também `OpenStarbound-Windows-Tracy-Installer.exe`, com nome, AppId e
+diretório padrão próprios (`OpenStarbound Tracy`). Inclui símbolos, licença e
+`tracy-build.txt`; não publica release. O instalador normal permanece separado. As execuções são manuais; com `tracy` desmarcado,
 usam `windows-release-ci` com Tracy desligado.
 
 No computador local, usar o visualizador Tracy da mesma revisão oficial.
@@ -178,3 +180,6 @@ de FPS ou de throughput por si só.
    sobre qual mod/script consome tempo.
 5. Revisar custo das zonas e manter na build normal apenas código compilado
    para zero trabalho quando Tracy estiver desligado.
+
+A inclusão do instalador Tracy aguarda execução manual no runner Windows;
+nenhuma build foi iniciada para validar essa alteração de empacotamento.
