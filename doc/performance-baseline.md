@@ -284,6 +284,13 @@ World 1 completed 368 queued sectors and exhausted its generation time budget
 a 162 ms maximum. Its oldest queued sector reached 35.1 s. The queue wait is
 wall-clock age from enqueue to completion: simultaneous waits overlap, so the
 718 s sum of all sector waits is **not** CPU time on the world thread.
+The world identifier matches the planet in the earlier log where
+`mantiziestate` was placed at `[478, 1000]`. This session loaded that existing
+planet from storage and contains no new `Placing dungeon mantiziestate` event.
+The player entered near x=5969, y=1023; there is no timestamped route or
+sector-coordinate trace proving which slow sector was part of the village.
+Thus the queue measurements are relevant to the Mantizi planet, but they do
+not isolate the village structure as the cause of the delay.
 
 World 4 has a distinct object/script bottleneck. Object updates consumed 36.2 s
 of its 46.8 s accumulated `serverUpdate` time (about 77%); 33.5 s of object
