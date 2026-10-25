@@ -53,6 +53,15 @@ prova que a estrutura ficou pronta antes: ele cobre só os tiles básicos.
 - Investigar pathfinding de NPC com snapshot imutável, conforme
   [world-threading.md](world-threading.md). Lua, movimento, dano e escrita do
   mundo continuam na thread do mundo até existir uma fronteira segura.
+- **Pesquisa futura de alto risco e alta complexidade:** avaliar a externalização
+  completa do update dos NPCs para workers. O acesso direto e simultâneo ao
+  estado vivo do mundo não garante leituras consistentes; um protótipo exigiria
+  uma visão coerente por tick, comandos de efeito aplicados em ordem pela thread
+  do mundo e regras para resultados obsoletos. Antes de considerar a migração,
+  mapear todas as chamadas de IA e Lua que leem ou modificam terreno, objetos e
+  outras entidades; medir contenção, custo de snapshots e descartes; demonstrar
+  equivalência de comportamento para mods, multiplayer, persistência e ordem de
+  eventos. Não tratar este item como extensão automática da fila de pathfinding.
 - Medir separadamente inicialização e callbacks Lua de entidades; o contador
   atual `luaTotalMilliseconds` cobre apenas o `update` periódico.
 - Considerar instalador comum sem PDBs e símbolos em artefato separado para
