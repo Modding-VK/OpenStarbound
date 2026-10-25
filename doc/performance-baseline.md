@@ -287,10 +287,14 @@ wall-clock age from enqueue to completion: simultaneous waits overlap, so the
 The world identifier matches the planet in the earlier log where
 `mantiziestate` was placed at `[478, 1000]`. This session loaded that existing
 planet from storage and contains no new `Placing dungeon mantiziestate` event.
-The player entered near x=5969, y=1023; there is no timestamped route or
-sector-coordinate trace proving which slow sector was part of the village.
-Thus the queue measurements are relevant to the Mantizi planet, but they do
-not isolate the village structure as the cause of the delay.
+The player entered near x=5969, y=1023. The user reports that sectors of the
+Mantizi Estate remained slow to appear during this visit. The measurements
+support that observation: from 16:54:32 through 16:54:42, three consecutive
+five-second reports recorded **zero** completed sectors while the sampled
+generation queue averaged roughly 43–51 entries; its oldest request grew from
+17.9 s to 27.7 s. The next report recorded a sector wait of 29.7 s. The log
+has no per-sector coordinates, so it cannot attribute an individual delayed
+sector to a particular dungeon piece or isolate loading from generation work.
 
 World 4 has a distinct object/script bottleneck. Object updates consumed 36.2 s
 of its 46.8 s accumulated `serverUpdate` time (about 77%); 33.5 s of object
