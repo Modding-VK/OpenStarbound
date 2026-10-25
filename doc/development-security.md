@@ -51,8 +51,10 @@ template, sozinhos, não a impõem.
 
 Builds comuns mantêm ferramentas de diagnóstico opcionais desligadas. Builds
 diagnósticas usam nomes de artefato diferentes, símbolos identificáveis e
-capturas locais. Um push pode iniciar uma build automática, mas não publica uma
-release. O workflow publica um instalador apenas após execução manual com a
+capturas locais. Por decisão de 25/10/2026, builds são iniciadas somente por
+solicitação explícita, via `workflow_dispatch`. Pushes e pull requests não
+iniciam builds; agentes também não devem dispará-las após cada alteração.
+O workflow publica um instalador apenas após execução manual com a
 opção de publicação marcada, em um job separado que consome o artefato da mesma
 run.
 
@@ -68,8 +70,8 @@ run.
 - Actions está desativado para o repositório no momento desta atualização. O
   dispatch manual retornou HTTP 422 (`Actions has been disabled for this
   repository`), e a tentativa de reativar pela API retornou HTTP 403 para a
-  credencial da sessão. A build automática só voltará a funcionar quando um
-  administrador com acesso às configurações reativar Actions.
+  credencial da sessão. Para executar builds manuais, um administrador precisa
+  reativar Actions. A reativação não restaura os gatilhos removidos do YAML.
 - As actions foram fixadas por SHA, e o instalador do Inno Setup é verificado
   contra o hash do release oficial. Dependências transitivas do vcpkg ainda
   requerem revisão ao atualizar o baseline ou acrescentar ports.

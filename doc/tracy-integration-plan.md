@@ -44,8 +44,8 @@ selecionar a branch de revisão, manter `windows` ligado e marcar `tracy`.
 Os artefatos se chamam `OpenStarbound-Windows-Tracy-Client` e
 `OpenStarbound-Windows-Tracy-Server`; contêm PDBs do jogo, a licença
 e `win/tracy-build.txt` com commit, preset e revisão. Esta opção não
-gera instalador nem release. Execuções automáticas continuam a usar
-`windows-release-ci` com Tracy desligado.
+gera instalador nem release. As execuções são manuais; com `tracy` desmarcado,
+usam `windows-release-ci` com Tracy desligado.
 
 No computador local, usar o visualizador Tracy da mesma revisão oficial.
 Com o cliente instrumentado aberto, conectar a `localhost` antes do
@@ -78,8 +78,8 @@ dados pessoais presentes no traço.
    compilados nas bibliotecas `OBJECT` também precisam enxergar seus headers e
    definições.
 6. Criar uma configuração diagnóstica Windows separada da distribuição normal.
-   A execução automática do workflow continua com Tracy desligado. Uma entrada
-   manual ou workflow próprio deverá produzir executável com símbolos e indicar
+   O workflow é executado somente sob solicitação e mantém Tracy desligado por
+   padrão. A opção manual de diagnóstico deve produzir executável com símbolos e indicar
    claramente o commit, as opções usadas e a versão do Tracy. O instalador
    usual não deve ser substituído silenciosamente por essa build.
 

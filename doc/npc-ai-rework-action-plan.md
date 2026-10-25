@@ -348,8 +348,10 @@ as limitações de cobertura.
   diferentes; um não substitui o outro.
 - Exigir revisão independente para concorrência, persistência e rede antes
   de integrar em `main`, conforme as instruções do projeto.
-- Iniciar automaticamente a build Windows para implementações futuras,
-  conforme a preferência do projeto. No último estado verificado, Actions
+- Iniciar a build Windows somente quando solicitada pelo usuário. Os gatilhos
+  de push e pull request foram removidos; não fazer dispatch após cada alteração.
+  Essa decisão substitui a preferência anterior de início automático.
+  No último estado verificado, Actions
   estava desabilitado para este repositório; enquanto isso persistir, registrar
   o bloqueio. Compilação parcial Linux não valida o executável Windows.
 - Usar somente dependências oficiais, fixadas e verificadas conforme
