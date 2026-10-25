@@ -70,3 +70,15 @@ run.
 - As actions foram fixadas por SHA, e o instalador do Inno Setup é verificado
   contra o hash do release oficial. Dependências transitivas do vcpkg ainda
   requerem revisão ao atualizar o baseline ou acrescentar ports.
+
+### Configuração remota pendente
+
+Nas configurações de `Modding-VK/OpenStarbound`, reativar GitHub Actions em
+**Settings → Actions → General** e manter a permissão padrão do token em leitura.
+Em **Settings → Rules → Rulesets**, criar uma regra ativa para `main` exigindo
+pull request, ao menos uma aprovação de outra pessoa, descarte de aprovações
+após novos commits, e bloqueio de force push e exclusão. Não permitir bypass
+para o autor das mudanças. Antes de exigir um check de CI para merge, criar um
+job de verificação que realmente rode em `pull_request`; o job Windows atual é
+intencionalmente ignorado nesse evento. A revisão independente também requer
+que exista ao menos outro colaborador habilitado a revisar o PR.
