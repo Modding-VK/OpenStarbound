@@ -96,6 +96,40 @@ observam; conflitos não podem ser resolvidos apenas pelo estado final.
 
 ## Caminho de pesquisa, do menor ao maior risco
 
+### Relação com o serviço de workers para objetos
+
+O [plano de objetos](object-worker-architecture-plan.md) pode fornecer uma
+infraestrutura comum de jobs identificados, admissão limitada, snapshots
+próprios, resposta assíncrona, cancelamento lógico e telemetria. Isso evitaria
+inventar esses mecanismos duas vezes. **O contrato de trabalho do NPC continua
+separado:** o primeiro candidato é A* sobre colisão, líquidos, gravidade e
+obstáculos dinâmicos capturados; o dos ITDs é planejamento de inventário e
+topologia. O código atual de `PlatformerAStar::PathFinder` guarda `World*` e
+consulta esse mundo durante a busca; a nova fila não o torna thread-safe sem
+trocar a fonte de dados.
+
+Uma thread secundária pode hospedar ambos os tipos de cálculo em um protótipo
+pequeno, **desde que haja filas e cotas por classe de trabalho**. Em produção,
+um lote longo de ITDs não deve bloquear uma rota necessária a um NPC próximo
+ao jogador, e centenas de rotas não devem atrasar a conclusão de setores
+visíveis. O pool de geração já compete pelos mesmos núcleos. Comparar pool
+compartilhado com filas separadas após medir tempo de espera, ocupação e
+contenção em hardware com poucos e muitos núcleos. Não presumir que uma thread
+adicional sempre melhora a latência.
+
+O benefício futuro para interações NPC↔objeto seria o **protocolo de intenção
+e resultado**, não acesso direto do worker ao baú, porta ou NPC. O worker pode
+calcular “ir até X” ou “propor uso de X”; a thread do mundo valida o alvo e
+executa a interação. O resultado retorna com ID do job, NPC, tick e versão.
+Objetos, jogadores e outros NPCs podem alterar X no intervalo; um resultado
+obsoleto precisa ser reavaliado. Chamadas Lua síncronas, movimento, física,
+dano e deltas de rede permanecem no caminho autoritativo até um rework próprio.
+
+Instrumentar separadamente CPU do A*, custo de capturar a região, idade da
+fila, mudanças de alvo, retries e atraso para o NPC reagir. Só há benefício
+se o tempo retirado do tick superar captura, coordenação e resultados
+descartados, sem piorar o comportamento visível em multiplayer ou mods.
+
 1. **Medir antes:** quantificar tempo e cauda de latência de `Npc` por mundo,
    separando script Lua periódico, outros callbacks, pathfinding, movimento,
    status, logging e espera. Registrar contagem de NPCs ativos, chamadas a
