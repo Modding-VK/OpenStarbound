@@ -1,0 +1,180 @@
+# Hipóteses para um futuro rework da geração de mundos
+
+Estado: documento de estudo, sem decisão de implementação. Registrado em
+25/10/2026 a partir da discussão sobre o vilarejo Mantizi do Frackin’ Universe
+(FU) 6.5.8. As propostas abaixo não descrevem alterações já feitas no motor.
+
+## 1. Problema e objetivos
+
+O jogador percebe áreas e estruturas aparecendo lentamente ao atravessar um
+vilarejo Mantizi. A observação visual ainda não atribui o atraso a uma etapa
+específica. Queremos reduzir o tempo até a área ficar completa e preservar:
+
+- integridade de tiles, objetos, NPCs, iluminação e líquidos;
+- distribuição, volume e posicionamento de estruturas;
+- determinismo, recarregamento, mundos salvos, mods e multiplayer;
+- fluidez em máquinas com recursos de hardware diferentes.
+
+Uma otimização deve medir separadamente **vazão** (área preparada por segundo),
+**latência** (espera por uma área específica) e picos de duração dos updates.
+Melhorar uma dessas medidas pode piorar outra.
+
+## 2. Funcionamento confirmado no código atual
+
+`WorldSectorSize` vale 32 tiles ([StarGameTypes.hpp](../source/game/StarGameTypes.hpp)).
+Um setor ocupa 32 × 32 = 1.024 tiles. Quatro setores cobrem a mesma área de
+tiles que um setor de 64 × 64 = 4.096 tiles, desconsiderando bordas do mundo.
+
+O servidor solicita setores da região monitorada pelo cliente, acrescida de
+`playerActiveRegionPad`. A fila ordena os pedidos pela distância ao jogador.
+Se houver dados salvos, o armazenamento lê e desserializa tiles e entidades.
+Para terreno novo, a progressão é `BaseTiles` → `MicroDungeons` → `CaveLiquid`
+→ `Finalize`. Etapas podem exigir que setores vizinhos tenham alcançado o
+nível anterior ([StarWorldStorage.cpp](../source/game/StarWorldStorage.cpp)).
+
+Com `worldThreading.sectorWorkers > 0`, apenas a preparação isolada de
+`BaseTiles` usa workers. O resultado é validado e instalado na thread do
+mundo. Há no máximo duas tarefas pendentes por worker; a pool é compartilhada
+entre mundos. O padrão é zero workers. Microdungeons, finalização, carregamento
+de entidades, scripts e escrita do mundo continuam na thread do mundo
+([StarWorldGeneration.cpp](../source/game/StarWorldGeneration.cpp)).
+
+A fila ativa tem um limite de tempo por update: 6, 8, 12 ou 16 ms conforme a
+fidelidade configurada em [worldserver.config.patch](../assets/opensb/worldserver.config.patch).
+Uma etapa já iniciada termina inteira, mesmo que ultrapasse o limite. O
+prefetch adicional prepara somente `BaseTiles` fora da região ativa, com
+workers habilitados, quando a fila ativa está vazia e ainda resta tempo no
+update. Ele não conclui estruturas distantes. Os tiles iniciais só são
+enviados ao cliente quando o setor está completamente ativo
+([StarWorldServer.cpp](../source/game/StarWorldServer.cpp)).
+
+Assim, o tempo percebido pode incluir espera na fila, leitura do banco,
+dependências de vizinhos, geração, instalação de entidades, envio de pacotes
+e processamento no cliente. Essas etapas podem se sobrepor; seus totais de
+profiling não devem ser simplesmente somados.
+
+## 3. Dois mecanismos de estruturas que não devem ser confundidos
+
+### Microdungeons e encontros locais
+
+`generateMicroDungeons` percorre as posições de um setor, obtém candidatos do
+template, ordena os posicionamentos e aplica os resultados ao mundo. Uma
+estrutura pode alcançar tiles além do setor que iniciou a tentativa. Logo,
+trocar os limites dos setores pode alterar agrupamento, ordem, conflitos e
+resultado final mesmo quando a semente do planeta não muda.
+
+### Dungeons compostas
+
+O FU 6.5.8 define
+[`mantiziestate.dungeon`](https://github.com/sayterdarkwynd/FrackinUniverse/blob/6.5.8/dungeons/fumantizi/mantiziestate.dungeon)
+com o senado como âncora, 11 tipos de peças na definição e `maxParts: 20`.
+Entre as peças há villas, casa do cônsul, jardins, fazenda e áreas de moradia.
+Elas são conectadas pelo gerador de dungeons; não equivalem a 20 microdungeons
+independentes. O mod também contém
+[`fumantizi_villa.json`](https://github.com/sayterdarkwynd/FrackinUniverse/blob/6.5.8/dungeons/fu_racialencounters/fumantizi_villa.json),
+um encontro distinto. Não sabemos qual mecanismo produziu o vilarejo visto
+no teste anterior.
+
+Na **primeira criação do mundo**, o servidor percorre as dungeons previstas
+no template, escolhe uma posição a partir dos parâmetros do planeta e da
+semente, tenta a colocação e monta suas peças. O log registra `Placing dungeon
+<nome> at <posição>`. A montagem devolve as regiões ocupadas. Enquanto a
+dungeon é montada, `markRegion` solicita leitura/ativação de regiões, mas o
+modo `m_generatingDungeon` evita a geração normal dos setores nesse ponto.
+Mundos especiais do tipo *floating dungeon* forçam a geração das regiões
+retornadas; o caminho normal não faz isso para todas as dungeons. Assim, a
+montagem antecipada da cidade não prova que seus setores já estão completos
+e prontos para serem enviados ao cliente.
+
+## 4. Hipótese: setores físicos de 64 × 64
+
+Um pedido físico de 64 × 64 pode substituir quatro pedidos de 32 × 32 para
+cobrir a mesma área. Isso reduz parte do custo fixo de fila, metadados,
+persistência e transferência. Também concentra quatro vezes mais tiles por
+pedido. O trabalho que percorre tiles continua existindo, e um setor maior
+pode aumentar a espera pelo primeiro pacote completo. Quatro trabalhos
+independentes de `BaseTiles` também virariam um único trabalho nessa área,
+podendo reduzir o paralelismo útil. Memória, armazenamento e núcleos livres
+não aceleram automaticamente operações que ainda são seriais.
+
+Há duas variantes diferentes:
+
+1. **64 físico / 32 lógico:** armazenar ou transferir blocos maiores, mas
+   continuar avaliando quatro regiões lógicas de 32 × 32 com sementes, ordem
+   e dependências atuais. É a variante mais promissora para reproduzir a
+   geração existente; preserva parte do custo de quatro operações.
+2. **64 nativo:** refazer avaliação, dependências e aplicação para a nova
+   unidade. Permite eliminar mais custo fixo, mas exige regras de geração
+   baseadas em coordenadas globais e resolução explícita de conflitos. Mesmo
+   preservando integridade e densidade média, o mundo pode diferir tile a
+   tile do produzido com setores de 32 × 32.
+
+Para preservar **spread** e volume, medir estruturas por área de mundo, não
+apenas por setor. Uma contagem fixa por setor de 64 × 64 reduziria a densidade
+por tile. Reproduzir exatamente as mesmas estruturas nas mesmas posições
+requer conservar o comportamento lógico de 32 × 32, inclusive sementes,
+ordem de avaliação, regras de vizinhança e conflitos. Dungeons compostas
+exigem, adicionalmente, que peças cruzando novos limites continuem sendo
+salvas e recarregadas integralmente.
+
+`WorldSectorSize` participa de armazenamento, geração, vizinhança e envio de
+tiles. Mudar apenas a constante não é uma migração. É necessário definir
+tratamento de mundos antigos, versões de formato, clientes/servidores com
+versões diferentes e retorno seguro à build anterior. Uma estratégia de
+migração deve preservar também os níveis de geração e as entidades de cada
+região antiga.
+
+## 5. Hipótese: pré-gerar dungeons compostas conhecidas
+
+Para dungeons previstas pelo template, a posição candidata é escolhida na
+criação do mundo; os limites finais das peças ficam conhecidos após a
+montagem. Poderíamos usar as regiões devolvidas para completar de antemão os
+setores que cobrem a dungeon, sem depender da distância do jogador. Isso
+troca trabalho durante a exploração por tempo na primeira abertura do
+planeta, mais memória e armazenamento. Precisa respeitar a ordem atual entre
+colocação de peças, terreno, líquidos, entidades e persistência para não
+sobrescrever a dungeon nem alterar seu conteúdo.
+
+Essa estratégia não antecipa automaticamente microdungeons ou encontros
+escolhidos durante a geração local posterior. Também não devemos assumir que
+o vilarejo observado era `mantiziestate` sem confirmar seu nome e posição no
+log ou nos dados do planeta.
+
+## 6. Hipótese: paralelizar o cálculo de microdungeons
+
+A função atual lê o template e usa uma fachada ligada ao mundo vivo para
+colocar tiles, objetos e entidades. Chamá-la inteira em workers seria inseguro.
+Uma possível divisão é:
+
+1. a thread do mundo seleciona candidatos, sementes e uma cópia limitada do
+   terreno e dos dados necessários;
+2. workers calculam planos de estruturas sem ler ou modificar o mundo vivo;
+3. a thread do mundo valida versões do terreno/template e aplica os planos em
+   ordem determinística, resolvendo sobreposições e descartando planos velhos.
+
+O cálculo poderia ocorrer em paralelo a scripts e outros trabalhos. A
+aplicação final permaneceria serial. Essa proposta precisa cobrir callbacks
+de mods, objetos, NPCs, posições que atravessam setores e conflitos entre
+estruturas antes de ser considerada segura para multiplayer.
+
+## 7. Como decidir entre as abordagens
+
+Primeiro, identificar a dungeon do caso Mantizi no log (`Placing dungeon ...
+at ...`) e medir o percurso com a build Windows #21. Usar o procedimento de
+[performance-backlog.md](performance-backlog.md) e
+[exploration-profiling.md](exploration-profiling.md). A build compila, mas a
+fila de prefetch ainda aguarda validação local.
+
+| Resultado observado | Hipótese a investigar primeiro |
+| --- | --- |
+| Tiles básicos aguardam workers | Capacidade, ordenação e alcance do prefetch |
+| Microdungeons dominam o tempo de geração | Cálculo em snapshot e aplicação serial |
+| Dungeon composta já montada, mas setores aparecem tarde | Pré-geração de suas regiões ou caminho de leitura, ativação e envio |
+| Muitos setores pequenos custam mais que o trabalho nos tiles | Protótipo 64 físico / 32 lógico antes de 64 nativo |
+| O cliente recebe os setores em tempo, mas desenha tarde | Instrumentação de aplicação de pacotes e painter, separada da geração |
+
+Qualquer protótipo deve comparar mundos novos e já salvos, estruturas que
+atravessam limites, repetição com a mesma semente, Frackin’ Universe, outros
+mods, multiplayer, iluminação e carregamento após reinício. Avaliar tempo
+até a área ficar completa, picos de update, vazão, uso de memória e tamanho
+dos dados gravados. Nenhuma das hipóteses acima foi escolhida ou implementada.

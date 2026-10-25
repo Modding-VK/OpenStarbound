@@ -1,5 +1,9 @@
 # Backlog de desempenho da exploração
 
+As hipóteses de rework discutidas para setores de 64 × 64, dungeons compostas,
+pré-geração e cálculo paralelo de microdungeons estão em
+[world-generation-rework-hypotheses.md](world-generation-rework-hypotheses.md).
+
 ## Estado em 24/10/2026
 
 Branch de trabalho: `perf/threading-audit`. A build Windows #21 compilou o
