@@ -19,7 +19,9 @@ existentes para continuarem funcionando.
    e inserção, e percorre conexões com ajuda de [transferUtil.lua][fu-transfer].
    Esse utilitário usa `world.callScriptedEntity`, que é síncrono. As APIs de
    contêiner consultam objetos vivos e serializam itens para JSON em
-   `source/game/scripting/StarWorldLuaBindings.cpp`.
+   `source/game/scripting/StarWorldLuaBindings.cpp`. O perfil atribui ao ITD
+   tanto Lua puro quanto o tempo das chamadas C++ e dos scripts conectados;
+   ainda não separa essas parcelas. Ver [detalhamento dos ITDs](object-operations.md).
 3. Nosso [trace do FU](performance-baseline.md) mediu pelo menos 71,87 segundos
    de callbacks lentos em três roteadores durante 139,2 segundos de captura.
    A maior parte foi Lua, na thread de um mundo já gerado. Isso demonstra um
@@ -196,7 +198,7 @@ depois do protótipo C++ e revisão de compatibilidade.
 
 | Etapa | Entrega revisável | Critério de avanço |
 | --- | --- | --- |
-| 0. Atribuição | Instrumentar tempo de Lua, leitura/serialização de inventário, reconstrução da topologia, `loadRegion`, contenção e número de ITDs | Identificar custo que sai da thread do mundo; medir com o mesmo save/mods |
+| 0. Atribuição | Instrumentar Lua puro, chamadas síncronas a nós conectados, leitura/serialização de inventário, filtros/slots, reconstrução da topologia, `regionActive`/`loadRegion`, setores ativados, contenção e número de ITDs | Identificar o custo que sai da thread do mundo; medir com o mesmo save/mods |
 | 1. Correções sem thread nova | Evitar consultas e conversões repetidas; cache de topologia com invalidação correta; avaliar API de transferência em lote no mundo | Reduzir tempo sem alterar conteúdo/ordem dos inventários |
 | 2. Serviço isolado | Uma thread secundária, fila limitada, snapshot próprio e resultado sem efeitos; protótipo com cálculo sintético ou do ITD | Reduzir CPU no tick sem espera bloqueante, crescimento ilimitado ou acesso ao mundo vivo |
 | 3. Commit de inventário | Operação atômica, versionamento e resultado assíncrono; patch **opt-in** de demonstração para ITD | Zero duplicação/perda de itens em disputas, unload, save/reload e interação simultânea do jogador |

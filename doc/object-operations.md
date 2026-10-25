@@ -85,6 +85,51 @@ correção de cópia redundante em `containerItemAt`; ainda não há medição q
 justifique declarar uma transferência paralela completa como segura ou mais
 rápida.
 
+### Chamadas do ITD a outros elementos
+
+- `transferUtil.updateNodeLists` consulta os IDs dos objetos ligados aos nós
+  de entrada e saída do ITD. Usa `world.callScriptedEntity` nos nós conectados
+  para obter contêineres de origem e destino e verificar relés. Essas chamadas
+  são síncronas e seus custos entram no callback do ITD.
+- `routeItems` percorre contêineres de origem, itens, destinos e slots. Usa
+  `world.containerItems`, `containerItemAt`, `containerItemsCanFit`, métodos de
+  inserção e retirada. Podem ser baús ou máquinas que implementem contêiner;
+  o código não restringe a um tipo concreto de baú. `containerItems(entity.id())`
+  dentro de `checkFilter` lê **o próprio ITD**, para seus filtros.
+- Antes de acessar origem e destino, `containerAwake` verifica se a região
+  está ativa. Caso contrário, `zoneAwake` chama `world.loadRegion`. No caminho
+  normal da engine, essa chamada sinaliza/enfileira ativação de setores; não
+  completa necessariamente toda a geração dentro da chamada Lua. O custo de
+  manter regiões distantes ativas ainda pode afetar o mundo.
+- O log de perfil registra ID, posição e tempo dos ITDs lentos, **não** os IDs
+  ou nomes dos contêineres e nós a que estavam conectados naquela sessão.
+  Portanto, o grafo exato da base do jogador é desconhecido.
+
+### O que os números permitem concluir
+
+Somando os campos `luaMilliseconds` dos três `network_router` lentos no log do
+commit `2f7ca884`, há **71,868 s** de Lua observados nesses callbacks. O total
+de `luaTotalMilliseconds` de todos os tipos de entidade nas mesmas janelas é
+**92,051 s**; objetos respondem por **85,934 s**. Assim, os três ITDs representam
+**pelo menos 78,1%** do Lua periódico de entidades medido e **pelo menos 83,6%**
+do Lua periódico de objetos. São mínimos porque a lista individual só registra
+updates que passaram do limiar de lentidão. Os totais não incluem todos os
+callbacks Lua nem os contextos de script do mundo.
+
+O tempo de `worldStorageGeneration` na captura foi **1,40 s**, contra 94,93 s
+de updates de objetos. Isso mostra que a geração medida não foi o componente
+dominante. Não separa o custo de ativação/carregamento solicitado por
+`loadRegion` dentro do callback do ITD, nem divide Lua puro de chamadas C++ e
+scripts dos objetos conectados. **A atribuição ao ITD inclui o trabalho externo
+que ele iniciou**. Não há base ainda para afirmar qual suboperação dominou.
+
+Próxima instrumentação: tempo e contagem por ITD para descoberta de rede,
+chamadas síncronas a nós, leitura/serialização de contêiner, comparação de
+filtros, varredura de slots, inserção/retirada e `regionActive`/`loadRegion`;
+registrar também quantos setores foram ativados e por quanto tempo. Identificar
+alvos por tipo e ID efêmero apenas em diagnóstico local, sem expor conteúdo de
+inventários ou identificadores pessoais em logs compartilhados.
+
 ## O que pode ser movido para workers
 
 | Fase | Candidato | Fronteira necessária |
