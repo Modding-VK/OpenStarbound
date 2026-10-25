@@ -36,14 +36,12 @@ projeto ou ser compilado da revisão oficial. Ver
   `microsoft/vcpkg`. Ao atualizar o baseline ou incluir bibliotecas, conferir
   URLs e hashes dos ports efetivamente usados; o baseline por si só não prova
   a procedência de cada arquivo baixado.
-- `.github/workflows/build.yml` usa `lukka/get-cmake@latest`, uma referência
-  móvel. As demais actions usam tags. Fixar as actions por SHA de commit após
-  confirmar a origem oficial de cada action e planejar atualizações explícitas.
-- O workflow baixa o instalador do Inno Setup do release oficial
-  `jrsoftware/issrc`, mas ainda não verifica sua integridade antes de executá-lo.
-  Fixar um SHA-256 conferido para essa versão e falhar se a verificação não
-  passar. Manter o download restrito a HTTPS e tratar redirecionamentos como
-  parte da verificação.
+- `.github/workflows/build.yml` fixa as actions por commit, inclusive a
+  revisão antes alcançada por `lukka/get-cmake@latest`. Atualizações exigem
+  confirmar a origem do repositório e resolver uma nova revisão imutável.
+- O workflow baixa o Inno Setup do release oficial `jrsoftware/issrc` e verifica
+  o SHA-256 `5ad54ca3def786f8f4212552e54cc6d8d61329e2d24a1cfee0571d42c2684ff1`
+  publicado nos metadados do release `is-7_0_2` antes de executá-lo.
 
 Esses itens são um inventário inicial, não uma afirmação de que todas as
 dependências transitivas e downloads do CI já foram auditados.

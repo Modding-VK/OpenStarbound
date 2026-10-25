@@ -1,7 +1,7 @@
 name: Build
 permissions:
   actions: read
-  contents: write
+  contents: read
 
 concurrency:
   group: build-${{ github.workflow }}-${{ github.ref }}
@@ -30,7 +30,7 @@ on:
       publish_windows_release:
         type: boolean
         description: Publicar o instalador do Windows como ativo de uma Release
-        default: true
+        default: false
 
   push:
     paths:
@@ -63,29 +63,29 @@ jobs:
     if: ${{ (github.event_name != 'pull_request') && ((github.event_name != 'workflow_dispatch') || (inputs.windows == true)) }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           submodules: 'recursive'
 
       - name: Install CMake & Ninja
-        uses: lukka/get-cmake@latest
+        uses: lukka/get-cmake@da37b03df250c343a90268c30948f7814f31d88e # latest resolved 2026-10-25
         with:
           cmakeVersion: 3.29.2
 
       - name: Setup LLVM
-        uses: ZhongRuoyu/setup-llvm@v0
+        uses: ZhongRuoyu/setup-llvm@eea6238baf53d41c1615923680d7a738da584318 # v0
         with:
           llvm-version: 22
 
       - name: sccache
-        uses: hendrikmuhs/ccache-action@v1.2
+        uses: hendrikmuhs/ccache-action@5ebbd400eff9e74630f759d94ddd7b6c26299639 # v1.2
         with:
           variant: sccache
           key: ${{ github.job }}-${{ runner.os }}
           max-size: 2000M
 
       - name: vcpkg
-        uses: lukka/run-vcpkg@v11
+        uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
         id: runvcpkg
         with:
           vcpkgJsonGlob: '**/source/vcpkg.json'
@@ -93,12 +93,12 @@ jobs:
 
       #- name: Restore vcpkg cache
       #  id: vcpkg-cache
-      #  uses: TAServers/vcpkg-cache@v3
+      #  uses: TAServers/vcpkg-cache@4f07be616a4604dd29f3c6885975cf2c04abee71 # v3
       #  with:
       #    token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run CMake
-        uses: lukka/run-cmake@v10
+        uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10
         env:
           LLVMInstallDir: ${{ env.LLVM_PATH }}
           llvmX64: ${{ env.LLVM_PATH }}
@@ -120,7 +120,7 @@ jobs:
           scripts/ci/windows/assemble.bat --skip-archives
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-Windows-All-DevOnly
           path: dist/
@@ -128,7 +128,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload Client
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-Windows-Client
           path: client_distribution/
@@ -136,7 +136,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload Server
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-Windows-Server
           path: server_distribution/
@@ -159,7 +159,14 @@ jobs:
           set "_url_=https://github.com/jrsoftware/issrc/releases/download/is-7_0_2/innosetup-7.0.2-x64.exe"
           set "_file_=innosetup.exe"
   
-          curl -L -o "%tmp%\%_file_%" "%_url_%"
+          curl --fail --show-error --location --proto "=https" --proto-redir "=https" --output "%tmp%\%_file_%" "%_url_%"
+          if errorlevel 1 exit /b 1
+
+          certutil -hashfile "%tmp%\%_file_%" SHA256 | findstr /i /c:"5ad54ca3def786f8f4212552e54cc6d8d61329e2d24a1cfee0571d42c2684ff1" > nul
+          if errorlevel 1 (
+            echo ::error::Inno Setup SHA-256 does not match the official release digest
+            exit /b 1
+          )
           
           echo "Installing Inno Setup..."
           "%tmp%\%_file_%" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-
@@ -178,7 +185,7 @@ jobs:
           & "C:\Program Files\Inno Setup 7\iscc.exe" /Oinstaller scripts\inno\setup.iss
 
       - name: Upload Installer
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-Windows-Installer
           path: installer/OpenStarbound-Windows-Installer.exe
@@ -186,16 +193,32 @@ jobs:
           compression-level: 0
           if-no-files-found: error
 
-      - name: Publish Windows Installer Release
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_windows_release == true }}
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: windows-build-${{ github.run_number }}
-          name: OpenStarbound Windows build ${{ github.run_number }}
-          prerelease: true
-          generate_release_notes: false
-          files: installer/OpenStarbound-Windows-Installer.exe
-  
+  publish_windows_release:
+    name: Publish Windows Installer Release
+    needs: build_windows
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_windows_release == true }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Download installer from this run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh run download "$GITHUB_RUN_ID" --name OpenStarbound-Windows-Installer --dir installer
+
+      - name: Publish prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: >-
+          gh release create "windows-build-${{ github.run_number }}"
+          installer/OpenStarbound-Windows-Installer.exe
+          --title "OpenStarbound Windows build ${{ github.run_number }}"
+          --prerelease
+          --target "$GITHUB_SHA"
+
   build_linux:
     name: Build OpenStarbound Linux x86_64
     runs-on: ubuntu-22.04
@@ -213,23 +236,23 @@ jobs:
           autoconf autoconf-archive automake libtool patchelf tarlz
 
       - name: Install CMake & Ninja
-        uses: lukka/get-cmake@latest
+        uses: lukka/get-cmake@da37b03df250c343a90268c30948f7814f31d88e # latest resolved 2026-10-25
         with:
           cmakeVersion: 3.29.2
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           submodules: 'recursive'
 
       - name: sccache
-        uses: hendrikmuhs/ccache-action@v1.2
+        uses: hendrikmuhs/ccache-action@5ebbd400eff9e74630f759d94ddd7b6c26299639 # v1.2
         with:
           variant: sccache
           key: ${{ github.job }}-${{ runner.os }}
           max-size: 250M
 
       - name: vcpkg
-        uses: lukka/run-vcpkg@v11
+        uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
         id: runvcpkg
         with:
           vcpkgJsonGlob: '**/source/vcpkg.json'
@@ -237,12 +260,12 @@ jobs:
 
       - name: Restore vcpkg cache
         id: vcpkg-cache
-        uses: TAServers/vcpkg-cache@v3
+        uses: TAServers/vcpkg-cache@4f07be616a4604dd29f3c6885975cf2c04abee71 # v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run CMake
-        uses: lukka/run-cmake@v10
+        uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10
         env:
           VCPKG_FEATURE_FLAGS: "binarycaching"
           VCPKG_BINARY_SOURCES: "clear;files,${{ steps.vcpkg-cache.outputs.path }},readwrite"
@@ -256,14 +279,14 @@ jobs:
         run: tarlz -c9vf OpenStarbound-Linux-GCC.tar.lz dist
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-Linux-GCC
           path: OpenStarbound-Linux-GCC.tar.lz
           archive: false
 
       - name: Run Tests
-        uses: lukka/run-cmake@v10
+        uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10
         env:
           VCPKG_FEATURE_FLAGS: "binarycaching"
           VCPKG_BINARY_SOURCES: "clear;files,${{ steps.vcpkg-cache.outputs.path }},readwrite"
@@ -279,14 +302,14 @@ jobs:
           mv -v server.tar.lz OpenStarbound-Linux-GCC-Server.tar.lz
 
       - name: Upload Client Files
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-Linux-GCC-Client
           path: OpenStarbound-Linux-GCC-Client.tar.lz
           archive: false
 
       - name: Upload Server Files
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-Linux-GCC-Server
           path: OpenStarbound-Linux-GCC-Server.tar.lz
@@ -312,28 +335,28 @@ jobs:
           autoconf autoconf-archive automake libtool patchelf tarlz
 
       - name: Install CMake & Ninja
-        uses: lukka/get-cmake@latest
+        uses: lukka/get-cmake@da37b03df250c343a90268c30948f7814f31d88e # latest resolved 2026-10-25
         with:
           cmakeVersion: 3.29.2
 
       - name: Setup LLVM
-        uses: ZhongRuoyu/setup-llvm@v0
+        uses: ZhongRuoyu/setup-llvm@eea6238baf53d41c1615923680d7a738da584318 # v0
         with:
           llvm-version: 22
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           submodules: 'recursive'
 
       - name: sccache
-        uses: hendrikmuhs/ccache-action@v1.2
+        uses: hendrikmuhs/ccache-action@5ebbd400eff9e74630f759d94ddd7b6c26299639 # v1.2
         with:
           variant: sccache
           key: ${{ github.job }}-${{ runner.os }}
           max-size: 250M
 
       - name: vcpkg
-        uses: lukka/run-vcpkg@v11
+        uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
         id: runvcpkg
         with:
           vcpkgJsonGlob: '**/source/vcpkg.json'
@@ -341,12 +364,12 @@ jobs:
 
       - name: Restore vcpkg cache
         id: vcpkg-cache
-        uses: TAServers/vcpkg-cache@v3
+        uses: TAServers/vcpkg-cache@4f07be616a4604dd29f3c6885975cf2c04abee71 # v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run CMake
-        uses: lukka/run-cmake@v10
+        uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10
         env:
           VCPKG_FEATURE_FLAGS: "binarycaching"
           VCPKG_BINARY_SOURCES: "clear;files,${{ steps.vcpkg-cache.outputs.path }},readwrite"
@@ -360,14 +383,14 @@ jobs:
         run: tarlz -c9vf OpenStarbound-Linux-Clang.tar.lz dist
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-Linux-Clang
           path: OpenStarbound-Linux-Clang.tar.lz
           archive: false
 
       - name: Run Tests
-        uses: lukka/run-cmake@v10
+        uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10
         env:
           VCPKG_FEATURE_FLAGS: "binarycaching"
           VCPKG_BINARY_SOURCES: "clear;files,${{ steps.vcpkg-cache.outputs.path }},readwrite"
@@ -383,14 +406,14 @@ jobs:
           mv -v server.tar.lz OpenStarbound-Linux-Clang-Server.tar.lz
 
       - name: Upload Client Files
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-Linux-Clang-Client
           path: OpenStarbound-Linux-Clang-Client.tar.lz
           archive: false
 
       - name: Upload Server Files
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-Linux-Clang-Server
           path: OpenStarbound-Linux-Clang-Server.tar.lz
@@ -413,23 +436,23 @@ jobs:
           autoconf autoconf-archive automake libtool patchelf tarlz
 
       - name: Install CMake & Ninja
-        uses: lukka/get-cmake@latest
+        uses: lukka/get-cmake@da37b03df250c343a90268c30948f7814f31d88e # latest resolved 2026-10-25
         with:
           cmakeVersion: 3.29.2
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           submodules: 'recursive'
 
       - name: sccache
-        uses: hendrikmuhs/ccache-action@v1.2
+        uses: hendrikmuhs/ccache-action@5ebbd400eff9e74630f759d94ddd7b6c26299639 # v1.2
         with:
           variant: sccache
           key: ${{ github.job }}-${{ runner.os }}
           max-size: 250M
 
       - name: vcpkg
-        uses: lukka/run-vcpkg@v11
+        uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
         id: runvcpkg
         with:
           vcpkgJsonGlob: '**/source/vcpkg.json'
@@ -437,12 +460,12 @@ jobs:
 
       - name: Restore vcpkg cache
         id: vcpkg-cache
-        uses: TAServers/vcpkg-cache@v3
+        uses: TAServers/vcpkg-cache@4f07be616a4604dd29f3c6885975cf2c04abee71 # v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run CMake
-        uses: lukka/run-cmake@v10
+        uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10
         env:
           VCPKG_FEATURE_FLAGS: "binarycaching"
           VCPKG_BINARY_SOURCES: "clear;files,${{ steps.vcpkg-cache.outputs.path }},readwrite"
@@ -456,14 +479,14 @@ jobs:
         run: tarlz -c9vf OpenStarbound-Linux-ARM-GCC.tar.lz dist
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-Linux-ARM-GCC
           path: OpenStarbound-Linux-ARM-GCC.tar.lz
           archive: false
 
       - name: Run Tests
-        uses: lukka/run-cmake@v10
+        uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10
         env:
           VCPKG_FEATURE_FLAGS: "binarycaching"
           VCPKG_BINARY_SOURCES: "clear;files,${{ steps.vcpkg-cache.outputs.path }},readwrite"
@@ -479,14 +502,14 @@ jobs:
           mv -v server.tar.lz OpenStarbound-Linux-ARM-GCC-Server.tar.lz
 
       - name: Upload Client Files
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-Linux-ARM-GCC-Client
           path: OpenStarbound-Linux-ARM-GCC-Client.tar.lz
           archive: false
 
       - name: Upload Server Files
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-Linux-ARM-GCC-Server
           path: OpenStarbound-Linux-ARM-GCC-Server.tar.lz
@@ -512,23 +535,23 @@ jobs:
           autoconf autoconf-archive automake libtool patchelf tarlz
 
       - name: Install CMake & Ninja
-        uses: lukka/get-cmake@latest
+        uses: lukka/get-cmake@da37b03df250c343a90268c30948f7814f31d88e # latest resolved 2026-10-25
         with:
           cmakeVersion: 3.29.2
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           submodules: 'recursive'
 
       - name: sccache
-        uses: hendrikmuhs/ccache-action@v1.2
+        uses: hendrikmuhs/ccache-action@5ebbd400eff9e74630f759d94ddd7b6c26299639 # v1.2
         with:
           variant: sccache
           key: ${{ github.job }}-${{ runner.os }}
           max-size: 250M
 
       - name: vcpkg
-        uses: lukka/run-vcpkg@v11
+        uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
         id: runvcpkg
         with:
           vcpkgJsonGlob: '**/source/vcpkg.json'
@@ -536,12 +559,12 @@ jobs:
 
       - name: Restore vcpkg cache
         id: vcpkg-cache
-        uses: TAServers/vcpkg-cache@v3
+        uses: TAServers/vcpkg-cache@4f07be616a4604dd29f3c6885975cf2c04abee71 # v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run CMake
-        uses: lukka/run-cmake@v10
+        uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10
         env:
           VCPKG_FEATURE_FLAGS: "binarycaching"
           VCPKG_BINARY_SOURCES: "clear;files,${{ steps.vcpkg-cache.outputs.path }},readwrite"
@@ -555,14 +578,14 @@ jobs:
         run: tarlz -c9vf OpenStarbound-Linux-ARM-Clang.tar.lz dist
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-Linux-ARM-Clang
           path: OpenStarbound-Linux-ARM-Clang.tar.lz
           archive: false
 
       - name: Run Tests
-        uses: lukka/run-cmake@v10
+        uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10
         env:
           VCPKG_FEATURE_FLAGS: "binarycaching"
           VCPKG_BINARY_SOURCES: "clear;files,${{ steps.vcpkg-cache.outputs.path }},readwrite"
@@ -578,14 +601,14 @@ jobs:
           mv -v server.tar.lz OpenStarbound-Linux-ARM-Clang-Server.tar.lz
 
       - name: Upload Client Files
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-Linux-ARM-Clang-Client
           path: OpenStarbound-Linux-ARM-Clang-Client.tar.lz
           archive: false
 
       - name: Upload Server Files
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-Linux-ARM-Clang-Server
           path: OpenStarbound-Linux-ARM-Clang-Server.tar.lz
@@ -597,7 +620,7 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.macOS == true }}
     #if: ${{ (github.event_name == 'workflow_dispatch') && (inputs.macOS == true) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           submodules: 'recursive'
 
@@ -606,19 +629,19 @@ jobs:
           brew install autoconf automake libtool tarlz
 
       - name: Install CMake & Ninja
-        uses: lukka/get-cmake@latest
+        uses: lukka/get-cmake@da37b03df250c343a90268c30948f7814f31d88e # latest resolved 2026-10-25
         with:
           cmakeVersion: 3.29.0
 
       - name: sccache
-        uses: hendrikmuhs/ccache-action@v1.2
+        uses: hendrikmuhs/ccache-action@5ebbd400eff9e74630f759d94ddd7b6c26299639 # v1.2
         with:
           variant: sccache
           key: ${{ github.job }}-Intel-${{ runner.os }}
           max-size: 250M
 
       - name: vcpkg
-        uses: lukka/run-vcpkg@v11
+        uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
         id: runvcpkg
         with:
           vcpkgJsonGlob: '**/source/vcpkg.json'
@@ -626,12 +649,12 @@ jobs:
 
       - name: Restore vcpkg cache
         id: vcpkg-cache
-        uses: TAServers/vcpkg-cache@v3
+        uses: TAServers/vcpkg-cache@4f07be616a4604dd29f3c6885975cf2c04abee71 # v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run CMake
-        uses: lukka/run-cmake@v10
+        uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10
         env:
           VCPKG_FEATURE_FLAGS: "binarycaching"
           VCPKG_BINARY_SOURCES: "clear;files,${{ steps.vcpkg-cache.outputs.path }},readwrite"
@@ -656,7 +679,7 @@ jobs:
           mv -v dist.tar.lz OpenStarbound-macOS-Intel.tar.lz
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-macOS-Intel
           path: OpenStarbound-macOS-Intel.tar.lz
@@ -669,7 +692,7 @@ jobs:
           mv -v client.tar.lz OpenStarbound-macOS-Intel-Client.tar.lz
 
       - name: Upload Client Files
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-macOS-Intel-Client
           path: OpenStarbound-macOS-Intel-Client.tar.lz
@@ -681,7 +704,7 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.macOS == true }}
     #if: ${{ (github.event_name == 'workflow_dispatch') && (inputs.macOS == true) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           submodules: 'recursive'
 
@@ -690,12 +713,12 @@ jobs:
           brew install autoconf automake libtool tarlz
 
       - name: Install CMake & Ninja
-        uses: lukka/get-cmake@latest
+        uses: lukka/get-cmake@da37b03df250c343a90268c30948f7814f31d88e # latest resolved 2026-10-25
         with:
           cmakeVersion: 3.29.2
 
       - name: sccache
-        uses: hendrikmuhs/ccache-action@v1.2
+        uses: hendrikmuhs/ccache-action@5ebbd400eff9e74630f759d94ddd7b6c26299639 # v1.2
         with:
           variant: sccache
           key: ${{ github.job }}-ARM-${{ runner.os }}
@@ -703,19 +726,19 @@ jobs:
 
       - name: Restore vcpkg cache
         id: vcpkg-cache
-        uses: TAServers/vcpkg-cache@v3
+        uses: TAServers/vcpkg-cache@4f07be616a4604dd29f3c6885975cf2c04abee71 # v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: vcpkg
-        uses: lukka/run-vcpkg@v11
+        uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
         id: runvcpkg
         with:
           vcpkgJsonGlob: '**/source/vcpkg.json'
           vcpkgConfigurationJsonGlob: '**/source/vcpkg-configuration.json'
 
       - name: Run CMake
-        uses: lukka/run-cmake@v10
+        uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10
         env:
           VCPKG_FEATURE_FLAGS: "binarycaching"
           VCPKG_BINARY_SOURCES: "clear;files,${{ steps.vcpkg-cache.outputs.path }},readwrite"
@@ -740,7 +763,7 @@ jobs:
           mv -v dist.tar.lz OpenStarbound-macOS-Silicon.tar.lz
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-macOS-Silicon
           path: OpenStarbound-macOS-Silicon.tar.lz
@@ -753,7 +776,7 @@ jobs:
           mv -v client.tar.lz OpenStarbound-macOS-Silicon-Client.tar.lz
 
       - name: Upload Client Files
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-macOS-Silicon-Client
           path: OpenStarbound-macOS-Silicon-Client.tar.lz
