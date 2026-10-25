@@ -53,6 +53,28 @@ dependências de vizinhos, geração, instalação de entidades, envio de pacote
 e processamento no cliente. Essas etapas podem se sobrepor; seus totais de
 profiling não devem ser simplesmente somados.
 
+O mundo persistente fica em um banco B-tree local, não em um serviço como
+Redis. Setores carregados permanecem em arrays e mapas de entidades na
+memória até serem descarregados. O banco tem um cache LRU de nós de índice
+com limite padrão de 64 nós ([StarBTreeDatabase.cpp](../source/core/StarBTreeDatabase.cpp));
+isso não equivale a um cache em RAM de todos os setores. O sistema operacional
+também pode manter páginas do arquivo em memória. Ao carregar um setor salvo,
+a thread do mundo consulta o banco, descomprime e reconstrói tiles e entidades;
+a inicialização de entidades pode executar callbacks. `storage.*.read` mede a
+consulta ao banco, não apenas leitura física do SSD/HD. Já existe persistência
+incremental dos tiles alterados, mas ela atende ao salvamento, não acelera o
+primeiro cálculo de terreno inédito.
+
+A área solicitada acompanha as regiões retangulares monitoradas pelo cliente;
+ela não é uma onda radial de geração do planeta inteiro. A fila ativa ordena
+setores pela distância entre o centro do setor e o jogador mais próximo.
+Dependências com vizinhos podem mudar a ordem efetiva de conclusão. O prefetch
+atual acrescenta a mesma margem em X e Y: 0, 8, 16 ou 24 tiles por lado,
+conforme a fidelidade, limitada a 32. Em `medium`, a margem extra é 16 tiles
+por lado. Como o setor mede 32 × 32, isso pode alcançar um setor vizinho,
+dependendo do alinhamento da região. A fila de prefetch não usa uma previsão
+de movimento nem prioriza setores por distância dentro dessa área extra.
+
 ## 3. Dois mecanismos de estruturas que não devem ser confundidos
 
 ### Microdungeons e encontros locais
@@ -157,7 +179,67 @@ aplicação final permaneceria serial. Essa proposta precisa cobrir callbacks
 de mods, objetos, NPCs, posições que atravessam setores e conflitos entre
 estruturas antes de ser considerada segura para multiplayer.
 
-## 7. Como decidir entre as abordagens
+## 7. Hipótese: cache de setores e leitura antecipada
+
+É preciso distinguir três usos de memória:
+
+1. **Setor ativo em RAM:** evita reler e reconstruir um setor ainda carregado.
+2. **Cache limitado de setores salvos:** poderia manter dados comprimidos ou
+   decodificados de regiões próximas e reduzir custo de revisitas ou leituras
+   antecipadas. Não torna mais rápido o primeiro cálculo de terreno novo.
+3. **Cache de cálculos intermediários:** poderia evitar recomputar partes
+   custosas do template, seletores ou biomas. Workers já reutilizam seu
+   template privado; só adicionar novos resultados após medir repetição real.
+
+O arquivo do mundo já é a persistência do resultado final da geração. Um
+segundo cache persistente precisaria de chave e invalidação para semente,
+coordenadas, versão do gerador, template e dados relevantes dos mods, além de
+modificações feitas pelo jogador. Um resultado obsoleto pode restaurar tiles
+antigos ou produzir vizinhanças inconsistentes. Redis ou outro serviço externo
+traria tráfego, cópias e operação adicional; não remove descompressão,
+instalação de entidades nem etapas seriais da geração.
+
+Uma alternativa a investigar é ler e, quando seguro, descomprimir setores
+salvos em segundo plano. A thread do mundo validaria a revisão dos dados e
+instalaria o resultado. Limitar memória e quantidade de pedidos pendentes
+impede que deslocamentos rápidos preencham o cache com áreas abandonadas.
+Comparar **primeira visita**, **revisita na mesma sessão** e **revisita após
+reiniciar** para separar geração, cache de RAM e cache do sistema operacional.
+
+## 8. Hipótese: prefetch horizontal e guiado pelo movimento
+
+Na exploração terrestre comum, deslocamentos horizontais podem atravessar
+setores novos mais rapidamente que descidas por cavernas. Subidas muitas
+vezes percorrem áreas conhecidas ou céu aberto. Essa é uma hipótese de uso,
+não uma regra da engine: queda, voo, veículos, teleporte e cavernas verticais
+podem demandar terreno abaixo ou acima rapidamente. Mesmo céu aberto precisa
+ter setores carregados e enviados.
+
+Uma primeira variante aumentaria apenas a margem horizontal, por exemplo
+32 tiles extras em X e 16 em Y no perfil `medium`. O código atual usa um
+valor único para ambos os eixos, então isso exigiria configuração vetorial e
+nova lógica. Um retângulo mais largo solicita mais setores, mas não garante
+conclusão: o prefetch atual só trabalha quando a fila ativa está vazia e sobra
+tempo no update. Ele prepara apenas `BaseTiles`; estruturas, entidades e envio
+inicial continuam esperando a ativação. Pedidos distantes podem gastar
+memória e capacidade dos workers sem benefício se o jogador mudar de rumo.
+
+Uma variante mais seletiva estimaria posição futura a partir de velocidade
+e direção recentes, suavizadas e limitadas por tempo/distância. Prioridade
+proposta: (1) setores visíveis ou necessários para evitar bloqueio; (2)
+setores à frente do movimento; (3) margem restante. Parar ou virar deve
+reduzir rapidamente o viés de direção. Manter uma margem mínima em todos os
+lados evita falhas em deslocamentos verticais e mudanças bruscas. Em
+multiplayer, o critério deve atender o jogador que mais precisa de cada
+setor, com proteção contra um jogador monopolizar a fila. Mundos com
+horizontalidade circular também exigem distância que respeite o wrap.
+
+Reordenar a fila não paraleliza microdungeons: apenas escolhe qual setor
+recebe tempo primeiro. Medir taxa de acerto do prefetch (setores preparados
+que depois se tornaram necessários), idade e profundidade da fila, tempo
+até o setor visível ficar completo, uso de RAM e picos da thread do mundo.
+
+## 9. Como decidir entre as abordagens
 
 Primeiro, identificar a dungeon do caso Mantizi no log (`Placing dungeon ...
 at ...`) e medir o percurso com a build Windows #21. Usar o procedimento de
@@ -170,6 +252,9 @@ fila de prefetch ainda aguarda validação local.
 | Tiles básicos aguardam workers | Capacidade, ordenação e alcance do prefetch |
 | Microdungeons dominam o tempo de geração | Cálculo em snapshot e aplicação serial |
 | Dungeon composta já montada, mas setores aparecem tarde | Pré-geração de suas regiões ou caminho de leitura, ativação e envio |
+| Leitura/descompressão de setores salvos domina a revisita | Cache limitado e leitura antecipada com validação de revisão |
+| Muitos pedidos de prefetch nunca são usados | Reduzir alcance ou priorizar direção e velocidade do jogador |
+| Espera ocorre à frente de deslocamento horizontal contínuo | Comparar margem horizontal maior e previsão de movimento |
 | Muitos setores pequenos custam mais que o trabalho nos tiles | Protótipo 64 físico / 32 lógico antes de 64 nativo |
 | O cliente recebe os setores em tempo, mas desenha tarde | Instrumentação de aplicação de pacotes e painter, separada da geração |
 
