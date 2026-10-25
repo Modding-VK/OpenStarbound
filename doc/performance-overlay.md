@@ -122,3 +122,20 @@ Antes de usar os números para escolher uma otimização:
 O GitHub Actions estava desativado no repositório quando esta implementação
 foi preparada; a validação de compilação e de uso no jogo permanece pendente
 até a execução de uma build.
+
+## Posição e idioma do painel
+
+O painel de desempenho fica centralizado na parte inferior da tela, com margem
+inferior de 20 pixels em janelas de altura suficiente. A largura passa a 560
+pixels (limitada à largura da janela com margens), para acomodar os textos em
+português e afastar o painel do rastreador de missões e dos controles laterais.
+As coordenadas do gráfico em cache continuam sendo recalculadas ao redimensionar.
+
+Os textos do painel usam português, incluindo acentos, “ciclos”, “atualizações
+lentas” e “espera máxima”. Os comandos `/debug` e `/debug perf` permanecem os
+mesmos. As chaves técnicas do diagnóstico legado à esquerda não fazem parte
+deste painel. A coleta, os limites e a simulação não foram alterados.
+
+A alteração visual ainda depende de conferência dentro do jogo; nenhum workflow
+foi iniciado para esta entrega. O log enviado junto ao pedido permanece para
+análise posterior, conforme a prioridade dada à correção do HUD.

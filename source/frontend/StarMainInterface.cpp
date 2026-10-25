@@ -1548,26 +1548,27 @@ void MainInterface::renderDebug() {
 }
 
 void MainInterface::renderPerformance() {
-  float right = windowWidth() - 20.0f;
-  float top = windowHeight() - 20.0f;
-  float left = max(10.0f, right - 330.0f);
-  float width = right - left;
+  // Anchor to the bottom center, clear of the quest tracker and side HUD.
+  float width = min(560.0f, max(1.0f, windowWidth() - 40.0f));
+  float left = (windowWidth() - width) / 2.0f;
+  float right = left + width;
+  float top = min(385.0f, windowHeight() - 10.0f);
   m_guiContext->drawQuad(RectF::withSize(Vec2F(left, top - 365.0f), Vec2F(width, 365.0f)),
       Vec4B{12, 18, 28, 205});
   m_guiContext->setTextStyle(m_config->debugTextStyle);
   m_guiContext->setFontColor(Vec4B{235, 240, 245, 255});
-  m_guiContext->renderText("Mundo: tempo de parede", TextPositioning{Vec2F(left + 12, top - 22)});
+  m_guiContext->renderText("Desempenho do mundo: tempo decorrido", TextPositioning{Vec2F(left + 12, top - 22)});
 
   if (!m_performanceSnapshot) {
-    m_guiContext->renderText("Aguardando dados do mundo local",
+    m_guiContext->renderText("Aguardando dados do mundo local...",
         TextPositioning{Vec2F(left + 12, top - 52)});
     return;
   }
 
   auto const& sample = *m_performanceSnapshot;
   static std::array<char const*, WorldPerformanceCategoryCount> const names{{
-    "NPCs", "Objetos", "Outras entidades", "Scripts mundo",
-    "Geracao", "Armazenamento", "Outros", "Ocioso"
+    "NPCs", "Objetos", "Outras entidades", "Scripts do mundo",
+    "Geração", "Armazenamento", "Outros", "Em espera"
   }};
   static std::array<Vec4B, WorldPerformanceCategoryCount> const colors{{
     Vec4B{241, 113, 96, 255}, Vec4B{244, 174, 73, 255},
@@ -1600,14 +1601,14 @@ void MainInterface::renderPerformance() {
       angle = end;
       cache.labels[category] = strf("{} {:4.1f}%", names[category], fraction * 100.0);
     }
-    cache.tickText = strf("Tick: {} / {} acima de {:.1f} ms; pico {:.1f} ms",
+    cache.tickText = strf("Ciclos: {} / {} acima de {:.1f} ms; máximo {:.1f} ms",
         sample.overBudgetTicks, sample.ticks, ServerGlobalTimestep * 1000.0, sample.maximumTickMilliseconds);
     cache.slowText = sample.detailed
-        ? strf("Lentos: {} NPCs, {} objetos", sample.slowNpcUpdates, sample.slowObjectUpdates)
-        : String("Callbacks lentos: /debug perf para medir");
-    cache.queueText = strf("Setores: {} na fila, {} >100 ms; atual {:.0f} ms",
+        ? strf("Atualizações lentas: {} NPCs, {} objetos", sample.slowNpcUpdates, sample.slowObjectUpdates)
+        : String("Atualizações lentas: use /debug perf para medir");
+    cache.queueText = strf("Setores: {} na fila; {} acima de 100 ms; espera atual {:.0f} ms",
         sample.queuedSectors, sample.overdueSectors, sample.oldestQueuedMilliseconds);
-    cache.queuePeakText = strf("Pico fila: {}; concluidos >100 ms: {}; espera {:.0f} ms",
+    cache.queuePeakText = strf("Fila máxima: {}; concluídos >100 ms: {}; maior espera {:.0f} ms",
         sample.peakQueuedSectors, sample.lateCompletedSectors, sample.maximumQueuedMilliseconds);
     float baseline = top - 347.0f;
     float chartHeight = 55.0f;
