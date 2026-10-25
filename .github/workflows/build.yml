@@ -23,29 +23,11 @@ on:
         description: macOS
         default: false
 
-  push:
-    paths:
-      - 'assets/**'
-      - 'source/**'
-      - 'toolchains/**'
-      - 'triplets/**'
-    branches:
-      - '*' 
-
-  pull_request:
-    paths:
-      - 'assets/**'
-      - 'source/**'
-      - 'toolchains/**'
-      - 'triplets/**'
-    branches:
-      - '*'
-
 jobs:
   build_windows:
     name: Build OpenStarbound Windows x64
     runs-on: windows-latest
-    if: ${{ (github.event_name != 'pull_request') && ((github.event_name != 'workflow_dispatch') || (inputs.windows == true)) }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.windows == true }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
