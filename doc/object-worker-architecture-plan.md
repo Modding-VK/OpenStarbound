@@ -35,6 +35,12 @@ existentes para continuarem funcionando.
    documentada não expõe acesso geral ao mundo nem a contêineres vivos. Pode
    inspirar o transporte de mensagens; não torna seguro chamar `world.*`
    diretamente de outra thread. Ver [threads Lua](lua/openstarbound/threads.md).
+6. O `WorkerPool` de `source/core/StarWorkerPool.cpp` recebe jobs numa lista
+   sem limite próprio; sua API documenta que `stop()` pode deixar jobs
+   pendentes. O serviço de objetos precisa de uma camada própria de admissão,
+   identificação e cancelamento lógico antes de ser exposto a mods. Usar
+   diretamente `WorkerPool::addProducer` para qualquer pedido Lua permitiria
+   acúmulo ilimitado em bases com muitos objetos.
 
 ## Objetivo e fronteira de autoridade
 
@@ -67,6 +73,64 @@ Uma thread para cada objeto não é o objetivo: milhares de ITDs produziriam
 excesso de memória, agendamento e contenção. O serviço deve limitar trabalhos
 pendentes por mundo/objeto, memória de snapshots e frequência de tentativas.
 Jobs de um mundo não podem acessar diretamente o estado vivo de outro.
+
+## Benefícios potenciais para mudanças futuras do projeto
+
+O benefício reutilizável é a **fronteira snapshot → cálculo → validação →
+commit**, com uma API de modding explícita. Uma thread extra isolada para o
+ITD teria alcance menor. Os candidatos abaixo são possibilidades de pesquisa,
+não ganhos demonstrados nem autorização para executar callbacks antigos em
+paralelo.
+
+| Mudança futura | Como aproveitaria a infraestrutura | Limite que continua na thread do mundo |
+| --- | --- | --- |
+| Outros modders de logística | Planejar filtros, rotas, distribuição, ordenação e encaixe de itens a partir de snapshots; propor lotes | Inventário real, permissões, capacidade e commit sem perda/duplicação |
+| Máquinas e objetos com receitas | Selecionar receitas/candidatos e calcular requisitos em dados próprios | Consumir ingredientes, produzir itens, gastar energia e notificar clientes |
+| Redes de muitos objetos | Compartilhar uma visão versionada da topologia entre jobs próximos; invalidá-la quando conexões mudarem | Consultas a objetos vivos, fios e callbacks síncronos existentes |
+| Interações de objetos com NPCs | Propor alvo e mensagem assíncrona tipada, correlacionar resposta e timeout | Execução do script do NPC, dano, movimento e resultado autoritativo |
+| Diagnóstico de mods | Atribuir CPU, tempo em fila, idade do snapshot, rejeições e tempo de commit por tipo de job | Profiling da thread do mundo e custo de capturar dados continuam necessários |
+
+O serviço de objetos **não deve absorver automaticamente** geração de setores,
+pathfinding de NPCs, persistência ou desenho. Esses trabalhos têm prioridades
+e contratos diferentes. Vale compartilhar conceitos de identificação, limites,
+telemetria e snapshots; filas separadas ou uma política global de admissão
+devem impedir que uma fábrica com milhares de jobs atrase a preparação de um
+setor visível. O pool de setores já usa até oito workers conforme
+`sectorWorkers`; adicionar workers de objetos pode piorar CPU, memória e
+acesso a assets em máquinas com poucos núcleos. Medir juntos, não somente cada
+pool isoladamente.
+
+O `scriptDelta` dos objetos e timers dos mods já distribuem atualizações no
+tempo. Uma nova API deve permitir agrupar trabalho de vários objetos sobre o
+mesmo snapshot e coalescer pedidos repetidos, sem forçar um job por objeto por
+tick. O resultado assíncrono pode chegar mais tarde do que o callback atual;
+modders precisam de um contrato claro para essa latência e de fallback serial
+quando a resposta precisa ser imediata.
+
+### Requisitos do serviço compartilhado
+
+- **Admissão:** limites de jobs e bytes por mundo, objeto e categoria; rejeição
+  explícita com retry/backoff, em vez de fila crescente. Prioridade para ações
+  observáveis próximas a jogadores; fairness para mundos e mods diferentes.
+- **Ciclo de vida:** IDs de mundo/objeto/job, versão do snapshot, timeout e
+  cancelamento lógico em unload, destruição, troca de configuração, save/reload
+  e desligamento. Resultados atrasados não devem reanimar objetos ou produzir
+  segundo commit. Persistir somente efeitos confirmados, nunca job pendente
+  como se fosse uma transferência concluída.
+- **Isolamento de Lua:** se cálculos de mods forem executados no worker, usar
+  contexto próprio e bindings permitidos, com limite de instruções, memória e
+  tempo; entradas e saídas serializáveis. Não compartilhar VM nem callbacks de
+  `Object`/`World` entre threads. Scripts convencionais continuam no caminho
+  atual.
+- **Telemetria:** tempo de captura/serialização, CPU do worker, espera na fila,
+  custo de validação/commit, conflitos, retries, jobs descartados, setores
+  carregados por `loadRegion` e variação do tick. Adicionar zonas ao plano do
+  [Tracy](tracy-integration-plan.md), correlacionadas por job sem incluir nomes
+  privados ou conteúdo de inventário nos traces.
+- **Semântica estável:** versionar a API e especificar ordem de aplicação,
+  disponibilidade em servidor e cliente, resultado de conflito, timeout e
+  comportamento de servidor antigo. Medir compatibilidade do multiplayer e
+  de mods mistos antes de oferecer a capacidade como contrato público.
 
 ## Contrato proposto para modders
 
