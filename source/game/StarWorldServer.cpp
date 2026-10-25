@@ -994,6 +994,11 @@ void WorldServer::recordPerformanceTick(double busySeconds, double idleSeconds) 
   }
 }
 
+bool WorldServer::performanceOverlayActive() const {
+  return m_performanceOverlayActive && WorldPerformanceOverlay::enabled()
+      && m_performanceOverlayGeneration == WorldPerformanceOverlay::generation();
+}
+
 bool WorldServer::performanceSnapshotDue() const {
   return m_performanceOverlayActive && WorldPerformanceOverlay::enabled()
       && m_performanceOverlayGeneration == WorldPerformanceOverlay::generation()
@@ -1036,6 +1041,7 @@ void WorldServer::publishPerformanceSnapshot() {
 
 void WorldServer::update(float dt) {
   STAR_TRACE_ZONE("WorldServer update");
+  bool wasPerformanceOverlayActive = performanceOverlayActive();
   bool performanceEnabled = WorldPerformanceOverlay::enabled();
   if (performanceEnabled) {
     performanceEnabled = false;
@@ -1056,10 +1062,13 @@ void WorldServer::update(float dt) {
     m_performanceWindow = {};
     m_performanceWindowStart = Time::monotonicTime();
   }
+  // The thread only starts its tick clock when this world was already active
+  // at the start of the tick. Exclude the activation update from the pie too.
+  bool performanceSamplingThisTick = performanceEnabled && wasPerformanceOverlayActive;
   if (m_explorationProfile)
     m_explorationProfile->report();
   ExplorationProfile::Scope updateScope(m_explorationProfile.get(), "serverUpdate");
-  bool profileEnabled = m_updateProfilingEnabled || m_explorationProfile || m_performanceOverlayActive;
+  bool profileEnabled = m_updateProfilingEnabled || m_explorationProfile || performanceSamplingThisTick;
   double profileStageStart = profileEnabled ? Time::monotonicTime() : 0.0;
   auto recordProfileStage = [&](UpdateProfileStage stage) {
     if (!profileEnabled)
@@ -1075,7 +1084,7 @@ void WorldServer::update(float dt) {
     }
     if (m_explorationProfile)
       m_explorationProfile->record(UpdateProfileStageNames[static_cast<size_t>(stage)], elapsed);
-    if (m_performanceOverlayActive) {
+    if (performanceSamplingThisTick) {
       WorldPerformanceCategory category = WorldPerformanceCategory::Other;
       if (stage == UpdateProfileStage::Entities) {
         elapsed = max(0.0, elapsed - m_performanceEntitySecondsThisTick);
@@ -1149,7 +1158,7 @@ void WorldServer::update(float dt) {
     };
     m_entityMap->updateAllEntities([&](EntityPtr const& entity) {
       WorldPerformanceCategory category = WorldPerformanceCategory::OtherEntities;
-      if (m_performanceOverlayActive) {
+      if (performanceSamplingThisTick) {
         if (entity->entityType() == EntityType::Npc)
           category = WorldPerformanceCategory::Npc;
         else if (entity->entityType() == EntityType::Object)
@@ -1162,7 +1171,7 @@ void WorldServer::update(float dt) {
           groupStarted = true;
         }
       }
-      double entityStart = m_performanceOverlayActive && m_performanceDetailed ? Time::monotonicTime() : 0;
+      double entityStart = performanceSamplingThisTick && m_performanceDetailed ? Time::monotonicTime() : 0;
       ExplorationProfile::EntityScope entityProfile(m_explorationProfile.get(), *entity);
       entity->update(dt, m_currentStep);
 
@@ -1177,7 +1186,7 @@ void WorldServer::update(float dt) {
 
       if (entity->shouldDestroy() && entity->entityMode() == EntityMode::Master)
         toRemove.append(entity->entityId());
-      if (m_performanceOverlayActive && m_performanceDetailed) {
+      if (performanceSamplingThisTick && m_performanceDetailed) {
         double elapsed = Time::monotonicTime() - entityStart;
         if (category == WorldPerformanceCategory::Npc) {
           if (elapsed > ServerGlobalTimestep)
@@ -1190,7 +1199,7 @@ void WorldServer::update(float dt) {
     }, [](EntityPtr const& a, EntityPtr const& b) {
       return a->entityType() < b->entityType();
     });
-    if (m_performanceOverlayActive)
+    if (performanceSamplingThisTick)
       flushEntityGroup(Time::monotonicTime());
   }
 

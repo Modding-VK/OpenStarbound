@@ -134,6 +134,8 @@ public:
   Json updateProfilingData() const;
   // Called by the owning WorldServerThread after the update and optional sleep.
   void recordPerformanceTick(double busySeconds, double idleSeconds);
+  // Read by the owning WorldServerThread between updates.
+  bool performanceOverlayActive() const;
   bool performanceSnapshotDue() const;
   void publishPerformanceSnapshot();
 

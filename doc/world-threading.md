@@ -34,9 +34,11 @@ indexes, biome mods, and initial ocean liquid in an owned copy of one sector.
 The live tile array is not accessed by the worker.
 
 When the result is ready, `WorldServerThread` verifies that the source sector
-array and world template are still the ones that were copied and that no
-generation-affecting template mutation occurred in the meantime. It then
-installs the result. A stale result is discarded and scheduled again. Immediate
+array and world template are still the ones that were copied, that the tile
+sector revision is unchanged, and that no generation-affecting template
+mutation occurred in the meantime. A tile write can change the contents
+without changing the sector array address. Only a current result is installed;
+a stale result is discarded and scheduled again. Immediate
 generation requests retain the synchronous behavior; if an asynchronous result
 for that sector already exists, the immediate request waits for and commits it.
 

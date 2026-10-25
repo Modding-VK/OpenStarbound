@@ -888,6 +888,7 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
 
     auto result = std::move(pending->promise->get());
     bool snapshotStillCurrent = static_cast<ServerTileSectorArray const&>(*worldStorage->tileArray()).sectorArray(sector) == pending->sourceTiles
+        && worldStorage->tileArray()->sectorRevision(sector) == pending->sourceTileRevision
         && m_worldServer->worldTemplate().get() == pending->sourceTemplate
         && m_worldServer->worldTemplate()->generationRevision() == pending->sourceTemplateRevision;
     m_pendingBaseTiles.remove(sector);
@@ -927,6 +928,7 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
 
   auto tileArray = worldStorage->tileArray();
   auto sourceTiles = static_cast<ServerTileSectorArray const&>(*tileArray).sectorArray(sector);
+  auto sourceTileRevision = tileArray->sectorRevision(sector);
   auto tiles = tileArray->copySector(sector);
   starAssert(sourceTiles);
   starAssert(tiles);
@@ -951,6 +953,7 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
       });
   m_pendingBaseTiles[sector] = PendingBaseTiles{
     sourceTiles,
+    sourceTileRevision,
     planet.get(),
     templateRevision,
     now,

@@ -229,7 +229,7 @@ void WorldServerThread::run() {
     while (!m_stop && !m_errorOccurred) {
       STAR_TRACE_ZONE("WorldServerThread tick");
       STAR_TRACE_FRAME("WorldServerThread");
-      bool performanceEnabled = WorldPerformanceOverlay::enabled();
+      bool performanceEnabled = m_worldServer->performanceOverlayActive();
       double tickStart = performanceEnabled ? Time::monotonicTime() : 0;
       auto fidelity = lockedFidelity.value(automaticFidelity);
       LogMap::set(strf("server_{}_fidelity", m_worldId), WorldServerFidelityNames.getRight(fidelity));

@@ -7,7 +7,8 @@ comando `/debug` ativa o HUD existente e, no single-player, um painel com
 gráfico de pizza e histórico de ticks. `/debug hud` oculta ou restaura o
 texto e o painel. Ocultar toda a interface também interrompe a coleta.
 Ao restaurá-la, a coleta volta no próximo update do mundo; o primeiro
-snapshot aparece após uma janela de aproximadamente um segundo. `/debug perf`
+tick completo medido é o seguinte, e o primeiro snapshot aparece após uma
+janela de aproximadamente um segundo. `/debug perf`
 alterna a medição detalhada de callbacks individuais de NPCs e objetos.
 Não há tecla F3 configurada nesta etapa; a ativação continua pelos comandos.
 
@@ -34,6 +35,8 @@ por janela; a interface o copia periodicamente e desenha na thread gráfica.
 O acumulador de tick, acessado apenas pela thread do mundo, não adquire o
 mutex adicional a cada tick. A consulta à fila de setores usa o mutex já
 empregado para sincronizar ações externas no mundo, uma vez por snapshot.
+Só a thread de um mundo com painel local ativo cronometra o tick; a primeira
+atualização que ativa a coleta é excluída para manter os totais coerentes.
 O painel guarda a geometria da pizza, barras e textos até chegar outra
 amostra ou mudar o tamanho da janela. Desenhá-los ainda custa GPU e CPU da
 thread gráfica.

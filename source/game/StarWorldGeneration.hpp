@@ -147,6 +147,7 @@ private:
 
   struct PendingBaseTiles {
     ServerTileSectorArray::Array const* sourceTiles;
+    uint64_t sourceTileRevision;
     WorldTemplate const* sourceTemplate;
     uint64_t sourceTemplateRevision;
     double lastRequestedTime;
