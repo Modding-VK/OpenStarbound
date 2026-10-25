@@ -5,6 +5,11 @@ Documento de pesquisa, elaborado em 25/10/2026 na branch `perf/threading-audit`.
 preservar jogabilidade, mods, persistência e multiplayer enquanto se avalia
 se o custo dos NPCs justifica mover trabalho para outras threads.
 
+As fases, contratos e critérios de aprovação para executar esta pesquisa estão
+no [plano de ação de rework dos NPCs](npc-ai-rework-action-plan.md).
+O primeiro marco prevê medição e comparação paralela sem aplicar efeitos;
+todas as fases de implementação permanecem pendentes.
+
 ## Histórico desta investigação
 
 - A auditoria inicial distinguiu threads de mundos diferentes do update de

@@ -10,6 +10,10 @@ O painel local do HUD e suas métricas estão em
 As pesquisas de operações estão separadas entre
 [IA dos NPCs](npc-ai-parallelism-hypotheses.md) e
 [objetos e roteadores](object-operations.md).
+O [plano de ação de rework dos NPCs](npc-ai-rework-action-plan.md) organiza
+as fases e seus critérios de aprovação. O primeiro marco é medir, isolar
+leituras e comparar cálculos paralelos sem aplicar efeitos (fases 0–2);
+as fases de implementação estão pendentes.
 O plano de workers e API para modders desses objetos está em
 [object-worker-architecture-plan.md](object-worker-architecture-plan.md).
 Novas dependências e ferramentas seguem a política de
