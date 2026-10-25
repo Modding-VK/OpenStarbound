@@ -128,11 +128,11 @@ até a execução de uma build.
 O painel de desempenho fica centralizado na parte inferior da tela, com margem
 inferior de 20 pixels em janelas de altura suficiente. A largura passa a 560
 pixels (limitada à largura da janela com margens), para acomodar os textos em
-português e afastar o painel do rastreador de missões e dos controles laterais.
+inglês e afastar o painel do rastreador de missões e dos controles laterais.
 As coordenadas do gráfico em cache continuam sendo recalculadas ao redimensionar.
 
-Os textos do painel usam português, incluindo acentos, “ciclos”, “atualizações
-lentas” e “espera máxima”. Os comandos `/debug` e `/debug perf` permanecem os
+Por correção solicitada pelo usuário, todos os textos do painel usam inglês,
+incluindo título, categorias, mensagens de espera e indicadores de filas. Os comandos `/debug` e `/debug perf` permanecem os
 mesmos. As chaves técnicas do diagnóstico legado à esquerda não fazem parte
 deste painel. A coleta, os limites e a simulação não foram alterados.
 

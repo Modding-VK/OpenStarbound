@@ -1557,18 +1557,18 @@ void MainInterface::renderPerformance() {
       Vec4B{12, 18, 28, 205});
   m_guiContext->setTextStyle(m_config->debugTextStyle);
   m_guiContext->setFontColor(Vec4B{235, 240, 245, 255});
-  m_guiContext->renderText("Desempenho do mundo: tempo decorrido", TextPositioning{Vec2F(left + 12, top - 22)});
+  m_guiContext->renderText("World performance: elapsed time", TextPositioning{Vec2F(left + 12, top - 22)});
 
   if (!m_performanceSnapshot) {
-    m_guiContext->renderText("Aguardando dados do mundo local...",
+    m_guiContext->renderText("Waiting for local world data...",
         TextPositioning{Vec2F(left + 12, top - 52)});
     return;
   }
 
   auto const& sample = *m_performanceSnapshot;
   static std::array<char const*, WorldPerformanceCategoryCount> const names{{
-    "NPCs", "Objetos", "Outras entidades", "Scripts do mundo",
-    "Geração", "Armazenamento", "Outros", "Em espera"
+    "NPCs", "Objects", "Other entities", "World scripts",
+    "Generation", "Storage", "Other", "Idle"
   }};
   static std::array<Vec4B, WorldPerformanceCategoryCount> const colors{{
     Vec4B{241, 113, 96, 255}, Vec4B{244, 174, 73, 255},
@@ -1601,14 +1601,14 @@ void MainInterface::renderPerformance() {
       angle = end;
       cache.labels[category] = strf("{} {:4.1f}%", names[category], fraction * 100.0);
     }
-    cache.tickText = strf("Ciclos: {} / {} acima de {:.1f} ms; máximo {:.1f} ms",
+    cache.tickText = strf("Ticks: {} / {} over {:.1f} ms; peak {:.1f} ms",
         sample.overBudgetTicks, sample.ticks, ServerGlobalTimestep * 1000.0, sample.maximumTickMilliseconds);
     cache.slowText = sample.detailed
-        ? strf("Atualizações lentas: {} NPCs, {} objetos", sample.slowNpcUpdates, sample.slowObjectUpdates)
-        : String("Atualizações lentas: use /debug perf para medir");
-    cache.queueText = strf("Setores: {} na fila; {} acima de 100 ms; espera atual {:.0f} ms",
+        ? strf("Slow updates: {} NPCs, {} objects", sample.slowNpcUpdates, sample.slowObjectUpdates)
+        : String("Slow updates: use /debug perf to measure");
+    cache.queueText = strf("Sectors: {} queued; {} over 100 ms; oldest wait {:.0f} ms",
         sample.queuedSectors, sample.overdueSectors, sample.oldestQueuedMilliseconds);
-    cache.queuePeakText = strf("Fila máxima: {}; concluídos >100 ms: {}; maior espera {:.0f} ms",
+    cache.queuePeakText = strf("Peak queue: {}; completed >100 ms: {}; max wait {:.0f} ms",
         sample.peakQueuedSectors, sample.lateCompletedSectors, sample.maximumQueuedMilliseconds);
     float baseline = top - 347.0f;
     float chartHeight = 55.0f;
