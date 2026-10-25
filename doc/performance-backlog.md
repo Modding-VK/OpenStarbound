@@ -5,6 +5,9 @@ pré-geração e cálculo paralelo de microdungeons estão em
 [world-generation-rework-hypotheses.md](world-generation-rework-hypotheses.md).
 O plano de instrumentação por linha do tempo está em
 [tracy-integration-plan.md](tracy-integration-plan.md).
+Novas dependências e ferramentas seguem a política de
+[procedência de código externo](dependency-sources.md); suas pendências de CI
+estão listadas nesse documento.
 
 ## Estado em 24/10/2026
 

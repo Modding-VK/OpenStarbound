@@ -118,6 +118,10 @@ Note: Mods that use StarExtensions features often work with OpenStarbound, StarE
 
 
 ## Building
+For this project branch, external code and build dependencies must come from
+official sources with pinned versions and verified integrity. See the
+[dependency source policy](doc/dependency-sources.md).
+
 Note: Some of these [texts](## "hi :3") are just tooltips rather than links. 
 
 <details>

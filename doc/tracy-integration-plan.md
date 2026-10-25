@@ -16,6 +16,11 @@ implementação de Lua. A API opcional de zonas dentro dos scripts pode ser
 avaliada separadamente após confirmar a compatibilidade do `TracyLua.hpp` com
 Lua 5.3 e seus contextos no OpenStarbound.
 
+Todo código externo usado nesta integração deve seguir a política de
+[procedência e integridade](dependency-sources.md). O código do xStarbound serve
+como referência de arquitetura; o Tracy será obtido diretamente do projeto
+oficial que o mantém.
+
 Referência: xStarbound `b9b8c1a` fixa Tracy em
 `b8c2e25c3d02009059e09f623072921677dd6bb4`, com `TRACY_ON_DEMAND` e
 `TRACY_ONLY_LOCALHOST`. Suas zonas cobrem ticks de mundo, entidades, scripts,
@@ -27,9 +32,10 @@ partes de Lua/Pluto nem a arquitetura de geração do xStarbound.
 1. Acrescentar `STAR_ENABLE_TRACY` em `source/CMakeLists.txt`, padrão `OFF`. Na
    configuração normal, não baixar Tracy, compilar seu cliente ou acrescentar
    definições e bibliotecas ao executável.
-2. Buscar apenas quando a opção estiver ativa, com revisão e checksum fixos
-   de uma distribuição do Tracy. Preferir `FetchContent` condicionado à opção a
-   um submódulo buscado em todos os checkouts: o workflow atual faz checkout
+2. Buscar apenas quando a opção estiver ativa, diretamente de `wolfpld/tracy`,
+   com revisão e checksum fixos de uma distribuição oficial. Preferir
+   `FetchContent` condicionado à opção, em vez de um submódulo buscado em todos
+   os checkouts: o workflow atual faz checkout
    recursivo e o download automático já é um custo relevante. Registrar a
    licença BSD de três cláusulas na documentação/distribuição diagnóstica.
 3. Configurar `TRACY_ENABLE`, `TRACY_ON_DEMAND` e `TRACY_ONLY_LOCALHOST`. Começar
