@@ -62,6 +62,11 @@ run.
   do GitHub. A credencial desta sessão recebeu HTTP 403 ao consultar proteção
   de branches e permissões de Actions; não foi possível confirmar nem aplicar
   uma regra remota por API.
+- Actions está desativado para o repositório no momento desta atualização. O
+  dispatch manual retornou HTTP 422 (`Actions has been disabled for this
+  repository`), e a tentativa de reativar pela API retornou HTTP 403 para a
+  credencial da sessão. A build automática só voltará a funcionar quando um
+  administrador com acesso às configurações reativar Actions.
 - As actions foram fixadas por SHA, e o instalador do Inno Setup é verificado
   contra o hash do release oficial. Dependências transitivas do vcpkg ainda
   requerem revisão ao atualizar o baseline ou acrescentar ports.
