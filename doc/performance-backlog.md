@@ -3,6 +3,8 @@
 As hipóteses de rework discutidas para setores de 64 × 64, dungeons compostas,
 pré-geração e cálculo paralelo de microdungeons estão em
 [world-generation-rework-hypotheses.md](world-generation-rework-hypotheses.md).
+O plano de instrumentação por linha do tempo está em
+[tracy-integration-plan.md](tracy-integration-plan.md).
 
 ## Estado em 24/10/2026
 
