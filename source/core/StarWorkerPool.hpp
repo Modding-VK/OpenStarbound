@@ -87,6 +87,11 @@ private:
 
 class WorkerPool {
 public:
+  struct WorkState {
+    size_t workers = 0;
+    size_t active = 0;
+    size_t queued = 0;
+  };
   struct Snapshot {
     String name;
     unsigned workers = 0;
@@ -140,6 +145,8 @@ public:
 
   // Returns the current number of worker threads.
   size_t getWorkerCount() const;
+  // Approximate live state for low-frequency diagnostics, independent of HUD monitoring.
+  WorkState diagnosticState();
 
 public: // Shared only with the diagnostic registry; no gameplay ownership.
   struct Monitor {

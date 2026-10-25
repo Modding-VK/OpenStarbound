@@ -88,6 +88,19 @@ void ExplorationProfile::EntityScope::recordLua(double seconds) {
   m_luaSeconds += seconds;
 }
 
+ExplorationProfile::ObjectWorldCallScope::ObjectWorldCallScope(char const* stage) : m_stage(stage) {
+  auto scope = s_currentEntityScope;
+  if (scope && scope->m_entity && scope->m_entity->entityType() == EntityType::Object) {
+    m_profile = scope->m_profile;
+    m_start = Time::monotonicTime();
+  }
+}
+
+ExplorationProfile::ObjectWorldCallScope::~ObjectWorldCallScope() {
+  if (m_profile)
+    m_profile->record(m_stage, Time::monotonicTime() - m_start);
+}
+
 ExplorationProfile::EntityLuaScope::EntityLuaScope()
   : m_entityScope(s_currentEntityScope), m_start(m_entityScope ? Time::monotonicTime() : 0) {}
 
@@ -228,6 +241,13 @@ void ExplorationProfile::recordCompletedSector(Vec2I sector, double seconds) {
   }
 }
 
+void ExplorationProfile::recordTilePacket(Vec2I tileOrigin) {
+  if (m_tilePackets.size() < 64)
+    m_tilePackets.append(TilePacketSample{tileOrigin, Time::monotonicTime()});
+  else
+    count("tilePacketMarkersDropped");
+}
+
 void ExplorationProfile::recordEntity(Entity const& entity, double totalSeconds, double luaSeconds, double loggingSeconds) {
   String type = EntityTypeNames.getRight(entity.entityType());
   auto& timing = m_entityTimings[type];
@@ -324,6 +344,11 @@ void ExplorationProfile::report(bool final) {
     slowSectors.append(JsonObject{{"sector", jsonFromVec2I(sector.sector)},
         {"waitMilliseconds", sector.seconds * 1000}});
   m_slowSectors.clear();
+  JsonArray tilePackets;
+  for (auto const& packet : m_tilePackets)
+    tilePackets.append(JsonObject{{"tileOrigin", jsonFromVec2I(packet.tileOrigin)},
+        {"monotonicMilliseconds", packet.monotonicSeconds * 1000}});
+  m_tilePackets.clear();
   static char const* const npcStageNames[] = {
     "update", "scriptDispatch", "movement", "status", "shared", "init", "uninit", "damage",
     "damagedOther", "shouldDestroy", "destroy", "interact", "receiveMessage", "callScript",
@@ -353,7 +378,7 @@ void ExplorationProfile::report(bool final) {
     m_npcPopulationSamples = m_npcUpdatedEntities = m_npcMaximumUpdatedEntities = 0;
   }
   if (!stages.empty() || !counts.empty() || !entityTypes.empty() || !slowEntities.empty()
-      || !npcStages.empty() || !oldestQueuedSector.isNull() || !slowSectors.empty()) {
+      || !npcStages.empty() || !oldestQueuedSector.isNull() || !slowSectors.empty() || !tilePackets.empty()) {
     Json report = JsonObject{
       {"component", m_component}, {"context", m_context}, {"instance", m_instance},
       {"windowMilliseconds", (now - m_windowStart) * 1000},
@@ -361,6 +386,7 @@ void ExplorationProfile::report(bool final) {
       {"stages", std::move(stages)}, {"counts", std::move(counts)},
       {"entityTypes", std::move(entityTypes)}, {"slowEntities", std::move(slowEntities)},
       {"oldestQueuedSector", std::move(oldestQueuedSector)}, {"slowSectors", std::move(slowSectors)},
+      {"tilePackets", std::move(tilePackets)},
       {"npcDetails", m_npcDetails}, {"npcStages", std::move(npcStages)},
       {"percentileMethod", "histogram-upper-bound-8-buckets-per-octave-1us"}
     };

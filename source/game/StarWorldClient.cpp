@@ -1043,6 +1043,8 @@ void WorldClient::handleIncomingPackets(List<PacketPtr> const& packets) {
           readNetTile({x, y}, tileArrayUpdate->array(x - tileRegion.xMin(), y - tileRegion.yMin()), false);
       }
       dirtyCollision(tileRegion);
+      if (m_explorationProfile)
+        m_explorationProfile->recordTilePacket(tileArrayUpdate->min);
 
     } else if (auto tileUpdate = as<TileUpdatePacket>(packet)) {
       readNetTile(tileUpdate->position, tileUpdate->tile);

@@ -1779,7 +1779,7 @@ bool WorldServer::placeDungeon(String const& dungeonName, Vec2I const& position,
   auto seed = worldTemplate()->seedFor(position[0], position[1]);
   auto facade = make_shared<DungeonGeneratorWorld>(this, true);
   bool placed = false;
-  DungeonGenerator dungeonGenerator(dungeonName, seed, m_worldTemplate->threatLevel(), dungeonId);
+  DungeonGenerator dungeonGenerator(dungeonName, seed, m_worldTemplate->threatLevel(), dungeonId, m_explorationProfile.get());
   if (auto generateResult = dungeonGenerator.generate(facade, position, false, forcePlacement)) {
     auto worldGenerator = make_shared<WorldGenerator>(this);
     for (auto position : generateResult->second) {
@@ -2100,7 +2100,8 @@ void WorldServer::init(bool firstTime) {
           --retryCounter;
           auto dungeonFacade = make_shared<DungeonGeneratorWorld>(this, true);
           Vec2I position = Vec2I((dungeon.baseX + rnd.randInt(0, dungeon.xVariance)) % m_geometry.width(), dungeon.baseHeight);
-          DungeonGenerator dungeonGenerator(dungeon.dungeon, m_worldTemplate->worldSeed(), m_worldTemplate->threatLevel(), currentDungeonId);
+          DungeonGenerator dungeonGenerator(dungeon.dungeon, m_worldTemplate->worldSeed(), m_worldTemplate->threatLevel(), currentDungeonId,
+              m_explorationProfile.get());
           if (auto generateResult = dungeonGenerator.generate(dungeonFacade, position, dungeon.blendWithTerrain, dungeon.force)) {
             if (dungeonGenerator.definition()->isProtected())
               setTileProtection(currentDungeonId, true);
@@ -2618,6 +2619,8 @@ void WorldServer::queueUpdatePackets(ConnectionId clientId, bool sendRemoteUpdat
     }
 
     clientInfo->outgoingPackets.append(tileArrayUpdate);
+    if (m_explorationProfile)
+      m_explorationProfile->recordTilePacket(tileArrayUpdate->min);
     clientInfo->pendingSectors.remove(sector);
   }
 

@@ -16,6 +16,7 @@ STAR_EXCEPTION(DungeonException, StarException);
 STAR_CLASS(DungeonGeneratorWorldFacade);
 STAR_CLASS(DungeonDefinition);
 STAR_CLASS(DungeonDefinitions);
+class ExplorationProfile;
 
 class DungeonGeneratorWorldFacade {
 public:
@@ -66,7 +67,8 @@ namespace Dungeon {
 
   class DungeonGeneratorWriter {
   public:
-    DungeonGeneratorWriter(DungeonGeneratorWorldFacadePtr facade, Maybe<int> terrainMarkingSurfaceLevel, Maybe<int> terrainSurfaceSpaceExtends);
+    DungeonGeneratorWriter(DungeonGeneratorWorldFacadePtr facade, Maybe<int> terrainMarkingSurfaceLevel,
+        Maybe<int> terrainSurfaceSpaceExtends, ExplorationProfile* profile = nullptr);
 
     Vec2I wrapPosition(Vec2I const& pos) const;
 
@@ -130,6 +132,7 @@ namespace Dungeon {
     };
 
     DungeonGeneratorWorldFacadePtr m_facade;
+    ExplorationProfile* m_profile;
     Maybe<int> m_terrainMarkingSurfaceLevel;
     Maybe<int> m_terrainSurfaceSpaceExtends;
 
@@ -690,7 +693,8 @@ private:
 
 class DungeonGenerator {
 public:
-  DungeonGenerator(String const& dungeonName, uint64_t seed, float threatLevel, Maybe<DungeonId> dungeonId);
+  DungeonGenerator(String const& dungeonName, uint64_t seed, float threatLevel, Maybe<DungeonId> dungeonId,
+      ExplorationProfile* profile = nullptr);
 
   Maybe<pair<List<RectI>, Set<Vec2I>>> generate(DungeonGeneratorWorldFacadePtr facade, Vec2I position, bool markSurfaceAndTerrain, bool forcePlacement);
 
@@ -702,6 +706,7 @@ public:
 
 private:
   DungeonDefinitionConstPtr m_def;
+  ExplorationProfile* m_profile;
 
   RandomSource m_rand;
   float m_threatLevel;

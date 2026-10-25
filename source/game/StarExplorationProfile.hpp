@@ -32,6 +32,8 @@ public:
     double m_start;
   };
 
+  class ObjectWorldCallScope;
+
   // Times one entity update and attributes Lua update callbacks and synchronous
   // logging performed on the same thread to it.
   class EntityScope {
@@ -43,6 +45,7 @@ public:
     void recordLua(double seconds);
 
   private:
+    friend class ObjectWorldCallScope;
     ExplorationProfile* m_profile;
     Entity const* m_entity;
     EntityScope* m_previousScope;
@@ -51,6 +54,20 @@ public:
     double m_luaSeconds = 0;
     double m_loggingSeconds = 0;
 
+  };
+
+  // Attributes synchronous world API calls only when a profiled object is
+  // currently updating on this thread. Fixed labels avoid mod-name cardinality.
+  class ObjectWorldCallScope {
+  public:
+    explicit ObjectWorldCallScope(char const* stage);
+    ~ObjectWorldCallScope();
+    ObjectWorldCallScope(ObjectWorldCallScope const&) = delete;
+    ObjectWorldCallScope& operator=(ObjectWorldCallScope const&) = delete;
+  private:
+    ExplorationProfile* m_profile = nullptr;
+    char const* m_stage;
+    double m_start = 0;
   };
 
   // Records LuaUpdatableComponent::update only while an EntityScope is active
@@ -108,6 +125,7 @@ public:
   // Keep bounded sector coordinates for correlating queue stalls with the route.
   void recordQueuedSector(Vec2I sector, double seconds);
   void recordCompletedSector(Vec2I sector, double seconds);
+  void recordTilePacket(Vec2I tileOrigin);
   // Call at an outer operation boundary, never inside a timed scope. Final
   // reports preserve short windows when a world closes before the interval.
   void report(bool final = false);
@@ -153,6 +171,11 @@ private:
     double seconds;
   };
 
+  struct TilePacketSample {
+    Vec2I tileOrigin;
+    double monotonicSeconds;
+  };
+
   void recordEntity(Entity const& entity, double totalSeconds, double luaSeconds, double loggingSeconds);
   static thread_local EntityScope* s_currentEntityScope;
   static thread_local NpcScope* s_currentNpcScope;
@@ -177,6 +200,7 @@ private:
   List<SlowEntity> m_slowEntities;
   Maybe<SectorWait> m_oldestQueuedSector;
   List<SectorWait> m_slowSectors;
+  List<TilePacketSample> m_tilePackets;
 };
 
 }

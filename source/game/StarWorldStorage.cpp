@@ -822,11 +822,17 @@ float WorldStorage::randomizedSectorTTL() const {
 pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, SectorGenerationLevel targetGenerationLevel,
     size_t sectorGenerationLevelLimit, bool allowAsync, double generationDeadline) {
   STAR_TRACE_ZONE("WorldStorage generate sector");
-  if (Time::monotonicTime() >= generationDeadline)
+  if (Time::monotonicTime() >= generationDeadline) {
+    if (m_explorationProfile)
+      m_explorationProfile->count("generation.blocked.deadline");
     return {false, 0};
+  }
 
-  if (!m_tileArray->sectorValid(sector))
+  if (!m_tileArray->sectorValid(sector)) {
+    if (m_explorationProfile)
+      m_explorationProfile->count("generation.blocked.invalidSector");
     return {false, 0};
+  }
 
   loadSectorToLevel(sector, SectorLoadLevel::Loaded);
 
@@ -859,8 +865,11 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
         auto p = generateSectorToLevel(adjacentSector, stepDownGeneration,
             sectorGenerationLevelLimit - totalGeneratedLevels, allowAsync, generationDeadline);
         totalGeneratedLevels += p.second;
-        if (!p.first || totalGeneratedLevels >= sectorGenerationLevelLimit)
+        if (!p.first || totalGeneratedLevels >= sectorGenerationLevelLimit) {
+          if (m_explorationProfile)
+            m_explorationProfile->count(!p.first ? "generation.blocked.neighbor" : "generation.blocked.levelLimit");
           return {false, totalGeneratedLevels};
+        }
       }
     }
 
@@ -876,6 +885,13 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
     double profileStart = m_generationProfilingEnabled ? Time::monotonicTime() : 0.0;
     auto generationResult = m_generatorFacade->generateSectorLevel(this, sector, currentGeneration, allowAsync);
     if (!generationResult.complete) {
+      if (m_explorationProfile) {
+        static char const* const blockedStages[] = {
+          "generation.blocked.baseTiles", "generation.blocked.microDungeons",
+          "generation.blocked.caveLiquid", "generation.blocked.finalize", "generation.blocked.terraform"
+        };
+        m_explorationProfile->count(blockedStages[stageIndex]);
+      }
       timing.stop();
       return {false, totalGeneratedLevels};
     }
@@ -893,8 +909,12 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
     m_tileArray->markSectorDirty(sector);
 
     ++totalGeneratedLevels;
-    if (totalGeneratedLevels >= sectorGenerationLevelLimit || Time::monotonicTime() >= generationDeadline)
+    if (totalGeneratedLevels >= sectorGenerationLevelLimit || Time::monotonicTime() >= generationDeadline) {
+      if (m_explorationProfile)
+        m_explorationProfile->count(totalGeneratedLevels >= sectorGenerationLevelLimit
+            ? "generation.blocked.levelLimit" : "generation.blocked.deadline");
       return {metadata.generationLevel == targetGenerationLevel, totalGeneratedLevels};
+    }
   }
 
   return {true, totalGeneratedLevels};

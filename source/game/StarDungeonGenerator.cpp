@@ -10,6 +10,7 @@
 #include "StarLiquidsDatabase.hpp"
 #include "StarDungeonImagePart.hpp"
 #include "StarDungeonTMXPart.hpp"
+#include "StarExplorationProfile.hpp"
 
 namespace Star {
 
@@ -957,8 +958,10 @@ namespace Dungeon {
     return m_offset;
   }
 
-  DungeonGeneratorWriter::DungeonGeneratorWriter(DungeonGeneratorWorldFacadePtr facade, Maybe<int> terrainMarkingSurfaceLevel, Maybe<int> terrainSurfaceSpaceExtends)
-    : m_facade(facade), m_terrainMarkingSurfaceLevel(terrainMarkingSurfaceLevel), m_terrainSurfaceSpaceExtends(terrainSurfaceSpaceExtends) {
+  DungeonGeneratorWriter::DungeonGeneratorWriter(DungeonGeneratorWorldFacadePtr facade, Maybe<int> terrainMarkingSurfaceLevel,
+      Maybe<int> terrainSurfaceSpaceExtends, ExplorationProfile* profile)
+    : m_facade(facade), m_profile(profile), m_terrainMarkingSurfaceLevel(terrainMarkingSurfaceLevel),
+      m_terrainSurfaceSpaceExtends(terrainSurfaceSpaceExtends) {
     m_currentBounds.setMin(Vec2I{std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max()});
     m_currentBounds.setMax(Vec2I{std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min()});
   }
@@ -1174,6 +1177,7 @@ namespace Dungeon {
   }
 
   void DungeonGeneratorWriter::flush() {
+    ExplorationProfile::Scope phase(m_profile, "dungeon.flush.markRegions");
     auto geometry = m_facade->getWorldGeometry();
     auto displace = [&](Vec2I pos) -> Vec2I { return geometry.xwrap(pos); };
     auto displaceF = [&](Vec2F pos) -> Vec2F { return geometry.xwrap(pos); };
@@ -1211,6 +1215,7 @@ namespace Dungeon {
     if (!spaceBlendingVertexes.empty())
       m_facade->markSpace(PolyF::convexHull(spaceBlendingVertexes));
 
+    phase.next("dungeon.flush.tiles");
     for (auto iter = m_backgroundMaterial.begin(); iter != m_backgroundMaterial.end(); iter++)
       m_facade->setBackgroundMaterial(displace(iter->first), iter->second.material, iter->second.hueshift, iter->second.colorVariant);
     for (auto iter = m_foregroundMaterial.begin(); iter != m_foregroundMaterial.end(); iter++)
@@ -1220,6 +1225,7 @@ namespace Dungeon {
     for (auto iter = m_backgroundMod.begin(); iter != m_backgroundMod.end(); iter++)
       m_facade->setBackgroundMod(displace(iter->first), iter->second.mod, iter->second.hueshift);
 
+    phase.next("dungeon.flush.objects");
     List<Vec2I> sortedPositions = m_objects.keys();
     sortByComputedValue(sortedPositions, [](Vec2I pos) { return pos[1] + pos[0] / 1000.0f; });
     for (auto pos : sortedPositions) {
@@ -1246,6 +1252,7 @@ namespace Dungeon {
       m_facade->placeSurfaceBiomeItems(pos);
     }
 
+    phase.next("dungeon.flush.entities");
     for (auto& npc : m_npcs) {
       m_facade->spawnNpc(displaceF(npc.first), npc.second);
     }
@@ -1254,6 +1261,7 @@ namespace Dungeon {
       m_facade->spawnStagehand(displaceF(stagehand.first), stagehand.second);
     }
 
+    phase.next("dungeon.flush.wiresAndLiquids");
     for (auto& wires : m_globalWires) {
       List<Vec2I> wireGroup;
       for (auto& pos : wires.second)
@@ -1423,15 +1431,19 @@ int DungeonDefinition::extendSurfaceFreeSpace() const {
   return m_extendSurfaceFreeSpace;
 }
 
-DungeonGenerator::DungeonGenerator(String const& dungeonName, uint64_t seed, float threatLevel, Maybe<DungeonId> dungeonId)
-  : m_rand(seed), m_threatLevel(threatLevel), m_dungeonId(dungeonId) {
+DungeonGenerator::DungeonGenerator(String const& dungeonName, uint64_t seed, float threatLevel, Maybe<DungeonId> dungeonId,
+    ExplorationProfile* profile)
+  : m_profile(profile), m_rand(seed), m_threatLevel(threatLevel), m_dungeonId(dungeonId) {
+  ExplorationProfile::Scope timing(m_profile, "dungeon.definitionLoad");
   m_def = Root::singleton().dungeonDefinitions()->get(dungeonName);
 }
 
 Maybe<pair<List<RectI>, Set<Vec2I>>> DungeonGenerator::generate(DungeonGeneratorWorldFacadePtr facade, Vec2I position, bool markSurfaceAndTerrain, bool forcePlacement) {
+  ExplorationProfile::Scope total(m_profile, "dungeon.generate");
   String name = m_def->name();
   try {
-    Dungeon::DungeonGeneratorWriter writer(facade, markSurfaceAndTerrain ? position[1] : Maybe<int>(), m_def->extendSurfaceFreeSpace());
+    Dungeon::DungeonGeneratorWriter writer(facade, markSurfaceAndTerrain ? position[1] : Maybe<int>(),
+        m_def->extendSurfaceFreeSpace(), m_profile);
 
     Logger::debug(forcePlacement ? "Forcing generation of dungeon {}" : "Generating dungeon {}", name);
 
@@ -1442,7 +1454,14 @@ Maybe<pair<List<RectI>, Set<Vec2I>>> DungeonGenerator::generate(DungeonGenerator
     }
 
     auto pos = position + Vec2I(0, -anchor->placementLevelConstraint());
-    if (forcePlacement || anchor->canPlace(pos, &writer)) {
+    if (m_profile)
+      m_profile->count("dungeon.anchorCandidates");
+    bool anchorFits = forcePlacement;
+    if (!forcePlacement) {
+      ExplorationProfile::Scope timing(m_profile, "dungeon.canPlace");
+      anchorFits = anchor->canPlace(pos, &writer);
+    }
+    if (anchorFits) {
       Logger::info("Placing dungeon {} at {}", name, position);
       return buildDungeon(anchor, pos, &writer, forcePlacement);
     } else {
@@ -1466,6 +1485,7 @@ pair<List<RectI>, Set<Vec2I>> DungeonGenerator::buildDungeon(Dungeon::PartConstP
   Logger::debug("Placing dungeon entrance at {}", basePos);
 
   auto placePart = [&](Dungeon::Part const* part, Vec2I const& placePos) {
+      ExplorationProfile::Scope timing(m_profile, "dungeon.placePart");
       Set<Vec2I> clearTileEntityPositions;
       part->forEachTile([&](Vec2I tilePos, Dungeon::Tile const& tile) -> bool {
           if (tile.modifiesPlaces())
@@ -1495,6 +1515,8 @@ pair<List<RectI>, Set<Vec2I>> DungeonGenerator::buildDungeon(Dungeon::PartConstP
 
       placementCounter[part->name()]++;
       piecesPlaced++;
+      if (m_profile)
+        m_profile->count("dungeon.partsPlaced");
 
       Logger::debug("placed {}", part->name());
     };
@@ -1514,8 +1536,16 @@ pair<List<RectI>, Set<Vec2I>> DungeonGenerator::buildDungeon(Dungeon::PartConstP
       Vec2I connectorPos = parentPos + connector->offset();
       if (closedConnectors.contains(connectorPos))
         continue;
-      List<Dungeon::ConnectorConstPtr> options = findConnectablePart(connector);
+      List<Dungeon::ConnectorConstPtr> options;
+      {
+        ExplorationProfile::Scope timing(m_profile, "dungeon.findConnectablePart");
+        options = findConnectablePart(connector);
+      }
+      if (m_profile)
+        m_profile->count("dungeon.connectorsVisited");
       while (options.size()) {
+        if (m_profile)
+          m_profile->count("dungeon.candidatesTried");
         Dungeon::ConnectorConstPtr option = chooseOption(options, m_rand);
         Logger::debug("Trying part {}", option->part()->name());
         Vec2I partPos = connectorPos - option->offset() + option->positionAdjustment();
@@ -1549,7 +1579,12 @@ pair<List<RectI>, Set<Vec2I>> DungeonGenerator::buildDungeon(Dungeon::PartConstP
           Logger::debug("part failed in maximumThreatLevel");
           continue;
         }
-        if (forcePlacement || option->part()->canPlace(partPos, writer)) {
+        bool partFits = forcePlacement;
+        if (!forcePlacement) {
+          ExplorationProfile::Scope timing(m_profile, "dungeon.canPlace");
+          partFits = option->part()->canPlace(partPos, writer);
+        }
+        if (partFits) {
           placePart(option->part(), partPos);
           closedConnectors.add(connectorPos);
           closedConnectors.add(optionPos);
@@ -1561,9 +1596,15 @@ pair<List<RectI>, Set<Vec2I>> DungeonGenerator::buildDungeon(Dungeon::PartConstP
     }
   }
   Logger::debug("Settling dungeon water.");
-  writer->flushLiquid();
+  {
+    ExplorationProfile::Scope timing(m_profile, "dungeon.flushLiquid");
+    writer->flushLiquid();
+  }
   Logger::debug("Flushing dungeon into the worldgen.");
-  writer->flush();
+  {
+    ExplorationProfile::Scope timing(m_profile, "dungeon.flush");
+    writer->flush();
+  }
 
   return {writer->boundingBoxes(), modifiedTiles};
 }

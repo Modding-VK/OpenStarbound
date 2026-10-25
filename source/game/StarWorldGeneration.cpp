@@ -885,6 +885,14 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
   if (profile && allowAsync) {
     profile->count("generation.baseTiles.pendingDepthSamples");
     profile->count("generation.baseTiles.pendingDepthTotal", m_pendingBaseTiles.size());
+    if (now - m_lastPoolProfileTime >= 1.0) {
+      auto state = worldSectorWorkerPool().diagnosticState();
+      profile->count("generation.baseTiles.poolSamples");
+      profile->count("generation.baseTiles.poolWorkersTotal", state.workers);
+      profile->count("generation.baseTiles.poolActiveTotal", state.active);
+      profile->count("generation.baseTiles.poolQueuedTotal", state.queued);
+      m_lastPoolProfileTime = now;
+    }
   }
   auto pending = m_pendingBaseTiles.ptr(sector);
   if (pending) {

@@ -12,6 +12,10 @@ não consultam o relógio, acumulam amostras ou emitem relatórios. Há verifica
 condicionais nos pontos instrumentados. Quando ativado, a coleta e a gravação
 do log têm custo: use essa execução para localizar gargalos, e execuções com
 diagnóstico desativado para comparar desempenho final.
+Os marcadores desta ampliação não mudam o formato dos saves ou pacotes, a API
+Lua disponível aos mods, nem a ordem das etapas de geração. Os resumos JSON
+ficam maiores quando a coleta está ligada; o limite de marcadores por janela
+evita crescimento ilimitado.
 
 ## Gerar e habilitar
 
@@ -122,6 +126,8 @@ de conclusões é limitada por `entityDetailLimit` e não enumera toda a fila.
   total, Lua e logging.
 - `oldestQueuedSector`, `slowSectors`: coordenadas da fila de geração e
   esperas, disponíveis nos relatórios das builds instrumentadas mais recentes.
+- `tilePackets`: até 64 marcadores de `TileArrayUpdate` por janela, com origem
+  em tiles e horário monotônico; `tilePacketMarkersDropped` conta os demais.
 - `final`: último resumo antes da destruição; a limpeza posterior não está incluída.
 
 ### Servidor e armazenamento
@@ -178,12 +184,44 @@ do worker continua em `generation.baseTiles.worker`. A profundidade média
 observada nas tentativas assíncronas é
 `generation.baseTiles.pendingDepthTotal / pendingDepthSamples`; ela não mede
 o comprimento interno da fila do pool de threads.
+Uma vez por segundo, se a preparação assíncrona for consultada, os campos
+`generation.baseTiles.poolWorkersTotal`, `.poolActiveTotal` e
+`.poolQueuedTotal` são amostrados. Divida cada total por `.poolSamples` para
+obter a média observada. `active` é uma aproximação baseada no estado de espera
+dos workers; esses valores funcionam mesmo com `/debug threads` oculto.
 
 Se a fila de setores envelhecer com ticks curtos e sem estouro do orçamento,
 compare `.pendingAge` e `.pendingLimitHits` com os tempos de `.queueDelay` e
 `.commitDelay`. Uma tarefa que ainda não terminou não produz amostra de
 `.queueDelay` nem de `.worker` até o resultado ser coletado. Assim, a ausência
 dessas amostras não prova que o worker esteja ocioso.
+
+`generation.blocked.deadline`, `.invalidSector`, `.neighbor`, `.levelLimit`
+e `.baseTiles` identificam retornos sem conclusão em `generateSectorToLevel`.
+As demais etapas têm os mesmos rótulos `.microDungeons`, `.caveLiquid`,
+`.finalize` e `.terraform`. Chamadas para setores vizinhos são recursivas; um
+impedimento pode aumentar o contador da etapa original e vários contadores
+`.neighbor`. São eventos de tentativa, não setores únicos bloqueados.
+
+### Chamadas de objetos e montagem de dungeons
+
+`object.worldCall.containerRead`, `.containerWrite`, `.callScriptedEntity`,
+`.sendEntityMessage` e `.loadRegion` medem chamadas síncronas da API Lua
+**durante a atualização de um objeto**. Os tempos são partes do tempo Lua e da
+atualização desse objeto; não devem ser somados ao total dos objetos.
+`sendEntityMessage` mede o envio, não a latência até a resposta futura. O
+perfil não registra nomes de mods, IDs de contêineres ou conteúdo de mensagens.
+Outros callbacks e trabalhos assíncronos continuam fora dessas categorias.
+
+Na primeira criação de um mundo ou em uma colocação posterior de dungeon,
+`dungeon.definitionLoad`, `.generate`, `.findConnectablePart`, `.canPlace`,
+`.placePart`, `.flushLiquid` e `.flush` separam as fases principais da
+montagem. `dungeon.anchorCandidates`, `.connectorsVisited`,
+`.candidatesTried` e `.partsPlaced` contam tentativas e peças aceitas. A
+visita a uma dungeon já salva não refaz essa montagem. `.generate` inclui
+suas subetapas; não some os tempos entre si. Dentro de `.flush`, as etapas
+`.markRegions`, `.tiles`, `.objects`, `.entities` e `.wiresAndLiquids`
+mostram onde a aplicação da estrutura consome tempo.
 
 ### Cliente e desenho
 
@@ -196,6 +234,7 @@ dessas amostras não prova que o worker esteja ocioso.
 | `client.prepareRenderData` | Preparação dos dados visuais; pode incluir cálculo de iluminação síncrono. |
 | `painter.tileSetup` | Preparação dos chunks visuais, incluindo consultas/construção de caches. |
 | `painter.environment` | Preparação e envio do desenho do céu e elementos ambientais. |
+| `painter.environment.setup`, `.stars`, `.debris`, `.orbiters`, `.horizon`, `.sky`, `.flush` | Partes da etapa ambiental; `.orbiters` reúne os dois momentos de desenho dos orbitadores. |
 | `painter.lightWait` | Espera pelo resultado da iluminação; não é medição do uso de CPU do worker. |
 | `painter.lightUpload` | Ajuste do mapa de luz, upload e parâmetros do shader. |
 | `painter.worldDraw` | Preparação/envio das camadas do mundo, entidades e partículas. |
@@ -204,6 +243,14 @@ dessas amostras não prova que o worker esteja ocioso.
 São durações de relógio: incluem bloqueios e esperas. O desenho é assíncrono na
 GPU; esses valores não são tempos de execução da GPU, tempos completos de frame,
 FPS ou percentis. Não foi acrescentada sincronização da GPU para medir.
+
+O servidor marca o pacote após colocá-lo na fila de saída; o cliente marca a
+mesma origem de tiles depois de aplicar o pacote. Em jogo local, os horários
+monotônicos do mesmo processo permitem estimar a diferença entre esses pontos.
+O marcador do servidor **não** é confirmação de envio pela rede, e o do cliente
+**não** é a primeira renderização do setor. Em máquinas diferentes, os
+relógios monotônicos não são diretamente comparáveis. Os marcadores são
+limitados a 64 por janela para controlar o tamanho do log.
 
 ## Como interpretar sem contar duas vezes
 

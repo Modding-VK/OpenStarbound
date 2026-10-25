@@ -256,6 +256,18 @@ size_t WorkerPool::getWorkerCount() const {
   return m_workerThreads.size();
 }
 
+WorkerPool::WorkState WorkerPool::diagnosticState() {
+  MutexLocker threadLock(m_threadMutex);
+  MutexLocker workLock(m_workMutex);
+  WorkState state;
+  state.workers = m_workerThreads.size();
+  state.queued = m_pendingWork.size();
+  for (auto const& worker : m_workerThreads)
+    if (!worker->waiting.load())
+      ++state.active;
+  return state;
+}
+
 WorkerPool::WorkerThread::WorkerThread(WorkerPool* parent)
   : Thread(strf("WorkerThread for WorkerPool '{}'", parent->m_name)),
     parent(parent),
