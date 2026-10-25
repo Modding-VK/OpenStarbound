@@ -336,3 +336,38 @@ supplied. The object maximum indicates a separate long-tail investigation is
 still relevant. Neither aggregate total identifies which event caused a
 specific visible pause. Keep gameplay and build validation separate from this
 log analysis.
+
+## Restored-save Glitch village stall — follow-up log
+
+The user restored backups of `player` and `universe`, revisited the same
+planet (`383738425:-48324202:-255713414:2`), and observed sector loading stop
+while approaching a Glitch village. The log is from source ID
+`1b1e113cabfefe4ec6c6e2b7de672fcb3be7e3cc`. The player entered this
+planet at 20:42:24 and shut the game down gracefully at 20:44:18. No new
+dungeon-placement event appears during this visit.
+
+The sector queue repeatedly stalled. At 20:43:09 and 20:43:14, five-second
+reports show average queue depths of 46–47 and **zero** completed sectors;
+the oldest pending sector reached 22.8 s. At 20:43:39, 20:43:44, 20:43:49,
+and 20:43:54, four successive reports again show zero completed sectors with
+average queue depths of 33–37. The oldest pending sector rose from 37.5 s to
+52.5 s. One sector completed after a **54.95 s** wait at 20:43:59. At the
+final report, another request was still 48.8 s old. This independently
+corroborates the player's observation of missing sectors near the village.
+
+These zero-completion windows mostly recorded **no generation time-budget
+exhaustion**, and their maximum `serverUpdate` times were generally 11–34 ms.
+Across this planet visit, 526 sectors completed; measured base-tile worker
+durations for completed work totaled 562 ms across 150 samples (maximum
+146 ms), microdungeons 788 ms, and tile-storage work 255 ms. Those totals
+do not explain the long uncompleted requests. The profiling format does not
+record pending worker count, worker queue age, completion-poll outcome,
+stale-snapshot retries, or per-sector coordinates. The likely gap to
+investigate is between asynchronous base-tile scheduling and the dependent
+main-thread commit, but the log cannot establish which part blocked.
+
+This is a second route through a restored copy of the same planet, not a
+matched Mantizi-vs-Glitch timing comparison. A separate missing
+`osbprintedmap8x4` object occurred on another world before arrival and is
+not evidenced as the cause of this planet's queue stall. The three startup
+missing-script warnings also predate the stall.
