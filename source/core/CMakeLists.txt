@@ -62,6 +62,7 @@ SET (star_core_HEADERS
     StarListener.hpp
     StarLockFile.hpp
     StarLogging.hpp
+    StarTrace.hpp
     StarLruCache.hpp
     StarLua.hpp
     StarLuaConverters.hpp

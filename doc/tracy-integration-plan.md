@@ -2,7 +2,8 @@
 
 ## Objetivo e estado
 
-Planejamento em 25/10/2026 para a branch `perf/threading-audit`. O Tracy deve
+Planejamento e primeira implementação em 25/10/2026 para a branch
+`perf/threading-audit`. O Tracy deve
 mostrar, em uma linha do tempo por thread, onde o jogador espera durante a
 exploração: atualização do mundo, fila de setores, preparação paralela de tiles,
 microdungeons, ativação de entidades, scripts, persistência, rede e desenho. Ele
@@ -28,6 +29,30 @@ armazenamento, cliente e renderização. Copiar a seleção de pontos úteis, n�
 partes de Lua/Pluto nem a arquitetura de geração do xStarbound.
 
 ## 1. Dependência e build
+
+Estado da implementação: `STAR_ENABLE_TRACY` é opcional e desligado por
+padrão. A revisão oficial `wolfpld/tracy@b8c2e25c3d02009059e09f623072921677dd6bb4`
+é baixada apenas na configuração diagnóstica. O arquivo
+`https://github.com/wolfpld/tracy/archive/b8c2e25c3d02009059e09f623072921677dd6bb4.tar.gz`
+tem SHA-256 `f425f5006cf83159fb0b05e1540e865593e340460e295459a23790785d4a7410`.
+A licença oficial é BSD de três cláusulas; o workflow copia o arquivo
+`LICENSE` da distribuição fixada para cada pacote diagnóstico.
+
+No Windows, o preset `windows-tracy-ci` preserva `RelWithDebInfo` e
+usa um diretório de build separado. Em `Build` > `Run workflow`,
+selecionar a branch de revisão, manter `windows` ligado e marcar `tracy`.
+Os artefatos se chamam `OpenStarbound-Windows-Tracy-Client` e
+`OpenStarbound-Windows-Tracy-Server`; contêm PDBs do jogo, a licença
+e `win/tracy-build.txt` com commit, preset e revisão. Esta opção não
+gera instalador nem release. Execuções automáticas continuam a usar
+`windows-release-ci` com Tracy desligado.
+
+No computador local, usar o visualizador Tracy da mesma revisão oficial.
+Com o cliente instrumentado aberto, conectar a `localhost` antes do
+trecho que será capturado; `TRACY_ON_DEMAND` descarta eventos anteriores.
+O cliente não anuncia sua presença na rede local. Guardar a captura com
+o commit e as condições do cenário, sem publicar caminhos locais ou
+dados pessoais presentes no traço.
 
 1. Acrescentar `STAR_ENABLE_TRACY` em `source/CMakeLists.txt`, padrão `OFF`. Na
    configuração normal, não baixar Tracy, compilar seu cliente ou acrescentar
@@ -59,6 +84,21 @@ partes de Lua/Pluto nem a arquitetura de geração do xStarbound.
    usual não deve ser substituído silenciosamente por essa build.
 
 ## 2. Primeiras zonas e correlação
+
+Zonas C++ iniciais: tick e espera do `WorldServerThread`; atualização,
+entidades e contextos de script do mundo; fila, nível e carga de setores;
+preparação de tiles no worker, microdungeons e fábrica de microdungeons;
+`WorldStorage::sync` e `syncSector`; scripts de NPCs e objetos;
+`Logger::log`; atualização e preparação de render do cliente e
+`WorldPainter::render`. Não foram alteradas a ordem de execução, as
+regras de geração, a API Lua, a rede ou o formato de save. Zonas ainda
+mais finas dependem da primeira captura para evitar excesso de eventos.
+
+Limite atual: não há identificador de setor cruzando solicitação, worker
+e commit, nem zona individual para busca de peça, teste de encaixe,
+descompressão e aplicação de pacote. Esses pontos ficam para a próxima
+iteração orientada por captura. O `ExplorationProfile` continua a
+fornecer métricas de fila que o Tracy sozinho não produz.
 
 | Thread/caminho | Pontos iniciais | Questão respondida |
 | --- | --- | --- |

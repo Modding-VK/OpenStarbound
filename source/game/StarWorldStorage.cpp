@@ -1,4 +1,5 @@
 #include "StarWorldStorage.hpp"
+#include "StarTrace.hpp"
 #include "StarFile.hpp"
 #include "StarCompression.hpp"
 #include "StarJsonExtra.hpp"
@@ -308,6 +309,7 @@ EntityId WorldStorage::loadUniqueEntity(String const& uniqueId) {
 
 void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, double timeLimit,
     function<bool(Sector, Sector)> sectorOrdering) {
+  STAR_TRACE_ZONE("WorldStorage generate queue");
   try {
     double generationDeadline = Time::monotonicTime() + max(0.0, timeLimit);
     if (m_explorationProfile && !m_generationQueue.empty()) {
@@ -525,6 +527,7 @@ void WorldStorage::unloadAll(bool force) {
 }
 
 void WorldStorage::sync() {
+  STAR_TRACE_ZONE("WorldStorage sync");
   ExplorationProfile::Scope timing(m_explorationProfile.get(), "storage.sync.total");
   try {
     for (auto const& pair : m_sectorMetadata)
@@ -758,6 +761,7 @@ float WorldStorage::randomizedSectorTTL() const {
 
 pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, SectorGenerationLevel targetGenerationLevel,
     size_t sectorGenerationLevelLimit, bool allowAsync, double generationDeadline) {
+  STAR_TRACE_ZONE("WorldStorage generate sector");
   if (Time::monotonicTime() >= generationDeadline)
     return {false, 0};
 
@@ -837,6 +841,7 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
 }
 
 void WorldStorage::loadSectorToLevel(Sector const& sector, SectorLoadLevel targetLoadLevel) {
+  STAR_TRACE_ZONE("WorldStorage load sector");
   if (!m_tileArray->sectorValid(sector))
     return;
 
@@ -1024,6 +1029,7 @@ bool WorldStorage::unloadSectorToLevel(Sector const& sector, SectorLoadLevel tar
 }
 
 void WorldStorage::syncSector(Sector const& sector) {
+  STAR_TRACE_ZONE("WorldStorage sync sector");
   ExplorationProfile::Scope timing(m_explorationProfile.get(), "storage.sync.sector");
   if (!m_tileArray->sectorValid(sector))
     return;

@@ -4,6 +4,7 @@
 #include "StarConfiguration.hpp"
 #include "StarAssets.hpp"
 #include "StarJsonExtra.hpp"
+#include "StarTrace.hpp"
 
 namespace Star {
 
@@ -56,6 +57,7 @@ void WorldPainter::update(float dt) {
 }
 
 void WorldPainter::render(WorldRenderData& renderData, function<bool()> lightWaiter) {
+  STAR_TRACE_ZONE("WorldPainter render");
   if (m_explorationProfile)
     m_explorationProfile->report();
   ExplorationProfile::Scope total(m_explorationProfile.get(), "painter.total");
@@ -69,6 +71,8 @@ void WorldPainter::render(WorldRenderData& renderData, function<bool()> lightWai
   timing.next("painter.environment");
 
   // Stars, Debris Fields, Sky, and Orbiters
+  {
+  STAR_TRACE_ZONE("WorldPainter environment");
 
   // Use a fixed pixel ratio for certain things.
   float pixelRatioBasis = m_camera.screenSize()[1] / 1080.0f;
@@ -86,9 +90,14 @@ void WorldPainter::render(WorldRenderData& renderData, function<bool()> lightWai
     m_environmentPainter->renderBackOrbiters(orbiterAndPlanetRatio, Vec2F(m_camera.screenSize()), renderData.skyRenderData);
 
   m_renderer->flush();
+  }
 
   timing.next("painter.lightWait");
-  bool lightMapUpdated = lightWaiter ? lightWaiter() : false;
+  bool lightMapUpdated;
+  {
+    STAR_TRACE_ZONE("WorldPainter light wait");
+    lightMapUpdated = lightWaiter ? lightWaiter() : false;
+  }
   timing.next("painter.lightUpload");
 
   m_renderer->setEffectParameter("lightMapEnabled", !renderData.isFullbright);

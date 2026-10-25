@@ -1,4 +1,5 @@
 #include "StarMicroDungeon.hpp"
+#include "StarTrace.hpp"
 #include "StarRoot.hpp"
 #include "StarInterpolation.hpp"
 #include "StarLogging.hpp"
@@ -26,6 +27,7 @@ Maybe<pair<List<RectI>, Set<Vec2I>>> MicroDungeonFactory::generate(RectI const& 
     float threatLevel,
     DungeonGeneratorWorldFacadePtr facade,
     bool forcePlacement) {
+  STAR_TRACE_ZONE("MicroDungeonFactory generate");
   Dungeon::DungeonGeneratorWriter writer(facade, {}, {});
 
   if (m_generating)

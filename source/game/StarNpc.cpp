@@ -1,4 +1,5 @@
 #include "StarNpc.hpp"
+#include "StarTrace.hpp"
 #include "StarDataStreamExtra.hpp"
 #include "StarWorld.hpp"
 #include "StarRoot.hpp"
@@ -400,13 +401,17 @@ void Npc::damagedOther(DamageNotification const& damage) {
 }
 
 void Npc::update(float dt, uint64_t) {
+  STAR_TRACE_ZONE("Npc update");
   if (!inWorld())
     return;
 
   m_movementController->setTimestep(dt);
 
   if (isMaster()) {
-    m_scriptComponent.update(m_scriptComponent.updateDt(dt));
+    {
+      STAR_TRACE_ZONE("Npc script");
+      m_scriptComponent.update(m_scriptComponent.updateDt(dt));
+    }
 
     if (inConflictingLoungeAnchor())
       m_movementController->resetAnchorState();

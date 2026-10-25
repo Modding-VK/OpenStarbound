@@ -1,4 +1,5 @@
 #include "StarLogging.hpp"
+#include "StarTrace.hpp"
 
 namespace Star {
 
@@ -37,6 +38,7 @@ FileLogSink::FileLogSink(String const& filename, LogLevel level, bool truncate) 
 }
 
 void FileLogSink::log(char const* msg, LogLevel level) {
+  STAR_TRACE_ZONE("FileLogSink write");
   MutexLocker locker(m_logMutex);
   auto line = strf("[{}] [{}] {}\n", Time::printCurrentDateAndTime("<hours>:<minutes>:<seconds>.<millis>"), LogLevelNames.getRight(level), msg);
   m_output->write(line.data(), line.size());
@@ -66,6 +68,7 @@ void Logger::removeStdoutSink() {
 }
 
 void Logger::log(LogLevel level, char const* msg) {
+  STAR_TRACE_ZONE("Logger::log");
   double start = s_threadLogTimeAccumulator ? Time::monotonicTime() : 0.0;
   if (loggable(level)) {
     MutexLocker locker(s_mutex);

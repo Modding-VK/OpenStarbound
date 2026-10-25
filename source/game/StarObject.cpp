@@ -1,4 +1,5 @@
 #include "StarObject.hpp"
+#include "StarTrace.hpp"
 #include "StarDataStreamExtra.hpp"
 #include "StarJsonExtra.hpp"
 #include "StarWorld.hpp"
@@ -393,6 +394,7 @@ List<Vec2I> Object::roots() const {
 }
 
 void Object::update(float dt, uint64_t) {
+  STAR_TRACE_ZONE("Object update");
   if (!inWorld())
     return;
 
@@ -415,7 +417,10 @@ void Object::update(float dt, uint64_t) {
     m_networkedAnimator->update(dt, nullptr);
     m_networkedAnimator->setFlipped(direction() == Direction::Left, m_animationCenterLine);
 
-    m_scriptComponent.update(m_scriptComponent.updateDt(dt));
+    {
+      STAR_TRACE_ZONE("Object script");
+      m_scriptComponent.update(m_scriptComponent.updateDt(dt));
+    }
 
   } else {
     m_networkedAnimator->update(dt, &m_networkedAnimatorDynamicTarget);

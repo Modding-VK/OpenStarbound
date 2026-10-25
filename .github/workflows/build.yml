@@ -23,6 +23,10 @@ on:
         type: boolean
         description: Windows
         default: true
+      tracy:
+        type: boolean
+        description: Build diagnostica Windows com Tracy (sem instalador)
+        default: false
       macOS:
         type: boolean
         description: macOS
@@ -98,6 +102,7 @@ jobs:
       #    token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run CMake
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.tracy != true }}
         uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10
         env:
           LLVMInstallDir: ${{ env.LLVM_PATH }}
@@ -110,6 +115,18 @@ jobs:
           buildPreset: 'windows-release-ci'
           testPreset: 'windows-release-ci'
 
+      - name: Run CMake with Tracy
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.tracy == true }}
+        uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10
+        env:
+          LLVMInstallDir: ${{ env.LLVM_PATH }}
+          llvmX64: ${{ env.LLVM_PATH }}
+        with:
+          cmakeListsTxtPath: '${{ github.workspace }}/source/CMakeLists.txt'
+          configurePreset: 'windows-tracy-ci'
+          buildPreset: 'windows-tracy-ci'
+          testPreset: 'windows-tracy-ci'
+
       - name: Run Post-Build Task
         working-directory: ${{ github.workspace }}
         run: scripts\ci\windows\post_build.bat
@@ -119,7 +136,25 @@ jobs:
         run: |
           scripts/ci/windows/assemble.bat --skip-archives
 
+      - name: Label Tracy distributions
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.tracy == true }}
+        shell: pwsh
+        run: |
+          $buildInfo = @(
+            "commit=$env:GITHUB_SHA",
+            "preset=windows-tracy-ci",
+            "STAR_ENABLE_TRACY=ON",
+            "tracy_revision=b8c2e25c3d02009059e09f623072921677dd6bb4"
+          )
+          $buildInfo | Set-Content client_distribution/win/tracy-build.txt
+          $buildInfo | Set-Content server_distribution/win/tracy-build.txt
+          $tracyLicense = 'build/windows-tracy/_deps/star_tracy-src/LICENSE'
+          if (!(Test-Path $tracyLicense)) { throw "Tracy license missing from pinned source" }
+          Copy-Item $tracyLicense client_distribution/win/Tracy-LICENSE.txt
+          Copy-Item $tracyLicense server_distribution/win/Tracy-LICENSE.txt
+
       - name: Upload Artifacts
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.tracy != true }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-Windows-All-DevOnly
@@ -128,6 +163,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload Client
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.tracy != true }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-Windows-Client
@@ -136,14 +172,34 @@ jobs:
           if-no-files-found: error
 
       - name: Upload Server
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.tracy != true }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-Windows-Server
           path: server_distribution/
           compression-level: 1
           if-no-files-found: error
+
+      - name: Upload Tracy client
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.tracy == true }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: OpenStarbound-Windows-Tracy-Client
+          path: client_distribution/
+          compression-level: 1
+          if-no-files-found: error
+
+      - name: Upload Tracy server
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.tracy == true }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: OpenStarbound-Windows-Tracy-Server
+          path: server_distribution/
+          compression-level: 1
+          if-no-files-found: error
           
       - name: Install Inno Setup
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.tracy != true }}
         run: |
           echo "Checking pre-installation..."
           
@@ -180,11 +236,13 @@ jobs:
         shell: cmd
 
       - name: Create Installer
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.tracy != true }}
         working-directory: ${{ github.workspace }}
         run: |
           & "C:\Program Files\Inno Setup 7\iscc.exe" /Oinstaller scripts\inno\setup.iss
 
       - name: Upload Installer
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.tracy != true }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenStarbound-Windows-Installer
@@ -196,7 +254,7 @@ jobs:
   publish_windows_release:
     name: Publish Windows Installer Release
     needs: build_windows
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_windows_release == true }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_windows_release == true && inputs.tracy != true }}
     runs-on: ubuntu-latest
     permissions:
       actions: read

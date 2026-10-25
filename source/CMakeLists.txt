@@ -139,9 +139,23 @@ if(STAR_BUILD_GUI)
 endif()
 
 option(STAR_LUA_APICHECK "Use lua api checks" OFF)
+option(STAR_ENABLE_TRACY "Enable diagnostic Tracy profiling" OFF)
 option(STAR_USE_JEMALLOC "Use jemalloc allocators" OFF)
 option(STAR_USE_MIMALLOC "Use mimalloc allocators" OFF)
 option(STAR_USE_RPMALLOC "Use rpmalloc allocators" OFF)
+
+if(STAR_ENABLE_TRACY)
+  include(FetchContent)
+  set(TRACY_ENABLE ON CACHE BOOL "Enable Tracy profiling" FORCE)
+  set(TRACY_ON_DEMAND ON CACHE BOOL "Capture Tracy data on demand" FORCE)
+  set(TRACY_ONLY_LOCALHOST ON CACHE BOOL "Restrict Tracy to localhost" FORCE)
+  set(TRACY_NO_BROADCAST ON CACHE BOOL "Disable Tracy LAN discovery" FORCE)
+  set(TRACY_STATIC ON CACHE BOOL "Link Tracy statically" FORCE)
+  FetchContent_Declare(star_tracy
+    URL https://github.com/wolfpld/tracy/archive/b8c2e25c3d02009059e09f623072921677dd6bb4.tar.gz
+    URL_HASH SHA256=f425f5006cf83159fb0b05e1540e865593e340460e295459a23790785d4a7410)
+  FetchContent_MakeAvailable(star_tracy)
+endif()
 
 # Report all the discovered system / environment settings and all options.
 
@@ -631,6 +645,13 @@ endif()
 # Starbound stand-alone server.
 add_subdirectory(server)
 
+if(STAR_ENABLE_TRACY)
+  foreach(star_tracy_target star_core star_game starbound_server)
+    target_link_libraries(${star_tracy_target} PRIVATE Tracy::TracyClient)
+    target_compile_definitions(${star_tracy_target} PRIVATE STAR_ENABLE_TRACY)
+  endforeach()
+endif()
+
 # cmdline utilities
 add_subdirectory(utility)
 
@@ -654,6 +675,13 @@ if(STAR_BUILD_GUI)
 
   # Starbound game / client
   add_subdirectory(client)
+
+  if(STAR_ENABLE_TRACY)
+    foreach(star_tracy_target star_rendering star_frontend starbound)
+      target_link_libraries(${star_tracy_target} PRIVATE Tracy::TracyClient)
+      target_compile_definitions(${star_tracy_target} PRIVATE STAR_ENABLE_TRACY)
+    endforeach()
+  endif()
 
   # Qt GUI tools
   if(STAR_BUILD_QT_TOOLS)

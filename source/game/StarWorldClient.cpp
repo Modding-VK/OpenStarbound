@@ -1,4 +1,5 @@
 #include "StarWorldClient.hpp"
+#include "StarTrace.hpp"
 #include "StarAssets.hpp"
 #include "StarIterator.hpp"
 #include "StarLogging.hpp"
@@ -539,6 +540,7 @@ WorldClientState& WorldClient::clientState() {
 }
 
 void WorldClient::render(WorldRenderData& renderData, unsigned bufferTiles) {
+  STAR_TRACE_ZONE("WorldClient prepare render");
   if (m_headless)
     return;
   ExplorationProfile::Scope timing(m_explorationProfile.get(), "client.prepareRenderData");
@@ -1332,6 +1334,7 @@ WorldClient::ScriptComponentPtr WorldClient::scriptContext(String const& context
 }
 
 void WorldClient::update(float dt) {
+  STAR_TRACE_ZONE("WorldClient update");
   m_expiryTimer.tick(dt);
   
   if (!inWorld())

@@ -26,6 +26,7 @@
 #include "StarStagehand.hpp"
 #include "StarVehicleDatabase.hpp"
 #include "StarTime.hpp"
+#include "StarTrace.hpp"
 
 namespace Star {
 
@@ -51,6 +52,7 @@ CollisionKind biomeForegroundCollision(MaterialDatabaseConstPtr const& materialD
 
 void prepareBaseTileArray(WorldTemplatePtr const& planet, MaterialDatabaseConstPtr const& materialDatabase,
     RectI const& sectorRegion, ServerTileSectorArray::Array& tiles) {
+  STAR_TRACE_ZONE("Base tiles worker prepare");
   for (int x = sectorRegion.xMin(); x < sectorRegion.xMax(); ++x) {
     for (int y = sectorRegion.yMin(); y < sectorRegion.yMax(); ++y) {
       ServerTile& tile = tiles(x - sectorRegion.xMin(), y - sectorRegion.yMin());
@@ -742,15 +744,20 @@ WorldGenerator::WorldGenerator(WorldServer* server) : m_worldServer(server) {
 
 SectorGenerationResult WorldGenerator::generateSectorLevel(WorldStorage* worldStorage, Sector const& sector,
     SectorGenerationLevel generationLevel, bool allowAsync) {
+  STAR_TRACE_ZONE("Generate sector level");
   if (generationLevel == SectorGenerationLevel::BaseTiles) {
+    STAR_TRACE_ZONE("Generate base tiles");
     return prepareTilesAsync(worldStorage, sector, allowAsync);
   } else if (generationLevel == SectorGenerationLevel::MicroDungeons) {
+    STAR_TRACE_ZONE("Generate microdungeons");
     if (!worldStorage->floatingDungeonWorld())
       generateMicroDungeons(worldStorage, sector);
   } else if (generationLevel == SectorGenerationLevel::CaveLiquid) {
+    STAR_TRACE_ZONE("Generate cave liquid");
     if (!worldStorage->floatingDungeonWorld())
       generateCaveLiquid(worldStorage, sector);
   } else if (generationLevel == SectorGenerationLevel::Finalize) {
+    STAR_TRACE_ZONE("Finalize sector");
     if (!worldStorage->floatingDungeonWorld())
       prepareSector(worldStorage, sector);
     else
@@ -871,6 +878,7 @@ void WorldGenerator::prepareTiles(WorldStorage* worldStorage, ServerTileSectorAr
 
 SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStorage,
     ServerTileSectorArray::Sector const& sector, bool allowAsync) {
+  STAR_TRACE_ZONE("Prepare tiles async");
   double now = Time::monotonicTime();
   auto pending = m_pendingBaseTiles.ptr(sector);
   if (pending) {
@@ -935,6 +943,7 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
   auto materialDatabase = Root::singleton().materialDatabase();
   auto promise = workerPool.addProducer<PreparedBaseTiles>(
       [planet, templateRevision, templateStore, materialDatabase, sectorRegion, tilesHolder]() mutable {
+        STAR_TRACE_ZONE("Base tiles worker");
         double start = Time::monotonicTime();
         auto workerPlanet = workerWorldTemplate(planet, templateRevision, templateStore);
         prepareBaseTileArray(workerPlanet, materialDatabase, sectorRegion, **tilesHolder);
@@ -951,6 +960,7 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
 }
 
 void WorldGenerator::generateMicroDungeons(WorldStorage* worldStorage, ServerTileSectorArray::Sector const& sector) {
+  STAR_TRACE_ZONE("Microdungeon placements");
   auto facade = make_shared<DungeonGeneratorWorld>(m_worldServer, false);
 
   RectI sectorTiles = worldStorage->tileArray()->sectorRegion(sector);

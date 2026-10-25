@@ -3,6 +3,7 @@
 #include "StarNpc.hpp"
 #include "StarRoot.hpp"
 #include "StarLogging.hpp"
+#include "StarTrace.hpp"
 #include "StarAssets.hpp"
 #include "StarPlayer.hpp"
 
@@ -226,6 +227,8 @@ void WorldServerThread::run() {
     WorldServerFidelity automaticFidelity = WorldServerFidelity::Medium;
 
     while (!m_stop && !m_errorOccurred) {
+      STAR_TRACE_ZONE("WorldServerThread tick");
+      STAR_TRACE_FRAME("WorldServerThread");
       auto fidelity = lockedFidelity.value(automaticFidelity);
       LogMap::set(strf("server_{}_fidelity", m_worldId), WorldServerFidelityNames.getRight(fidelity));
       LogMap::set(strf("server_{}_update", m_worldId), strf("{:4.2f}Hz", tickApproacher.rate()));
@@ -255,8 +258,10 @@ void WorldServerThread::run() {
       }
 
       int64_t spareMilliseconds = floor(spareTime * 1000);
-      if (spareMilliseconds > 0)
+      if (spareMilliseconds > 0) {
+        STAR_TRACE_ZONE("WorldServerThread sleep");
         Thread::sleepPrecise(spareMilliseconds);
+      }
     }
   } catch (std::exception const& e) {
     Logger::error("WorldServerThread exception caught: {}", outputException(e, true));
@@ -265,6 +270,7 @@ void WorldServerThread::run() {
 }
 
 void WorldServerThread::update(WorldServerFidelity fidelity) {
+  STAR_TRACE_ZONE("WorldServerThread update");
   RecursiveMutexLocker locker(m_mutex);
   auto unerroredClientIds = m_worldServer->clientIds();
   for (auto clientId : unerroredClientIds) {
@@ -315,6 +321,7 @@ void WorldServerThread::update(WorldServerFidelity fidelity) {
 }
 
 void WorldServerThread::sync() {
+  STAR_TRACE_ZONE("WorldServerThread sync");
   RecursiveMutexLocker locker(m_mutex);
   Logger::debug("WorldServer: periodic sync to disk of world {}", m_worldId);
   m_worldServer->sync();

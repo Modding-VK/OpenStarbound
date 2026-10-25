@@ -67,6 +67,15 @@
       "vendor": {}
     },
     {
+      "inherits": "windows-release-ci",
+      "name": "windows-tracy-ci",
+      "displayName": "Windows x64 Tracy diagnostics",
+      "binaryDir": "${sourceParentDir}/build/windows-tracy",
+      "cacheVariables": {
+        "STAR_ENABLE_TRACY": true
+      }
+    },
+    {
       "inherits": "windows-release",
       "name": "windows-release-VS2022",
       "displayName": "Windows x64 (Visual Studio 2022)",
@@ -175,6 +184,10 @@
       "configurePreset": "windows-release-ci"
     },
     {
+      "name": "windows-tracy-ci",
+      "configurePreset": "windows-tracy-ci"
+    },
+    {
       "name": "windows-debug",
       "configurePreset": "windows-release"
     },
@@ -230,6 +243,12 @@
       "inherits": "base",
       "name": "windows-release-ci",
       "configurePreset": "windows-release-ci",
+      "configuration": "Release"
+    },
+    {
+      "inherits": "base",
+      "name": "windows-tracy-ci",
+      "configurePreset": "windows-tracy-ci",
       "configuration": "Release"
     },
     {

@@ -1,4 +1,5 @@
 #include "StarClientApplication.hpp"
+#include "StarTrace.hpp"
 #include "StarConfiguration.hpp"
 #include "StarJsonExtra.hpp"
 #include "StarFile.hpp"
@@ -377,6 +378,7 @@ void ClientApplication::processInput(InputEvent const& event) {
 }
 
 void ClientApplication::update() {
+  STAR_TRACE_ZONE("Client update");
   float dt = GlobalTimestep * GlobalTimescale;
   auto& app = appController();
   if (m_state >= MainAppState::Title) {
@@ -432,6 +434,8 @@ void ClientApplication::update() {
 }
 
 void ClientApplication::render() {
+  STAR_TRACE_ZONE("Client render");
+  STAR_TRACE_FRAME("Client frame");
   m_framesSkipped = 0;
   auto config = m_root->configuration();
   auto assets = m_root->assets();

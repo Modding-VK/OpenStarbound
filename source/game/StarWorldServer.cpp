@@ -1,4 +1,5 @@
 #include "StarWorldServer.hpp"
+#include "StarTrace.hpp"
 #include "StarLogging.hpp"
 #include "StarIterator.hpp"
 #include "StarTime.hpp"
@@ -977,6 +978,7 @@ Json WorldServer::updateProfilingData() const {
 }
 
 void WorldServer::update(float dt) {
+  STAR_TRACE_ZONE("WorldServer update");
   if (m_explorationProfile)
     m_explorationProfile->report();
   ExplorationProfile::Scope updateScope(m_explorationProfile.get(), "serverUpdate");
@@ -1042,7 +1044,9 @@ void WorldServer::update(float dt) {
   recordProfileStage(UpdateProfileStage::SetupAndActions);
 
   List<EntityId> toRemove;
-  m_entityMap->updateAllEntities([&](EntityPtr const& entity) {
+  {
+    STAR_TRACE_ZONE("WorldServer entities");
+    m_entityMap->updateAllEntities([&](EntityPtr const& entity) {
       ExplorationProfile::EntityScope entityProfile(m_explorationProfile.get(), *entity);
       entity->update(dt, m_currentStep);
 
@@ -1060,11 +1064,15 @@ void WorldServer::update(float dt) {
     }, [](EntityPtr const& a, EntityPtr const& b) {
       return a->entityType() < b->entityType();
     });
+  }
 
   recordProfileStage(UpdateProfileStage::Entities);
 
-  for (auto& pair : m_scriptContexts)
-    pair.second->update(pair.second->updateDt(dt));
+  {
+    STAR_TRACE_ZONE("WorldServer script contexts");
+    for (auto& pair : m_scriptContexts)
+      pair.second->update(pair.second->updateDt(dt));
+  }
 
   recordProfileStage(UpdateProfileStage::ScriptContexts);
 
