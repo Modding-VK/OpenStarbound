@@ -32,6 +32,7 @@ se o custo dos NPCs justifica mover trabalho para outras threads.
   de **objetos** `network_router` na thread do mundo. Ele não demonstra gargalo
   em NPCs nem ganho esperado de um pool de IA. A instrumentação atual separa
   `Npc` em `entityTypes`, mas uma coleta específica ainda é necessária.
+  O estudo desses objetos fica em [object-operations.md](object-operations.md).
 
 ## Comportamento confirmado pelo código atual
 
