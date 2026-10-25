@@ -46,6 +46,13 @@ struct SectorGenerationResult {
   Maybe<double> workerElapsedSeconds;
 };
 
+struct WorldGenerationQueueSnapshot {
+  size_t queuedSectors = 0;
+  size_t prefetchedSectors = 0;
+  size_t overdueSectors = 0;
+  double oldestQueuedSeconds = 0;
+};
+
 struct WorldGeneratorFacade {
   typedef ServerTileSectorArray::Sector Sector;
 
@@ -176,6 +183,7 @@ public:
   // Enable opt-in timing of the individual terrain generation stages.
   void setGenerationProfilingEnabled(bool enabled);
   Json generationProfilingData() const;
+  WorldGenerationQueueSnapshot generationQueueSnapshot(double overdueSeconds) const;
   void setExplorationProfile(ExplorationProfilePtr profile);
   // Ticks down the TTL on sectors and generation queue entries, stores old
   // sectors, expires old generation queue entries, and unloads any zombie

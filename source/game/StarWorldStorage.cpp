@@ -255,6 +255,22 @@ Json WorldStorage::generationProfilingData() const {
   return profile;
 }
 
+WorldGenerationQueueSnapshot WorldStorage::generationQueueSnapshot(double overdueSeconds) const {
+  WorldGenerationQueueSnapshot snapshot;
+  snapshot.queuedSectors = m_generationQueue.size();
+  snapshot.prefetchedSectors = m_prefetchQueue.size();
+  double now = Time::monotonicTime();
+  for (auto const& entry : m_generationQueuedAt) {
+    if (!m_generationQueue.contains(entry.first))
+      continue;
+    double age = max(0.0, now - entry.second);
+    snapshot.oldestQueuedSeconds = max(snapshot.oldestQueuedSeconds, age);
+    if (age >= overdueSeconds)
+      ++snapshot.overdueSectors;
+  }
+  return snapshot;
+}
+
 void WorldStorage::recordGenerationProfile(size_t stage, double elapsedSeconds) {
   if (!m_generationProfilingEnabled)
     return;

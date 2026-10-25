@@ -14,6 +14,7 @@ class ClientCommandProcessor {
 public:
   ClientCommandProcessor(UniverseClientPtr universeClient, CinematicPtr cinematicOverlay,
       MainInterfacePaneManager* paneManager, StringMap<StringList> macroCommands);
+  ~ClientCommandProcessor();
 
   StringList handleCommand(String const& commandLine, bool userInput = false);
   StringList updatePromises();

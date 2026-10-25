@@ -41,6 +41,7 @@
 #include "StarDrawable.hpp"
 #include "StarFireableItem.hpp"
 #include "StarClientContext.hpp"
+#include "StarTime.hpp"
 #include "StarToolUserEntity.hpp"
 #include "StarTeleportDialog.hpp"
 #include "StarCinematic.hpp"
@@ -60,6 +61,9 @@
 #include "StarChatBubbleManager.hpp"
 #include "StarNpc.hpp"
 #include "StarCharSelection.hpp"
+#include "StarClientContext.hpp"
+
+#include <cmath>
 
 namespace Star {
 
@@ -1435,6 +1439,8 @@ void MainInterface::renderWindows() {
 
 void MainInterface::renderDebug() {
   if (!isDebugDisplayed()) {
+    m_performanceSnapshot = {};
+    m_performanceNextRead = 0;
     SpatialLogger::clear();
     m_debugTextRect = RectF::null();
     LogMap::clear();
@@ -1476,6 +1482,20 @@ void MainInterface::renderDebug() {
       TextPositioning positioning = { Vec2F(m_config->debugOffset[0], windowHeight() - m_config->debugOffset[1] - m_config->textStyle.fontSize * interfaceScale() * index) };
       m_guiContext->renderText(formatted[index], positioning);
     }
+    auto worldId = printWorldId(m_client->clientContext()->playerWorldId());
+    if (m_performanceSnapshot && m_performanceSnapshot->worldId != worldId) {
+      m_performanceSnapshot = {};
+      m_performanceNextRead = 0;
+    }
+    double now = Time::monotonicTime();
+    if (now >= m_performanceNextRead) {
+      m_performanceNextRead = now + 0.25;
+      m_performanceSnapshot = WorldPerformanceOverlay::latest(worldId);
+    }
+    renderPerformance();
+  } else {
+    m_performanceSnapshot = {};
+    m_performanceNextRead = 0;
   }
 
   auto const& camera = m_worldPainter->camera();
@@ -1519,6 +1539,88 @@ void MainInterface::renderDebug() {
     m_guiContext->renderText(logText.text.utf8Ptr(), logText.position);
   }
   m_guiContext->clearTextStyle();
+}
+
+void MainInterface::renderPerformance() {
+  float right = windowWidth() - 20.0f;
+  float top = windowHeight() - 20.0f;
+  float left = max(10.0f, right - 330.0f);
+  float width = right - left;
+  m_guiContext->drawQuad(RectF::withSize(Vec2F(left, top - 345.0f), Vec2F(width, 345.0f)),
+      Vec4B{12, 18, 28, 205});
+  m_guiContext->setTextStyle(m_config->debugTextStyle);
+  m_guiContext->setFontColor(Vec4B{235, 240, 245, 255});
+  m_guiContext->renderText("Mundo: tempo de parede", TextPositioning{Vec2F(left + 12, top - 22)});
+
+  if (!m_performanceSnapshot) {
+    m_guiContext->renderText("Aguardando dados do mundo local",
+        TextPositioning{Vec2F(left + 12, top - 52)});
+    return;
+  }
+
+  auto const& sample = *m_performanceSnapshot;
+  static std::array<char const*, WorldPerformanceCategoryCount> const names{{
+    "NPCs", "Objetos", "Outras entidades", "Scripts mundo",
+    "Geracao", "Armazenamento", "Outros", "Ocioso"
+  }};
+  static std::array<Vec4B, WorldPerformanceCategoryCount> const colors{{
+    Vec4B{241, 113, 96, 255}, Vec4B{244, 174, 73, 255},
+    Vec4B{220, 212, 89, 255}, Vec4B{181, 112, 226, 255},
+    Vec4B{100, 180, 247, 255}, Vec4B{75, 202, 186, 255},
+    Vec4B{166, 177, 192, 255}, Vec4B{80, 88, 103, 255}
+  }};
+  double total = sample.busySeconds + sample.idleSeconds;
+  if (total > 0) {
+    Vec2F center(left + 72.0f, top - 100.0f);
+    float radius = 58.0f;
+    double angle = -1.5707963267948966;
+    for (size_t category = 0; category < WorldPerformanceCategoryCount; ++category) {
+      double fraction = sample.seconds[category] / total;
+      double end = angle + fraction * 6.283185307179586;
+      int segments = max(1, (int)std::ceil(fraction * 64));
+      for (int segment = 0; segment < segments && fraction > 0; ++segment) {
+        double a = angle + (end - angle) * segment / segments;
+        double b = angle + (end - angle) * (segment + 1) / segments;
+        Vec2F first(center[0] + radius * std::cos(a), center[1] + radius * std::sin(a));
+        Vec2F second(center[0] + radius * std::cos(b), center[1] + radius * std::sin(b));
+        m_guiContext->renderer()->immediatePrimitives().emplace_back(
+            std::in_place_type_t<RenderTriangle>(), center, first, second, colors[category], 0.0f);
+      }
+      angle = end;
+      m_guiContext->setFontColor(colors[category]);
+      m_guiContext->renderText(strf("{} {:4.1f}%", names[category], fraction * 100.0),
+          TextPositioning{Vec2F(left + 142.0f, top - 51.0f - category * 18.0f)});
+    }
+  }
+
+  m_guiContext->setFontColor(Vec4B{235, 240, 245, 255});
+  m_guiContext->renderText(
+      strf("Tick: {} / {} acima de {:.1f} ms; pico {:.1f} ms",
+          sample.overBudgetTicks, sample.ticks, ServerGlobalTimestep * 1000.0, sample.maximumTickMilliseconds),
+      TextPositioning{Vec2F(left + 12, top - 214)});
+  m_guiContext->renderText(
+      strf("Lentos: {} NPCs, {} objetos", sample.slowNpcUpdates, sample.slowObjectUpdates),
+      TextPositioning{Vec2F(left + 12, top - 232)});
+  m_guiContext->renderText(
+      strf("Setores: {} na fila, {} >100 ms; maior {:.0f} ms",
+          sample.queuedSectors, sample.overdueSectors, sample.oldestQueuedMilliseconds),
+      TextPositioning{Vec2F(left + 12, top - 250)});
+
+  float baseline = top - 327.0f;
+  float chartHeight = 55.0f;
+  float budgetMilliseconds = ServerGlobalTimestep * 1000.0f;
+  size_t count = min<uint64_t>(sample.ticks, WorldPerformanceTickHistory);
+  for (size_t i = 0; i < count; ++i) {
+    size_t index = (sample.ticks - count + i) % WorldPerformanceTickHistory;
+    float milliseconds = sample.tickBusyMilliseconds[index];
+    float barHeight = min(chartHeight, milliseconds / (budgetMilliseconds * 2.0f) * chartHeight);
+    float x = left + 12.0f + i * ((width - 24.0f) / WorldPerformanceTickHistory);
+    m_guiContext->drawQuad(RectF::withSize(Vec2F(x, baseline),
+        Vec2F((width - 24.0f) / WorldPerformanceTickHistory - 1.0f, barHeight)),
+        milliseconds > budgetMilliseconds ? Vec4B{241, 113, 96, 255} : Vec4B{75, 202, 186, 255});
+  }
+  m_guiContext->drawLine(Vec2F(left + 12.0f, baseline + chartHeight / 2.0f),
+      Vec2F(right - 12.0f, baseline + chartHeight / 2.0f), Vec4B{245, 245, 245, 180});
 }
 
 void MainInterface::updateCursor() {

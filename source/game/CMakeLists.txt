@@ -172,6 +172,7 @@ SET (star_game_HEADERS
     StarWorldImpl.hpp
     StarWorldLayout.hpp
     StarWorldParameters.hpp
+    StarWorldPerformance.hpp
     StarWorldRenderData.hpp
     StarWorldServer.hpp
     StarWorldServerThread.hpp
@@ -444,6 +445,7 @@ SET (star_game_SOURCES
     StarWorldGeneration.cpp
     StarWorldLayout.cpp
     StarWorldParameters.cpp
+    StarWorldPerformance.cpp
     StarWorldServer.cpp
     StarWorldServerThread.cpp
     StarWorldStorage.cpp

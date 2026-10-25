@@ -7,6 +7,7 @@
 #include "StarInterfaceCursor.hpp"
 #include "StarMainInterfaceTypes.hpp"
 #include "StarWarping.hpp"
+#include "StarWorldPerformance.hpp"
 
 namespace Star {
 
@@ -148,6 +149,7 @@ private:
   void renderMainBar();
   void renderWindows();
   void renderDebug();
+  void renderPerformance();
 
   void updateCursor();
   void renderCursor();
@@ -206,7 +208,9 @@ private:
 
   GameTimer m_debugSpatialClearTimer;
   GameTimer m_debugMapClearTimer;
+  double m_performanceNextRead = 0;
   RectF m_debugTextRect{RectF::null()};
+  Maybe<WorldPerformanceSnapshot> m_performanceSnapshot;
 
   NameplatePainterPtr m_nameplatePainter;
   QuestIndicatorPainterPtr m_questIndicatorPainter;

@@ -5,6 +5,8 @@ pré-geração e cálculo paralelo de microdungeons estão em
 [world-generation-rework-hypotheses.md](world-generation-rework-hypotheses.md).
 O plano de instrumentação por linha do tempo está em
 [tracy-integration-plan.md](tracy-integration-plan.md).
+O painel local do HUD e suas métricas estão em
+[performance-overlay.md](performance-overlay.md).
 As pesquisas de operações estão separadas entre
 [IA dos NPCs](npc-ai-parallelism-hypotheses.md) e
 [objetos e roteadores](object-operations.md).

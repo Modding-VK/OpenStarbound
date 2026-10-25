@@ -12,6 +12,7 @@
 #include "StarStatistics.hpp"
 #include "StarInterfaceLuaBindings.hpp"
 #include "StarInput.hpp"
+#include "StarWorldPerformance.hpp"
 
 namespace Star {
 
@@ -57,6 +58,10 @@ ClientCommandProcessor::ClientCommandProcessor(UniverseClientPtr universeClient,
     {"respawnInWorld", bind(&ClientCommandProcessor::respawnInWorld, this, _1)},
     {"render", bind(&ClientCommandProcessor::render, this, _1)}
   };
+}
+
+ClientCommandProcessor::~ClientCommandProcessor() {
+  WorldPerformanceOverlay::setEnabled(false);
 }
 
 bool ClientCommandProcessor::adminCommandAllowed() const {
@@ -180,10 +185,12 @@ String ClientCommandProcessor::debug(String const& argumentsString) {
   auto arguments = m_parser.tokenizeToStringList(argumentsString);
   if (!arguments.empty() && arguments.at(0).equalsIgnoreCase("hud")) {
     m_debugHudEnabled = !m_debugHudEnabled;
+    WorldPerformanceOverlay::setEnabled(m_debugDisplayEnabled && m_debugHudEnabled);
     return strf("Debug HUD {}", m_debugHudEnabled ? "enabled" : "disabled");
   }
   else {
     m_debugDisplayEnabled = !m_debugDisplayEnabled;
+    WorldPerformanceOverlay::setEnabled(m_debugDisplayEnabled && m_debugHudEnabled);
     return strf("Debug display {}", m_debugDisplayEnabled ? "enabled" : "disabled");
   }
 }

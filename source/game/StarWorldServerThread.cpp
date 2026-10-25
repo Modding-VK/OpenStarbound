@@ -229,6 +229,8 @@ void WorldServerThread::run() {
     while (!m_stop && !m_errorOccurred) {
       STAR_TRACE_ZONE("WorldServerThread tick");
       STAR_TRACE_FRAME("WorldServerThread");
+      bool performanceEnabled = WorldPerformanceOverlay::enabled();
+      double tickStart = performanceEnabled ? Time::monotonicTime() : 0;
       auto fidelity = lockedFidelity.value(automaticFidelity);
       LogMap::set(strf("server_{}_fidelity", m_worldId), WorldServerFidelityNames.getRight(fidelity));
       LogMap::set(strf("server_{}_update", m_worldId), strf("{:4.2f}Hz", tickApproacher.rate()));
@@ -258,9 +260,18 @@ void WorldServerThread::run() {
       }
 
       int64_t spareMilliseconds = floor(spareTime * 1000);
+      double busySeconds = performanceEnabled ? Time::monotonicTime() - tickStart : 0;
+      double idleSeconds = 0;
       if (spareMilliseconds > 0) {
         STAR_TRACE_ZONE("WorldServerThread sleep");
+        double sleepStart = performanceEnabled ? Time::monotonicTime() : 0;
         Thread::sleepPrecise(spareMilliseconds);
+        if (performanceEnabled)
+          idleSeconds = Time::monotonicTime() - sleepStart;
+      }
+      if (performanceEnabled) {
+        RecursiveMutexLocker locker(m_mutex);
+        m_worldServer->recordPerformanceTick(busySeconds, idleSeconds);
       }
     }
   } catch (std::exception const& e) {

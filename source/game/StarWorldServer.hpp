@@ -18,6 +18,7 @@
 #include "StarWarping.hpp"
 #include "StarRpcPromise.hpp"
 #include "StarExplorationProfile.hpp"
+#include "StarWorldPerformance.hpp"
 
 namespace Star {
 
@@ -131,6 +132,8 @@ public:
   // Enable opt-in wall-clock timing of the major WorldServer::update phases.
   void setUpdateProfilingEnabled(bool enabled);
   Json updateProfilingData() const;
+  // Called by the owning WorldServerThread after the update and optional sleep.
+  void recordPerformanceTick(double busySeconds, double idleSeconds);
 
   ConnectionId connection() const override;
   WorldGeometry geometry() const override;
@@ -457,6 +460,11 @@ private:
   bool m_updateProfilingEnabled = false;
   ExplorationProfilePtr m_explorationProfile;
   std::array<UpdateProfileTiming, UpdateProfileStageCount> m_updateProfile{};
+  bool m_performanceOverlayActive = false;
+  uint64_t m_performanceOverlayGeneration = 0;
+  double m_performanceWindowStart = 0;
+  double m_performanceEntitySecondsThisTick = 0;
+  WorldPerformanceSnapshot m_performanceWindow;
   mutable CellularLightIntensityCalculator m_lightIntensityCalculator;
   SkyPtr m_sky;
 
