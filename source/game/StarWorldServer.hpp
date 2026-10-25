@@ -134,6 +134,8 @@ public:
   Json updateProfilingData() const;
   // Called by the owning WorldServerThread after the update and optional sleep.
   void recordPerformanceTick(double busySeconds, double idleSeconds);
+  bool performanceSnapshotDue() const;
+  void publishPerformanceSnapshot();
 
   ConnectionId connection() const override;
   WorldGeometry geometry() const override;
@@ -461,6 +463,7 @@ private:
   ExplorationProfilePtr m_explorationProfile;
   std::array<UpdateProfileTiming, UpdateProfileStageCount> m_updateProfile{};
   bool m_performanceOverlayActive = false;
+  bool m_performanceDetailed = false;
   uint64_t m_performanceOverlayGeneration = 0;
   double m_performanceWindowStart = 0;
   double m_performanceEntitySecondsThisTick = 0;

@@ -51,6 +51,9 @@ struct WorldGenerationQueueSnapshot {
   size_t prefetchedSectors = 0;
   size_t overdueSectors = 0;
   double oldestQueuedSeconds = 0;
+  size_t peakQueuedSectors = 0;
+  size_t lateCompletedSectors = 0;
+  double maximumQueuedSeconds = 0;
 };
 
 struct WorldGeneratorFacade {
@@ -183,7 +186,8 @@ public:
   // Enable opt-in timing of the individual terrain generation stages.
   void setGenerationProfilingEnabled(bool enabled);
   Json generationProfilingData() const;
-  WorldGenerationQueueSnapshot generationQueueSnapshot(double overdueSeconds) const;
+  WorldGenerationQueueSnapshot generationQueueSnapshot(double overdueSeconds);
+  void setPerformanceSamplingEnabled(bool enabled);
   void setExplorationProfile(ExplorationProfilePtr profile);
   // Ticks down the TTL on sectors and generation queue entries, stores old
   // sectors, expires old generation queue entries, and unloads any zombie
@@ -349,6 +353,10 @@ private:
   OrderedHashMap<Sector, float> m_generationQueue;
   OrderedHashMap<Sector, float> m_prefetchQueue;
   HashMap<Sector, double> m_generationQueuedAt;
+  bool m_performanceSamplingEnabled = false;
+  size_t m_performancePeakQueuedSectors = 0;
+  size_t m_performanceLateCompletedSectors = 0;
+  double m_performanceMaximumQueuedSeconds = 0;
   BTreeDatabase m_db;
 };
 

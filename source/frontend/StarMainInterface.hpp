@@ -9,6 +9,8 @@
 #include "StarWarping.hpp"
 #include "StarWorldPerformance.hpp"
 
+#include <array>
+
 namespace Star {
 
 STAR_CLASS(UniverseClient);
@@ -54,6 +56,32 @@ struct GuiMessage {
   String message;
   float cooldown;
   float springState;
+};
+
+struct PerformancePieTriangle {
+  Vec2F center;
+  Vec2F first;
+  Vec2F second;
+  Vec4B color;
+};
+
+struct PerformanceBar {
+  RectF rect;
+  Vec4B color;
+};
+
+struct PerformanceOverlayCache {
+  double capturedAt = -1;
+  String worldId;
+  float windowWidth = 0;
+  float windowHeight = 0;
+  List<PerformancePieTriangle> pie;
+  List<PerformanceBar> bars;
+  std::array<String, WorldPerformanceCategoryCount> labels;
+  String tickText;
+  String slowText;
+  String queueText;
+  String queuePeakText;
 };
 
 class MainInterface {
@@ -211,6 +239,7 @@ private:
   double m_performanceNextRead = 0;
   RectF m_debugTextRect{RectF::null()};
   Maybe<WorldPerformanceSnapshot> m_performanceSnapshot;
+  PerformanceOverlayCache m_performanceCache;
 
   NameplatePainterPtr m_nameplatePainter;
   QuestIndicatorPainterPtr m_questIndicatorPainter;

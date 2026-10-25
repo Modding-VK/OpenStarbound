@@ -270,8 +270,11 @@ void WorldServerThread::run() {
           idleSeconds = Time::monotonicTime() - sleepStart;
       }
       if (performanceEnabled) {
-        RecursiveMutexLocker locker(m_mutex);
         m_worldServer->recordPerformanceTick(busySeconds, idleSeconds);
+        if (m_worldServer->performanceSnapshotDue()) {
+          RecursiveMutexLocker locker(m_mutex);
+          m_worldServer->publishPerformanceSnapshot();
+        }
       }
     }
   } catch (std::exception const& e) {

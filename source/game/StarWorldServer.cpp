@@ -992,16 +992,29 @@ void WorldServer::recordPerformanceTick(double busySeconds, double idleSeconds) 
     ++snapshot.overBudgetTicks;
     snapshot.excessTickMilliseconds += (busySeconds - ServerGlobalTimestep) * 1000.0;
   }
+}
 
-  double now = Time::monotonicTime();
-  if (now - m_performanceWindowStart < 1.0)
+bool WorldServer::performanceSnapshotDue() const {
+  return m_performanceOverlayActive && WorldPerformanceOverlay::enabled()
+      && m_performanceOverlayGeneration == WorldPerformanceOverlay::generation()
+      && Time::monotonicTime() - m_performanceWindowStart >= 1.0;
+}
+
+void WorldServer::publishPerformanceSnapshot() {
+  if (!performanceSnapshotDue())
     return;
 
+  double now = Time::monotonicTime();
+  auto& snapshot = m_performanceWindow;
   auto queue = m_worldStorage->generationQueueSnapshot(0.1);
   snapshot.queuedSectors = queue.queuedSectors;
   snapshot.prefetchedSectors = queue.prefetchedSectors;
   snapshot.overdueSectors = queue.overdueSectors;
   snapshot.oldestQueuedMilliseconds = queue.oldestQueuedSeconds * 1000.0;
+  snapshot.maximumQueuedMilliseconds = queue.maximumQueuedSeconds * 1000.0;
+  snapshot.peakQueuedSectors = queue.peakQueuedSectors;
+  snapshot.lateCompletedSectors = queue.lateCompletedSectors;
+  snapshot.detailed = m_performanceDetailed;
   double accounted = 0;
   for (size_t i = 0; i < static_cast<size_t>(WorldPerformanceCategory::Idle); ++i)
     accounted += snapshot.seconds[i];
@@ -1038,6 +1051,8 @@ void WorldServer::update(float dt) {
       || performanceGeneration != m_performanceOverlayGeneration) {
     m_performanceOverlayActive = performanceEnabled;
     m_performanceOverlayGeneration = performanceGeneration;
+    m_performanceDetailed = WorldPerformanceOverlay::detailed();
+    m_worldStorage->setPerformanceSamplingEnabled(performanceEnabled);
     m_performanceWindow = {};
     m_performanceWindowStart = Time::monotonicTime();
   }
@@ -1122,8 +1137,32 @@ void WorldServer::update(float dt) {
   m_performanceEntitySecondsThisTick = 0;
   {
     STAR_TRACE_ZONE("WorldServer entities");
+    WorldPerformanceCategory entityGroup = WorldPerformanceCategory::OtherEntities;
+    bool groupStarted = false;
+    double groupStart = 0;
+    auto flushEntityGroup = [&](double now) {
+      if (groupStarted) {
+        double elapsed = max(0.0, now - groupStart);
+        m_performanceEntitySecondsThisTick += elapsed;
+        m_performanceWindow.seconds[static_cast<size_t>(entityGroup)] += elapsed;
+      }
+    };
     m_entityMap->updateAllEntities([&](EntityPtr const& entity) {
-      double entityStart = m_performanceOverlayActive ? Time::monotonicTime() : 0;
+      WorldPerformanceCategory category = WorldPerformanceCategory::OtherEntities;
+      if (m_performanceOverlayActive) {
+        if (entity->entityType() == EntityType::Npc)
+          category = WorldPerformanceCategory::Npc;
+        else if (entity->entityType() == EntityType::Object)
+          category = WorldPerformanceCategory::Object;
+        if (!groupStarted || category != entityGroup) {
+          double now = Time::monotonicTime();
+          flushEntityGroup(now);
+          entityGroup = category;
+          groupStart = now;
+          groupStarted = true;
+        }
+      }
+      double entityStart = m_performanceOverlayActive && m_performanceDetailed ? Time::monotonicTime() : 0;
       ExplorationProfile::EntityScope entityProfile(m_explorationProfile.get(), *entity);
       entity->update(dt, m_currentStep);
 
@@ -1138,24 +1177,21 @@ void WorldServer::update(float dt) {
 
       if (entity->shouldDestroy() && entity->entityMode() == EntityMode::Master)
         toRemove.append(entity->entityId());
-      if (m_performanceOverlayActive) {
+      if (m_performanceOverlayActive && m_performanceDetailed) {
         double elapsed = Time::monotonicTime() - entityStart;
-        m_performanceEntitySecondsThisTick += elapsed;
-        WorldPerformanceCategory category = WorldPerformanceCategory::OtherEntities;
-        if (entity->entityType() == EntityType::Npc) {
-          category = WorldPerformanceCategory::Npc;
+        if (category == WorldPerformanceCategory::Npc) {
           if (elapsed > ServerGlobalTimestep)
             ++m_performanceWindow.slowNpcUpdates;
-        } else if (entity->entityType() == EntityType::Object) {
-          category = WorldPerformanceCategory::Object;
+        } else if (category == WorldPerformanceCategory::Object) {
           if (elapsed > ServerGlobalTimestep)
             ++m_performanceWindow.slowObjectUpdates;
         }
-        m_performanceWindow.seconds[static_cast<size_t>(category)] += elapsed;
       }
     }, [](EntityPtr const& a, EntityPtr const& b) {
       return a->entityType() < b->entityType();
     });
+    if (m_performanceOverlayActive)
+      flushEntityGroup(Time::monotonicTime());
   }
 
   recordProfileStage(UpdateProfileStage::Entities);

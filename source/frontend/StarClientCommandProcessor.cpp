@@ -62,6 +62,7 @@ ClientCommandProcessor::ClientCommandProcessor(UniverseClientPtr universeClient,
 
 ClientCommandProcessor::~ClientCommandProcessor() {
   WorldPerformanceOverlay::setEnabled(false);
+  WorldPerformanceOverlay::setDetailed(false);
 }
 
 bool ClientCommandProcessor::adminCommandAllowed() const {
@@ -155,6 +156,15 @@ bool ClientCommandProcessor::debugHudEnabled() const {
   return m_debugHudEnabled;
 }
 
+void ClientCommandProcessor::setHudVisible(bool visible) {
+  m_hudVisible = visible;
+  updatePerformanceOverlay();
+}
+
+void ClientCommandProcessor::updatePerformanceOverlay() {
+  WorldPerformanceOverlay::setEnabled(m_debugDisplayEnabled && m_debugHudEnabled && m_hudVisible);
+}
+
 bool ClientCommandProcessor::fixedCameraEnabled() const {
   return m_fixedCameraEnabled;
 }
@@ -183,14 +193,19 @@ String ClientCommandProcessor::gravity() {
 
 String ClientCommandProcessor::debug(String const& argumentsString) {
   auto arguments = m_parser.tokenizeToStringList(argumentsString);
+  if (!arguments.empty() && arguments.at(0).equalsIgnoreCase("perf")) {
+    m_debugPerformanceDetailed = !m_debugPerformanceDetailed;
+    WorldPerformanceOverlay::setDetailed(m_debugPerformanceDetailed);
+    return strf("Detailed performance profiling {}", m_debugPerformanceDetailed ? "enabled" : "disabled");
+  }
   if (!arguments.empty() && arguments.at(0).equalsIgnoreCase("hud")) {
     m_debugHudEnabled = !m_debugHudEnabled;
-    WorldPerformanceOverlay::setEnabled(m_debugDisplayEnabled && m_debugHudEnabled);
+    updatePerformanceOverlay();
     return strf("Debug HUD {}", m_debugHudEnabled ? "enabled" : "disabled");
   }
   else {
     m_debugDisplayEnabled = !m_debugDisplayEnabled;
-    WorldPerformanceOverlay::setEnabled(m_debugDisplayEnabled && m_debugHudEnabled);
+    updatePerformanceOverlay();
     return strf("Debug display {}", m_debugDisplayEnabled ? "enabled" : "disabled");
   }
 }

@@ -318,6 +318,9 @@ bool MainInterface::handleInputEvent(InputEvent const& event) {
 
           case InterfaceAction::InterfaceHideHud:
             m_disableHud = !m_disableHud;
+            m_clientCommandProcessor->setHudVisible(!m_disableHud);
+            m_performanceSnapshot = {};
+            m_performanceNextRead = 0;
             break;
 
           case InterfaceAction::InterfaceRepeatCommand:
@@ -970,6 +973,9 @@ bool MainInterface::hudVisible() const {
 
 void MainInterface::setHudVisible(bool visible) {
   m_disableHud = !visible;
+  m_clientCommandProcessor->setHudVisible(visible);
+  m_performanceSnapshot = {};
+  m_performanceNextRead = 0;
 }
 
 void MainInterface::warpToOrbitedWorld(bool deploy) {
@@ -1546,7 +1552,7 @@ void MainInterface::renderPerformance() {
   float top = windowHeight() - 20.0f;
   float left = max(10.0f, right - 330.0f);
   float width = right - left;
-  m_guiContext->drawQuad(RectF::withSize(Vec2F(left, top - 345.0f), Vec2F(width, 345.0f)),
+  m_guiContext->drawQuad(RectF::withSize(Vec2F(left, top - 365.0f), Vec2F(width, 365.0f)),
       Vec4B{12, 18, 28, 205});
   m_guiContext->setTextStyle(m_config->debugTextStyle);
   m_guiContext->setFontColor(Vec4B{235, 240, 245, 255});
@@ -1569,58 +1575,74 @@ void MainInterface::renderPerformance() {
     Vec4B{100, 180, 247, 255}, Vec4B{75, 202, 186, 255},
     Vec4B{166, 177, 192, 255}, Vec4B{80, 88, 103, 255}
   }};
-  double total = sample.busySeconds + sample.idleSeconds;
-  if (total > 0) {
+  auto& cache = m_performanceCache;
+  if (cache.capturedAt != sample.capturedAt || cache.worldId != sample.worldId
+      || cache.windowWidth != windowWidth() || cache.windowHeight != windowHeight()) {
+    cache = {};
+    cache.capturedAt = sample.capturedAt;
+    cache.worldId = sample.worldId;
+    cache.windowWidth = windowWidth();
+    cache.windowHeight = windowHeight();
+    double total = sample.busySeconds + sample.idleSeconds;
     Vec2F center(left + 72.0f, top - 100.0f);
-    float radius = 58.0f;
     double angle = -1.5707963267948966;
     for (size_t category = 0; category < WorldPerformanceCategoryCount; ++category) {
-      double fraction = sample.seconds[category] / total;
+      double fraction = total > 0 ? sample.seconds[category] / total : 0;
       double end = angle + fraction * 6.283185307179586;
       int segments = max(1, (int)std::ceil(fraction * 64));
       for (int segment = 0; segment < segments && fraction > 0; ++segment) {
         double a = angle + (end - angle) * segment / segments;
         double b = angle + (end - angle) * (segment + 1) / segments;
-        Vec2F first(center[0] + radius * std::cos(a), center[1] + radius * std::sin(a));
-        Vec2F second(center[0] + radius * std::cos(b), center[1] + radius * std::sin(b));
-        m_guiContext->renderer()->immediatePrimitives().emplace_back(
-            std::in_place_type_t<RenderTriangle>(), center, first, second, colors[category], 0.0f);
+        Vec2F first(center[0] + 58.0f * std::cos(a), center[1] + 58.0f * std::sin(a));
+        Vec2F second(center[0] + 58.0f * std::cos(b), center[1] + 58.0f * std::sin(b));
+        cache.pie.append({center, first, second, colors[category]});
       }
       angle = end;
-      m_guiContext->setFontColor(colors[category]);
-      m_guiContext->renderText(strf("{} {:4.1f}%", names[category], fraction * 100.0),
-          TextPositioning{Vec2F(left + 142.0f, top - 51.0f - category * 18.0f)});
+      cache.labels[category] = strf("{} {:4.1f}%", names[category], fraction * 100.0);
+    }
+    cache.tickText = strf("Tick: {} / {} acima de {:.1f} ms; pico {:.1f} ms",
+        sample.overBudgetTicks, sample.ticks, ServerGlobalTimestep * 1000.0, sample.maximumTickMilliseconds);
+    cache.slowText = sample.detailed
+        ? strf("Lentos: {} NPCs, {} objetos", sample.slowNpcUpdates, sample.slowObjectUpdates)
+        : String("Callbacks lentos: /debug perf para medir");
+    cache.queueText = strf("Setores: {} na fila, {} >100 ms; atual {:.0f} ms",
+        sample.queuedSectors, sample.overdueSectors, sample.oldestQueuedMilliseconds);
+    cache.queuePeakText = strf("Pico fila: {}; concluidos >100 ms: {}; espera {:.0f} ms",
+        sample.peakQueuedSectors, sample.lateCompletedSectors, sample.maximumQueuedMilliseconds);
+    float baseline = top - 347.0f;
+    float chartHeight = 55.0f;
+    float budgetMilliseconds = ServerGlobalTimestep * 1000.0f;
+    size_t count = min<uint64_t>(sample.ticks, WorldPerformanceTickHistory);
+    for (size_t i = 0; i < count; ++i) {
+      size_t index = (sample.ticks - count + i) % WorldPerformanceTickHistory;
+      float milliseconds = sample.tickBusyMilliseconds[index];
+      float barHeight = min(chartHeight, milliseconds / (budgetMilliseconds * 2.0f) * chartHeight);
+      float x = left + 12.0f + i * ((width - 24.0f) / WorldPerformanceTickHistory);
+      cache.bars.append({RectF::withSize(Vec2F(x, baseline),
+          Vec2F((width - 24.0f) / WorldPerformanceTickHistory - 1.0f, barHeight)),
+          milliseconds > budgetMilliseconds ? Vec4B{241, 113, 96, 255} : Vec4B{75, 202, 186, 255}});
     }
   }
 
-  m_guiContext->setFontColor(Vec4B{235, 240, 245, 255});
-  m_guiContext->renderText(
-      strf("Tick: {} / {} acima de {:.1f} ms; pico {:.1f} ms",
-          sample.overBudgetTicks, sample.ticks, ServerGlobalTimestep * 1000.0, sample.maximumTickMilliseconds),
-      TextPositioning{Vec2F(left + 12, top - 214)});
-  m_guiContext->renderText(
-      strf("Lentos: {} NPCs, {} objetos", sample.slowNpcUpdates, sample.slowObjectUpdates),
-      TextPositioning{Vec2F(left + 12, top - 232)});
-  m_guiContext->renderText(
-      strf("Setores: {} na fila, {} >100 ms; maior {:.0f} ms",
-          sample.queuedSectors, sample.overdueSectors, sample.oldestQueuedMilliseconds),
-      TextPositioning{Vec2F(left + 12, top - 250)});
-
-  float baseline = top - 327.0f;
-  float chartHeight = 55.0f;
-  float budgetMilliseconds = ServerGlobalTimestep * 1000.0f;
-  size_t count = min<uint64_t>(sample.ticks, WorldPerformanceTickHistory);
-  for (size_t i = 0; i < count; ++i) {
-    size_t index = (sample.ticks - count + i) % WorldPerformanceTickHistory;
-    float milliseconds = sample.tickBusyMilliseconds[index];
-    float barHeight = min(chartHeight, milliseconds / (budgetMilliseconds * 2.0f) * chartHeight);
-    float x = left + 12.0f + i * ((width - 24.0f) / WorldPerformanceTickHistory);
-    m_guiContext->drawQuad(RectF::withSize(Vec2F(x, baseline),
-        Vec2F((width - 24.0f) / WorldPerformanceTickHistory - 1.0f, barHeight)),
-        milliseconds > budgetMilliseconds ? Vec4B{241, 113, 96, 255} : Vec4B{75, 202, 186, 255});
+  for (auto const& triangle : cache.pie)
+    m_guiContext->renderer()->immediatePrimitives().emplace_back(
+        std::in_place_type_t<RenderTriangle>(), triangle.center, triangle.first, triangle.second,
+        triangle.color, 0.0f);
+  for (size_t category = 0; category < WorldPerformanceCategoryCount; ++category) {
+    m_guiContext->setFontColor(colors[category]);
+    m_guiContext->renderText(cache.labels[category],
+        TextPositioning{Vec2F(left + 142.0f, top - 51.0f - category * 18.0f)});
   }
-  m_guiContext->drawLine(Vec2F(left + 12.0f, baseline + chartHeight / 2.0f),
-      Vec2F(right - 12.0f, baseline + chartHeight / 2.0f), Vec4B{245, 245, 245, 180});
+
+  m_guiContext->setFontColor(Vec4B{235, 240, 245, 255});
+  m_guiContext->renderText(cache.tickText, TextPositioning{Vec2F(left + 12, top - 214)});
+  m_guiContext->renderText(cache.slowText, TextPositioning{Vec2F(left + 12, top - 232)});
+  m_guiContext->renderText(cache.queueText, TextPositioning{Vec2F(left + 12, top - 250)});
+  m_guiContext->renderText(cache.queuePeakText, TextPositioning{Vec2F(left + 12, top - 268)});
+  for (auto const& bar : cache.bars)
+    m_guiContext->drawQuad(bar.rect, bar.color);
+  m_guiContext->drawLine(Vec2F(left + 12.0f, top - 347.0f + 27.5f),
+      Vec2F(right - 12.0f, top - 347.0f + 27.5f), Vec4B{245, 245, 245, 180});
 }
 
 void MainInterface::updateCursor() {

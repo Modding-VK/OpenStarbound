@@ -21,9 +21,11 @@ public:
 
   bool debugDisplayEnabled() const;
   bool debugHudEnabled() const;
+  void setHudVisible(bool visible);
   bool fixedCameraEnabled() const;
 
 private:
+  void updatePerformanceOverlay();
   bool adminCommandAllowed() const;
   String previewQuestPane(StringList const& arguments, function<PanePtr(QuestPtr)> createPane);
 
@@ -73,6 +75,8 @@ private:
   ShellParser m_parser;
   bool m_debugDisplayEnabled = false;
   bool m_debugHudEnabled = true;
+  bool m_hudVisible = true;
+  bool m_debugPerformanceDetailed = false;
   bool m_fixedCameraEnabled = false;
 };
 

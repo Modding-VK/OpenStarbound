@@ -2,13 +2,14 @@
 
 ## Objetivo e estado
 
-Implementação inicial na branch `perf/threading-audit`, em 25/10/2026. O
+Implementação na branch `perf/threading-audit`, em 25/10/2026. O
 comando `/debug` ativa o HUD existente e, no single-player, um painel com
 gráfico de pizza e histórico de ticks. `/debug hud` oculta ou restaura o
-texto e o painel. A coleta é desligada quando o HUD é desativado ou sua
-interface é destruída. A coleta detalhada por entidade é feita apenas em
-mundos com um cliente local. Não há tecla F3 configurada nesta etapa; a ativação
-continua pelo comando já existente.
+texto e o painel. Ocultar toda a interface também interrompe a coleta.
+Ao restaurá-la, a coleta volta no próximo update do mundo; o primeiro
+snapshot aparece após uma janela de aproximadamente um segundo. `/debug perf`
+alterna a medição detalhada de callbacks individuais de NPCs e objetos.
+Não há tecla F3 configurada nesta etapa; a ativação continua pelos comandos.
 
 O painel é um diagnóstico em tempo real de baixo custo, separado do Tracy.
 Tracy continua indicado para investigar a ordem exata de chamadas e esperas
@@ -30,6 +31,12 @@ porque só ela conhece os limites de suas etapas. Essa thread não monta
 triângulos, formata texto, grava logs por tarefa ou aguarda a interface.
 O snapshot, de tamanho fixo, é publicado sob um mutex curto apenas uma vez
 por janela; a interface o copia periodicamente e desenha na thread gráfica.
+O acumulador de tick, acessado apenas pela thread do mundo, não adquire o
+mutex adicional a cada tick. A consulta à fila de setores usa o mutex já
+empregado para sincronizar ações externas no mundo, uma vez por snapshot.
+O painel guarda a geometria da pizza, barras e textos até chegar outra
+amostra ou mudar o tamanho da janela. Desenhá-los ainda custa GPU e CPU da
+thread gráfica.
 O armazenamento mantém no máximo 16 mundos recentes e descarta amostras com
 mais de três segundos.
 O histórico guarda no máximo 64 ticks recentes da janela. Snapshots antigos
@@ -67,11 +74,16 @@ detalhe necessário.
 O limite de tick usa `ServerGlobalTimestep` vigente, usualmente próximo de
 16,7 ms. A barra vermelha e o contador de ticks acima do orçamento usam o
 tempo da parte não ociosa de um ciclo. Contagens de `NPCs` e `objetos`
-"lentos" registram callbacks individuais mais longos que esse mesmo limite;
-não são jobs aguardando numa fila. `Setores na fila` conta pedidos visíveis,
+"lentos" registram callbacks individuais mais longos que esse mesmo limite
+somente quando `/debug perf` está ativo; não são jobs aguardando numa fila.
+`Setores na fila` conta pedidos visíveis,
 `>100 ms` conta pedidos cuja idade passou desse limiar, e a maior idade
-mostra a espera atual. O prefetch é contado separadamente no snapshot, mas
-não entra no indicador de setores visíveis atrasados.
+mostra a espera atual. O pico da fila, a maior espera e as conclusões após
+100 ms cobrem toda a janela, inclusive setores que saíram da fila antes da
+publicação. Ao ligar o painel com uma fila já existente, a idade registrada
+para esses pedidos começa nesse momento e pode subestimar sua espera real.
+O prefetch é contado separadamente no snapshot, mas não entra no indicador
+de setores visíveis atrasados.
 
 O painel apresenta uma janela de aproximadamente um segundo; valores não são
 instantâneos de cada frame. Ocioso representa o sono explícito da thread e
@@ -85,9 +97,11 @@ que crescem ou envelhecem por várias janelas.
 A implementação não muda ordem de entidades, RNG, geração de terreno, Lua,
 salvamento, iluminação ou protocolos de multiplayer. Quando o HUD está
 desligado, não há relógio adicional por entidade nem cópias de snapshot.
-Com o HUD ligado, a coleta lê o relógio por entidade e etapa; por isso o
-próprio custo do painel deve ser medido antes de usar diferenças pequenas
-como evidência de ganho. O desenho ainda consome trabalho da thread gráfica.
+Com o HUD ligado, a coleta básica cronometra grupos de tipos de entidades,
+aproveitando a ordenação já existente, e etapas do mundo. O modo `/debug perf`
+acrescenta duas leituras do relógio por entidade. Mesmo no modo básico, a
+coleta e o desenho têm custo; diferenças pequenas precisam de comparação
+com e sem painel.
 
 Antes de usar os números para escolher uma otimização:
 

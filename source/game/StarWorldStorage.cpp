@@ -184,8 +184,10 @@ void WorldStorage::queueSectorActivation(Sector sector) {
   }
 
   auto p = m_generationQueue.insert(sector, m_generationQueueTimeToLive);
-  if (p.second && m_explorationProfile)
+  if (p.second && (m_explorationProfile || m_performanceSamplingEnabled))
     m_generationQueuedAt[sector] = Time::monotonicTime();
+  if (m_performanceSamplingEnabled)
+    m_performancePeakQueuedSectors = max(m_performancePeakQueuedSectors, m_generationQueue.size());
   p.first->second = m_generationQueueTimeToLive;
   m_generationQueue.toFront(p.first);
 }
@@ -233,6 +235,22 @@ void WorldStorage::setExplorationProfile(ExplorationProfilePtr profile) {
   m_explorationProfile = std::move(profile);
 }
 
+void WorldStorage::setPerformanceSamplingEnabled(bool enabled) {
+  m_performanceSamplingEnabled = enabled;
+  m_performancePeakQueuedSectors = enabled ? m_generationQueue.size() : 0;
+  m_performanceLateCompletedSectors = 0;
+  m_performanceMaximumQueuedSeconds = 0;
+  if (enabled) {
+    double now = Time::monotonicTime();
+    for (auto const& entry : m_generationQueue) {
+      if (!m_generationQueuedAt.contains(entry.first))
+        m_generationQueuedAt[entry.first] = now;
+    }
+  } else if (!m_explorationProfile) {
+    m_generationQueuedAt.clear();
+  }
+}
+
 Json WorldStorage::generationProfilingData() const {
   static constexpr std::array<char const*, GenerationProfileStageCount> stageNames{{
     "baseTiles",
@@ -255,10 +273,12 @@ Json WorldStorage::generationProfilingData() const {
   return profile;
 }
 
-WorldGenerationQueueSnapshot WorldStorage::generationQueueSnapshot(double overdueSeconds) const {
+WorldGenerationQueueSnapshot WorldStorage::generationQueueSnapshot(double overdueSeconds) {
   WorldGenerationQueueSnapshot snapshot;
   snapshot.queuedSectors = m_generationQueue.size();
   snapshot.prefetchedSectors = m_prefetchQueue.size();
+  snapshot.peakQueuedSectors = m_performancePeakQueuedSectors;
+  snapshot.lateCompletedSectors = m_performanceLateCompletedSectors;
   double now = Time::monotonicTime();
   for (auto const& entry : m_generationQueuedAt) {
     if (!m_generationQueue.contains(entry.first))
@@ -268,6 +288,10 @@ WorldGenerationQueueSnapshot WorldStorage::generationQueueSnapshot(double overdu
     if (age >= overdueSeconds)
       ++snapshot.overdueSectors;
   }
+  snapshot.maximumQueuedSeconds = max(m_performanceMaximumQueuedSeconds, snapshot.oldestQueuedSeconds);
+  m_performancePeakQueuedSectors = m_generationQueue.size();
+  m_performanceLateCompletedSectors = 0;
+  m_performanceMaximumQueuedSeconds = snapshot.oldestQueuedSeconds;
   return snapshot;
 }
 
@@ -357,9 +381,15 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       if (!schedulingOnly && p.first) {
         m_generationQueue.removeFirst();
         if (auto queuedAt = m_generationQueuedAt.ptr(sector)) {
+          double wait = Time::monotonicTime() - *queuedAt;
           if (m_explorationProfile) {
-            m_explorationProfile->record("generation.sectorWait", Time::monotonicTime() - *queuedAt);
+            m_explorationProfile->record("generation.sectorWait", wait);
             m_explorationProfile->count("generation.sectorsCompleted");
+          }
+          if (m_performanceSamplingEnabled) {
+            m_performanceMaximumQueuedSeconds = max(m_performanceMaximumQueuedSeconds, wait);
+            if (wait >= 0.1)
+              ++m_performanceLateCompletedSectors;
           }
           m_generationQueuedAt.remove(sector);
         }
@@ -420,6 +450,11 @@ void WorldStorage::tick(float dt, String const* worldId) {
     eraseWhere(m_generationQueue, [this, dt](auto& p) {
         p.second -= dt;
         if (p.second <= 0.0f) {
+          if (m_performanceSamplingEnabled) {
+            if (auto queuedAt = m_generationQueuedAt.ptr(p.first))
+              m_performanceMaximumQueuedSeconds = max(m_performanceMaximumQueuedSeconds,
+                  Time::monotonicTime() - *queuedAt);
+          }
           m_generationQueuedAt.remove(p.first);
           if (m_explorationProfile)
             m_explorationProfile->count("generation.sectorsExpired");

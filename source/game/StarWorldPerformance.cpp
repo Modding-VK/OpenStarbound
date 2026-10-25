@@ -10,6 +10,7 @@ namespace Star {
 
 namespace {
 std::atomic<bool> overlayEnabled{false};
+std::atomic<bool> overlayDetailed{false};
 std::atomic<uint64_t> overlayGeneration{0};
 std::mutex snapshotMutex;
 std::map<String, WorldPerformanceSnapshot> snapshots;
@@ -19,12 +20,24 @@ bool WorldPerformanceOverlay::enabled() {
   return overlayEnabled.load(std::memory_order_relaxed);
 }
 
+bool WorldPerformanceOverlay::detailed() {
+  return overlayDetailed.load(std::memory_order_relaxed);
+}
+
 uint64_t WorldPerformanceOverlay::generation() {
   return overlayGeneration.load(std::memory_order_relaxed);
 }
 
 void WorldPerformanceOverlay::setEnabled(bool enabled) {
   if (overlayEnabled.exchange(enabled, std::memory_order_relaxed) != enabled) {
+    overlayGeneration.fetch_add(1, std::memory_order_relaxed);
+    std::lock_guard<std::mutex> lock(snapshotMutex);
+    snapshots.clear();
+  }
+}
+
+void WorldPerformanceOverlay::setDetailed(bool detailed) {
+  if (overlayDetailed.exchange(detailed, std::memory_order_relaxed) != detailed) {
     overlayGeneration.fetch_add(1, std::memory_order_relaxed);
     std::lock_guard<std::mutex> lock(snapshotMutex);
     snapshots.clear();

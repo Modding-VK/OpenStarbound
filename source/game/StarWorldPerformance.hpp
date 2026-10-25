@@ -36,6 +36,8 @@ struct WorldPerformanceSnapshot {
   double maximumTickMilliseconds = 0;
   double excessTickMilliseconds = 0;
   double oldestQueuedMilliseconds = 0;
+  double maximumQueuedMilliseconds = 0;
+  bool detailed = false;
   uint64_t ticks = 0;
   uint64_t overBudgetTicks = 0;
   uint64_t slowNpcUpdates = 0;
@@ -43,6 +45,8 @@ struct WorldPerformanceSnapshot {
   size_t queuedSectors = 0;
   size_t prefetchedSectors = 0;
   size_t overdueSectors = 0;
+  size_t peakQueuedSectors = 0;
+  size_t lateCompletedSectors = 0;
 };
 
 // Only the local client requests sampling. Publishing once per window and
@@ -50,8 +54,10 @@ struct WorldPerformanceSnapshot {
 class WorldPerformanceOverlay {
 public:
   static bool enabled();
+  static bool detailed();
   static uint64_t generation();
   static void setEnabled(bool enabled);
+  static void setDetailed(bool detailed);
   static void publish(WorldPerformanceSnapshot snapshot);
   static Maybe<WorldPerformanceSnapshot> latest(String const& worldId);
 };
