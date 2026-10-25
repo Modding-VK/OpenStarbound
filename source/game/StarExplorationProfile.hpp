@@ -105,6 +105,9 @@ public:
   void setContext(String context);
   void record(char const* stage, double seconds);
   void count(char const* counter, uint64_t amount = 1);
+  // Keep bounded sector coordinates for correlating queue stalls with the route.
+  void recordQueuedSector(Vec2I sector, double seconds);
+  void recordCompletedSector(Vec2I sector, double seconds);
   // Call at an outer operation boundary, never inside a timed scope. Final
   // reports preserve short windows when a world closes before the interval.
   void report(bool final = false);
@@ -145,6 +148,11 @@ private:
     double loggingSeconds;
   };
 
+  struct SectorWait {
+    Vec2I sector;
+    double seconds;
+  };
+
   void recordEntity(Entity const& entity, double totalSeconds, double luaSeconds, double loggingSeconds);
   static thread_local EntityScope* s_currentEntityScope;
   static thread_local NpcScope* s_currentNpcScope;
@@ -167,6 +175,8 @@ private:
   StringMap<uint64_t> m_counts;
   StringMap<EntityTiming> m_entityTimings;
   List<SlowEntity> m_slowEntities;
+  Maybe<SectorWait> m_oldestQueuedSector;
+  List<SectorWait> m_slowSectors;
 };
 
 }

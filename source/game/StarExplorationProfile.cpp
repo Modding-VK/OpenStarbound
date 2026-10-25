@@ -208,6 +208,26 @@ void ExplorationProfile::count(char const* counter, uint64_t amount) {
   m_counts[counter] += amount;
 }
 
+void ExplorationProfile::recordQueuedSector(Vec2I sector, double seconds) {
+  if (!m_oldestQueuedSector || seconds > m_oldestQueuedSector->seconds)
+    m_oldestQueuedSector = SectorWait{sector, seconds};
+}
+
+void ExplorationProfile::recordCompletedSector(Vec2I sector, double seconds) {
+  if (seconds < m_slowSeconds)
+    return;
+  SectorWait wait{sector, seconds};
+  if (m_slowSectors.size() < m_entityDetailLimit) {
+    m_slowSectors.append(wait);
+  } else {
+    auto shortest = std::min_element(m_slowSectors.begin(), m_slowSectors.end(), [](auto const& a, auto const& b) {
+      return a.seconds < b.seconds;
+    });
+    if (wait.seconds > shortest->seconds)
+      *shortest = wait;
+  }
+}
+
 void ExplorationProfile::recordEntity(Entity const& entity, double totalSeconds, double luaSeconds, double loggingSeconds) {
   String type = EntityTypeNames.getRight(entity.entityType());
   auto& timing = m_entityTimings[type];
@@ -291,6 +311,19 @@ void ExplorationProfile::report(bool final) {
     });
   }
   m_slowEntities.clear();
+  Json oldestQueuedSector;
+  if (m_oldestQueuedSector)
+    oldestQueuedSector = JsonObject{{"sector", jsonFromVec2I(m_oldestQueuedSector->sector)},
+        {"ageMilliseconds", m_oldestQueuedSector->seconds * 1000}};
+  m_oldestQueuedSector.reset();
+  std::sort(m_slowSectors.begin(), m_slowSectors.end(), [](auto const& a, auto const& b) {
+    return a.seconds > b.seconds;
+  });
+  JsonArray slowSectors;
+  for (auto const& sector : m_slowSectors)
+    slowSectors.append(JsonObject{{"sector", jsonFromVec2I(sector.sector)},
+        {"waitMilliseconds", sector.seconds * 1000}});
+  m_slowSectors.clear();
   static char const* const npcStageNames[] = {
     "update", "scriptDispatch", "movement", "status", "shared", "init", "uninit", "damage",
     "damagedOther", "shouldDestroy", "destroy", "interact", "receiveMessage", "callScript",
@@ -319,13 +352,15 @@ void ExplorationProfile::report(bool final) {
     m_npcPathResults = {};
     m_npcPopulationSamples = m_npcUpdatedEntities = m_npcMaximumUpdatedEntities = 0;
   }
-  if (!stages.empty() || !counts.empty() || !entityTypes.empty() || !slowEntities.empty() || !npcStages.empty()) {
+  if (!stages.empty() || !counts.empty() || !entityTypes.empty() || !slowEntities.empty()
+      || !npcStages.empty() || !oldestQueuedSector.isNull() || !slowSectors.empty()) {
     Json report = JsonObject{
       {"component", m_component}, {"context", m_context}, {"instance", m_instance},
       {"windowMilliseconds", (now - m_windowStart) * 1000},
       {"slowOperationMilliseconds", m_slowSeconds * 1000}, {"final", final},
       {"stages", std::move(stages)}, {"counts", std::move(counts)},
       {"entityTypes", std::move(entityTypes)}, {"slowEntities", std::move(slowEntities)},
+      {"oldestQueuedSector", std::move(oldestQueuedSector)}, {"slowSectors", std::move(slowSectors)},
       {"npcDetails", m_npcDetails}, {"npcStages", std::move(npcStages)},
       {"percentileMethod", "histogram-upper-bound-8-buckets-per-octave-1us"}
     };

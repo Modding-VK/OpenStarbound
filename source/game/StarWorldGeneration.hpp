@@ -141,6 +141,8 @@ private:
   struct PreparedBaseTiles {
     ServerTileSectorArray::ArrayPtr tiles;
     double elapsedSeconds;
+    double queueSeconds;
+    double completedAt;
   };
 
   typedef shared_ptr<WorkerPoolPromise<PreparedBaseTiles>> BaseTilePromisePtr;
@@ -151,6 +153,7 @@ private:
     WorldTemplate const* sourceTemplate;
     uint64_t sourceTemplateRevision;
     double lastRequestedTime;
+    double scheduledAt;
     BaseTilePromisePtr promise;
   };
 

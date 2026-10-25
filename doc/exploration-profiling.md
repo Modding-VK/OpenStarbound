@@ -87,13 +87,22 @@ Campos principais:
 
 Na geração de setores, `generation.queueDepthTotal` dividido por
 `generation.queueDepthSamples` dá a profundidade média observada da fila.
-`generation.oldestQueuedAge` mede, em segundos, a idade do pedido mais antigo
-em cada amostragem. `generation.sectorWait` mede, em segundos, o tempo entre o
+`generation.oldestQueuedAge` mede a idade do pedido mais antigo
+em cada amostragem. `generation.sectorWait` mede o tempo entre o
 primeiro pedido e a conclusão de cada setor. `generation.sectorsCompleted` e
 `generation.sectorsExpired` distinguem trabalho concluído de pedidos removidos
 após expirarem. Compare essas medidas com `generation.timeBudgetExhausted` e
 com os tempos de `generation.microDungeons` para investigar estruturas que
 aparecem lentamente durante a exploração.
+Os campos de duração emitidos no JSON são em **milissegundos**. A soma das
+idades e esperas de vários setores não equivale ao tempo de CPU, pois os
+pedidos podem ficar pendentes simultaneamente.
+
+Para investigar uma fila que não avança, os relatórios novos incluem
+`oldestQueuedSector`, com coordenadas do setor e a maior idade observada na
+janela, e `slowSectors`, com os setores concluídos mais lentos e suas esperas.
+Cada coordenada de setor corresponde a uma região de 32 × 32 tiles; a lista
+de conclusões é limitada por `entityDetailLimit` e não enumera toda a fila.
 
 - `component`: `server`, `client` ou `painter`.
 - `instance`: distingue coletores dentro do processo.
@@ -111,6 +120,8 @@ aparecem lentamente durante a exploração.
   por `entityDetailLimit` (1–50; padrão 12). Cada entrada informa tipo, ID,
   nome, subtipo quando disponível, posição, identificador da thread e tempos
   total, Lua e logging.
+- `oldestQueuedSector`, `slowSectors`: coordenadas da fila de geração e
+  esperas, disponíveis nos relatórios das builds instrumentadas mais recentes.
 - `final`: último resumo antes da destruição; a limpeza posterior não está incluída.
 
 ### Servidor e armazenamento
@@ -145,6 +156,34 @@ líquidos, blocos em queda e envio de atualizações. `tileSectorsFromStorage` n
 significa necessariamente geração completa: setores salvos parcialmente ainda
 podem exigir etapas de geração. Amostras de geração incluem setores vizinhos,
 portanto não equivalem ao número de blocos visíveis atravessados pelo jogador.
+
+### Espera dos workers de tiles básicos
+
+Os contadores `generation.baseTiles.scheduled`, `.pendingPolls`,
+`.pendingLimitHits`, `.resultsReady`, `.resultsApplied`, `.staleResults` e
+`.readyResultsEvicted` distinguem agendamento, espera, saturação do limite,
+resultado pronto, aplicação, invalidação do snapshot e descarte de resultado
+pronto. `.staleTiles`, `.staleRevision`, `.staleTemplate` e
+`.staleTemplateRevision` indicam quais verificações invalidaram o resultado;
+um resultado pode aumentar mais de um desses contadores. Ao desativar
+`explorationProfiling`, esses contadores deixam de ser coletados.
+
+As etapas `generation.baseTiles.queueDelay`, `.pendingAge`, `.commitDelay` e
+`.resultAge` medem, respectivamente, tempo entre agendamento e início no
+worker, idade de uma tarefa ainda não pronta ao ser consultada, tempo entre
+fim do worker e coleta do resultado pela thread do mundo, e tempo total do
+agendamento à coleta. `.pendingAge` é amostrada por consulta e pode registrar
+a mesma tarefa muitas vezes; seu total não é custo de CPU. O trabalho dentro
+do worker continua em `generation.baseTiles.worker`. A profundidade média
+observada nas tentativas assíncronas é
+`generation.baseTiles.pendingDepthTotal / pendingDepthSamples`; ela não mede
+o comprimento interno da fila do pool de threads.
+
+Se a fila de setores envelhecer com ticks curtos e sem estouro do orçamento,
+compare `.pendingAge` e `.pendingLimitHits` com os tempos de `.queueDelay` e
+`.commitDelay`. Uma tarefa que ainda não terminou não produz amostra de
+`.queueDelay` nem de `.worker` até o resultado ser coletado. Assim, a ausência
+dessas amostras não prova que o worker esteja ocioso.
 
 ### Cliente e desenho
 

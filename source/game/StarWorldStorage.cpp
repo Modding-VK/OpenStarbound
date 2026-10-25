@@ -355,11 +355,19 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     if (m_explorationProfile && !m_generationQueue.empty()) {
       m_explorationProfile->count("generation.queueDepthSamples");
       m_explorationProfile->count("generation.queueDepthTotal", m_generationQueue.size());
-      double oldestQueuedAt = Time::monotonicTime();
-      for (auto const& entry : m_generationQueuedAt)
-        oldestQueuedAt = min(oldestQueuedAt, entry.second);
-      m_explorationProfile->record("generation.oldestQueuedAge",
-          Time::monotonicTime() - oldestQueuedAt);
+      double now = Time::monotonicTime();
+      double oldestQueuedAt = now;
+      Maybe<Sector> oldestSector;
+      for (auto const& entry : m_generationQueuedAt) {
+        if (entry.second < oldestQueuedAt) {
+          oldestQueuedAt = entry.second;
+          oldestSector = entry.first;
+        }
+      }
+      m_explorationProfile->record("generation.oldestQueuedAge", now - oldestQueuedAt);
+      if (oldestSector)
+        m_explorationProfile->recordQueuedSector(Vec2I((int)(*oldestSector)[0], (int)(*oldestSector)[1]),
+            now - oldestQueuedAt);
     }
     if (sectorOrdering) {
       ExplorationProfile::Scope timing(m_explorationProfile.get(), "generation.queueSort");
@@ -384,6 +392,7 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
           double wait = Time::monotonicTime() - *queuedAt;
           if (m_explorationProfile) {
             m_explorationProfile->record("generation.sectorWait", wait);
+            m_explorationProfile->recordCompletedSector(Vec2I((int)sector[0], (int)sector[1]), wait);
             m_explorationProfile->count("generation.sectorsCompleted");
           }
           if (m_performanceSamplingEnabled) {

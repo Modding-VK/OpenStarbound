@@ -1,5 +1,6 @@
 #include "StarWorldGeneration.hpp"
 #include "StarWorldServer.hpp"
+#include "StarExplorationProfile.hpp"
 #include "StarMaterialItem.hpp"
 #include "StarMaterialDatabase.hpp"
 #include "StarNpcDatabase.hpp"
@@ -880,19 +881,46 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
     ServerTileSectorArray::Sector const& sector, bool allowAsync) {
   STAR_TRACE_ZONE("Prepare tiles async");
   double now = Time::monotonicTime();
+  auto profile = m_worldServer->explorationProfile();
+  if (profile && allowAsync) {
+    profile->count("generation.baseTiles.pendingDepthSamples");
+    profile->count("generation.baseTiles.pendingDepthTotal", m_pendingBaseTiles.size());
+  }
   auto pending = m_pendingBaseTiles.ptr(sector);
   if (pending) {
     pending->lastRequestedTime = now;
-    if (allowAsync && !pending->promise->poll())
+    if (allowAsync && !pending->promise->poll()) {
+      if (profile) {
+        profile->count("generation.baseTiles.pendingPolls");
+        profile->record("generation.baseTiles.pendingAge", now - pending->scheduledAt);
+      }
       return {false, {}};
+    }
 
     auto result = std::move(pending->promise->get());
-    bool snapshotStillCurrent = static_cast<ServerTileSectorArray const&>(*worldStorage->tileArray()).sectorArray(sector) == pending->sourceTiles
-        && worldStorage->tileArray()->sectorRevision(sector) == pending->sourceTileRevision
-        && m_worldServer->worldTemplate().get() == pending->sourceTemplate
-        && m_worldServer->worldTemplate()->generationRevision() == pending->sourceTemplateRevision;
+    bool tilesCurrent = static_cast<ServerTileSectorArray const&>(*worldStorage->tileArray()).sectorArray(sector) == pending->sourceTiles;
+    bool revisionCurrent = worldStorage->tileArray()->sectorRevision(sector) == pending->sourceTileRevision;
+    bool templateCurrent = m_worldServer->worldTemplate().get() == pending->sourceTemplate;
+    bool templateRevisionCurrent = m_worldServer->worldTemplate()->generationRevision() == pending->sourceTemplateRevision;
+    bool snapshotStillCurrent = tilesCurrent && revisionCurrent && templateCurrent && templateRevisionCurrent;
+    if (profile) {
+      profile->count("generation.baseTiles.resultsReady");
+      profile->record("generation.baseTiles.queueDelay", result.queueSeconds);
+      profile->record("generation.baseTiles.commitDelay", Time::monotonicTime() - result.completedAt);
+      profile->record("generation.baseTiles.resultAge", Time::monotonicTime() - pending->scheduledAt);
+      if (!tilesCurrent)
+        profile->count("generation.baseTiles.staleTiles");
+      if (!revisionCurrent)
+        profile->count("generation.baseTiles.staleRevision");
+      if (!templateCurrent)
+        profile->count("generation.baseTiles.staleTemplate");
+      if (!templateRevisionCurrent)
+        profile->count("generation.baseTiles.staleTemplateRevision");
+    }
     m_pendingBaseTiles.remove(sector);
     if (!snapshotStillCurrent) {
+      if (profile)
+        profile->count("generation.baseTiles.staleResults");
       if (!allowAsync) {
         prepareTiles(worldStorage, sector);
         return {true, {}};
@@ -900,6 +928,8 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
       return prepareTilesAsync(worldStorage, sector, true);
     }
     worldStorage->tileArray()->loadSector(sector, std::move(result.tiles));
+    if (profile)
+      profile->count("generation.baseTiles.resultsApplied");
     return {true, result.elapsedSeconds};
   }
 
@@ -920,10 +950,16 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
       }
     }
 
-    if (oldestCompletedSector)
+    if (oldestCompletedSector) {
       m_pendingBaseTiles.remove(*oldestCompletedSector);
-    if (m_pendingBaseTiles.size() >= pendingLimit)
+      if (profile)
+        profile->count("generation.baseTiles.readyResultsEvicted");
+    }
+    if (m_pendingBaseTiles.size() >= pendingLimit) {
+      if (profile)
+        profile->count("generation.baseTiles.pendingLimitHits");
       return {false, {}};
+    }
   }
 
   auto tileArray = worldStorage->tileArray();
@@ -943,13 +979,15 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
   }
   auto templateStore = m_baseTileTemplateStore;
   auto materialDatabase = Root::singleton().materialDatabase();
+  double scheduledAt = profile ? Time::monotonicTime() : now;
   auto promise = workerPool.addProducer<PreparedBaseTiles>(
-      [planet, templateRevision, templateStore, materialDatabase, sectorRegion, tilesHolder]() mutable {
+      [planet, templateRevision, templateStore, materialDatabase, sectorRegion, tilesHolder, scheduledAt]() mutable {
         STAR_TRACE_ZONE("Base tiles worker");
         double start = Time::monotonicTime();
         auto workerPlanet = workerWorldTemplate(planet, templateRevision, templateStore);
         prepareBaseTileArray(workerPlanet, materialDatabase, sectorRegion, **tilesHolder);
-        return PreparedBaseTiles{std::move(*tilesHolder), Time::monotonicTime() - start};
+        double completedAt = Time::monotonicTime();
+        return PreparedBaseTiles{std::move(*tilesHolder), completedAt - start, start - scheduledAt, completedAt};
       });
   m_pendingBaseTiles[sector] = PendingBaseTiles{
     sourceTiles,
@@ -957,8 +995,11 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
     planet.get(),
     templateRevision,
     now,
+    scheduledAt,
     make_shared<WorkerPoolPromise<PreparedBaseTiles>>(std::move(promise))
   };
+  if (profile)
+    profile->count("generation.baseTiles.scheduled");
   return {false, {}};
 }
 
