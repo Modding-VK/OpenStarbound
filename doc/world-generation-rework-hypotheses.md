@@ -172,6 +172,12 @@ sem confundir compilação, entrada no planeta e carregamento posterior.
 
 ## 4. Hipótese: setores físicos de 64 × 64
 
+O [plano de regiões](world-region-rework-advanced-concept.md) começa com
+setores **físicos** de 32 × 32. Quatro deles podem formar uma região de
+simulação **lógica** de 64 × 64 sem converter saves nem trocar a unidade de
+geração. Considerar um setor físico de 64 × 64 apenas após medir se o custo
+fixo por setor permanece dominante nessa arquitetura.
+
 Um pedido físico de 64 × 64 pode substituir quatro pedidos de 32 × 32 para
 cobrir a mesma área. Isso reduz parte do custo fixo de fila, metadados,
 persistência e transferência. Também concentra quatro vezes mais tiles por

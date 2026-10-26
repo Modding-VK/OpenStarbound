@@ -70,6 +70,11 @@ não parâmetros aprovados. Começar com particionamento fixo facilita identidad
 e migração; o wrap horizontal e as bordas verticais criam regiões parciais e
 precisam de normalização pela `WorldGeometry`.
 
+Uma região lógica de 64×64 tiles pode, portanto, reunir **quatro setores
+físicos de 32×32** sem mudar chaves do banco, geração por setor ou pacotes de
+tiles. Esse agrupamento é candidato a medição; não ativa setores físicos de
+64×64 nem garante que todas as redes dentro da região sejam paralelas.
+
 | Estado/operação | Dono no modo regional proposto | Regra de acesso |
 | --- | --- | --- |
 | Tiles, líquidos locais, colisão derivada e entidades com âncora na região | Executor da região durante seu turno | Escrita exclusiva; regiões vizinhas recebem visão imutável ou mensagens. |
@@ -101,6 +106,11 @@ podem tornar mensagens e validações mais caras que o cálculo paralelo. Medir
 área de fronteira, interações cruzadas e tempo de espera antes de alterar a
 granularidade ou cogitar mesclar regiões próximas. Agrupar toda área carregada
 numa região única reduziria o paralelismo justamente em vilarejos contínuos.
+
+Para objetos independentes **dentro da mesma região**, usar o serviço de
+planejamento opt-in descrito no [plano de objetos](object-worker-architecture-plan.md):
+workers calculam a partir de snapshots, e o dono aplica os efeitos. A região
+sozinha mantém seus callbacks de objeto em sequência.
 
 ## 3. Tempo, consistência e interações
 
@@ -250,6 +260,13 @@ próprios. No estado atual, o Frackin' Universe permanece no legado até que
 as chamadas de seus objetos e NPCs sejam auditadas ou adaptadas por contrato;
 a preparação pura de terreno pode avançar independentemente disso. Escolher o
 perfil por mundo evita alternar proprietários no meio de um callback.
+
+"Legado" identifica a API e a execução do objeto, não a idade da rede de
+fios. Reconectar ITDs existentes não os migra. Para um objeto já colocado usar
+uma API regional futura, seu asset precisa declarar a capacidade e seu estado
+salvo precisa ser validado; mudanças de formato exigem migração versionada
+numa fronteira segura, quando essa capacidade existir.
+
 Planetas, naves, mundos de instância e mundos customizados usam caminhos de
 criação e regras diferentes. O primeiro piloto regional pode abranger apenas
 planetas explicitamente habilitados; os demais permanecem no legado até uma

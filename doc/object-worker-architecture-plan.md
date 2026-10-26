@@ -76,6 +76,37 @@ excesso de memória, agendamento e contenção. O serviço deve limitar trabalho
 pendentes por mundo/objeto, memória de snapshots e frequência de tentativas.
 Jobs de um mundo não podem acessar diretamente o estado vivo de outro.
 
+### Redes independentes e significado de legado
+
+Redes lógicas sem recursos compartilhados podem planejar em paralelo **mesmo
+quando seus objetos ficam na mesma região de setores**. A região continua
+dona do estado vivo; a tarefa de objeto usa snapshot e devolve proposta. Para
+decidir independência, o grafo de dependências precisa incluir contêineres,
+slots, energia, nós de ligação, tiles, entidades, regiões carregadas e serviços
+globais lidos ou escritos. Ausência de fio entre duas redes não prova ausência
+de uma dependência indireta por bridge, storage, jogador ou chamada `world.*`.
+As APIs novas devem declarar ou registrar essas dependências, versionar a
+topologia e invalidar propostas quando uma conexão ou recurso mudar. Um pool
+limitado executa redes independentes; não criar uma thread por rede.
+
+Dois ITDs que consultam baús distintos são candidatos a cálculos simultâneos.
+Se ambos alcançam o mesmo baú, ainda podem calcular em paralelo, mas a
+transferência real precisa ser validada e aplicada em ordem pelo dono do
+inventário. Isso vale também para redes de energia que compartilham gerador,
+reserva ou consumidor. A ordem de conclusão dos workers não define a ordem
+dos efeitos.
+
+**Legado** descreve a implementação/API do objeto, não a idade de suas
+conexões. Desfazer e refazer fios ou bridges de um ITD com o
+script atual do FU 6.5.8 não o torna elegível a workers. Ele continua no
+`Object::update` serial do mundo. Um asset adaptado pode declarar a nova
+capacidade; admitir um exemplar já colocado exige validar seu estado salvo e,
+se o formato mudar, convertê-lo com versão em uma carga/checkpoint seguro,
+sem duplicar uma transferência em voo. O [primeiro piloto regional por mundo](world-region-rework-advanced-concept.md)
+pode manter o mundo inteiro no modo legado se houver conteúdo não auditado;
+execução mista exige uma fase própria. Nenhuma dessas migrações está
+implementada.
+
 ## Benefícios potenciais para mudanças futuras do projeto
 
 O benefício reutilizável é a **fronteira snapshot → cálculo → validação →
