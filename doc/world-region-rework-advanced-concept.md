@@ -539,3 +539,11 @@ pré-requisito nem correção presumida para esses bloqueios.
   prometer latência universal a partir deste único log.
 
 [folia-regions]: https://docs.papermc.io/folia/reference/region-logic/
+
+### Acompanhamento do primeiro recorte
+
+Após o registro deste plano, o usuário autorizou corrigir invalidação e
+retenção no modelo existente. Um [recorte de WRG-02–04](sector-generation-stall-investigation.md#correção-inicial-após-a-coleta-da-build-27)
+foi implementado, com compilação parcial Linux e validação em jogo pendente.
+Os contratos completos e o runtime regional desta seção continuam no backlog;
+o recorte não altera setores físicos nem torna scripts regionais.

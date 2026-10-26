@@ -121,6 +121,7 @@ public:
   SectorGenerationResult generateSectorLevel(WorldStorage* worldStorage, Sector const& sector,
       SectorGenerationLevel generationLevel, bool allowAsync) override;
   void sectorLoadLevelChanged(WorldStorage* worldStorage, Sector const& sector, SectorLoadLevel loadLevel) override;
+  List<Sector> readyBaseTileSectors(WorldStorage* worldStorage) override;
   void terraformSector(WorldStorage* worldStorage, Sector const& sector) override;
   void initEntity(WorldStorage* worldStorage, EntityId entityId, EntityPtr const& entity) override;
   void destructEntity(WorldStorage* worldStorage, EntityPtr const& entity) override;
@@ -152,7 +153,6 @@ private:
     uint64_t sourceTileRevision;
     WorldTemplate const* sourceTemplate;
     uint64_t sourceTemplateRevision;
-    double lastRequestedTime;
     double scheduledAt;
     BaseTilePromisePtr promise;
   };

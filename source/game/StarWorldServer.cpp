@@ -2864,8 +2864,7 @@ void WorldServer::dirtyCollision(RectI const& region) {
   auto dirtyRegion = region.padded(CollisionGenerator::BlockInfluenceRadius);
   for (int x = dirtyRegion.xMin(); x < dirtyRegion.xMax(); ++x) {
     for (int y = dirtyRegion.yMin(); y < dirtyRegion.yMax(); ++y) {
-      if (auto tile = m_tileArray->modifyTile({x, y}))
-        tile->collisionCacheDirty = true;
+      m_tileArray->modifyCollisionCache({x, y}, [](bool& dirty, auto&) { dirty = true; });
     }
   }
 }
@@ -2876,10 +2875,8 @@ void WorldServer::freshenCollision(RectI const& region) {
     TileRevisionScope revisionScope(TileRevisionCause::CollisionQuery, m_tileArray->revisionTrackingEnabled());
     for (int x = region.xMin(); x < region.xMax(); ++x) {
       for (int y = region.yMin(); y < region.yMax(); ++y) {
-        if (auto tile = m_tileArray->modifyTile({x, y})) {
-          if (tile->collisionCacheDirty)
-            freshenRegion.combine(RectI(x, y, x + 1, y + 1));
-        }
+        if (m_tileArray->tileLoaded({x, y}) && m_tileArray->tile({x, y}).collisionCacheDirty)
+          freshenRegion.combine(RectI(x, y, x + 1, y + 1));
       }
     }
   }
@@ -2888,16 +2885,17 @@ void WorldServer::freshenCollision(RectI const& region) {
     TileRevisionScope revisionScope(TileRevisionCause::CollisionCache, m_tileArray->revisionTrackingEnabled());
     for (int x = freshenRegion.xMin(); x < freshenRegion.xMax(); ++x) {
       for (int y = freshenRegion.yMin(); y < freshenRegion.yMax(); ++y) {
-        if (auto tile = m_tileArray->modifyTile({x, y})) {
-          tile->collisionCacheDirty = false;
-          tile->collisionCache.clear();
-        }
+        m_tileArray->modifyCollisionCache({x, y}, [](bool& dirty, auto& cache) {
+          dirty = false;
+          cache.clear();
+        });
       }
     }
 
     for (auto collisionBlock : m_collisionGenerator.getBlocks(freshenRegion)) {
-      if (auto tile = m_tileArray->modifyTile(collisionBlock.space))
-        tile->collisionCache.append(std::move(collisionBlock));
+      m_tileArray->modifyCollisionCache(collisionBlock.space, [&](bool&, auto& cache) {
+        cache.append(std::move(collisionBlock));
+      });
     }
   }
 }

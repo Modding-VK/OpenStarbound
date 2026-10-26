@@ -804,18 +804,37 @@ SectorGenerationResult WorldGenerator::generateSectorLevel(WorldStorage* worldSt
 
 void WorldGenerator::sectorLoadLevelChanged(WorldStorage* worldStorage, Sector const& sector, SectorLoadLevel loadLevel) {
   if (loadLevel == SectorLoadLevel::None) {
-    if (m_pendingBaseTiles.contains(sector)) {
+    if (auto pending = m_pendingBaseTiles.ptr(sector)) {
+      // Keep the key until the producer finishes: reload must not start a
+      // second job for the same sector. Null also prevents pointer ABA reuse.
+      pending->sourceTiles = nullptr;
       if (auto profile = m_worldServer->explorationProfile())
-        profile->count("generation.baseTiles.pendingRemovedOnUnload");
+        profile->count("generation.baseTiles.pendingInvalidatedOnUnload");
       worldStorage->tileArray()->takeRevisionTracking(sector);
     }
-    m_pendingBaseTiles.remove(sector);
   }
 
   if (loadLevel == SectorLoadLevel::Loaded) {
     if (worldStorage->sectorGenerationLevel(sector) == SectorGenerationLevel::Complete)
       m_worldServer->activateLiquidRegion(worldStorage->tileArray()->sectorRegion(sector));
   }
+}
+
+List<WorldGenerator::Sector> WorldGenerator::readyBaseTileSectors(WorldStorage* worldStorage) {
+  List<Sector> ready;
+  eraseWhere(m_pendingBaseTiles, [&](auto const& entry) {
+    if (!entry.second.promise->done())
+      return false;
+    if (!entry.second.sourceTiles) {
+      worldStorage->tileArray()->takeRevisionTracking(entry.first);
+      if (auto profile = m_worldServer->explorationProfile())
+        profile->count("generation.baseTiles.unloadedResultsDiscarded");
+      return true;
+    }
+    ready.append(entry.first);
+    return false;
+  });
+  return ready;
 }
 
 void WorldGenerator::terraformSector(WorldStorage* worldStorage, Sector const& sector) {
@@ -936,7 +955,6 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
   }
   auto pending = m_pendingBaseTiles.ptr(sector);
   if (pending) {
-    pending->lastRequestedTime = now;
     if (allowAsync && !pending->promise->poll()) {
       if (profile) {
         profile->count("generation.baseTiles.pendingPolls");
@@ -946,7 +964,7 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
     }
 
     auto result = std::move(pending->promise->get());
-    bool tilesCurrent = static_cast<ServerTileSectorArray const&>(*worldStorage->tileArray()).sectorArray(sector) == pending->sourceTiles;
+    bool tilesCurrent = pending->sourceTiles && static_cast<ServerTileSectorArray const&>(*worldStorage->tileArray()).sectorArray(sector) == pending->sourceTiles;
     bool revisionCurrent = worldStorage->tileArray()->sectorRevision(sector) == pending->sourceTileRevision;
     bool templateCurrent = m_worldServer->worldTemplate().get() == pending->sourceTemplate;
     bool templateRevisionCurrent = m_worldServer->worldTemplate()->generationRevision() == pending->sourceTemplateRevision;
@@ -982,7 +1000,13 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
       }
       return prepareTilesAsync(worldStorage, sector, true);
     }
-    worldStorage->tileArray()->loadSector(sector, std::move(result.tiles));
+    auto tileArray = worldStorage->tileArray();
+    tileArray->loadSector(sector, std::move(result.tiles));
+    auto collisionRegion = tileArray->sectorRegion(sector).padded(CollisionGenerator::BlockInfluenceRadius);
+    for (int x = collisionRegion.xMin(); x < collisionRegion.xMax(); ++x) {
+      for (int y = collisionRegion.yMin(); y < collisionRegion.yMax(); ++y)
+        tileArray->modifyCollisionCache({x, y}, [](bool& dirty, auto&) { dirty = true; });
+    }
     if (profile)
       profile->count("generation.baseTiles.resultsApplied");
     return {true, result.elapsedSeconds};
@@ -996,33 +1020,12 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
 
   size_t pendingLimit = workerPool.getWorkerCount() * 2;
   if (m_pendingBaseTiles.size() >= pendingLimit) {
-    Maybe<Sector> oldestCompletedSector;
-    double oldestRequestTime = now;
-    for (auto const& pair : m_pendingBaseTiles) {
-      if (pair.second.promise->done() && pair.second.lastRequestedTime <= oldestRequestTime) {
-        oldestCompletedSector = pair.first;
-        oldestRequestTime = pair.second.lastRequestedTime;
-      }
-    }
-
-    if (oldestCompletedSector) {
-      if (profile) {
-        auto evicted = m_pendingBaseTiles.ptr(*oldestCompletedSector);
-        auto revisions = worldStorage->tileArray()->takeRevisionTracking(*oldestCompletedSector);
-        auto currentRevision = worldStorage->tileArray()->sectorRevision(*oldestCompletedSector);
-        profile->recordBaseTileOutcome(Vec2I((int)(*oldestCompletedSector)[0], (int)(*oldestCompletedSector)[1]), false,
-            currentRevision - evicted->sourceTileRevision,
-            revisionReasonJson(revisions, profile, false), now - evicted->scheduledAt);
-      }
-      m_pendingBaseTiles.remove(*oldestCompletedSector);
-      if (profile)
-        profile->count("generation.baseTiles.readyResultsEvicted");
-    }
-    if (m_pendingBaseTiles.size() >= pendingLimit) {
-      if (profile)
-        profile->count("generation.baseTiles.pendingLimitHits");
-      return {false, {}};
-    }
+    // WorldStorage drains ready BaseTiles before requesting new work. Retain
+    // completed results rather than evicting a neighbor needed by the queue.
+    // The existing fixed cap (at most 16 sector arrays) bounds retained tiles.
+    if (profile)
+      profile->count("generation.baseTiles.admissionDeferred");
+    return {false, {}};
   }
 
   auto tileArray = worldStorage->tileArray();
@@ -1059,7 +1062,6 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
     sourceTileRevision,
     planet.get(),
     templateRevision,
-    now,
     scheduledAt,
     make_shared<WorkerPoolPromise<PreparedBaseTiles>>(std::move(promise))
   };

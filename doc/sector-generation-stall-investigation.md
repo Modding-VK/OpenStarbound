@@ -102,3 +102,58 @@ ou marcam o resultado obsoleto.
 Comparar a mesma cópia de jogador/universo e rota antes/depois. Verificar
 tiles, colisão, dungeons, líquidos, objetos, iluminação, mods, multiplayer,
 salvamento e recarregamento antes de aceitar qualquer correção.
+
+## Correção inicial após a coleta da build #27
+
+A coleta `defb650f` confirmou concentração de incrementos em consultas/cache
+de colisão nos resultados rejeitados do primeiro planeta. Os dados por mundo
+estão na seção 8.1 do [plano regional](world-region-rework-advanced-concept.md).
+O diagnóstico histórico acima foi seguido por este recorte de correção:
+
+- A consulta de `collisionCacheDirty` usa acesso constante. Alterações do cache
+  usam `modifyCollisionCache`, cujo callback só recebe o flag e a lista de
+  colisões, sem acesso mutável aos demais campos do tile. Elas não incrementam
+  a revisão usada pelo snapshot e pela persistência. Escritas de conteúdo
+  continuam passando pelos acessos que incrementam a revisão.
+- Continuam obrigatórias a identidade do array, revisão de conteúdo, identidade
+  e revisão do template. Não foi removida a validação contra edições reais.
+  A cópia usada pelo worker já marca o cache como sujo; ao instalar seu resultado,
+  também se invalidam os caches derivados do halo de influência da colisão.
+- Antes de admitir mais trabalhos, `WorldStorage::generateQueue` aplica
+  resultados BaseTiles prontos de setores já carregados, respeitando o prazo
+  e o limite de etapas existentes. O caminho atualiza o nível persistido para
+  BaseTiles sem carregar entidades, executar microdungeons ou declarar Complete.
+  Também atende pré-requisitos que não aparecem diretamente na fila visível.
+- Ao atingir o limite de pendências, a admissão espera em vez de apagar um
+  resultado pronto. O limite continua sendo duas entradas por worker, no máximo
+  16 arrays de setor por mundo (cada array tem tamanho fixo de 32×32 tiles).
+  Isso limita os buffers de tiles; não é um orçamento global de toda memória
+  de templates, mundos, filas ou entidades. Esse orçamento permanece no plano.
+- Unload invalida a identidade de origem, mas preserva a chave até terminar o
+  producer. Reload não inicia outro worker para o mesmo setor enquanto ele
+  estiver executando. Resultados concluídos de setores descarregados podem ser
+  liberados; seus efeitos nunca são instalados numa nova encarnação do setor.
+
+A política conserva a ordem existente das etapas posteriores. Não há novo
+runtime regional, paralelização de Lua nem promessa de eliminar todo atraso:
+conflitos reais, microdungeons, persistência e callbacks longos ainda podem
+bloquear progresso. O orçamento zero também impede instalação de resultados.
+
+### Métricas para a próxima comparação
+
+- `generation.baseTiles.readyResultsCommitted`: resultados drenados antes da
+  admissão normal, subconjunto de `resultsApplied` (não somar os dois).
+- `generation.baseTiles.admissionDeferred`: solicitações adiadas por limite;
+  não é contagem de setores únicos nem falha de geração.
+- `generation.baseTiles.pendingInvalidatedOnUnload` e
+  `unloadedResultsDiscarded`: invalidação e descarte após término, separados
+  dos antigos `pendingRemovedOnUnload` e `readyResultsEvicted`.
+- Comparar `staleRevision`, `resultsApplied`, idade/espera dos setores e picos
+  de tick no mesmo universo restaurado. Ausência de `readyResultsEvicted`
+  agora decorre da remoção desse caminho, não prova por si só progresso.
+
+Revisão: unidades C++ `StarWorldServer`, `StarWorldStorage` e `StarWorldGeneration`
+compiladas como objetos no Linux. Compilação completa Windows e observação em
+jogo ainda pendentes; não há medição de ganho após esta alteração. Conferir
+colisão/iluminação nas bordas, mineração/líquidos durante geração, estruturas,
+unload/reload, save e multiplayer antes de promover a correção.

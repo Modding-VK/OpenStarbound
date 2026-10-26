@@ -113,6 +113,12 @@ public:
   // Will return nullptr if the position is invalid.
   Tile* modifyTile(Vec2I const& pos);
 
+  // World-owner-only access to derived collision state. The callback receives
+  // only the dirty flag and cache, never writable tile content. Cache changes
+  // must not invalidate generation snapshots or dirty persistent sectors.
+  template <typename Function>
+  void modifyCollisionCache(Vec2I const& pos, Function&& function);
+
   // Function signature here is (Vec2I const&, Tile const&).  Will be called
   // for the entire region, valid or not.  If tile positions are not valid,
   // they will be called with the defaultTile.
@@ -386,6 +392,16 @@ Tile* TileSectorArray<Tile, SectorSize>::modifyTile(Vec2I const& pos) {
   if (tile)
     markSectorDirty(m_tileSectors.sectorFor(xind, yind));
   return tile;
+}
+
+template <typename Tile, unsigned SectorSize>
+template <typename Function>
+void TileSectorArray<Tile, SectorSize>::modifyCollisionCache(Vec2I const& pos, Function&& function) {
+  if (pos[1] < 0 || pos[1] >= (int)m_worldSize[1])
+    return;
+  auto tile = m_tileSectors.get((unsigned)pmod<int>(pos[0], m_worldSize[0]), (unsigned)pos[1]);
+  if (tile)
+    function(tile->collisionCacheDirty, tile->collisionCache);
 }
 
 template <typename Tile, unsigned SectorSize>

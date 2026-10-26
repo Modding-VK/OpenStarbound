@@ -376,6 +376,39 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
         });
     }
 
+    // Drain already loaded BaseTiles before admitting more work. These jobs
+    // have no neighbor-generation prerequisites; routing them through
+    // generateSectorToLevel would also load entities in prefetched sectors.
+    auto readySectors = m_generatorFacade->readyBaseTileSectors(this);
+    if (sectorOrdering)
+      std::sort(readySectors.begin(), readySectors.end(), sectorOrdering);
+    for (auto const& sector : readySectors) {
+      if ((sectorGenerationLevelLimit && *sectorGenerationLevelLimit == 0)
+          || Time::monotonicTime() >= generationDeadline)
+        break;
+      auto metadata = m_sectorMetadata.ptr(sector);
+      if (!metadata || metadata->loadLevel < SectorLoadLevel::Tiles
+          || metadata->generationLevel >= SectorGenerationLevel::BaseTiles)
+        continue;
+      ExplorationProfile::Scope timing(m_explorationProfile.get(), "generation.baseTiles");
+      auto result = m_generatorFacade->generateSectorLevel(this, sector, SectorGenerationLevel::BaseTiles, true);
+      timing.stop();
+      if (!result.complete)
+        continue;
+      metadata->generationLevel = SectorGenerationLevel::BaseTiles;
+      m_tileArray->markSectorDirty(sector);
+      m_prefetchQueue.remove(sector);
+      if (sectorGenerationLevelLimit)
+        --*sectorGenerationLevelLimit;
+      if (result.workerElapsedSeconds) {
+        recordGenerationProfile(0, *result.workerElapsedSeconds);
+        if (m_explorationProfile)
+          m_explorationProfile->record("generation.baseTiles.worker", *result.workerElapsedSeconds);
+      }
+      if (m_explorationProfile)
+        m_explorationProfile->count("generation.baseTiles.readyResultsCommitted");
+    }
+
     bool schedulingOnly = false;
     size_t visitedSectors = 0;
     while (!m_generationQueue.empty()) {

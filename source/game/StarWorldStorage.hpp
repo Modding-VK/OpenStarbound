@@ -71,6 +71,10 @@ struct WorldGeneratorFacade {
 
   virtual void sectorLoadLevelChanged(WorldStorage* storage, Sector const& sector, SectorLoadLevel loadLevel) = 0;
 
+  // Completed BaseTiles jobs may be drained independently of higher-level
+  // neighbor dependencies. Must not schedule jobs or load/activate sectors.
+  virtual List<Sector> readyBaseTileSectors(WorldStorage*) { return {}; }
+
   // Perform terraforming operations (biome reapplication) on the given sector
   virtual void terraformSector(WorldStorage* storage, Sector const& sector) = 0;
 
