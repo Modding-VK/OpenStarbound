@@ -183,6 +183,7 @@ de FPS ou de throughput por si só.
 
 Na execução manual [#24 de 26/10/2026](actions-run-audit-2026-10-26.md), a
 configuração da build Tracy falhou antes da compilação por misturar assinaturas
-de `target_link_libraries` nos executáveis. O instalador Tracy e a captura
-local continuam sem validação. Corrigir o CMake antes de repetir a execução
-manual, conforme a auditoria; não iniciar workflow automaticamente.
+de `target_link_libraries` nos executáveis. As duas chamadas foram alinhadas
+para `PRIVATE` na branch de revisão. O instalador Tracy e a captura local
+continuam sem validação; a próxima execução continua manual, conforme a
+auditoria. Não iniciar workflow automaticamente.

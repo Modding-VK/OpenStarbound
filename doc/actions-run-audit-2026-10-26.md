@@ -23,11 +23,12 @@ revisão e a definir `TRACY_ENABLE=ON`; **não chegou à compilação** nem prod
 artifacts. Portanto essa execução não informa se instrumentação, link,
 instalador ou execução em jogo funcionariam depois de corrigida a configuração.
 
-Correção necessária antes de outro diagnóstico: uniformizar a assinatura de
-`target_link_libraries` dos dois alvos; manter o link de Tracy restrito ao
-preset diagnóstico. Depois, uma execução manual de Windows com `tracy: true`
-deverá comprovar configuração, compilação e instalador diagnóstico; conexão e
-captura Tracy exigem execução local do jogo instrumentado.
+Correção aplicada na branch de revisão: as chamadas dos alvos `starbound` e
+`starbound_server` agora usam a assinatura `PRIVATE`, igual à integração
+Tracy. O link de Tracy continua restrito ao preset diagnóstico. Ainda falta
+uma execução manual de Windows com `tracy: true` para comprovar configuração,
+compilação e instalador diagnóstico; conexão e captura Tracy exigem execução
+local do jogo instrumentado.
 O workflow atual deliberadamente não publica Release para Tracy.
 
 ## Instalador e Release da build normal
@@ -68,5 +69,6 @@ atual de publicação ainda não tem execução bem-sucedida comprovada.
   nem para afirmar um erro específico de seleção; conferir as opções no
   formulário e o resumo do run se o caso se repetir.
 
-Estado: diagnóstico documentado; correção CMake, novo build Tracy e prova do
-job de publicação seguem pendentes. O workflow permanece manual.
+Estado: diagnóstico documentado; correção CMake aplicada sem nova execução;
+build Tracy e prova do job de publicação seguem pendentes. O workflow
+permanece manual.
