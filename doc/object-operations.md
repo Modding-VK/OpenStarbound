@@ -172,3 +172,27 @@ e [world-threading.md](world-threading.md).
 [fu-object]: https://github.com/sayterdarkwynd/FrackinUniverse/blob/6.5.8/objects/kheAA/kheAA_router/kheAA_router.object
 [fu-router]: https://github.com/sayterdarkwynd/FrackinUniverse/blob/6.5.8/objects/kheAA/kheAA_router/kheAA_router.lua
 [fu-transfer]: https://github.com/sayterdarkwynd/FrackinUniverse/blob/6.5.8/scripts/kheAA/transferUtil.lua
+
+## Frente de containers após a coleta Windows #27
+
+No mundo `383737864:-48324405:61106789:8`, a coleta de `defb650f` acumulou
+79,75 s em updates de objetos e 40,76 s no grupo de chamadas containerWrite.
+Esse grupo é inclusivo e não separa criação de itens, operação de inventário
+e conversão do retorno. Não atribuir todo esse tempo a varredura de slots ou
+ao próprio Lua do ITD. No outro planeta, invalidações de BaseTiles constituem
+uma frente diferente, detalhada na investigação de setores.
+
+Foi implementado [detalhamento por API e por fase](regional-dependency-profiling.md#detalhamento-das-operações-de-containers-após-a-build-27)
+para escolher a otimização com evidência. As operações de inventário ainda não
+foram reescritas. Próximas decisões, condicionadas à coleta:
+
+1. Se criação de itens dominar, investigar reaproveitamento seguro de dados
+   imutáveis do descritor; não compartilhar instâncias mutáveis entre inventários.
+2. Se mutação dominar, analisar busca de slots/empilhamento preservando ordem,
+   parâmetros customizados, sobras, callbacks e conservação de itens.
+3. Se serialização dominar, avaliar evitar conversões redundantes, mantendo
+   o retorno da API e sem cache que sobreviva a alterações do item.
+
+Não presumir independência com base no grafo parcial: o limite da coleta da
+sessão descartou chamadas. Paralelização e transações de baús permanecem no
+plano opt-in de objetos; esta extensão só mede os caminhos existentes.

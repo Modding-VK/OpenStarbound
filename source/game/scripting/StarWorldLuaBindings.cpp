@@ -1773,7 +1773,7 @@ namespace LuaBindings {
   }
 
   Maybe<int> WorldEntityCallbacks::containerSize(World* world, EntityId entityId) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead", entityId);
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead", entityId, "object.api.containerSize");
     if (auto container = world->get<ContainerObject>(entityId))
       return container->containerSize();
 
@@ -1781,7 +1781,7 @@ namespace LuaBindings {
   }
 
   bool WorldEntityCallbacks::containerClose(World* world, WorldCaller caller, EntityId entityId) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId, "object.api.containerClose");
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return false;
     
@@ -1794,7 +1794,7 @@ namespace LuaBindings {
   }
 
   bool WorldEntityCallbacks::containerOpen(World* world, WorldCaller caller, EntityId entityId) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId, "object.api.containerOpen");
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return false;
     
@@ -1807,7 +1807,7 @@ namespace LuaBindings {
   }
 
   Json WorldEntityCallbacks::containerItems(World* world, EntityId entityId) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead", entityId);
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead", entityId, "object.api.containerItems");
     if (auto container = world->get<ContainerObject>(entityId)) {
       JsonArray res;
       auto itemDb = Root::singleton().itemDatabase();
@@ -1820,7 +1820,7 @@ namespace LuaBindings {
   }
 
   Json WorldEntityCallbacks::containerItemAt(World* world, EntityId entityId, size_t offset) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead", entityId);
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead", entityId, "object.api.containerItemAt");
     if (auto container = world->get<ContainerObject>(entityId)) {
       auto itemDb = Root::singleton().itemDatabase();
       auto const& items = container->itemBag()->items();
@@ -1833,7 +1833,7 @@ namespace LuaBindings {
   }
 
   Maybe<bool> WorldEntityCallbacks::containerConsume(World* world, WorldCaller caller, EntityId entityId, Json const& items) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId, "object.api.containerConsume");
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return {};
     
@@ -1846,7 +1846,7 @@ namespace LuaBindings {
   }
 
   Maybe<bool> WorldEntityCallbacks::containerConsumeAt(World* world, WorldCaller caller, EntityId entityId, size_t offset, int count) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId, "object.api.containerConsumeAt");
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return {};
     
@@ -1860,7 +1860,7 @@ namespace LuaBindings {
   }
 
   Maybe<size_t> WorldEntityCallbacks::containerAvailable(World* world, EntityId entityId, Json const& items) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead", entityId);
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead", entityId, "object.api.containerAvailable");
     if (auto container = world->get<ContainerObject>(entityId)) {
       auto itemBag = container->itemBag();
       auto toCheck = ItemDescriptor(items);
@@ -1871,7 +1871,7 @@ namespace LuaBindings {
   }
 
   Json WorldEntityCallbacks::containerTakeAll(World* world, WorldCaller caller, EntityId entityId) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId, "object.api.containerTakeAll");
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return Json();
     
@@ -1889,7 +1889,7 @@ namespace LuaBindings {
   }
 
   Json WorldEntityCallbacks::containerTakeAt(World* world, WorldCaller caller, EntityId entityId, size_t offset) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId, "object.api.containerTakeAt");
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return Json();
     
@@ -1905,7 +1905,7 @@ namespace LuaBindings {
   }
 
   Json WorldEntityCallbacks::containerTakeNumItemsAt(World* world, WorldCaller caller, EntityId entityId, size_t offset, int const& count) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId, "object.api.containerTakeNumItemsAt");
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return Json();
     
@@ -1921,7 +1921,7 @@ namespace LuaBindings {
   }
 
   Maybe<size_t> WorldEntityCallbacks::containerItemsCanFit(World* world, EntityId entityId, Json const& items) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead", entityId);
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead", entityId, "object.api.containerItemsCanFit");
     if (auto container = world->get<ContainerObject>(entityId)) {
       auto itemDb = Root::singleton().itemDatabase();
       auto itemBag = container->itemBag();
@@ -1933,7 +1933,7 @@ namespace LuaBindings {
   }
 
   Json WorldEntityCallbacks::containerItemsFitWhere(World* world, EntityId entityId, Json const& items) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead", entityId);
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead", entityId, "object.api.containerItemsFitWhere");
     if (auto container = world->get<ContainerObject>(entityId)) {
       auto itemDb = Root::singleton().itemDatabase();
       auto itemBag = container->itemBag();
@@ -1949,46 +1949,58 @@ namespace LuaBindings {
   }
 
   Json WorldEntityCallbacks::containerAddItems(World* world, WorldCaller caller, EntityId entityId, Json const& items) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId, "object.api.containerAddItems");
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return items;
     
     if (auto container = world->get<ContainerObject>(entityId)) {
       auto itemDb = Root::singleton().itemDatabase();
+      profile.nextPhase("object.container.decodeItem");
       auto toInsert = itemDb->fromJson(items);
-      if (auto res = container->addItems(toInsert).result())
+      profile.nextPhase("object.container.mutate");
+      if (auto res = container->addItems(toInsert).result()) {
+        profile.nextPhase("object.container.encodeRemainder");
         return itemDb->toJson(*res);
+      }
     }
 
     return items;
   }
 
   Json WorldEntityCallbacks::containerStackItems(World* world, WorldCaller caller, EntityId entityId, Json const& items) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId, "object.api.containerStackItems");
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return items;
     
     if (auto container = world->get<ContainerObject>(entityId)) {
       auto itemDb = Root::singleton().itemDatabase();
+      profile.nextPhase("object.container.decodeItem");
       auto toInsert = itemDb->fromJson(items);
-      if (auto res = container->addItems(toInsert).result())
+      profile.nextPhase("object.container.mutate");
+      if (auto res = container->addItems(toInsert).result()) {
+        profile.nextPhase("object.container.encodeRemainder");
         return itemDb->toJson(*res);
+      }
     }
 
     return items;
   }
 
   Json WorldEntityCallbacks::containerPutItemsAt(World* world, WorldCaller caller, EntityId entityId, Json const& items, size_t offset) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId, "object.api.containerPutItemsAt");
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return items;
     
     if (auto container = world->get<ContainerObject>(entityId)) {
       auto itemDb = Root::singleton().itemDatabase();
+      profile.nextPhase("object.container.decodeItem");
       auto toInsert = itemDb->fromJson(items);
+      profile.nextPhase("object.container.mutate");
       if (offset < container->containerSize()) {
-        if (auto res = container->putItems(offset, toInsert).result())
+        if (auto res = container->putItems(offset, toInsert).result()) {
+          profile.nextPhase("object.container.encodeRemainder");
           return itemDb->toJson(*res);
+        }
       }
     }
 
@@ -1996,16 +2008,20 @@ namespace LuaBindings {
   }
 
   Json WorldEntityCallbacks::containerSwapItems(World* world, WorldCaller caller, EntityId entityId, Json const& items, size_t offset) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId, "object.api.containerSwapItems");
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return items;
     
     if (auto container = world->get<ContainerObject>(entityId)) {
       auto itemDb = Root::singleton().itemDatabase();
+      profile.nextPhase("object.container.decodeItem");
       auto toSwap = itemDb->fromJson(items);
+      profile.nextPhase("object.container.mutate");
       if (offset < container->containerSize()) {
-        if (auto res = container->swapItems(offset, toSwap, true).result())
+        if (auto res = container->swapItems(offset, toSwap, true).result()) {
+          profile.nextPhase("object.container.encodeRemainder");
           return itemDb->toJson(*res);
+        }
       }
     }
 
@@ -2013,16 +2029,20 @@ namespace LuaBindings {
   }
 
   Json WorldEntityCallbacks::containerSwapItemsNoCombine(World* world, WorldCaller caller, EntityId entityId, Json const& items, size_t offset) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId, "object.api.containerSwapItemsNoCombine");
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return items;
     
     if (auto container = world->get<ContainerObject>(entityId)) {
       auto itemDb = Root::singleton().itemDatabase();
+      profile.nextPhase("object.container.decodeItem");
       auto toSwap = itemDb->fromJson(items);
+      profile.nextPhase("object.container.mutate");
       if (offset < container->containerSize()) {
-        if (auto res = container->swapItems(offset, toSwap, false).result())
+        if (auto res = container->swapItems(offset, toSwap, false).result()) {
+          profile.nextPhase("object.container.encodeRemainder");
           return itemDb->toJson(*res);
+        }
       }
     }
 
@@ -2030,16 +2050,20 @@ namespace LuaBindings {
   }
 
   Json WorldEntityCallbacks::containerItemApply(World* world, WorldCaller caller, EntityId entityId, Json const& items, size_t offset) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId, "object.api.containerItemApply");
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return items;
     
     if (auto container = world->get<ContainerObject>(entityId)) {
       auto itemDb = Root::singleton().itemDatabase();
+      profile.nextPhase("object.container.decodeItem");
       auto toSwap = itemDb->fromJson(items);
+      profile.nextPhase("object.container.mutate");
       if (offset < container->containerSize()) {
-        if (auto res = container->swapItems(offset, toSwap, false).result())
+        if (auto res = container->swapItems(offset, toSwap, false).result()) {
+          profile.nextPhase("object.container.encodeRemainder");
           return itemDb->toJson(*res);
+        }
       }
     }
 

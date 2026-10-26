@@ -73,3 +73,31 @@ Coletar uma base FU com ITDs separados, depois compartilhando um baú; comparar
 alvos comuns, descartes e regiões. Comparar overhead com a opção desligada.
 Métricas de barreiras, commits e transferências regionais dependem da futura
 implementação do runtime e continuam pendentes.
+
+## Detalhamento das operações de containers após a build #27
+
+A mesma opção `regionalDetails` agora habilita temporizadores fixos
+`object.api.container*` para cada API já coberta (leitura, consumo, retirada,
+inserção, troca, abertura e fechamento). A chave genérica
+`object.worldCall.containerWrite` continua existindo para comparação histórica;
+os tempos por API são partes desse total, não trabalho adicional a somar.
+
+Nas APIs AddItems, StackItems, PutItemsAt, SwapItems, SwapItemsNoCombine e
+ItemApply, também são registradas fases:
+
+- `object.container.decodeItem`: `ItemDatabase::fromJson`, incluindo criação
+  do item e qualquer custo que ela execute.
+- `object.container.mutate`: chamada ao container, verificações locais e
+  obtenção do resultado da promise; não é somente a varredura dos slots.
+- `object.container.encodeRemainder`: conversão do resultado para JSON.
+
+Estas fases cobrem apenas esses caminhos; não são o detalhamento de toda a
+categoria containerWrite. Chamadas negadas/inválidas permanecem no tempo da
+API, mesmo que não alcancem as fases. Não há mudança na ordem de callbacks,
+permissões, itens transferidos, retorno Lua ou processamento multiplayer.
+A agregação de dependências conserva as categorias anteriores para não ampliar
+sua cardinalidade. Os rótulos são fixos e não contêm IDs de itens ou payloads.
+
+As duas unidades C++ do detalhamento compilaram no Linux. Faltam build Windows,
+coleta e comparação de overhead. Os limites de cardinalidade da coleta de
+arestas continuam os mesmos; aumentar a cobertura do grafo ainda é backlog.

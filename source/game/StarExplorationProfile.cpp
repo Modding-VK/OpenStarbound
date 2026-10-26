@@ -89,7 +89,8 @@ void ExplorationProfile::EntityScope::recordLua(double seconds) {
   m_luaSeconds += seconds;
 }
 
-ExplorationProfile::ObjectWorldCallScope::ObjectWorldCallScope(char const* stage, Maybe<EntityId> target) : m_stage(stage), m_target(target) {
+ExplorationProfile::ObjectWorldCallScope::ObjectWorldCallScope(char const* stage, Maybe<EntityId> target, char const* operation)
+  : m_stage(stage), m_operation(operation), m_target(target) {
   auto scope = s_currentEntityScope;
   if (scope && scope->m_entity && scope->m_entity->entityType() == EntityType::Object) {
     m_profile = scope->m_profile;
@@ -104,12 +105,27 @@ ExplorationProfile::ObjectWorldCallScope::ObjectWorldCallScope(char const* stage
   }
 }
 
+void ExplorationProfile::ObjectWorldCallScope::nextPhase(char const* phase) {
+  if (!m_profile || !m_profile->m_regionalDetails)
+    return;
+  double now = Time::monotonicTime();
+  try {
+    if (m_phase)
+      m_profile->record(m_phase, now - m_phaseStart);
+  } catch (...) {}
+  m_phase = phase;
+  m_phaseStart = now;
+}
+
 ExplorationProfile::ObjectWorldCallScope::~ObjectWorldCallScope() {
   if (m_profile) {
     double elapsed = Time::monotonicTime() - m_start;
     // Diagnostic allocation must never interrupt a gameplay callback unwinding.
     try {
+      nextPhase(nullptr);
       m_profile->record(m_stage, elapsed);
+      if (m_profile->m_regionalDetails && m_operation)
+        m_profile->record(m_operation, elapsed);
       if (m_profile->m_regionalDetails && !m_target)
         m_profile->count("regional.objectCallsWithoutEntityTarget");
       if (m_profile->m_regionalDetails && m_target) {

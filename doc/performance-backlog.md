@@ -168,3 +168,18 @@ A coleta regional já foi compilada no Windows e utilizada neste log. A perda
 de 1.371.739 chamadas de dependência por limite de cardinalidade exige melhorar
 a agregação antes de inferir independência entre redes. Não ampliar o limite
 sem medir memória, volume de log e custo da coleta.
+
+### Recorte autorizado após o planejamento
+
+Implementada a [correção inicial de setores](sector-generation-stall-investigation.md#correção-inicial-após-a-coleta-da-build-27):
+acesso separado ao cache de colisão, drenagem de BaseTiles prontos dentro do
+orçamento, admissão sem expulsar resultados úteis e chave pendente preservada
+até término após unload. É um recorte de WRG-02–04 no modelo atual; orçamento
+global em bytes, grafo de dependências e runtime regional continuam pendentes.
+Os objetos Linux das três unidades centrais compilaram; falta validar a build
+Windows e repetir a rota. Não considerar WRG-02–04 concluídos antes dessa validação.
+
+A frente de containers recebeu temporizadores por API e fases de conversão,
+mutação e retorno, ativados por `regionalDetails`. Compilação parcial Linux
+concluída; coleta Windows pendente. Reescrita de inventários aguarda esse
+[detalhamento](object-operations.md#frente-de-containers-após-a-coleta-windows-27).

@@ -62,14 +62,20 @@ public:
   // currently updating on this thread. Fixed labels avoid mod-name cardinality.
   class ObjectWorldCallScope {
   public:
-    explicit ObjectWorldCallScope(char const* stage, Maybe<EntityId> target = {});
+    explicit ObjectWorldCallScope(char const* stage, Maybe<EntityId> target = {}, char const* operation = nullptr);
     void setTarget(EntityId target) { m_target = target; }
+    // Optional fixed labels, enabled only by regionalDetails. Phases partition
+    // this call; nested calls remain inclusive, like the parent API timing.
+    void nextPhase(char const* phase);
     ~ObjectWorldCallScope();
     ObjectWorldCallScope(ObjectWorldCallScope const&) = delete;
     ObjectWorldCallScope& operator=(ObjectWorldCallScope const&) = delete;
   private:
     ExplorationProfile* m_profile = nullptr;
     char const* m_stage;
+    char const* m_operation;
+    char const* m_phase = nullptr;
+    double m_phaseStart = 0;
     Maybe<EntityId> m_target;
     EntityId m_rootId = 0;
     Vec2I m_rootRegion;
