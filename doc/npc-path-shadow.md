@@ -87,3 +87,14 @@ descreve por que este protótipo não externaliza a IA completa.
 Revisão local deste recorte: o CMake Linux normal configurou e as seis unidades
 C++ alteradas do módulo `star_game` compilaram como objetos. Não houve linkagem
 do jogo completo, build Windows, execução no jogo nem coleta de resultados.
+
+## Correção de compilação Windows
+
+A execução Actions `40398453882`, no commit `0f727ed8`, falhou ao compilar
+`StarNpcPathShadow.cpp`: o Clang considerou ambígua a construção de
+`PathReadUnavailable` com literal de texto e `false`. As seis ocorrências
+no diagnóstico e no snapshot agora passam `std::string` explicitamente,
+selecionando o construtor público `(std::string, bool)`. A opção de não
+capturar stack trace e as condições de rejeição permanecem iguais.
+A correção recebeu revisão do diff; a compilação Windows depende da próxima
+execução manual do Actions.

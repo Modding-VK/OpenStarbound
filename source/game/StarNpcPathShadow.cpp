@@ -101,7 +101,7 @@ NpcShadowPathSubmission NpcPathShadow::submit(WorldServer* world, NpcShadowPathI
     Vec2F unwrappedTo = from + world->geometry().diff(to, from);
     auto region = RectI::integral(RectF::boundBoxOf(from, unwrappedTo)).padded(16);
     if (region.width() > 113 || region.height() > 113)
-      throw PlatformerAStar::PathReadUnavailable("Path snapshot route exceeds coverage", false);
+      throw PlatformerAStar::PathReadUnavailable(std::string("Path snapshot route exceeds coverage"), false);
     auto snapshot = PlatformerAStar::PathSnapshot::capture(world, region);
     auto sectorRevisions = world->pathSectorRevisions(region);
     identity.captureStep = snapshot->captureStep();

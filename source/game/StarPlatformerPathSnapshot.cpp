@@ -12,7 +12,7 @@ shared_ptr<PathSnapshot const> PathSnapshot::capture(World* world, RectI region,
   if (region.isEmpty() || region.width() <= 0 || region.height() <= 0
       || geometry.width() == 0 || region.width() >= (int)geometry.width()
       || (size_t)region.width() > maxTiles / (size_t)region.height())
-    throw PathReadUnavailable("Path snapshot exceeds bounded coverage", false);
+    throw PathReadUnavailable(std::string("Path snapshot exceeds bounded coverage"), false);
 
   auto snapshot = shared_ptr<PathSnapshot>(new PathSnapshot(std::move(geometry), region, world->currentStep()));
 
@@ -32,7 +32,7 @@ shared_ptr<PathSnapshot const> PathSnapshot::capture(World* world, RectI region,
     }
   }
   if (snapshot->m_missingTiles != 0)
-    throw PathReadUnavailable("Path snapshot contains unloaded tiles", false);
+    throw PathReadUnavailable(std::string("Path snapshot contains unloaded tiles"), false);
 
   // Refresh and copy the same collision polygons that the live pathfinder
   // observes. Collision cache refresh may mutate world tiles, so capture only
@@ -44,7 +44,7 @@ shared_ptr<PathSnapshot const> PathSnapshot::capture(World* world, RectI region,
     Vec2I position(x, block.space[1]);
     if (x < region.xMax() && position[1] >= region.yMin() && position[1] < region.yMax()) {
       if (snapshot->m_capturedBlocks >= maxBlocks)
-        throw PathReadUnavailable("Path snapshot collision block limit exceeded", false);
+        throw PathReadUnavailable(std::string("Path snapshot collision block limit exceeded"), false);
       snapshot->m_cells[snapshot->index(position)].blocks.append(block);
       ++snapshot->m_capturedBlocks;
     }
@@ -133,10 +133,10 @@ size_t PathSnapshot::index(Vec2I const& position) const {
 PathSnapshot::Cell const& PathSnapshot::cell(Vec2I const& position) const {
   if (position[0] < m_region.xMin() || position[0] >= m_region.xMax()
       || position[1] < m_region.yMin() || position[1] >= m_region.yMax())
-    throw PathReadUnavailable("Path query outside snapshot coverage", false);
+    throw PathReadUnavailable(std::string("Path query outside snapshot coverage"), false);
   auto const& result = m_cells[index(position)];
   if (result.collision == CollisionKind::Null)
-    throw PathReadUnavailable("Path query reached an unloaded tile", false);
+    throw PathReadUnavailable(std::string("Path query reached an unloaded tile"), false);
   return result;
 }
 
