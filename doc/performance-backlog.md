@@ -46,7 +46,7 @@ O log anterior à fila de prefetch mostrou `generation.timeBudgetExhausted` em
 algumas janelas, mas não mediu o tempo de espera de cada setor. Portanto, não
 atribuir a demora do vilarejo Mantizi ao orçamento sem a próxima coleta.
 
-## Atualização de evidência — 26/10/2026
+## Atualização de evidência — 26/10/2026 (build anterior 6bc48199)
 
 O log da build `6bc48199` reproduziu a fila travada no mesmo planeta, agora
 com as métricas detalhadas. Houve espera concluída de 40,6 s e pedido ainda
@@ -56,7 +56,7 @@ foram descartados para abrir vagas no limite de tarefas pendentes. O pool
 tinha dois workers e aparecia sem trabalho nas amostras, enquanto a fila de
 setores continuava longa. Ver [dados e limites](performance-baseline.md).
 
-**Próxima prioridade:** localizar os caminhos que incrementam a revisão dos
+**Prioridade naquela etapa:** localizar os caminhos que incrementam a revisão dos
 setores pendentes e medir coordenadas de resultados invalidados/descartados.
 Depois, avaliar uma política que preserve resultados prontos ainda solicitados
 até sua aplicação ou invalidação, com limite de memória explícito. Repetir o
@@ -68,7 +68,8 @@ um caminho de consulta de colisão que eleva a revisão mesmo sem alteração
 persistente; a participação desse caminho nos eventos do log ainda precisa
 ser medida antes de modificar a regra de invalidação.
 A instrumentação de atribuição e coordenadas foi adicionada à branch;
-**pendem build e nova coleta** com o mesmo snapshot. Só usar os dados dessa
+**naquela etapa pendiam build e nova coleta** com o mesmo snapshot.
+A coleta da build #27 abaixo atualiza esse estado. Só usar os dados dessa
 coleta para decidir a correção da revisão e do descarte.
 
 ## Próxima coleta: vilarejo Mantizi
@@ -128,6 +129,42 @@ considerar a otimização concluída.
 ## Instrumentação preparatória regional
 
 Implementada a [coleta limitada de dependências e custo espacial](regional-dependency-profiling.md),
-desligada por padrão. Próximo passo: compilar e coletar base FU com alvos
-compartilhados/separados, medir overhead e descarte. O mapa completo de
+desligada por padrão. A build #27 já compilou e coletou dados; próximo passo:
+comparar alvos compartilhados/separados, medir overhead e melhorar a agregação
+diante dos descartes registrados. O mapa completo de
 recursos/topologia e os medidores do futuro runtime regional continuam pendentes.
+
+
+## Plano avançado: geração de setores e mundo regional
+
+Detalhamento e critérios no [backlog WRG-01 a WRG-12](world-region-rework-advanced-concept.md#84-itens-executáveis-do-backlog).
+A solicitação de planejamento mantém a reconstrução regional no backlog;
+a solicitação posterior autoriza iniciar as correções de invalidação/retenção
+no modelo atual e tratar containers/ITDs em uma frente separada.
+
+A coleta da build #27 (`defb650f`) trouxe evidências separadas por planeta:
+no mundo `383738425:-48324202:-255713414:2`, espera concluída de 36,11 s,
+1.041 resultados rejeitados por revisão e 835 resultados prontos descartados.
+As revisões rejeitadas acumulam principalmente consultas/cache de colisão.
+No mundo `383737864:-48324405:61106789:8`, não houve rejeições por revisão,
+mas objetos consumiram 79,75 s e um ITD demorou 685,63 ms num update.
+Fonte, limitações e métricas completas estão na seção 8.1 do plano.
+
+Ordem proposta:
+
+1. WRG-01–04: separar métricas por mundo, revisões de conteúdo/cache,
+   identidade de jobs e retenção limitada de resultados úteis.
+2. WRG-05–08: dependências por etapas, progresso garantido sob condições
+   explícitas, regiões em sombra, estruturas por footprint e carga de saves.
+3. WRG-09–12: donos regionais paralelos, eliminação gradual da barreira global,
+   APIs de objetos/NPCs e ajuste de escala por hardware.
+
+O alvo de máximo paralelismo é execução simultânea de tarefas independentes
+com validação local. A etapa inicial com barreira global não garante isolamento
+de uma região lenta. Setores físicos continuam 32×32; 64×64 lógico é candidato
+de agrupamento. O caminho legado preserva a API de mods não adaptados.
+
+A coleta regional já foi compilada no Windows e utilizada neste log. A perda
+de 1.371.739 chamadas de dependência por limite de cardinalidade exige melhorar
+a agregação antes de inferir independência entre redes. Não ampliar o limite
+sem medir memória, volume de log e custo da coleta.

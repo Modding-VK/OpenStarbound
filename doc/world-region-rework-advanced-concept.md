@@ -338,4 +338,204 @@ propriedade sem ambiguidades e um protótipo de geração que não agrava a fila
 visível. Sem esses dados, uma nova arquitetura pode deslocar o gargalo para a
 barreira, o banco ou o commit de inventários.
 
+## 8. Backlog de geração e progresso regional — revisão de 26/10/2026
+
+**Estado: planejado, sem implementação autorizada por este registro.** Esta
+seção detalha as fases acima para o objetivo de máximo paralelismo seguro.
+Preserva a referência conceitual ao Folia e a implementação própria. Minecraft
+Java vanilla não fornece, por si, ticks paralelos de toda a lógica de chunks.
+O objetivo mensurável é reduzir espera e retrabalho, inclusive quando há
+núcleos livres; ocupar todos os núcleos não é critério suficiente de sucesso.
+
+### 8.1 Evidência que o novo modelo deve enfrentar
+
+Fonte: `starbound.log` enviado após a build Windows #27, Source ID
+`defb650f8c73e76df839277d91696c717ae9abc2`, SHA-256
+`7bb2efec9ebf382bfbfe07406676021630a7609f77151d644c9755b01dfb7c70`.
+O arquivo bruto não é incluído no repositório. Os dados abaixo separam os
+mundos, sem somar tempos inclusivos de entidades e de suas chamadas.
+
+| Medição | Mundo A: `383738425:-48324202:-255713414:2` | Mundo B: `383737864:-48324405:61106789:8` |
+| --- | --- | --- |
+| Janelas do servidor / duração acumulada | 22 / 106,47 s | 23 / 113,27 s |
+| Maior espera concluída / pendente | 36,11 s / 38,86 s | 2,99 s / 3,73 s |
+| Resultados de tiles básicos recolhidos | 1.741 | 15 |
+| Rejeitados por revisão / aplicados | 1.041 / 700 | 0 / 15 |
+| Resultados prontos descartados do cache | 835 | 0 |
+| Tempo de atualização de objetos | 1,49 s | 79,75 s |
+| Pico de tick do mundo | 202,12 ms | 722,49 ms |
+
+O usuário relatou problemas de setores nos dois mundos e especialmente junto
+ao vilarejo Glitch. O log não nomeia esse vilarejo: a associação espacial deve
+ser confirmada pela rota, sem inferir o nome da estrutura apenas do WorldId.
+No mundo A, as quatro primeiras janelas acumularam 282 rejeições e nenhum
+resultado assíncrono aplicado. Em duas dessas janelas, o maior tick ficou
+abaixo de 14 ms. Há falta de progresso da geração mesmo sem saturação contínua
+do tick. O pico de microdungeons foi 148,95 ms, distinto da espera de dezenas
+de segundos. No mundo B, um `network_router` chegou a 685,63 ms num update.
+
+As causas contabilizadas nas revisões de resultados rejeitados no mundo A
+foram 904.206 incrementos classificados como consulta de colisão, 4.681 como
+cache de colisão e 5 como entidade. São incrementos associados às revisões,
+não quantidades de jobs nem demonstração causal isolada por incremento.
+A [investigação de código](sector-generation-stall-investigation.md) identifica
+o acesso mutável durante consultas e reconstrução de cache; o próximo desenho
+deve separar esse estado do conteúdo usado pela geração.
+
+A instrumentação regional estava ativa nos 48 relatórios do servidor,
+incluindo a nave. A coleta de dependências descartou 1.371.739 chamadas por
+limite de cardinalidade; o mapa observado é parcial e não autoriza declarar
+redes independentes. Não há ainda benchmark comparativo com profiling desligado.
+
+### 8.2 Arquitetura alvo e fronteiras de paralelismo
+
+Separar **demanda de carregamento**, **preparação de conteúdo**, **simulação**,
+**publicação** e **persistência**. A nova organização da `WorldServerThread`
+mantém um coordenador leve de identidade, entrada e admissão. Os donos regionais
+executam simulação e instalação local; workers calculam somente sobre entradas
+imutáveis. O coordenador não recebe todo resultado para executar nele Lua,
+instalação de entidades ou um commit global de todos os tiles.
+
+```mermaid
+flowchart TD
+  D[Demanda: jogadores e dependências explícitas] --> A[Admissão limitada e registro único de tarefas]
+  A --> G[Grafo de etapas e dependências]
+  G --> I[Leitura e preparação de dados salvos]
+  G --> P[Cálculos puros de terreno e estruturas]
+  I --> R[Resultados prontos com reserva de memória]
+  P --> R
+  R --> L[Validação e publicação pelo dono regional]
+  L --> S[Simulação local: NPCs, objetos e ambiente]
+  S --> L
+  L --> X[Transações entre os donos envolvidos]
+  L --> N[Snapshots confirmados para rede]
+  L --> B[Fila de persistência consistente]
+```
+
+O desenho mantém setores físicos de 32×32. Regiões lógicas de 2×2 setores são
+um candidato inicial, com comparação a outros agrupamentos. Terreno de regiões
+independentes pode ser preparado simultaneamente; regiões distintas também
+podem instalar mudanças locais simultaneamente após a auditoria de ownership.
+Mesmo numa região, preparação pura e redes de objetos opt-in podem usar workers.
+Um pool compartilhado de capacidade, ou cotas coordenadas entre pools existentes,
+evita que geração, NPCs e objetos multipliquem threads sem limite. Reservar
+capacidade para simulação/rede e para o cliente local; ajustar por medições em
+máquinas diferentes, sem fixar quantidade de workers por número de setores.
+
+O protótipo mantém o passo comum da seção 3. **O alvo posterior é sincronização
+apenas dos donos envolvidos numa dependência**, com passos locais e limites de
+defasagem explícitos. Um ITD lento numa região não deve atrasar terreno de outra
+região independente. A passagem a esse alvo exige contratos de relógio, fronteira,
+mensagens, efeitos globais e checkpoint; uma barreira global continua sendo um
+gargalo enquanto existir. Não prometer isolamento de latência para Lua legado
+arbitrário: um callback síncrono já iniciado não é interrompido com segurança
+por um simples orçamento de tempo. Ele precisa ser adaptado, isolado por contrato
+ou manter o mundo no modo legado. Nunca encerrar threads para cumprir orçamento.
+
+### 8.3 Contratos do pipeline de setores
+
+1. **Identidade e ciclo de vida.** Um registro por `(worldEpoch, setor, etapa)`
+   controla a única tentativa ativa, acrescida de `taskId`, versão do gerador,
+   geração de carregamento e sequência de tentativa. Pedidos duplicados recebem
+   a mesma promessa. Unload cancela o interesse ou invalida o resultado; o
+   registro só libera a tentativa após confirmação de término. Resultados
+   atrasados não podem instalar tiles numa nova encarnação do setor.
+2. **Estados observáveis.** Usar `solicitado → aguardando entradas → pronto para
+   execução → executando → pronto para aplicar → confirmado`, com saídas
+   explícitas `obsoleto`, `cancelado` ou `falhou`. Manter causas, revisões e
+   tempos de cada transição. Separar tiles preparados, estrutura confirmada,
+   entidades inicializadas, envio e apresentação no cliente. Não marcar o setor
+   como concluído quando somente BaseTiles terminou.
+3. **Dependências em grafo.** Formalizar BaseTiles, MicroDungeons, CaveLiquid e
+   Finalize, incluindo níveis exigidos dos vizinhos e leitura do save existente.
+   Liberar uma tarefa por notificação de dependência satisfeita; não depender
+   de varrer repetidamente toda a fila. Workers nunca ficam bloqueados esperando
+   jobs do próprio pool. Prioridade de setor visível é herdada pelos seus
+   pré-requisitos; detectar ciclos e diagnosticar, sem expor terreno incompleto.
+4. **Revisões semânticas e caches.** Separar versão de conteúdo de versão/validade
+   de cache derivado. Enumerar campos realmente lidos e escritos por cada etapa;
+   no primeiro recorte, uma revisão conservadora de conteúdo por setor é aceitável.
+   Somente depois avaliar revisões por camada/bloco. Consulta pura e reconstrução
+   de cache não alteram conteúdo. Edição real de tiles, material, líquido ou outro
+   campo utilizado continua invalidando o resultado. Snapshots incluem halos,
+   template e todos os setores de leitura, com geometria normalizada.
+5. **Aplicação segura.** Publicar deltas com máscara de escrita, ou páginas
+   imutáveis versionadas após validar toda a cobertura. Não substituir tiles vivos
+   por uma cópia que restaure cache antigo ou apague mudanças concorrentes. O dono
+   invalida/reconstrói colisão e iluminação afetadas segundo suas regras. Validar
+   e publicar sob a mesma posse exclusiva; revalidar depois de qualquer espera.
+6. **Memória e resultados úteis.** Separar limite de jobs executando do limite
+   de resultados prontos. Reservar bytes de entrada/saída antes da admissão, com
+   fallback explícito quando uma estrutura exceder a reserva. Resultados úteis a
+   setores visíveis ou aos seus pré-requisitos têm retenção enquanto houver
+   interesse válido. Sob pressão, suspender prefetch e admissão, reduzir distância
+   e descartar trabalho especulativo primeiro. A retenção é limitada: nenhum pin
+   infinito; esgotamento deve gerar backpressure/diagnóstico e uma política de
+   retirada explícita, nunca um ciclo silencioso de descartar e recalcular.
+7. **Progresso e conflitos.** Preservar idade original da demanda entre tentativas,
+   elevar prioridade de dependências antigas e limitar retries por janela.
+   Revisões realmente instáveis seguem para uma faixa serial sob o dono, com
+   snapshot novo e trabalho dividido em etapas limitadas quando possível. Se uma
+   etapa atômica grande não couber, registrar a impossibilidade e usar o caminho
+   legado explicitamente; não ignorar conflitos nem aplicar snapshot antigo.
+   Garantia de progresso pressupõe recursos disponíveis e dependências estáveis.
+8. **Estruturas compostas.** Planejar uma identidade/footprint de dungeon completo,
+   com sementes e ordem de decisões determinísticas. Resolver conflitos entre
+   footprints em ordem estável, sem usar a ordem de término dos workers. Preparar
+   dados em paralelo e reservar somente donos envolvidos por prazo limitado;
+   não manter locks enquanto workers ou Lua executam. Publicar uma versão coerente
+   da estrutura, seus índices e entidades, sem duplicação após unload/retry.
+   Instanciação cara precisa de protocolo de preparação/ativação antes de sair
+   do dono; inicializar Lua com efeitos continua serial até ser auditado.
+
+### 8.4 Itens executáveis do backlog
+
+Todos os itens abaixo estão **pendentes**. P0 corrige contratos e mede progresso;
+P1 constrói o protótipo; P2 amplia paralelismo. A ordem segue dependências, não
+pressupõe que aumentar o número de workers seja a primeira intervenção.
+
+| ID / prioridade | Entrega e dependências | Critério de saída |
+| --- | --- | --- |
+| WRG-01 / P0 | Baselines separados dos mundos A e B; tarefa/etapa, motivo de bloqueio, idade original, revisões de leitura/escrita e bytes. Ampliar diagnóstico de dependências com agregação limitada e contadores de perda. | Reconstruir a rota crítica e o retrabalho sem somar temporizadores inclusivos; explicitar cobertura perdida e overhead. |
+| WRG-02 / P0 | Auditar acessos mutáveis; separar conteúdo e cache, instalar somente estado validado (contratos 4–5). Depende de WRG-01. | Consultas/reconstruções sem mudança semântica não rejeitam BaseTiles; edições reais simultâneas continuam protegidas; colisão e iluminação corretas. |
+| WRG-03 / P0 | Registro único de tarefa que sobrevive a unload, com identidade e estados (1–2). Depende de WRG-01. | Zero execução duplicada por chave e zero efeito tardio após unload/reload, cancelamento, erro ou troca de mundo. |
+| WRG-04 / P0 | Retenção por interesse, reserva por bytes, admissão e fila de commit separadas (6). Depende de WRG-03. | Sem descarte de resultado visível válido para admitir prefetch; memória respeita teto; pressão reduz admissão sem livelock. |
+| WRG-05 / P1 | Grafo de etapas, notificação de dependências, prioridade herdada e recuperação de conflitos (3, 7). Depende de WRG-02–04. | Setor antigo progride ou apresenta causa bloqueadora explícita; nenhuma espera de worker por tarefa do mesmo pool; vizinhos corretos. |
+| WRG-06 / P1 | Coordenador leve, identidade regional em sombra e orçamento global de pools. Depende de WRG-01 e WRG-03. | Um dono/turno por região, wrap correto, migração rastreável, simulação do escalonador com custo limitado; sem alterar saves. |
+| WRG-07 / P1 | Planejamento imutável de microdungeons e dungeons por footprint, conflitos determinísticos e ativação consistente (8). Depende de WRG-02, WRG-05 e WRG-06. | Mesmos tiles, distribuição, IDs únicos e entidades com 1/N workers; Glitch/Mantizi íntegros mesmo cruzando regiões e após reload. |
+| WRG-08 / P1 | Leitura/preparação de setores salvos, instalação local e persistência por snapshots. Depende de WRG-03–06 e auditoria de DB/Lua. | Save/reload sem perda ou duplicação; dados salvos nunca regenerados por engano; banco serial preserva checkpoint consistente. |
+| WRG-09 / P2 | Substituir o update monolítico por turnos de donos regionais, inicialmente com passo/barreira comum. Depende de WRG-06–08 e auditoria de todos os acessos globais. | Instalações e updates locais realmente sobrepostos em regiões distintas, sem acesso mutável cruzado; custo da barreira medido separadamente. |
+| WRG-10 / P2 | Passos locais e sincronização só das dependências, transações entre regiões e handoff; remover barreira global do caminho normal. Depende de WRG-09 e contratos de relógio/rede/save. | Região independente progride durante atraso de outra; sem estado contraditório nas bordas, duplicação de efeitos ou checkpoint inconsistente. |
+| WRG-11 / P2 | Integrar APIs opt-in de objetos/NPCs e planejamento de redes independentes, inclusive na mesma região. Depende dos planos respectivos e WRG-09; independência entre passos depende de WRG-10. | Baú compartilhado exige commit ordenado; redes independentes ganham paralelismo; mods desconhecidos têm fallback explícito. |
+| WRG-12 / P2 | Ajuste de granularidade, cotas e prefetch por direção/velocidade. Depende da validação de WRG-05 e WRG-09–11. | Ganho de latência/p95/p99 em hardware distinto sem ativar entidades distantes, saturar memória ou atrasar jogadores de menor prioridade. |
+
+WRG-02–05 podem ser entregues primeiro no modelo atual, com validação pela thread
+do mundo. Isso reduz retrabalho sem depender da migração completa dos mods. O
+runtime regional usa posteriormente os mesmos contratos de tarefas, versões e
+progresso. O tamanho físico 64×64 permanece uma pesquisa independente, sem ser
+pré-requisito nem correção presumida para esses bloqueios.
+
+### 8.5 Validação obrigatória antes de promover o novo modelo
+
+- Restaurar a mesma cópia do universo/jogador e repetir a rota nos mundos A e B
+  separadamente. Incluir área já salva, área inédita, Mantizi e vilarejo Glitch;
+  confirmar no vídeo quais setores pertencem a cada estrutura.
+- Medir espera p50/p95/p99/máxima por etapa, tempo até tiles/estrutura/entidades
+  visíveis, taxa de resultados aplicados, retries, bytes retidos e CPU de trabalho
+  descartado. Idades de fila acumuladas não são tempo de CPU. Correlacionar por
+  ID de tarefa; validar que cada tentativa tem uma única saída terminal.
+- Exercitar cache de colisão intensivo sem edição real, depois mineração,
+  líquidos, portas e mudanças reais enquanto jobs estão pendentes. Verificar
+  que a separação de revisões evita falsos conflitos sem aceitar dados obsoletos.
+- Variar 1/N workers, baixa memória, prefetch, unload/reload, desconexão, erro
+  de worker e dois jogadores juntos/distantes. Comparar resultados determinísticos
+  independentemente da ordem de término das tarefas e testar pressão de filas.
+- Para WRG-10, atrasar controladamente uma região: outra sem dependências deve
+  continuar; uma região dependente precisa respeitar versões e protocolo. Um
+  teste que apenas mantém workers ocupados não demonstra essa propriedade.
+- Comparar inventários, geração, colisão, iluminação, NPCs, saves e multiplayer;
+  medir também FPS/latência do cliente e o custo do profiling ligado/desligado.
+  Definir metas numéricas de aceitação a partir de repetições do baseline, sem
+  prometer latência universal a partir deste único log.
+
 [folia-regions]: https://docs.papermc.io/folia/reference/region-logic/
