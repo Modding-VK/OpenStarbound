@@ -11,9 +11,30 @@ namespace PlatformerAStar {
 
   STAR_CLASS(PathFinder);
 
+  // Pathfinding reads only these parts of the world. This interface alone is
+  // not a concurrency guarantee: the legacy World adapter is world-thread
+  // only. Worker use also needs an immutable source and explicit reporting of
+  // missing coverage before a result can be accepted.
+  class PathReadSource {
+  public:
+    virtual ~PathReadSource() = default;
+
+    virtual WorldGeometry geometry() const = 0;
+    virtual void forEachCollisionBlock(RectI const& region, function<void(CollisionBlock const&)> const& iterator) const = 0;
+    virtual bool rectTileCollision(RectI const& region, CollisionSet const& collisionSet) const = 0;
+    virtual LiquidLevel liquidLevel(RectF const& region) const = 0;
+    virtual float gravity(Vec2F const& position) const = 0;
+  };
+
   class PathFinder {
   public:
     PathFinder(World* world,
+        Vec2F searchFrom,
+        Vec2F searchTo,
+        ActorMovementParameters movementParameters,
+        Parameters searchParameters = Parameters());
+
+    PathFinder(shared_ptr<PathReadSource const> readSource,
         Vec2F searchFrom,
         Vec2F searchTo,
         ActorMovementParameters movementParameters,
@@ -66,7 +87,7 @@ namespace PlatformerAStar {
     Vec2F roundToNode(Vec2F pos) const;
     float distance(Vec2F a, Vec2F b) const;
 
-    World* m_world;
+    shared_ptr<PathReadSource const> m_readSource;
     Vec2F m_searchFrom;
     Vec2F m_searchTo;
     ActorMovementParameters m_movementParams;

@@ -11,6 +11,38 @@ namespace Star {
 
 namespace PlatformerAStar {
 
+  namespace {
+    // This adapter retains the legacy access pattern. It is not safe to pass
+    // to a worker: World::forEachCollisionBlock can refresh mutable caches.
+    class WorldPathReadSource : public PathReadSource {
+    public:
+      explicit WorldPathReadSource(World* world) : m_world(world) {}
+
+      WorldGeometry geometry() const override {
+        return m_world->geometry();
+      }
+
+      void forEachCollisionBlock(RectI const& region, function<void(CollisionBlock const&)> const& iterator) const override {
+        m_world->forEachCollisionBlock(region, iterator);
+      }
+
+      bool rectTileCollision(RectI const& region, CollisionSet const& collisionSet) const override {
+        return m_world->rectTileCollision(region, collisionSet);
+      }
+
+      LiquidLevel liquidLevel(RectF const& region) const override {
+        return m_world->liquidLevel(region);
+      }
+
+      float gravity(Vec2F const& position) const override {
+        return m_world->gravity(position);
+      }
+
+    private:
+      World* m_world;
+    };
+  }
+
   // The desired spacing between nodes:
   float const NodeGranularity = 1.f;
   float const SimulateArcGranularity = 0.5f;
@@ -47,7 +79,15 @@ namespace PlatformerAStar {
       Vec2F searchTo,
       ActorMovementParameters movementParameters,
       Parameters searchParameters)
-    : m_world(world),
+    : PathFinder(make_shared<WorldPathReadSource>(world), searchFrom, searchTo,
+          std::move(movementParameters), std::move(searchParameters)) {}
+
+  PathFinder::PathFinder(shared_ptr<PathReadSource const> readSource,
+      Vec2F searchFrom,
+      Vec2F searchTo,
+      ActorMovementParameters movementParameters,
+      Parameters searchParameters)
+    : m_readSource(std::move(readSource)),
       m_searchFrom(searchFrom),
       m_searchTo(searchTo),
       m_movementParams(std::move(movementParameters)),
@@ -60,7 +100,7 @@ namespace PlatformerAStar {
   }
 
   PathFinder& PathFinder::operator=(PathFinder const& rhs) {
-    m_world = rhs.m_world;
+    m_readSource = rhs.m_readSource;
     m_searchFrom = rhs.m_searchFrom;
     m_searchTo = rhs.m_searchTo;
     m_movementParams = rhs.m_movementParams;
@@ -125,7 +165,7 @@ namespace PlatformerAStar {
     // more quickly when there is a route to the target.
     // We don't really care all that much about getting the optimal path as long
     // as we get one that looks feasible, so we deliberately overestimate here.
-    Vec2F diff = m_world->geometry().diff(fromPosition, toPosition);
+    Vec2F diff = m_readSource->geometry().diff(fromPosition, toPosition);
     // Manhattan distance * 2:
     return 2.0f * (abs(diff[0]) + abs(diff[1]));
   }
@@ -192,7 +232,7 @@ namespace PlatformerAStar {
     bool slopeUp = false;
     Vec2F forwardGroundPos = direction > 0 ? Vec2F(bounds.xMax(), bounds.yMin()) : Vec2F(bounds.xMin(), bounds.yMin());
     Vec2F backGroundPos = direction < 0 ? Vec2F(bounds.xMax(), bounds.yMin()) : Vec2F(bounds.xMin(), bounds.yMin());
-    m_world->forEachCollisionBlock(groundCollisionRect(node.position, BoundBoxKind::Full).padded(1), [&](CollisionBlock const& block) {
+    m_readSource->forEachCollisionBlock(groundCollisionRect(node.position, BoundBoxKind::Full).padded(1), [&](CollisionBlock const& block) {
       if (slopeUp || slopeDown) return;
       for (size_t i = 0; i < block.poly.sides(); ++i) {
         auto side = block.poly.side(i);
@@ -202,9 +242,9 @@ namespace PlatformerAStar {
         auto upper = side.min()[1] > side.max()[1] ? side.min() : side.max();
         if (sideDir[0] != 0 && sideDir[1] != 0 && (lower[1] == round(forwardGroundPos[1]) || upper[1] == round(forwardGroundPos[1]))) {
           float yDir = (sideDir[1] / sideDir[0]) * direction;
-          if (abs(m_world->geometry().diff(forwardGroundPos, lower)[0]) < 0.5 && yDir > 0)
+          if (abs(m_readSource->geometry().diff(forwardGroundPos, lower)[0]) < 0.5 && yDir > 0)
             slopeUp = true;
-          else if (abs(m_world->geometry().diff(backGroundPos, upper)[0]) < 0.5 && yDir < 0)
+          else if (abs(m_readSource->geometry().diff(backGroundPos, upper)[0]) < 0.5 && yDir < 0)
             slopeDown = true;
 
           if (slopeUp || slopeDown) break;
@@ -273,7 +313,7 @@ namespace PlatformerAStar {
 
     // Also allow jumping out of the water if we're at the surface:
     RectF box = boundBox(node.position);
-    if (acceleration(node.position)[1] != 0.0f && m_world->liquidLevel(box).level < 1.0f)
+    if (acceleration(node.position)[1] != 0.0f && m_readSource->liquidLevel(box).level < 1.0f)
       getJumpingNeighbors(node, neighbors);
 
     neighbors.filter([this](Edge& edge) -> bool {
@@ -338,7 +378,7 @@ namespace PlatformerAStar {
 
   Vec2F PathFinder::acceleration(Vec2F pos) const {
     auto const& parameters = m_movementParams;
-    float gravity = m_world->gravity(pos) * parameters.gravityMultiplier.value(1.0f);
+    float gravity = m_readSource->gravity(pos) * parameters.gravityMultiplier.value(1.0f);
     if (!parameters.gravityEnabled.value(true) || parameters.mass.value(0.0f) == 0.0f)
       gravity = 0.0f;
     float buoyancy = parameters.airBuoyancy.value(0.0f);
@@ -460,7 +500,7 @@ namespace PlatformerAStar {
   }
 
   bool PathFinder::validPosition(Vec2F pos, BoundBoxKind boundKind) const {
-    return !m_world->rectTileCollision(RectI::integral(boundBox(pos, boundKind)), CollisionSolid);
+    return !m_readSource->rectTileCollision(RectI::integral(boundBox(pos, boundKind)), CollisionSolid);
   }
 
   bool PathFinder::onGround(Vec2F pos, BoundBoxKind boundKind) const {
@@ -468,23 +508,23 @@ namespace PlatformerAStar {
     // Check there is something under the feet.
     // We allow walking over the tops of objects (e.g. trapdoors) without being
     // able to float inside objects.
-    if (m_world->rectTileCollision(RectI::integral(boundBox(pos, boundKind)), CollisionDynamic))
+    if (m_readSource->rectTileCollision(RectI::integral(boundBox(pos, boundKind)), CollisionDynamic))
       // We're inside an object. Don't collide with object directly below our
       // feet:
-      return m_world->rectTileCollision(groundRect, CollisionFloorOnly);
+      return m_readSource->rectTileCollision(groundRect, CollisionFloorOnly);
     // Not inside an object, allow colliding with objects below our feet:
     // We need to be for sure above platforms, but can be up to a full tile
     // below the top of solid blocks because rounded collision polys
-    return m_world->rectTileCollision(groundRect, CollisionAny) || m_world->rectTileCollision(groundRect.translated(Vec2I(0, 1)), CollisionSolid);
+    return m_readSource->rectTileCollision(groundRect, CollisionAny) || m_readSource->rectTileCollision(groundRect.translated(Vec2I(0, 1)), CollisionSolid);
   }
 
   bool PathFinder::onSolidGround(Vec2F pos) const {
-    return m_world->rectTileCollision(groundCollisionRect(pos, BoundBoxKind::Drop), CollisionSolid);
+    return m_readSource->rectTileCollision(groundCollisionRect(pos, BoundBoxKind::Drop), CollisionSolid);
   }
 
   bool PathFinder::inLiquid(Vec2F pos) const {
     RectF box = boundBox(pos);
-    return m_world->liquidLevel(box).level >= m_movementParams.minimumLiquidPercentage.value(0.5f);
+    return m_readSource->liquidLevel(box).level >= m_movementParams.minimumLiquidPercentage.value(0.5f);
   }
 
   RectF PathFinder::boundBox(Vec2F pos, BoundBoxKind boundKind) const {
@@ -541,7 +581,7 @@ namespace PlatformerAStar {
   }
 
   float PathFinder::distance(Vec2F a, Vec2F b) const {
-    return m_world->geometry().diff(a, b).magnitude();
+    return m_readSource->geometry().diff(a, b).magnitude();
   }
 }
 

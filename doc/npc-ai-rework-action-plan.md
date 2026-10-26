@@ -5,12 +5,16 @@ Plano elaborado em 25/10/2026 na branch `perf/threading-audit`, com base na
 histórico de decisões ali registrado. Integra o
 [backlog de desempenho](performance-backlog.md).
 
-**Estado: fase 0 em execução; fases 1–7 pendentes.** A
+**Estado: fase 0 em execução; fase 1 com fronteira serial inicial, ainda sem
+aprovação; fases 2–7 pendentes.** A
 [instrumentação detalhada](npc-profiling.md) foi acrescentada; baseline,
 latência de reação, inventário e aprovação da fase 0 ainda estão pendentes.
 O primeiro marco executável compreende as fases 0–2: medição,
 fronteira de leitura e comparação paralela sem efeitos. Este documento não
 comprova ganho de desempenho nem significa que os NPCs já usam workers.
+O adaptador serial da fase 1 foi introduzido antes da aprovação da fase 0
+porque não habilita execução paralela; a captura e a comparação ainda dependem
+da medição planejada.
 
 ## 1. Objetivo e decisões iniciais
 
@@ -134,7 +138,7 @@ Não iniciar migração ampla enquanto o primeiro marco não produzir evidência
 | Fase | Entrega | Dependência | Estado |
 | --- | --- | --- | --- |
 | 0 | Baseline e inventário de acessos | Nenhuma | Em execução; coleta pendente |
-| 1 | Contrato de leitura e snapshots | 0 aprovada | Pendente |
+| 1 | Contrato de leitura e snapshots | 0 aprovada para ativação | Fronteira serial inicial; snapshots e aprovação pendentes |
 | 2 | Comparação paralela sem efeitos | 1 aprovada | Pendente |
 | 3 | Pathfinding ativo opcional | 2 aprovada | Pendente |
 | 4 | Interações coordenadas limitadas | 3 aprovada | Pendente |
@@ -166,9 +170,13 @@ revisão/decisão: pendente; questões abertas: inventário e marcadores de rea�
 
 ### Fase 1 — Fronteira de leitura
 
-- [ ] Introduzir interface de consultas e adaptador serial preservando resultados.
-- [ ] Cobrir as leituras reais de `PlatformerAStar::PathFinder`, incluindo
-      geometria, colisões dinâmicas, plataformas, líquidos e gravidade.
+- [x] Introduzir interface de consultas e adaptador serial; os construtores
+      legados de `PlatformerAStar::PathFinder` continuam a acessar o mesmo
+      `World`, agora pelo adaptador.
+- [ ] Confirmar equivalência dos resultados e custo da indireção no caminho
+      serial antes de habilitar qualquer fonte alternativa.
+- [ ] Cobrir essas leituras em um snapshot: geometria, colisões dinâmicas,
+      plataformas, líquidos e gravidade.
 - [ ] Representar wrap horizontal, regiões ausentes e obstáculos sem referências
       mutáveis. Definir consistência de captura e publicação por região.
 - [ ] Incluir revisões de alterações locais e ciclo de vida dos alvos;
@@ -179,8 +187,16 @@ revisão/decisão: pendente; questões abertas: inventário e marcadores de rea�
 congelados conhecidos; nenhuma referência ao mundo mutável retida pelo worker.
 Uma rota que alcance região ausente termina com motivo explícito.
 
-**Registro:** commit/build: pendente; cenário/artefatos: pendentes; equivalência e
+**Registro:** commit: esta entrega; build: pendente; cenário/artefatos: pendentes; equivalência e
 custo de captura: pendentes; revisão/decisão: pendente; questões abertas: cobertura.
+
+**Primeiro recorte de código:** `PathReadSource` reúne geometria, blocos de
+colisão, colisão retangular, líquido e gravidade. `WorldPathReadSource` repassa
+essas consultas ao mundo no mesmo contexto serial de antes; nenhum worker usa
+essa fonte. O próximo recorte deve criar snapshots imutáveis, delimitar
+cobertura e propagar consulta indisponível sem aceitar uma rota incompleta.
+`World::forEachCollisionBlock` pode atualizar caches, por isso não pode ser
+chamado a partir do worker por meio desse adaptador.
 
 ### Fase 2 — Comparação paralela sem efeitos
 
