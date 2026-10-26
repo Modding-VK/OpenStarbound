@@ -124,3 +124,10 @@ prova que a estrutura ficou pronta antes: ele cobre só os tiles básicos.
 Em qualquer mudança de geração, conferir recarregamento do mesmo mundo,
 estruturas e iluminação, NPCs, Frackin' Universe e multiplayer antes de
 considerar a otimização concluída.
+
+## Instrumentação preparatória regional
+
+Implementada a [coleta limitada de dependências e custo espacial](regional-dependency-profiling.md),
+desligada por padrão. Próximo passo: compilar e coletar base FU com alvos
+compartilhados/separados, medir overhead e descarte. O mapa completo de
+recursos/topologia e os medidores do futuro runtime regional continuam pendentes.

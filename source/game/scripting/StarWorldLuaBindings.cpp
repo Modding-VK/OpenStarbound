@@ -1773,7 +1773,7 @@ namespace LuaBindings {
   }
 
   Maybe<int> WorldEntityCallbacks::containerSize(World* world, EntityId entityId) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead");
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead", entityId);
     if (auto container = world->get<ContainerObject>(entityId))
       return container->containerSize();
 
@@ -1781,7 +1781,7 @@ namespace LuaBindings {
   }
 
   bool WorldEntityCallbacks::containerClose(World* world, WorldCaller caller, EntityId entityId) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite");
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return false;
     
@@ -1794,7 +1794,7 @@ namespace LuaBindings {
   }
 
   bool WorldEntityCallbacks::containerOpen(World* world, WorldCaller caller, EntityId entityId) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite");
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return false;
     
@@ -1807,7 +1807,7 @@ namespace LuaBindings {
   }
 
   Json WorldEntityCallbacks::containerItems(World* world, EntityId entityId) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead");
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead", entityId);
     if (auto container = world->get<ContainerObject>(entityId)) {
       JsonArray res;
       auto itemDb = Root::singleton().itemDatabase();
@@ -1820,7 +1820,7 @@ namespace LuaBindings {
   }
 
   Json WorldEntityCallbacks::containerItemAt(World* world, EntityId entityId, size_t offset) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead");
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead", entityId);
     if (auto container = world->get<ContainerObject>(entityId)) {
       auto itemDb = Root::singleton().itemDatabase();
       auto const& items = container->itemBag()->items();
@@ -1833,7 +1833,7 @@ namespace LuaBindings {
   }
 
   Maybe<bool> WorldEntityCallbacks::containerConsume(World* world, WorldCaller caller, EntityId entityId, Json const& items) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite");
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return {};
     
@@ -1846,7 +1846,7 @@ namespace LuaBindings {
   }
 
   Maybe<bool> WorldEntityCallbacks::containerConsumeAt(World* world, WorldCaller caller, EntityId entityId, size_t offset, int count) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite");
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return {};
     
@@ -1860,7 +1860,7 @@ namespace LuaBindings {
   }
 
   Maybe<size_t> WorldEntityCallbacks::containerAvailable(World* world, EntityId entityId, Json const& items) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead");
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead", entityId);
     if (auto container = world->get<ContainerObject>(entityId)) {
       auto itemBag = container->itemBag();
       auto toCheck = ItemDescriptor(items);
@@ -1871,7 +1871,7 @@ namespace LuaBindings {
   }
 
   Json WorldEntityCallbacks::containerTakeAll(World* world, WorldCaller caller, EntityId entityId) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite");
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return Json();
     
@@ -1889,7 +1889,7 @@ namespace LuaBindings {
   }
 
   Json WorldEntityCallbacks::containerTakeAt(World* world, WorldCaller caller, EntityId entityId, size_t offset) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite");
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return Json();
     
@@ -1905,7 +1905,7 @@ namespace LuaBindings {
   }
 
   Json WorldEntityCallbacks::containerTakeNumItemsAt(World* world, WorldCaller caller, EntityId entityId, size_t offset, int const& count) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite");
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return Json();
     
@@ -1921,7 +1921,7 @@ namespace LuaBindings {
   }
 
   Maybe<size_t> WorldEntityCallbacks::containerItemsCanFit(World* world, EntityId entityId, Json const& items) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead");
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead", entityId);
     if (auto container = world->get<ContainerObject>(entityId)) {
       auto itemDb = Root::singleton().itemDatabase();
       auto itemBag = container->itemBag();
@@ -1933,7 +1933,7 @@ namespace LuaBindings {
   }
 
   Json WorldEntityCallbacks::containerItemsFitWhere(World* world, EntityId entityId, Json const& items) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead");
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerRead", entityId);
     if (auto container = world->get<ContainerObject>(entityId)) {
       auto itemDb = Root::singleton().itemDatabase();
       auto itemBag = container->itemBag();
@@ -1949,7 +1949,7 @@ namespace LuaBindings {
   }
 
   Json WorldEntityCallbacks::containerAddItems(World* world, WorldCaller caller, EntityId entityId, Json const& items) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite");
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return items;
     
@@ -1964,7 +1964,7 @@ namespace LuaBindings {
   }
 
   Json WorldEntityCallbacks::containerStackItems(World* world, WorldCaller caller, EntityId entityId, Json const& items) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite");
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return items;
     
@@ -1979,7 +1979,7 @@ namespace LuaBindings {
   }
 
   Json WorldEntityCallbacks::containerPutItemsAt(World* world, WorldCaller caller, EntityId entityId, Json const& items, size_t offset) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite");
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return items;
     
@@ -1996,7 +1996,7 @@ namespace LuaBindings {
   }
 
   Json WorldEntityCallbacks::containerSwapItems(World* world, WorldCaller caller, EntityId entityId, Json const& items, size_t offset) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite");
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return items;
     
@@ -2013,7 +2013,7 @@ namespace LuaBindings {
   }
 
   Json WorldEntityCallbacks::containerSwapItemsNoCombine(World* world, WorldCaller caller, EntityId entityId, Json const& items, size_t offset) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite");
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return items;
     
@@ -2030,7 +2030,7 @@ namespace LuaBindings {
   }
 
   Json WorldEntityCallbacks::containerItemApply(World* world, WorldCaller caller, EntityId entityId, Json const& items, size_t offset) {
-    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite");
+    ExplorationProfile::ObjectWorldCallScope profile("object.worldCall.containerWrite", entityId);
     if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Containers))
       return items;
     
@@ -2047,7 +2047,7 @@ namespace LuaBindings {
   }
 
   Maybe<LuaValue> WorldEntityCallbacks::callScriptedEntity(World* world, WorldCaller caller, EntityId entityId, String const& function, LuaVariadic<LuaValue> const& args) {
-    ExplorationProfile::ObjectWorldCallScope objectProfile("object.worldCall.callScriptedEntity");
+    ExplorationProfile::ObjectWorldCallScope objectProfile("object.worldCall.callScriptedEntity", entityId);
     ExplorationProfile::NpcScope profile(ExplorationProfile::NpcStage::ScriptedEntityCall);
     auto entity = as<ScriptedEntity>(world->entity(entityId));
     if (!entity)
@@ -2077,6 +2077,7 @@ namespace LuaBindings {
       }
     } else {
       auto targetEntityId = engine.luaTo<EntityId>(entityId);
+      objectProfile.setTarget(targetEntityId);
       if (!world->connectionHasPermission(callerConnection(caller), WorldPermissionType::Interact)) {
         auto targetEntity = world->entity(targetEntityId);
         if (world->connectionHasPermission(targetEntity->originConnection(), WorldPermissionType::Interact))

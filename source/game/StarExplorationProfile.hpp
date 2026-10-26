@@ -1,6 +1,8 @@
 #pragma once
 
 #include <array>
+#include <map>
+#include <tuple>
 
 #include "StarEntity.hpp"
 #include "StarJson.hpp"
@@ -60,13 +62,17 @@ public:
   // currently updating on this thread. Fixed labels avoid mod-name cardinality.
   class ObjectWorldCallScope {
   public:
-    explicit ObjectWorldCallScope(char const* stage);
+    explicit ObjectWorldCallScope(char const* stage, Maybe<EntityId> target = {});
+    void setTarget(EntityId target) { m_target = target; }
     ~ObjectWorldCallScope();
     ObjectWorldCallScope(ObjectWorldCallScope const&) = delete;
     ObjectWorldCallScope& operator=(ObjectWorldCallScope const&) = delete;
   private:
     ExplorationProfile* m_profile = nullptr;
     char const* m_stage;
+    Maybe<EntityId> m_target;
+    EntityId m_rootId = 0;
+    Vec2I m_rootRegion;
     double m_start = 0;
   };
 
@@ -198,6 +204,18 @@ private:
   double m_windowStart = 0;
   unsigned m_entityDetailLimit = 12;
   bool m_npcDetails = false;
+  bool m_regionalDetails = false;
+  // Fixed caps per reporting window; never retain entity pointers or payloads.
+  struct Aggregate {
+    uint64_t calls = 0;
+    double seconds = 0;
+    double luaSeconds = 0;
+    Vec2I rootRegion;
+  };
+  std::map<std::tuple<EntityId, EntityId, String>, Aggregate> m_objectDependencies;
+  std::map<std::tuple<int, int, String>, Aggregate> m_regionalEntities;
+  uint64_t m_dependencyOverflow = 0;
+  uint64_t m_regionOverflow = 0;
   std::array<NpcTiming, static_cast<size_t>(NpcStage::Count)> m_npcTimings{};
   std::array<uint64_t, 3> m_npcPathResults{};
   uint64_t m_npcPopulationSamples = 0;

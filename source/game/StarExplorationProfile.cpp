@@ -33,6 +33,7 @@ ExplorationProfilePtr ExplorationProfile::create(String component, String contex
   profile->m_slowSeconds = (std::isfinite(slowMs) ? clamp(slowMs, 1.0, 60000.0) : 50.0) / 1000.0;
   profile->m_entityDetailLimit = (unsigned)clamp<uint64_t>(config.getUInt("entityDetailLimit", 12), 1, 50);
   profile->m_npcDetails = profile->m_component == "server" && config.getBool("npcDetails", false);
+  profile->m_regionalDetails = profile->m_component == "server" && config.getBool("regionalDetails", false);
   profile->m_windowStart = Time::monotonicTime();
   Logger::info("[ExplorationProfile] enabled component={} instance={} context={}",
       profile->m_component, profile->m_instance, profile->m_context);
@@ -88,17 +89,44 @@ void ExplorationProfile::EntityScope::recordLua(double seconds) {
   m_luaSeconds += seconds;
 }
 
-ExplorationProfile::ObjectWorldCallScope::ObjectWorldCallScope(char const* stage) : m_stage(stage) {
+ExplorationProfile::ObjectWorldCallScope::ObjectWorldCallScope(char const* stage, Maybe<EntityId> target) : m_stage(stage), m_target(target) {
   auto scope = s_currentEntityScope;
   if (scope && scope->m_entity && scope->m_entity->entityType() == EntityType::Object) {
     m_profile = scope->m_profile;
+    if (m_profile->m_regionalDetails) {
+      m_rootId = scope->m_entity->entityId();
+      auto position = scope->m_entity->position();
+      if (std::isfinite(position[0]) && std::isfinite(position[1])
+          && std::abs(position[0]) < 1e9 && std::abs(position[1]) < 1e9)
+        m_rootRegion = Vec2I((int)std::floor(position[0] / 64.0), (int)std::floor(position[1] / 64.0));
+    }
     m_start = Time::monotonicTime();
   }
 }
 
 ExplorationProfile::ObjectWorldCallScope::~ObjectWorldCallScope() {
-  if (m_profile)
-    m_profile->record(m_stage, Time::monotonicTime() - m_start);
+  if (m_profile) {
+    double elapsed = Time::monotonicTime() - m_start;
+    // Diagnostic allocation must never interrupt a gameplay callback unwinding.
+    try {
+      m_profile->record(m_stage, elapsed);
+      if (m_profile->m_regionalDetails && !m_target)
+        m_profile->count("regional.objectCallsWithoutEntityTarget");
+      if (m_profile->m_regionalDetails && m_target) {
+        auto key = std::make_tuple(m_rootId, *m_target, String(m_stage));
+        auto& edges = m_profile->m_objectDependencies;
+        auto found = edges.find(key);
+        if (found == edges.end() && edges.size() >= 1024) {
+          ++m_profile->m_dependencyOverflow;
+        } else {
+          auto& edge = found == edges.end() ? edges[key] : found->second;
+          ++edge.calls;
+          edge.seconds += elapsed;
+          edge.rootRegion = m_rootRegion;
+        }
+      }
+    } catch (...) {}
+  }
 }
 
 ExplorationProfile::EntityLuaScope::EntityLuaScope()
@@ -270,6 +298,25 @@ void ExplorationProfile::recordEntity(Entity const& entity, double totalSeconds,
   timing.luaSeconds += luaSeconds;
   timing.loggingSeconds += loggingSeconds;
 
+  if (m_regionalDetails) {
+    auto position = entity.position();
+    if (std::isfinite(position[0]) && std::isfinite(position[1])
+        && std::abs(position[0]) < 1e9 && std::abs(position[1]) < 1e9) {
+      // Logical 64-tile bins only; no change to physical sector geometry.
+      auto key = std::make_tuple((int)std::floor(position[0] / 64.0),
+          (int)std::floor(position[1] / 64.0), type);
+      auto found = m_regionalEntities.find(key);
+      if (found == m_regionalEntities.end() && m_regionalEntities.size() >= 256) {
+        ++m_regionOverflow;
+      } else {
+        auto& region = found == m_regionalEntities.end() ? m_regionalEntities[key] : found->second;
+        ++region.calls;
+        region.seconds += totalSeconds;
+        region.luaSeconds += luaSeconds;
+      }
+    }
+  }
+
   if (totalSeconds < m_slowSeconds)
     return;
 
@@ -306,6 +353,23 @@ void ExplorationProfile::report(bool final) {
   double now = Time::monotonicTime();
   if (!final && now - m_windowStart < m_interval)
     return;
+
+  JsonArray dependencies;
+  for (auto const& entry : m_objectDependencies)
+    dependencies.append(JsonObject{{"rootObjectId", std::get<0>(entry.first)},
+        {"targetId", std::get<1>(entry.first)}, {"lastRootRegion", jsonFromVec2I(entry.second.rootRegion)}, {"operation", std::get<2>(entry.first)},
+        {"calls", entry.second.calls}, {"inclusiveMilliseconds", entry.second.seconds * 1000}});
+  JsonArray regions;
+  for (auto const& entry : m_regionalEntities)
+    regions.append(JsonObject{{"region", jsonFromVec2I(Vec2I(std::get<0>(entry.first), std::get<1>(entry.first)))},
+        {"entityType", std::get<2>(entry.first)}, {"updates", entry.second.calls},
+        {"totalMilliseconds", entry.second.seconds * 1000}, {"luaMilliseconds", entry.second.luaSeconds * 1000}});
+  JsonObject regionalDiagnostics{{"enabled", m_regionalDetails}, {"regionSizeTiles", 64},
+      {"objectDependencies", std::move(dependencies)}, {"entityRegions", std::move(regions)},
+      {"dependencyCallsDropped", m_dependencyOverflow}, {"entityUpdatesDropped", m_regionOverflow}};
+  m_objectDependencies.clear();
+  m_regionalEntities.clear();
+  m_dependencyOverflow = m_regionOverflow = 0;
 
   JsonObject stages;
   for (auto& entry : m_timings) {
@@ -418,6 +482,7 @@ void ExplorationProfile::report(bool final) {
       {"oldestQueuedSector", std::move(oldestQueuedSector)}, {"slowSectors", std::move(slowSectors)},
       {"tilePackets", std::move(tilePackets)},
       {"staleBaseTiles", std::move(staleBaseTiles)}, {"evictedBaseTiles", std::move(evictedBaseTiles)},
+      {"regionalDiagnostics", std::move(regionalDiagnostics)},
       {"npcDetails", m_npcDetails}, {"npcStages", std::move(npcStages)},
       {"percentileMethod", "histogram-upper-bound-8-buckets-per-octave-1us"}
     };

@@ -317,3 +317,10 @@ estágio assíncrono `BaseTiles`.
 Os arquivos C++ alterados foram compilados no ambiente Linux. A execução visual
 e a coleta no Windows com os mods do usuário permanecem pendentes. Não foram
 executados testes automatizados nem feitas afirmações de ganho de desempenho.
+
+## Extensão regional opcional
+
+A coleta de dependências de objetos e custo espacial de entidades está descrita
+em [regional-dependency-profiling.md](regional-dependency-profiling.md). Sua
+compilação e validação em jogo ainda estão pendentes; a validação acima refere-se
+à implementação anterior.
