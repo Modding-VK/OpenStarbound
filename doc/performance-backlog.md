@@ -51,6 +51,10 @@ até sua aplicação ou invalidação, com limite de memória explícito. Repeti
 mesmo snapshot e rota para comparar espera, tentativas refeitas e integridade
 dos tiles. Aumentar o número de workers ou o orçamento por tick não é a
 primeira mudança indicada por este registro.
+A [investigação de código](sector-generation-stall-investigation.md) encontrou
+um caminho de consulta de colisão que eleva a revisão mesmo sem alteração
+persistente; a participação desse caminho nos eventos do log ainda precisa
+ser medida antes de modificar a regra de invalidação.
 
 ## Próxima coleta: vilarejo Mantizi
 
