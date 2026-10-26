@@ -248,6 +248,21 @@ void ExplorationProfile::recordTilePacket(Vec2I tileOrigin) {
     count("tilePacketMarkersDropped");
 }
 
+void ExplorationProfile::recordBaseTileOutcome(Vec2I sector, bool stale, uint64_t revisionDelta,
+    JsonObject reasons, double ageSeconds) {
+  BaseTileOutcome outcome{sector, revisionDelta, std::move(reasons), ageSeconds};
+  auto& list = stale ? m_staleBaseTiles : m_evictedBaseTiles;
+  if (list.size() < m_entityDetailLimit) {
+    list.append(std::move(outcome));
+  } else {
+    auto shortest = std::min_element(list.begin(), list.end(), [](auto const& a, auto const& b) {
+      return a.ageSeconds < b.ageSeconds;
+    });
+    if (outcome.ageSeconds > shortest->ageSeconds)
+      *shortest = std::move(outcome);
+  }
+}
+
 void ExplorationProfile::recordEntity(Entity const& entity, double totalSeconds, double luaSeconds, double loggingSeconds) {
   String type = EntityTypeNames.getRight(entity.entityType());
   auto& timing = m_entityTimings[type];
@@ -349,6 +364,20 @@ void ExplorationProfile::report(bool final) {
     tilePackets.append(JsonObject{{"tileOrigin", jsonFromVec2I(packet.tileOrigin)},
         {"monotonicMilliseconds", packet.monotonicSeconds * 1000}});
   m_tilePackets.clear();
+  auto baseTileOutcomesJson = [](List<BaseTileOutcome>& outcomes) {
+    std::sort(outcomes.begin(), outcomes.end(), [](auto const& a, auto const& b) {
+      return a.ageSeconds > b.ageSeconds;
+    });
+    JsonArray json;
+    for (auto const& outcome : outcomes)
+      json.append(JsonObject{{"sector", jsonFromVec2I(outcome.sector)},
+          {"ageMilliseconds", outcome.ageSeconds * 1000},
+          {"revisionDelta", outcome.revisionDelta}, {"reasons", outcome.reasons}});
+    outcomes.clear();
+    return json;
+  };
+  auto staleBaseTiles = baseTileOutcomesJson(m_staleBaseTiles);
+  auto evictedBaseTiles = baseTileOutcomesJson(m_evictedBaseTiles);
   static char const* const npcStageNames[] = {
     "update", "scriptDispatch", "movement", "status", "shared", "init", "uninit", "damage",
     "damagedOther", "shouldDestroy", "destroy", "interact", "receiveMessage", "callScript",
@@ -378,7 +407,8 @@ void ExplorationProfile::report(bool final) {
     m_npcPopulationSamples = m_npcUpdatedEntities = m_npcMaximumUpdatedEntities = 0;
   }
   if (!stages.empty() || !counts.empty() || !entityTypes.empty() || !slowEntities.empty()
-      || !npcStages.empty() || !oldestQueuedSector.isNull() || !slowSectors.empty() || !tilePackets.empty()) {
+      || !npcStages.empty() || !oldestQueuedSector.isNull() || !slowSectors.empty() || !tilePackets.empty()
+      || !staleBaseTiles.empty() || !evictedBaseTiles.empty()) {
     Json report = JsonObject{
       {"component", m_component}, {"context", m_context}, {"instance", m_instance},
       {"windowMilliseconds", (now - m_windowStart) * 1000},
@@ -387,6 +417,7 @@ void ExplorationProfile::report(bool final) {
       {"entityTypes", std::move(entityTypes)}, {"slowEntities", std::move(slowEntities)},
       {"oldestQueuedSector", std::move(oldestQueuedSector)}, {"slowSectors", std::move(slowSectors)},
       {"tilePackets", std::move(tilePackets)},
+      {"staleBaseTiles", std::move(staleBaseTiles)}, {"evictedBaseTiles", std::move(evictedBaseTiles)},
       {"npcDetails", m_npcDetails}, {"npcStages", std::move(npcStages)},
       {"percentileMethod", "histogram-upper-bound-8-buckets-per-octave-1us"}
     };

@@ -4,8 +4,38 @@
 #include "StarSectorArray2D.hpp"
 
 #include "StarWorkerPool.hpp"
+#include <array>
 
 namespace Star {
+
+enum class TileRevisionCause : size_t {
+  Other, CollisionQuery, CollisionCache, WorldGeneration, Liquid, Entity, Storage, Count
+};
+
+// The world thread owns tile mutations. Nested scopes attribute revision
+// changes without storing mod names or recording every tile in the log.
+class TileRevisionScope {
+public:
+  explicit TileRevisionScope(TileRevisionCause cause, bool enabled) : m_enabled(enabled) {
+    if (m_enabled) {
+      m_previous = currentCause();
+      currentCause() = cause;
+    }
+  }
+  ~TileRevisionScope() { if (m_enabled) currentCause() = m_previous; }
+  TileRevisionScope(TileRevisionScope const&) = delete;
+  TileRevisionScope& operator=(TileRevisionScope const&) = delete;
+
+  static TileRevisionCause current() { return currentCause(); }
+
+private:
+  static TileRevisionCause& currentCause() {
+    static thread_local TileRevisionCause cause = TileRevisionCause::Other;
+    return cause;
+  }
+  TileRevisionCause m_previous = TileRevisionCause::Other;
+  bool m_enabled;
+};
 
 // Storage container for world tiles that understands the sector based
 // non-euclidean nature of the World.
@@ -63,6 +93,10 @@ public:
   // handing out writable tile data.
   uint64_t sectorRevision(Sector const& sector) const;
   void markSectorDirty(Sector const& sector);
+  using RevisionCounts = std::array<uint64_t, static_cast<size_t>(TileRevisionCause::Count)>;
+  void beginRevisionTracking(Sector const& sector);
+  RevisionCounts takeRevisionTracking(Sector const& sector);
+  bool revisionTrackingEnabled() const { return !m_trackedRevisions.empty(); }
 
   bool sectorLoaded(Sector sector) const;
   List<Sector> loadedSectors() const;
@@ -146,6 +180,7 @@ private:
   Tile m_default;
   SectorArray m_tileSectors;
   StableHashMap<Sector, uint64_t> m_sectorRevisions;
+  StableHashMap<Sector, RevisionCounts> m_trackedRevisions;
 };
 
 template <typename Tile, unsigned SectorSize>
@@ -166,6 +201,7 @@ void TileSectorArray<Tile, SectorSize>::init(Vec2U const& size, Tile defaultTile
   m_tileSectors.init((size[0] + SectorSize - 1) / SectorSize, (size[1] + SectorSize - 1) / SectorSize);
   m_default = std::move(defaultTile);
   m_sectorRevisions.clear();
+  m_trackedRevisions.clear();
 }
 
 template <typename Tile, unsigned SectorSize>
@@ -253,8 +289,28 @@ uint64_t TileSectorArray<Tile, SectorSize>::sectorRevision(Sector const& sector)
 
 template <typename Tile, unsigned SectorSize>
 void TileSectorArray<Tile, SectorSize>::markSectorDirty(Sector const& sector) {
-  if (sectorValid(sector))
+  if (sectorValid(sector)) {
     ++m_sectorRevisions[sector];
+    if (!m_trackedRevisions.empty()) {
+      if (auto tracked = m_trackedRevisions.ptr(sector))
+        ++(*tracked)[static_cast<size_t>(TileRevisionScope::current())];
+    }
+  }
+}
+
+template <typename Tile, unsigned SectorSize>
+void TileSectorArray<Tile, SectorSize>::beginRevisionTracking(Sector const& sector) {
+  m_trackedRevisions[sector] = RevisionCounts{};
+}
+
+template <typename Tile, unsigned SectorSize>
+auto TileSectorArray<Tile, SectorSize>::takeRevisionTracking(Sector const& sector) -> RevisionCounts {
+  RevisionCounts result{};
+  if (auto tracked = m_trackedRevisions.ptr(sector)) {
+    result = *tracked;
+    m_trackedRevisions.remove(sector);
+  }
+  return result;
 }
 
 template <typename Tile, unsigned SectorSize>

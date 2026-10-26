@@ -126,6 +126,8 @@ public:
   void recordQueuedSector(Vec2I sector, double seconds);
   void recordCompletedSector(Vec2I sector, double seconds);
   void recordTilePacket(Vec2I tileOrigin);
+  void recordBaseTileOutcome(Vec2I sector, bool stale, uint64_t revisionDelta,
+      JsonObject reasons, double ageSeconds);
   // Call at an outer operation boundary, never inside a timed scope. Final
   // reports preserve short windows when a world closes before the interval.
   void report(bool final = false);
@@ -176,6 +178,13 @@ private:
     double monotonicSeconds;
   };
 
+  struct BaseTileOutcome {
+    Vec2I sector;
+    uint64_t revisionDelta;
+    JsonObject reasons;
+    double ageSeconds;
+  };
+
   void recordEntity(Entity const& entity, double totalSeconds, double luaSeconds, double loggingSeconds);
   static thread_local EntityScope* s_currentEntityScope;
   static thread_local NpcScope* s_currentNpcScope;
@@ -201,6 +210,8 @@ private:
   Maybe<SectorWait> m_oldestQueuedSector;
   List<SectorWait> m_slowSectors;
   List<TilePacketSample> m_tilePackets;
+  List<BaseTileOutcome> m_staleBaseTiles;
+  List<BaseTileOutcome> m_evictedBaseTiles;
 };
 
 }

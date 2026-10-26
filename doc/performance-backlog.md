@@ -55,6 +55,9 @@ A [investigação de código](sector-generation-stall-investigation.md) encontro
 um caminho de consulta de colisão que eleva a revisão mesmo sem alteração
 persistente; a participação desse caminho nos eventos do log ainda precisa
 ser medida antes de modificar a regra de invalidação.
+A instrumentação de atribuição e coordenadas foi adicionada à branch;
+**pendem build e nova coleta** com o mesmo snapshot. Só usar os dados dessa
+coleta para decidir a correção da revisão e do descarte.
 
 ## Próxima coleta: vilarejo Mantizi
 

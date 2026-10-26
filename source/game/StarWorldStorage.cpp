@@ -822,6 +822,7 @@ float WorldStorage::randomizedSectorTTL() const {
 pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, SectorGenerationLevel targetGenerationLevel,
     size_t sectorGenerationLevelLimit, bool allowAsync, double generationDeadline) {
   STAR_TRACE_ZONE("WorldStorage generate sector");
+  TileRevisionScope revisionScope(TileRevisionCause::WorldGeneration, m_tileArray->revisionTrackingEnabled());
   if (Time::monotonicTime() >= generationDeadline) {
     if (m_explorationProfile)
       m_explorationProfile->count("generation.blocked.deadline");
@@ -922,6 +923,7 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
 
 void WorldStorage::loadSectorToLevel(Sector const& sector, SectorLoadLevel targetLoadLevel) {
   STAR_TRACE_ZONE("WorldStorage load sector");
+  TileRevisionScope revisionScope(TileRevisionCause::Storage, m_tileArray->revisionTrackingEnabled());
   if (!m_tileArray->sectorValid(sector))
     return;
 

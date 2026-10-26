@@ -124,6 +124,38 @@ WorkerPool& worldSectorWorkerPool() {
   return pool;
 }
 
+JsonObject revisionReasonJson(ServerTileSectorArray::RevisionCounts const& counts, ExplorationProfile* profile, bool stale) {
+  static char const* const reasonNames[] = {
+    "other", "collisionQuery", "collisionCache", "worldGeneration", "liquid", "entity", "storage"
+  };
+  static char const* const staleCounterNames[] = {
+    "generation.baseTiles.staleRevision.other", "generation.baseTiles.staleRevision.collisionQuery",
+    "generation.baseTiles.staleRevision.collisionCache", "generation.baseTiles.staleRevision.worldGeneration",
+    "generation.baseTiles.staleRevision.liquid", "generation.baseTiles.staleRevision.entity",
+    "generation.baseTiles.staleRevision.storage"
+  };
+  static char const* const evictedCounterNames[] = {
+    "generation.baseTiles.evictedRevision.other", "generation.baseTiles.evictedRevision.collisionQuery",
+    "generation.baseTiles.evictedRevision.collisionCache", "generation.baseTiles.evictedRevision.worldGeneration",
+    "generation.baseTiles.evictedRevision.liquid", "generation.baseTiles.evictedRevision.entity",
+    "generation.baseTiles.evictedRevision.storage"
+  };
+  static_assert(sizeof(reasonNames) / sizeof(*reasonNames) == static_cast<size_t>(TileRevisionCause::Count),
+      "Tile revision reason labels");
+  static_assert(sizeof(staleCounterNames) / sizeof(*staleCounterNames) == static_cast<size_t>(TileRevisionCause::Count),
+      "Stale revision counter labels");
+  static_assert(sizeof(evictedCounterNames) / sizeof(*evictedCounterNames) == static_cast<size_t>(TileRevisionCause::Count),
+      "Evicted revision counter labels");
+  JsonObject reasons;
+  for (size_t i = 0; i < counts.size(); ++i) {
+    if (counts[i]) {
+      reasons.set(reasonNames[i], counts[i]);
+      profile->count(stale ? staleCounterNames[i] : evictedCounterNames[i], counts[i]);
+    }
+  }
+  return reasons;
+}
+
 }
 
 LiquidWorld::LiquidWorld(WorldServer* world) {
@@ -746,6 +778,8 @@ WorldGenerator::WorldGenerator(WorldServer* server) : m_worldServer(server) {
 SectorGenerationResult WorldGenerator::generateSectorLevel(WorldStorage* worldStorage, Sector const& sector,
     SectorGenerationLevel generationLevel, bool allowAsync) {
   STAR_TRACE_ZONE("Generate sector level");
+  TileRevisionScope revisionScope(TileRevisionCause::WorldGeneration,
+      worldStorage->tileArray()->revisionTrackingEnabled());
   if (generationLevel == SectorGenerationLevel::BaseTiles) {
     STAR_TRACE_ZONE("Generate base tiles");
     return prepareTilesAsync(worldStorage, sector, allowAsync);
@@ -769,8 +803,14 @@ SectorGenerationResult WorldGenerator::generateSectorLevel(WorldStorage* worldSt
 }
 
 void WorldGenerator::sectorLoadLevelChanged(WorldStorage* worldStorage, Sector const& sector, SectorLoadLevel loadLevel) {
-  if (loadLevel == SectorLoadLevel::None)
+  if (loadLevel == SectorLoadLevel::None) {
+    if (m_pendingBaseTiles.contains(sector)) {
+      if (auto profile = m_worldServer->explorationProfile())
+        profile->count("generation.baseTiles.pendingRemovedOnUnload");
+      worldStorage->tileArray()->takeRevisionTracking(sector);
+    }
     m_pendingBaseTiles.remove(sector);
+  }
 
   if (loadLevel == SectorLoadLevel::Loaded) {
     if (worldStorage->sectorGenerationLevel(sector) == SectorGenerationLevel::Complete)
@@ -912,6 +952,7 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
     bool templateRevisionCurrent = m_worldServer->worldTemplate()->generationRevision() == pending->sourceTemplateRevision;
     bool snapshotStillCurrent = tilesCurrent && revisionCurrent && templateCurrent && templateRevisionCurrent;
     if (profile) {
+      auto revisions = worldStorage->tileArray()->takeRevisionTracking(sector);
       profile->count("generation.baseTiles.resultsReady");
       profile->record("generation.baseTiles.queueDelay", result.queueSeconds);
       profile->record("generation.baseTiles.commitDelay", Time::monotonicTime() - result.completedAt);
@@ -924,6 +965,12 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
         profile->count("generation.baseTiles.staleTemplate");
       if (!templateRevisionCurrent)
         profile->count("generation.baseTiles.staleTemplateRevision");
+      if (!snapshotStillCurrent) {
+        auto currentRevision = worldStorage->tileArray()->sectorRevision(sector);
+        profile->recordBaseTileOutcome(Vec2I((int)sector[0], (int)sector[1]), true,
+            currentRevision - pending->sourceTileRevision,
+            revisionReasonJson(revisions, profile, true), now - pending->scheduledAt);
+      }
     }
     m_pendingBaseTiles.remove(sector);
     if (!snapshotStillCurrent) {
@@ -959,6 +1006,14 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
     }
 
     if (oldestCompletedSector) {
+      if (profile) {
+        auto evicted = m_pendingBaseTiles.ptr(*oldestCompletedSector);
+        auto revisions = worldStorage->tileArray()->takeRevisionTracking(*oldestCompletedSector);
+        auto currentRevision = worldStorage->tileArray()->sectorRevision(*oldestCompletedSector);
+        profile->recordBaseTileOutcome(Vec2I((int)(*oldestCompletedSector)[0], (int)(*oldestCompletedSector)[1]), false,
+            currentRevision - evicted->sourceTileRevision,
+            revisionReasonJson(revisions, profile, false), now - evicted->scheduledAt);
+      }
       m_pendingBaseTiles.remove(*oldestCompletedSector);
       if (profile)
         profile->count("generation.baseTiles.readyResultsEvicted");
@@ -997,6 +1052,8 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
         double completedAt = Time::monotonicTime();
         return PreparedBaseTiles{std::move(*tilesHolder), completedAt - start, start - scheduledAt, completedAt};
       });
+  if (profile)
+    tileArray->beginRevisionTracking(sector);
   m_pendingBaseTiles[sector] = PendingBaseTiles{
     sourceTiles,
     sourceTileRevision,

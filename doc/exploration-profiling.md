@@ -203,6 +203,26 @@ As demais etapas têm os mesmos rótulos `.microDungeons`, `.caveLiquid`,
 impedimento pode aumentar o contador da etapa original e vários contadores
 `.neighbor`. São eventos de tentativa, não setores únicos bloqueados.
 
+Para identificar a origem de resultados obsoletos, o array de tiles acompanha
+revisões **apenas nos setores com um worker de tiles básicos pendente**. Os
+contadores `generation.baseTiles.staleRevision.*` e `.evictedRevision.*`
+classificam incrementos de revisão ocorridos antes de um resultado ser
+invalidado ou descartado. Os sufixos são `collisionQuery` (primeira passagem
+de consulta de colisão), `collisionCache` (reconstrução/invalidação do cache),
+`worldGeneration`, `liquid`, `entity`, `storage` e `other`. Um incremento é um
+acesso mutável, não necessariamente uma alteração persistente nem um setor
+único. `other` inclui caminhos fora dos escopos classificados.
+
+`staleBaseTiles` e `evictedBaseTiles` mostram até `entityDetailLimit` eventos
+de cada tipo por janela, priorizados pela idade da tarefa. Cada entrada tem
+coordenadas do setor, idade, diferença da revisão e contadores por causa.
+`generation.baseTiles.pendingRemovedOnUnload` conta entradas removidas quando
+um setor descarrega, inclusive se o worker ainda estiver em execução. A
+coleta de causas aumenta o trabalho por acesso mutável enquanto há setores
+monitorados; compare desempenho final com `explorationProfiling` desligado.
+Os rótulos identificam o contexto de execução no código, não provam sozinhos
+que cada alteração de revisão exigia descartar o resultado.
+
 ### Chamadas de objetos e montagem de dungeons
 
 `object.worldCall.containerRead`, `.containerWrite`, `.callScriptedEntity`,

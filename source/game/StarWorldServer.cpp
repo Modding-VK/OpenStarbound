@@ -1146,6 +1146,7 @@ void WorldServer::update(float dt) {
   m_performanceEntitySecondsThisTick = 0;
   {
     STAR_TRACE_ZONE("WorldServer entities");
+    TileRevisionScope revisionScope(TileRevisionCause::Entity, m_tileArray->revisionTrackingEnabled());
     bool npcDetails = m_explorationProfile && m_explorationProfile->npcDetailsEnabled();
     uint64_t updatedNpcs = 0;
     WorldPerformanceCategory entityGroup = WorldPerformanceCategory::OtherEntities;
@@ -1259,6 +1260,7 @@ void WorldServer::update(float dt) {
   recordProfileStage(UpdateProfileStage::Weather);
 
   if (shouldRunThisStep("liquidUpdate")) {
+    TileRevisionScope revisionScope(TileRevisionCause::Liquid, m_tileArray->revisionTrackingEnabled());
     m_liquidEngine->setProcessingLimit(m_fidelityConfig.optUInt("liquidEngineBackgroundProcessingLimit"));
     m_liquidEngine->setNoProcessingLimitRegions(clientMonitoringRegions);
     m_liquidEngine->update();
@@ -2839,6 +2841,7 @@ void WorldServer::writeNetTile(Vec2I const& pos, NetTile& netTile) const {
 }
 
 void WorldServer::dirtyCollision(RectI const& region) {
+  TileRevisionScope revisionScope(TileRevisionCause::CollisionCache, m_tileArray->revisionTrackingEnabled());
   auto dirtyRegion = region.padded(CollisionGenerator::BlockInfluenceRadius);
   for (int x = dirtyRegion.xMin(); x < dirtyRegion.xMax(); ++x) {
     for (int y = dirtyRegion.yMin(); y < dirtyRegion.yMax(); ++y) {
@@ -2850,16 +2853,20 @@ void WorldServer::dirtyCollision(RectI const& region) {
 
 void WorldServer::freshenCollision(RectI const& region) {
   RectI freshenRegion = RectI::null();
-  for (int x = region.xMin(); x < region.xMax(); ++x) {
-    for (int y = region.yMin(); y < region.yMax(); ++y) {
-      if (auto tile = m_tileArray->modifyTile({x, y})) {
-        if (tile->collisionCacheDirty)
-          freshenRegion.combine(RectI(x, y, x + 1, y + 1));
+  {
+    TileRevisionScope revisionScope(TileRevisionCause::CollisionQuery, m_tileArray->revisionTrackingEnabled());
+    for (int x = region.xMin(); x < region.xMax(); ++x) {
+      for (int y = region.yMin(); y < region.yMax(); ++y) {
+        if (auto tile = m_tileArray->modifyTile({x, y})) {
+          if (tile->collisionCacheDirty)
+            freshenRegion.combine(RectI(x, y, x + 1, y + 1));
+        }
       }
     }
   }
 
   if (!freshenRegion.isNull()) {
+    TileRevisionScope revisionScope(TileRevisionCause::CollisionCache, m_tileArray->revisionTrackingEnabled());
     for (int x = freshenRegion.xMin(); x < freshenRegion.xMax(); ++x) {
       for (int y = freshenRegion.yMin(); y < freshenRegion.yMax(); ++y) {
         if (auto tile = m_tileArray->modifyTile({x, y})) {

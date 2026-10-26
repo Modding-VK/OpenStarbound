@@ -1,6 +1,7 @@
 # Investigação: revisões de setor e descarte de tiles básicos
 
-Estado: análise de código e do log de 26/10/2026. Nenhuma correção de geração
+Estado: análise de código e do log de 26/10/2026. A instrumentação de causas
+de revisão foi acrescentada na branch de trabalho; nenhuma correção de geração
 foi aplicada nesta etapa. Referência quantitativa em
 [performance-baseline.md](performance-baseline.md).
 
@@ -81,6 +82,13 @@ cache, geração/estrutura, líquido, ação ou script), revisão inicial/final,
 coordenadas das invalidações e coordenadas/motivo dos descartes prontos. Essa
 coleta deve ficar desativada fora da build diagnóstica ou do perfil de
 exploração, sem nomes ou argumentos dinâmicos de mods no log.
+
+A instrumentação agora mantém contadores por causa somente nos setores com
+resultado de tiles básicos pendente. O relatório separa causas em resultados
+invalidados e descartados, e conserva coordenadas limitadas por janela; ver
+[campos do perfil](exploration-profiling.md). Falta uma execução da nova build
+com o mesmo snapshot para obter os percentuais por causa. A categoria `other`
+permanece necessária para alterações fora dos escopos conhecidos.
 
 Com a origem confirmada, separar revisão de conteúdo persistente das mudanças
 de cache derivado, **sem** permitir que a aplicação do snapshot sobrescreva
