@@ -181,5 +181,8 @@ de FPS ou de throughput por si só.
 5. Revisar custo das zonas e manter na build normal apenas código compilado
    para zero trabalho quando Tracy estiver desligado.
 
-A inclusão do instalador Tracy aguarda execução manual no runner Windows;
-nenhuma build foi iniciada para validar essa alteração de empacotamento.
+Na execução manual [#24 de 26/10/2026](actions-run-audit-2026-10-26.md), a
+configuração da build Tracy falhou antes da compilação por misturar assinaturas
+de `target_link_libraries` nos executáveis. O instalador Tracy e a captura
+local continuam sem validação. Corrigir o CMake antes de repetir a execução
+manual, conforme a auditoria; não iniciar workflow automaticamente.

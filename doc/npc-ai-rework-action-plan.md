@@ -350,10 +350,10 @@ as limitações de cobertura.
   de integrar em `main`, conforme as instruções do projeto.
 - Iniciar a build Windows somente quando solicitada pelo usuário. Os gatilhos
   de push e pull request foram removidos; não fazer dispatch após cada alteração.
-  Essa decisão substitui a preferência anterior de início automático.
-  No último estado verificado, Actions
-  estava desabilitado para este repositório; enquanto isso persistir, registrar
-  o bloqueio. Compilação parcial Linux não valida o executável Windows.
+  Essa decisão substitui a preferência anterior de início automático. Em
+  26/10/2026, a [auditoria de runs](actions-run-audit-2026-10-26.md) confirmou
+  que o Actions voltou a executar jobs; o build Windows normal #25 concluiu.
+  Compilação parcial Linux não valida o executável Windows.
 - Usar somente dependências oficiais, fixadas e verificadas conforme
   [dependency-sources.md](dependency-sources.md). Não copiar implementações
   externas; registrar referências e escrever a implementação do projeto.

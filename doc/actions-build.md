@@ -1,5 +1,10 @@
 # GitHub Actions build flow
 
+The [26 October 2026 run audit](actions-run-audit-2026-10-26.md) records the
+recent skipped run, the Tracy configure failure, and why the successful
+Windows installer run did not publish a GitHub Release. Workflow execution
+remains manual.
+
 The Windows workflow builds four downloadable artifacts:
 
 - the raw development `dist` tree;
