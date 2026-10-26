@@ -29,10 +29,17 @@
 #include "StarJsonExtra.hpp"
 #include "StarDanceDatabase.hpp"
 #include "StarSpeciesDatabase.hpp"
+#include "StarWorldServer.hpp"
 #include "StarNetworkedAnimatorLuaBindings.hpp"
 #include "StarScriptedAnimatorLuaBindings.hpp"
 
+#include <atomic>
+
 namespace Star {
+
+namespace {
+std::atomic<uint64_t> NextNpcShadowIncarnation{1};
+}
 
 Npc::Npc(NpcVariant const& npcVariant) {
 
@@ -178,6 +185,15 @@ void Npc::init(World* world, EntityId entityId, EntityMode mode, ConnectionId or
   Entity::init(world, entityId, mode, originConnection);
   m_movementController->init(world);
   m_movementController->setIgnorePhysicsEntities({entityId});
+  if (isMaster() && dynamic_cast<WorldServer*>(world) && NpcPathShadow::enabled()) {
+    m_shadowPathAlive = make_shared<atomic<bool>>(true);
+    m_shadowPathIncarnation = NextNpcShadowIncarnation.fetch_add(1, std::memory_order_relaxed);
+    m_shadowPathSequence = 0;
+    m_movementController->setPathStartObserver([this](Vec2F const& from, Vec2F const& to,
+        ActorMovementParameters const& movement, PlatformerAStar::Parameters const& search) {
+      submitShadowPath(from, to, movement, search);
+    });
+  }
   m_statusController->init(this, m_movementController.get());
   m_tools->init(this);
 
@@ -216,6 +232,11 @@ void Npc::init(World* world, EntityId entityId, EntityMode mode, ConnectionId or
 
 void Npc::uninit() {
   ExplorationProfile::NpcScope profile(inWorld() ? world() : nullptr, ExplorationProfile::NpcStage::Uninit);
+  if (m_shadowPathAlive)
+    m_shadowPathAlive->store(false);
+  m_movementController->setPathStartObserver({});
+  m_shadowPathPromise.reset();
+  m_shadowPathAlive.reset();
   if (isMaster()) {
     m_movementController->resetAnchorState();
     m_scriptComponent.uninit();
@@ -413,6 +434,7 @@ void Npc::update(float dt, uint64_t) {
     return;
 
   ExplorationProfile::NpcScope profile(world(), ExplorationProfile::NpcStage::Update);
+  collectShadowPath();
   m_movementController->setTimestep(dt);
 
   if (isMaster()) {
@@ -526,6 +548,88 @@ void Npc::update(float dt, uint64_t) {
 
   if (world()->isClient())
     SpatialLogger::logPoly("world", m_movementController->collisionBody(), {0, 255, 0, 255});
+}
+
+void Npc::submitShadowPath(Vec2F const& from, Vec2F const& to,
+    ActorMovementParameters const& movement, PlatformerAStar::Parameters const& search) {
+  auto server = dynamic_cast<WorldServer*>(world());
+  if (!server || !m_shadowPathAlive || !m_shadowPathAlive->load())
+    return;
+
+  auto profile = server->explorationProfile();
+  if (m_shadowPathPromise) {
+    if (profile)
+      profile->count("npc.shadow.npcBusy");
+    return;
+  }
+
+  NpcShadowPathIdentity identity{
+      server->instanceEpoch(), entityId(), m_shadowPathIncarnation,
+      ++m_shadowPathSequence, server->currentStep()};
+  auto submission = NpcPathShadow::submit(server, identity, from, to,
+      movement, search, m_shadowPathAlive);
+  if (profile) {
+    switch (submission.status) {
+      case NpcShadowPathSubmission::Status::Accepted: profile->count("npc.shadow.submitted"); break;
+      case NpcShadowPathSubmission::Status::Saturated: profile->count("npc.shadow.saturated"); break;
+      case NpcShadowPathSubmission::Status::MissingCoverage: profile->count("npc.shadow.missingCoverage"); break;
+      case NpcShadowPathSubmission::Status::CaptureUnavailable: profile->count("npc.shadow.captureUnavailable"); break;
+      case NpcShadowPathSubmission::Status::Disabled: break;
+    }
+  }
+  if (submission.promise)
+    m_shadowPathPromise = std::move(submission.promise);
+}
+
+void Npc::collectShadowPath() {
+  if (!m_shadowPathPromise || !m_shadowPathPromise->done())
+    return;
+
+  auto server = dynamic_cast<WorldServer*>(world());
+  auto profile = server ? server->explorationProfile() : nullptr;
+  try {
+    auto const& report = m_shadowPathPromise->get();
+    if (server && report.identity.worldEpoch == server->instanceEpoch()
+        && report.identity.npcId == entityId()
+        && report.identity.incarnation == m_shadowPathIncarnation
+        && report.identity.sequence == m_shadowPathSequence) {
+      if (profile) {
+        profile->count("npc.shadow.completed");
+        profile->count("npc.shadow.capturedTiles", report.capturedTiles);
+        profile->count("npc.shadow.missingTiles", report.missingTiles);
+        profile->count("npc.shadow.capturedBlocks", report.capturedBlocks);
+        profile->record("npc.shadow.capture", report.captureSeconds);
+        profile->record("npc.shadow.reference", report.referenceSeconds);
+        profile->record("npc.shadow.queue", report.queueSeconds);
+        profile->record("npc.shadow.worker", report.workerSeconds);
+        if (server->pathSectorRevisions(report.region) != report.sectorRevisions)
+          profile->count("npc.shadow.staleRevision");
+        if (report.reference == NpcShadowPathOutcome::PartialRoute)
+          profile->count("npc.shadow.partialRoute");
+        if (report.worker == NpcShadowPathOutcome::Cancelled)
+          profile->count("npc.shadow.cancelled");
+        else if (report.reference == NpcShadowPathOutcome::MissingCoverage
+            || report.worker == NpcShadowPathOutcome::MissingCoverage)
+          profile->count("npc.shadow.missingCoverage");
+        else if (report.reference == NpcShadowPathOutcome::SearchLimit
+            || report.worker == NpcShadowPathOutcome::SearchLimit)
+          profile->count("npc.shadow.searchLimit");
+        else if (report.reference == NpcShadowPathOutcome::Error
+            || report.worker == NpcShadowPathOutcome::Error)
+          profile->count("npc.shadow.error");
+        else if (report.matches)
+          profile->count("npc.shadow.matches");
+        else
+          profile->count("npc.shadow.mismatches");
+      }
+    } else if (profile) {
+      profile->count("npc.shadow.staleResult");
+    }
+  } catch (...) {
+    if (profile)
+      profile->count("npc.shadow.error");
+  }
+  m_shadowPathPromise.reset();
 }
 
 void Npc::render(RenderCallback* renderCallback) {

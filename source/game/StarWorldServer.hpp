@@ -69,6 +69,10 @@ public:
 
   void setWorldId(String worldId);
   String const& worldId() const;
+  // Unique for each loaded WorldServer instance, including reloads of one save.
+  uint64_t instanceEpoch() const;
+  // Owner-thread diagnostic stamp. Missing means the sector was unloaded.
+  List<pair<Vec2S, Maybe<uint64_t>>> pathSectorRevisions(RectI const& region) const;
 
   void setUniverseSettings(UniverseSettingsPtr universeSettings);
   UniverseSettingsPtr universeSettings() const;
@@ -464,6 +468,7 @@ private:
   WorldGeometry m_geometry;
   double m_currentTime;
   uint64_t m_currentStep;
+  uint64_t m_instanceEpoch = 0;
   bool m_updateProfilingEnabled = false;
   ExplorationProfilePtr m_explorationProfile;
   std::array<UpdateProfileTiming, UpdateProfileStageCount> m_updateProfile{};

@@ -641,7 +641,7 @@ void ActorMovementController::controlFly(Vec2F const& velocity) {
 
 Maybe<pair<Vec2F, bool>> ActorMovementController::pathMove(Vec2F const& position, bool, Maybe<PlatformerAStar::Parameters> const& parameters) {
   if (!m_pathController)
-    m_pathController = make_shared<PathController>(world());
+    m_pathController = make_shared<PathController>(world(), m_pathStartObserver);
 
   // set new parameters if they have changed
   if (m_pathController->targetPosition().isNothing() || (parameters && m_pathController->parameters() != *parameters)) {
@@ -670,6 +670,12 @@ Maybe<pair<Vec2F, bool>> ActorMovementController::controlPathMove(Vec2F const& p
     m_controlPathMove = pair<Vec2F, bool>(position, run);
 
   return result;
+}
+
+void ActorMovementController::setPathStartObserver(PathStartObserver observer) {
+  m_pathStartObserver = std::move(observer);
+  if (m_pathController)
+    m_pathController->setStartObserver(m_pathStartObserver);
 }
 
 void ActorMovementController::setMoveSpeedMultiplier(float scale) {
@@ -1086,8 +1092,12 @@ void ActorMovementController::doSetAnchorState(Maybe<EntityAnchorState> anchorSt
 }
 
 
-PathController::PathController(World* world)
-  : m_world(world), m_edgeTimer(0.0) { }
+PathController::PathController(World* world, ActorMovementController::PathStartObserver observer)
+  : m_world(world), m_startObserver(std::move(observer)), m_edgeTimer(0.0) { }
+
+void PathController::setStartObserver(ActorMovementController::PathStartObserver observer) {
+  m_startObserver = std::move(observer);
+}
 
 PlatformerAStar::Parameters const& PathController::parameters() {
   return m_parameters;
@@ -1148,6 +1158,13 @@ Maybe<bool> PathController::findPath(ActorMovementController& movementController
     }
     m_startPosition = movementController.position();
     m_targetPosition = targetPosition;
+    if (m_startObserver) {
+      // Diagnostics cannot interrupt the authoritative serial path.
+      try {
+        m_startObserver(*m_startPosition, *m_targetPosition,
+            movementController.baseParameters(), m_parameters);
+      } catch (...) {}
+    }
     m_pathFinder = make_shared<PathFinder>(m_world, movementController.position(), *m_targetPosition, movementController.baseParameters(), m_parameters);
   }
 

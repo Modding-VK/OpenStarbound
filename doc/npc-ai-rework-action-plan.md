@@ -5,16 +5,18 @@ Plano elaborado em 25/10/2026 na branch `perf/threading-audit`, com base na
 histórico de decisões ali registrado. Integra o
 [backlog de desempenho](performance-backlog.md).
 
-**Estado: fase 0 em execução; fase 1 com fronteira serial inicial, ainda sem
-aprovação; fases 2–7 pendentes.** A
+**Estado: fase 0 em execução; fases 1–2 com protótipos desligados por padrão,
+ainda sem aprovação; fases 3–7 pendentes.** A
 [instrumentação detalhada](npc-profiling.md) foi acrescentada; baseline,
-latência de reação, inventário e aprovação da fase 0 ainda estão pendentes.
+latência de reação, inventário completo e aprovação da fase 0 ainda estão
+pendentes. Há uma [auditoria estática de Lua](npc-lua-boundary-audit.md) e um
+[protótipo de busca em modo sombra](npc-path-shadow.md).
 O primeiro marco executável compreende as fases 0–2: medição,
 fronteira de leitura e comparação paralela sem efeitos. Este documento não
 comprova ganho de desempenho nem significa que os NPCs já usam workers.
-O adaptador serial da fase 1 foi introduzido antes da aprovação da fase 0
-porque não habilita execução paralela; a captura e a comparação ainda dependem
-da medição planejada.
+O protótipo das fases 1–2 foi introduzido antes da aprovação da fase 0, mas
+permanece desligado. As decisões de ativação e migração dependem da medição
+planejada.
 
 ## 1. Objetivo e decisões iniciais
 
@@ -138,8 +140,8 @@ Não iniciar migração ampla enquanto o primeiro marco não produzir evidência
 | Fase | Entrega | Dependência | Estado |
 | --- | --- | --- | --- |
 | 0 | Baseline e inventário de acessos | Nenhuma | Em execução; coleta pendente |
-| 1 | Contrato de leitura e snapshots | 0 aprovada para ativação | Fronteira serial inicial; snapshots e aprovação pendentes |
-| 2 | Comparação paralela sem efeitos | 1 aprovada | Pendente |
+| 1 | Contrato de leitura e snapshots | 0 aprovada para ativação | Protótipo imutável escrito; equivalência e aprovação pendentes |
+| 2 | Comparação paralela sem efeitos | 1 aprovada | Fila sombra opt-in escrita; validação em jogo pendente |
 | 3 | Pathfinding ativo opcional | 2 aprovada | Pendente |
 | 4 | Interações coordenadas limitadas | 3 aprovada | Pendente |
 | 5 | Simulação própria para grupo controlado | 4 aprovada | Pendente |
@@ -150,6 +152,9 @@ Não iniciar migração ampla enquanto o primeiro marco não produzir evidência
 
 - [x] Acrescentar escopos de etapas NPC, callbacks, pathfinding, interações e
       percentis limitados em memória; ver [cobertura e limites](npc-profiling.md).
+- [x] Inspecionar estaticamente as entradas Lua da engine e os bindings
+      síncronos; ver [auditoria](npc-lua-boundary-audit.md). Inventário de
+      scripts vanilla/FU e frequência real ainda pendentes.
 - [ ] Separar custo de Lua periódico, outros callbacks, pathfinding, movimento,
       status, logging e interações, evitando somar tempos inclusivos duplicados.
 - [ ] Mapear leituras, escritas, chamadas síncronas, RNG e produtores de mudanças
@@ -175,46 +180,51 @@ revisão/decisão: pendente; questões abertas: inventário e marcadores de rea�
       `World`, agora pelo adaptador.
 - [ ] Confirmar equivalência dos resultados e custo da indireção no caminho
       serial antes de habilitar qualquer fonte alternativa.
-- [ ] Cobrir essas leituras em um snapshot: geometria, colisões dinâmicas,
+- [x] Cobrir essas leituras em um snapshot: geometria, colisões dinâmicas,
       plataformas, líquidos e gravidade.
-- [ ] Representar wrap horizontal, regiões ausentes e obstáculos sem referências
-      mutáveis. Definir consistência de captura e publicação por região.
-- [ ] Incluir revisões de alterações locais e ciclo de vida dos alvos;
-      delimitar expansão de busca e custo máximo de captura.
+- [x] Representar wrap horizontal e regiões ausentes sem referências ao mundo
+      no worker; falta comprovar equivalência em cenários conhecidos.
+- [x] Registrar época, encarnação, sequência e revisões por setor para
+      diagnóstico; ainda faltam revisões semânticas e validade do alvo para
+      aceitar resultados de uma rota ativa.
+- [x] Delimitar região, quantidade de tiles/blocos e exploração de nós;
+      ainda falta limite em bytes e tempo de captura.
 - [ ] Documentar propriedade de memória e liberação de snapshots ainda em uso.
 
 **Aprovação:** equivalência do adaptador serial e das consultas sobre estados
 congelados conhecidos; nenhuma referência ao mundo mutável retida pelo worker.
 Uma rota que alcance região ausente termina com motivo explícito.
 
-**Registro:** commit: esta entrega; build: pendente; cenário/artefatos: pendentes; equivalência e
+**Registro:** commit: esta entrega; seis unidades C++ afetadas compiladas como
+objetos no Linux, linkagem/Windows pendentes; cenário/artefatos, equivalência e
 custo de captura: pendentes; revisão/decisão: pendente; questões abertas: cobertura.
 
-**Primeiro recorte de código:** `PathReadSource` reúne geometria, blocos de
-colisão, colisão retangular, líquido e gravidade. `WorldPathReadSource` repassa
-essas consultas ao mundo no mesmo contexto serial de antes; nenhum worker usa
-essa fonte. O próximo recorte deve criar snapshots imutáveis, delimitar
-cobertura e propagar consulta indisponível sem aceitar uma rota incompleta.
-`World::forEachCollisionBlock` pode atualizar caches, por isso não pode ser
-chamado a partir do worker por meio desse adaptador.
+**Recorte implementado:** `PathReadSource` reúne geometria, blocos de colisão,
+colisão retangular, líquido e gravidade. `WorldPathReadSource` repassa essas
+consultas no caminho legado. `PathSnapshot` copia valores na thread do mundo,
+rejeita cobertura ausente e é a única fonte usada pelo worker sombra. A
+captura ainda pode atualizar caches e revisões; ver [limites](npc-path-shadow.md).
 
 ### Fase 2 — Comparação paralela sem efeitos
 
-- [ ] Criar uma thread experimental com admissão limitada e cancelamento lógico.
-- [ ] Executar referência serial e cálculo paralelo sobre o **mesmo snapshot**,
+- [x] Criar um pool experimental com admissão limitada e cancelamento lógico.
+- [x] Executar referência serial e cálculo paralelo sobre o **mesmo snapshot**,
       parâmetros e estado de RNG/desempate; manter a simulação normal autoritativa.
-- [ ] Comparar rotas, estados finais da busca, decisões e razões de falha.
-      Diferenças contra o mundo vivo são registradas separadamente como frescor.
-- [ ] Medir captura, espera, execução, divergências, descartes e memória retida.
+- [x] Comparar rotas, estado final e razão de falha dessa busca pura; a
+      diferença de revisão registra possível obsolescência, mas não compara
+      diretamente a rota com o mundo vivo.
+- [x] Instrumentar captura, espera, execução, divergências e descartes;
+      memória retida e divergências em jogo ainda pendentes.
 - [ ] Exercitar saturação, cancelamento, morte/remoção do NPC e descarga do mundo.
-- [ ] Garantir por contrato que resultados experimentais nunca sejam instalados.
+- [x] Garantir por contrato que resultados experimentais nunca sejam instalados.
 
 **Aprovação:** nenhuma divergência determinística sem explicação, recursos
 limitados e encerramento seguro. Esta fase duplica cálculo e mede custo de
 diagnóstico; não pode demonstrar ganho da otimização ativa.
 
-**Registro:** commit/build: pendente; cenário/artefatos: pendentes; divergências e
-overhead: pendentes; revisão/decisão: pendente; questões abertas: prova de isolamento.
+**Registro:** commit: esta entrega; objetos Linux compilados, linkagem/Windows
+pendentes; cenário/artefatos, divergências e overhead: pendentes;
+revisão/decisão: pendente; questões abertas: prova de isolamento.
 
 ### Fase 3 — Pathfinding ativo opcional
 

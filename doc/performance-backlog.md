@@ -15,8 +15,11 @@ As pesquisas de operações estão separadas entre
 O [plano de ação de rework dos NPCs](npc-ai-rework-action-plan.md) organiza
 as fases e seus critérios de aprovação. O primeiro marco é medir, isolar
 leituras e comparar cálculos paralelos sem aplicar efeitos (fases 0–2);
-a fase 0 recebeu [instrumentação detalhada de NPCs](npc-profiling.md), mas
-baseline e aprovação ainda estão pendentes. As fases 1–7 não foram iniciadas.
+a fase 0 recebeu [instrumentação detalhada de NPCs](npc-profiling.md) e
+[auditoria estática da fronteira Lua](npc-lua-boundary-audit.md). As fases 1–2
+agora possuem um [protótipo de snapshot e busca sombra](npc-path-shadow.md)
+desligado por padrão; baseline, validação e aprovação continuam pendentes.
+As fases 3–7 ainda não foram iniciadas.
 O [modelo conceitual de externalização](npc-externalization-concept.md)
 define perfis legado, busca de rota em worker e Actor v1 opt-in, incluindo a
 API para NPCs customizados que reutilizam ações vanilla.

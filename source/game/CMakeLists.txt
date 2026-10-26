@@ -83,6 +83,7 @@ SET (star_game_HEADERS
     StarNetworkedAnimator.hpp
     StarNpc.hpp
     StarNpcDatabase.hpp
+    StarNpcPathShadow.hpp
     StarObject.hpp
     StarObjectDatabase.hpp
     StarParallax.hpp
@@ -94,6 +95,7 @@ SET (star_game_HEADERS
     StarPlantDrop.hpp
     StarPlatformerAStar.hpp
     StarPlatformerAStarTypes.hpp
+    StarPlatformerPathSnapshot.hpp
     StarPlayer.hpp
     StarPlayerBlueprints.hpp
     StarPlayerCodexes.hpp
@@ -358,6 +360,7 @@ SET (star_game_SOURCES
     StarNetworkedAnimator.cpp
     StarNpc.cpp
     StarNpcDatabase.cpp
+    StarNpcPathShadow.cpp
     StarObject.cpp
     StarObjectDatabase.cpp
     StarParallax.cpp
@@ -369,6 +372,7 @@ SET (star_game_SOURCES
     StarPlantDrop.cpp
     StarPlatformerAStar.cpp
     StarPlatformerAStarTypes.cpp
+    StarPlatformerPathSnapshot.cpp
     StarPlayer.cpp
     StarPlayerBlueprints.cpp
     StarPlayerCodexes.cpp

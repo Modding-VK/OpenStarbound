@@ -1,6 +1,7 @@
 # Modelo conceitual de NPCs com simulação externa à thread do mundo
 
-Estado: proposta de arquitetura, sem implementação nem migração automática.
+Estado: arquitetura Actor v1 proposta. O [protótipo de busca sombra](npc-path-shadow.md)
+das fases iniciais foi escrito, mas permanece desligado e não migra NPCs.
 Complementa a [pesquisa histórica](npc-ai-parallelism-hypotheses.md), o
 [plano por fases](npc-ai-rework-action-plan.md), a
 [instrumentação atual](npc-profiling.md) e a
@@ -15,7 +16,7 @@ sem conceder a scripts acesso concorrente ao mundo mutável.
 | --- | --- |
 | `Npc::update` executa Lua, movimento e status; outros callbacks de `Npc` também executam Lua fora do `update` ([StarNpc.cpp](../source/game/StarNpc.cpp)) | Migrar só `update` deixaria a VM e o estado do NPC acessíveis por dois caminhos. A propriedade deve abranger eventos, dano, interação, mensagens, destruição e persistência. |
 | `EntityMap::updateAllEntities` atualiza o índice espacial depois de cada callback ([StarEntityMap.cpp](../source/game/StarEntityMap.cpp)) | A ordem dentro de um tick é observável. O modo legado preserva essa ordem; o modo novo define sua própria fronteira de visibilidade. |
-| `PlatformerAStar` consultava `World*` para geometria, colisão, gravidade e líquidos; a primeira fronteira `PathReadSource` agora repassa essas leituras ao `World*` no caminho legado ([StarPlatformerAStar.cpp](../source/game/StarPlatformerAStar.cpp)) | Nenhum worker pode usar o adaptador serial. Ainda faltam snapshot, cobertura e propagação de consulta indisponível. |
+| `PlatformerAStar` usa `PathReadSource` para geometria, colisão, gravidade e líquidos; o caminho legado usa `World*`, e a comparação experimental usa um snapshot copiado ([StarPlatformerAStar.cpp](../source/game/StarPlatformerAStar.cpp), [StarPlatformerPathSnapshot.cpp](../source/game/StarPlatformerPathSnapshot.cpp)) | O worker só recebe o snapshot. Cobertura ausente cancela a busca; equivalência com o mundo vivo e revisões semânticas ainda precisam ser demonstradas. |
 | `PathController::validateEdge` chama `hasCapability` de uma porta e envia `openDoor` ([StarActorMovementController.cpp](../source/game/StarActorMovementController.cpp)) | Essa validação tem efeitos. A* puro e execução de borda são fases distintas; modo sombra jamais chama `validateEdge` sobre mundo vivo. |
 | `world.entityQuery` pode chamar script do alvo e ter ordem aleatória; `world.callScriptedEntity` chama Lua síncrono ([StarWorldLuaBindings.cpp](../source/game/scripting/StarWorldLuaBindings.cpp)) | A aparência de consulta não implica pureza. O contrato de leitura de Actor v1 aceita só consultas auditadas, com ordem e RNG definidos. |
 | O `ScriptableThread` atual recebe apenas bindings seguros e não o `world.*` completo ([StarWorldLuaBindings.cpp](../source/game/scripting/StarWorldLuaBindings.cpp)) | Ele não é uma solução pronta para mover scripts de NPC sem mudar a API. |

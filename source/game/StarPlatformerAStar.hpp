@@ -38,7 +38,8 @@ namespace PlatformerAStar {
         Vec2F searchFrom,
         Vec2F searchTo,
         ActorMovementParameters movementParameters,
-        Parameters searchParameters = Parameters());
+        Parameters searchParameters = Parameters(),
+        bool recordNpcProfile = true);
 
     // Does not preserve current search state.
     PathFinder(PathFinder const& rhs);
@@ -51,6 +52,7 @@ namespace PlatformerAStar {
     enum class BoundBoxKind { Full, Drop, Stand };
 
     void initAStar();
+    void initAStarImpl();
 
     float heuristicCost(Vec2F const& fromPosition, Vec2F const& toPosition) const;
     Edge defaultCostEdge(Action action, Node const& source, Node const& target) const;
@@ -88,6 +90,7 @@ namespace PlatformerAStar {
     float distance(Vec2F a, Vec2F b) const;
 
     shared_ptr<PathReadSource const> m_readSource;
+    bool m_recordNpcProfile = true;
     Vec2F m_searchFrom;
     Vec2F m_searchTo;
     ActorMovementParameters m_movementParams;

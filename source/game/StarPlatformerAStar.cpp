@@ -86,8 +86,10 @@ namespace PlatformerAStar {
       Vec2F searchFrom,
       Vec2F searchTo,
       ActorMovementParameters movementParameters,
-      Parameters searchParameters)
+      Parameters searchParameters,
+      bool recordNpcProfile)
     : m_readSource(std::move(readSource)),
+      m_recordNpcProfile(recordNpcProfile),
       m_searchFrom(searchFrom),
       m_searchTo(searchTo),
       m_movementParams(std::move(movementParameters)),
@@ -101,6 +103,7 @@ namespace PlatformerAStar {
 
   PathFinder& PathFinder::operator=(PathFinder const& rhs) {
     m_readSource = rhs.m_readSource;
+    m_recordNpcProfile = rhs.m_recordNpcProfile;
     m_searchFrom = rhs.m_searchFrom;
     m_searchTo = rhs.m_searchTo;
     m_movementParams = rhs.m_movementParams;
@@ -111,6 +114,8 @@ namespace PlatformerAStar {
 
   Maybe<bool> PathFinder::explore(Maybe<unsigned> maxExploreNodes) {
     STAR_TRACE_ZONE("Platformer path explore");
+    if (!m_recordNpcProfile)
+      return m_astar->explore(maxExploreNodes);
     ExplorationProfile::NpcScope profile(ExplorationProfile::NpcStage::PathExplore);
     auto result = m_astar->explore(maxExploreNodes);
     ExplorationProfile::recordNpcPathResult(result);
@@ -123,7 +128,15 @@ namespace PlatformerAStar {
 
   void PathFinder::initAStar() {
     STAR_TRACE_ZONE("Platformer path init");
-    ExplorationProfile::NpcScope profile(ExplorationProfile::NpcStage::PathInit);
+    if (m_recordNpcProfile) {
+      ExplorationProfile::NpcScope profile(ExplorationProfile::NpcStage::PathInit);
+      initAStarImpl();
+    } else {
+      initAStarImpl();
+    }
+  }
+
+  void PathFinder::initAStarImpl() {
     auto heuristicCostFn = [this](Node const& fromNode, Node const& toNode) -> float {
       return heuristicCost(fromNode.position, toNode.position);
     };

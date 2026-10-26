@@ -146,6 +146,9 @@ DataStream& operator<<(DataStream& ds, ActorMovementModifiers const& movementMod
 
 class ActorMovementController : public virtual MovementController {
 public:
+  using PathStartObserver = function<void(Vec2F const&, Vec2F const&,
+      ActorMovementParameters const&, PlatformerAStar::Parameters const&)>;
+
   // Constructs an ActorMovementController with parameters loaded from sensible
   // defaults, and the given parameters (if any) applied on top of them.
   explicit ActorMovementController(ActorMovementParameters const& parameters = ActorMovementParameters());
@@ -232,6 +235,8 @@ public:
 
   Maybe<pair<Vec2F, bool>> pathMove(Vec2F const& pathPosition, bool run = false, Maybe<PlatformerAStar::Parameters> const& parameters = {});
   Maybe<pair<Vec2F, bool>> controlPathMove(Vec2F const& pathPosition, bool run = false, Maybe<PlatformerAStar::Parameters> const& parameters = {});
+  // Diagnostic observer; it cannot install a route or change movement.
+  void setPathStartObserver(PathStartObserver observer);
 
   // Used for user controller input.
   void setMoveSpeedMultiplier(float multiplier = 1.0f);
@@ -302,6 +307,7 @@ private:
   Maybe<pair<Vec2F, bool>> m_controlPathMove;
   Maybe<pair<Vec2F, bool>> m_pathMoveResult;
   PathControllerPtr m_pathController;
+  PathStartObserver m_pathStartObserver;
 
   ActorMovementParameters m_controlParameters;
   ActorMovementModifiers m_controlModifiers;
@@ -323,7 +329,8 @@ private:
 
 class PathController {
 public:
-  PathController(World* world);
+  PathController(World* world, ActorMovementController::PathStartObserver observer = {});
+  void setStartObserver(ActorMovementController::PathStartObserver observer);
 
   PlatformerAStar::Parameters const& parameters();
   void setParameters(PlatformerAStar::Parameters const& parameters);
@@ -344,6 +351,7 @@ private:
   bool onGround(ActorMovementController const& movementController, Vec2F const& position, CollisionSet const& collisionSet) const;
 
   World* m_world;
+  ActorMovementController::PathStartObserver m_startObserver;
   PlatformerAStar::Parameters m_parameters;
 
   Maybe<Vec2F> m_startPosition;

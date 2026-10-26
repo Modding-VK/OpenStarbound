@@ -23,6 +23,7 @@
 #include "StarToolUser.hpp"
 #include "StarPhysicsEntity.hpp"
 #include "StarLuaAnimationComponent.hpp"
+#include "StarNpcPathShadow.hpp"
 
 namespace Star {
 
@@ -222,6 +223,10 @@ public:
   bool forceNude() const;
 
 private:
+  void submitShadowPath(Vec2F const& from, Vec2F const& to,
+      ActorMovementParameters const& movement, PlatformerAStar::Parameters const& search);
+  void collectShadowPath();
+
   Vec2F getAbsolutePosition(Vec2F relativePosition) const;
 
   void tickShared(float dt);
@@ -268,6 +273,10 @@ private:
   NetElementData<Maybe<String>> m_deathParticleBurst;
 
   ActorMovementControllerPtr m_movementController;
+  shared_ptr<atomic<bool>> m_shadowPathAlive;
+  Maybe<WorkerPoolPromise<NpcShadowPathReport>> m_shadowPathPromise;
+  uint64_t m_shadowPathIncarnation = 0;
+  uint64_t m_shadowPathSequence = 0;
   StatusControllerPtr m_statusController;
   EffectEmitterPtr m_effectEmitter;
 

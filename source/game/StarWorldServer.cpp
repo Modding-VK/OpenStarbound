@@ -29,9 +29,12 @@
 #include "StarUniverseServerLuaBindings.hpp"
 #include "StarCelestialLuaBindings.hpp"
 
+#include <atomic>
+
 namespace Star {
 
 namespace {
+std::atomic<uint64_t> NextWorldServerEpoch{1};
 char const* const UpdateProfileStageNames[] = {
   "setupAndActions", "entities", "scriptContexts", "damage", "wiring",
   "sky", "weather", "liquids", "fallingBlocks", "blockDamage",
@@ -103,6 +106,21 @@ void WorldServer::setWorldId(String worldId) {
 
 String const& WorldServer::worldId() const {
   return m_worldId;
+}
+
+uint64_t WorldServer::instanceEpoch() const {
+  return m_instanceEpoch;
+}
+
+List<pair<Vec2S, Maybe<uint64_t>>> WorldServer::pathSectorRevisions(RectI const& region) const {
+  List<pair<Vec2S, Maybe<uint64_t>>> revisions;
+  for (auto const& sector : m_tileArray->validSectorsFor(region)) {
+    Maybe<uint64_t> revision;
+    if (m_tileArray->sectorLoaded(sector))
+      revision = m_tileArray->sectorRevision(sector);
+    revisions.append({sector, revision});
+  }
+  return revisions;
 }
 
 void WorldServer::setUniverseSettings(UniverseSettingsPtr universeSettings) {
@@ -2034,6 +2052,7 @@ bool WorldServer::isFloatingDungeonWorld() const {
 }
 
 void WorldServer::init(bool firstTime) {
+  m_instanceEpoch = NextWorldServerEpoch.fetch_add(1, std::memory_order_relaxed);
   m_explorationProfile = ExplorationProfile::create("server", m_worldId);
   m_worldStorage->setExplorationProfile(m_explorationProfile);
   auto& root = Root::singleton();

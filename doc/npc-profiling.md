@@ -136,6 +136,13 @@ Tracy ganha zonas para movimento/status/shared, A*, invocações Lua e handlers;
 essas zonas só existem em builds com `STAR_ENABLE_TRACY`. As zonas genéricas
 de Lua e A* no Tracy também cobrem consumidores que não são NPCs.
 
+A [busca de rota em modo sombra](npc-path-shadow.md) é um diagnóstico **separado**,
+desligado por padrão, que acrescenta cópia de tiles, busca serial de referência
+e busca em worker. Suas chaves `npc.shadow.*` só aparecem quando
+`worldThreading.npcShadowWorkers` é positivo e `npcDetails` está ativo. A busca
+de referência e a do worker não entram nas contagens de A* autoritativo acima;
+elas não devem ser habilitadas para obter o baseline de CPU dos NPCs.
+
 Esta entrega não mede automaticamente:
 
 - Reação entre um estímulo percebido e uma decisão observável. É necessário
