@@ -20,6 +20,9 @@ a fase 0 recebeu [instrumentação detalhada de NPCs](npc-profiling.md) e
 agora possuem um [protótipo de snapshot e busca sombra](npc-path-shadow.md)
 desligado por padrão; baseline, validação e aprovação continuam pendentes.
 As fases 3–7 ainda não foram iniciadas.
+A [ponte diagnóstica de atores](npc-actor-bridge.md) já permite observar
+sinais da rede em uma thread de NPCs por mundo, sem esperar o tick para
+recebê-los. Ela ainda não move Lua ou IA e continua desligada por padrão.
 O [modelo conceitual de externalização](npc-externalization-concept.md)
 define perfis legado, busca de rota em worker e Actor v1 opt-in, incluindo a
 API para NPCs customizados que reutilizam ações vanilla.

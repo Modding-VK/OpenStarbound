@@ -1,7 +1,8 @@
 # Modelo conceitual de NPCs com simulação externa à thread do mundo
 
 Estado: arquitetura Actor v1 proposta. O [protótipo de busca sombra](npc-path-shadow.md)
-das fases iniciais foi escrito, mas permanece desligado e não migra NPCs.
+das fases iniciais e a [ponte de atores](npc-actor-bridge.md) foram escritos,
+mas permanecem desligados e não migram NPCs.
 Complementa a [pesquisa histórica](npc-ai-parallelism-hypotheses.md), o
 [plano por fases](npc-ai-rework-action-plan.md), a
 [instrumentação atual](npc-profiling.md) e a

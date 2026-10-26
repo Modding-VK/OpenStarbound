@@ -7,6 +7,8 @@
 #include "StarAssets.hpp"
 #include "StarPlayer.hpp"
 #include "StarWorkerPool.hpp"
+#include "StarNpcActorBridge.hpp"
+#include "StarTime.hpp"
 
 namespace Star {
 
@@ -19,11 +21,15 @@ WorldServerThread::WorldServerThread(WorldServerPtr server, WorldId worldId)
     m_shouldExpire(true) {
   if (m_worldServer)
     m_worldServer->setWorldId(printWorldId(m_worldId));
+  if (m_worldServer && Root::singleton().configuration()->get("npcActorBridge", JsonObject()).getBool("enabled", false))
+    m_npcActorBridge = make_unique<NpcActorBridge>(printWorldId(m_worldId), m_worldServer->instanceEpoch());
 }
 
 WorldServerThread::~WorldServerThread() {
   m_stop = true;
   join();
+  if (m_npcActorBridge)
+    m_npcActorBridge->stop();
 
   RecursiveMutexLocker locker(m_mutex);
   for (auto clientId : m_worldServer->clientIds())
@@ -37,12 +43,16 @@ WorldId WorldServerThread::worldId() const {
 void WorldServerThread::start() {
   m_stop = false;
   m_errorOccurred = false;
+  if (m_npcActorBridge)
+    m_npcActorBridge->start();
   Thread::start();
 }
 
 void WorldServerThread::stop() {
   m_stop = true;
   Thread::join();
+  if (m_npcActorBridge)
+    m_npcActorBridge->stop();
 }
 
 void WorldServerThread::setPause(shared_ptr<const atomic<bool>> pause) {
@@ -109,6 +119,8 @@ List<PacketPtr> WorldServerThread::removeClient(ConnectionId clientId) {
   m_clients.remove(clientId);
   m_incomingPacketQueue.remove(clientId);
   m_outgoingPacketQueue.remove(clientId);
+  if (m_npcActorBridge)
+    m_npcActorBridge->invalidateFrame();
   return outgoingPackets;
 }
 
@@ -139,6 +151,23 @@ List<ConnectionId> WorldServerThread::erroredClients() const {
 }
 
 void WorldServerThread::pushIncomingPackets(ConnectionId clientId, List<PacketPtr> packets) {
+  if (m_npcActorBridge) {
+    // Diagnostic hints reach the actor thread without taking the world lock.
+    // The original packets still require normal world-side validation.
+    for (auto const& packet : packets) {
+      if (auto update = as<EntityUpdateSetPacket>(packet)) {
+        if (!update->deltas.empty())
+          m_npcActorBridge->publishPlayerSignal(clientId, NpcActorBridge::PlayerSignalKind::EntityUpdate);
+      } else if (auto interact = as<EntityInteractPacket>(packet)) {
+        m_npcActorBridge->publishPlayerSignal(clientId, NpcActorBridge::PlayerSignalKind::Interaction,
+            interact->interactRequest.targetId);
+      } else if (auto message = as<EntityMessagePacket>(packet)) {
+        auto target = message->entityId.ptr<EntityId>();
+        m_npcActorBridge->publishPlayerSignal(clientId, NpcActorBridge::PlayerSignalKind::Message,
+            target ? *target : NullEntityId);
+      }
+    }
+  }
   RecursiveMutexLocker queueLocker(m_queueMutex);
   m_incomingPacketQueue[clientId].appendAll(std::move(packets));
 }
@@ -191,6 +220,8 @@ void WorldServerThread::unloadAll(bool force) {
   try {
     RecursiveMutexLocker locker(m_mutex);
     m_worldServer->unloadAll(force);
+    if (m_npcActorBridge)
+      m_npcActorBridge->invalidateFrame();
   } catch (std::exception const& e) {
     Logger::error("WorldServerThread exception caught: {}", outputException(e, true));
     m_errorOccurred = true;
@@ -286,6 +317,8 @@ void WorldServerThread::run() {
     Logger::error("WorldServerThread exception caught: {}", outputException(e, true));
     m_errorOccurred = true;
   }
+  if (m_npcActorBridge)
+    m_npcActorBridge->stop();
 }
 
 void WorldServerThread::update(WorldServerFidelity fidelity) {
@@ -311,6 +344,54 @@ void WorldServerThread::update(WorldServerFidelity fidelity) {
   m_worldServer->setFidelity(fidelity);
   if (dt > 0.0f && (!m_pause || *m_pause == false))
     m_worldServer->update(dt);
+
+  if (m_npcActorBridge) {
+    NpcActorBridge::WorldFrame frame;
+    frame.worldEpoch = m_worldServer->instanceEpoch();
+    frame.worldStep = m_worldServer->currentStep();
+    frame.capturedAt = Time::monotonicTime();
+    frame.geometry = m_worldServer->geometry();
+    for (auto clientId : unerroredClientIds) {
+      if (auto player = m_worldServer->clientPlayer(clientId)) {
+        frame.players.append({clientId, player->position()});
+        if (frame.players.size() > NpcActorBridge::MaxPlayers)
+          break;
+      }
+    }
+    m_worldServer->forAllEntities([&](EntityPtr const& entity) {
+      if (entity->entityType() == EntityType::Npc && frame.npcs.size() <= NpcActorBridge::MaxNpcs)
+        frame.npcs.append({entity->entityId(), entity->position()});
+    });
+    m_npcActorBridge->publishFrame(std::move(frame));
+    auto metrics = m_npcActorBridge->takeMetrics();
+    if (auto profile = m_worldServer->explorationProfile()) {
+      profile->count("npc.actorBridge.framesPublished", metrics.framesPublished);
+      profile->count("npc.actorBridge.framesProcessed", metrics.framesProcessed);
+      profile->count("npc.actorBridge.framesCoalesced", metrics.framesCoalesced);
+      profile->count("npc.actorBridge.framesRejected", metrics.framesRejected);
+      profile->count("npc.actorBridge.signalsPublished", metrics.signalsPublished);
+      profile->count("npc.actorBridge.signalsProcessed", metrics.signalsProcessed);
+      profile->count("npc.actorBridge.signalsCoalesced", metrics.signalsCoalesced);
+      profile->count("npc.actorBridge.signalsDropped", metrics.signalsDropped);
+      profile->count("npc.actorBridge.signalsWithoutView", metrics.signalsWithoutView);
+      profile->count("npc.actorBridge.playerNpcObservations", metrics.playerNpcObservations);
+      profile->count("npc.actorBridge.npcPeerObservations", metrics.npcPeerObservations);
+      profile->count("npc.actorBridge.targetedNpcObservations", metrics.targetedNpcObservations);
+      if (metrics.framesProcessed) {
+        profile->record("npc.actorBridge.frameAgeMean", metrics.frameAgeSecondsTotal / metrics.framesProcessed);
+        profile->record("npc.actorBridge.frameAgeMax", metrics.frameAgeSecondsMax);
+      }
+      if (metrics.signalsProcessed) {
+        profile->record("npc.actorBridge.signalLatencyMean", metrics.signalLatencySecondsTotal / metrics.signalsProcessed);
+        profile->record("npc.actorBridge.signalLatencyMax", metrics.signalLatencySecondsMax);
+      }
+      if (metrics.signalsProcessed > metrics.signalsWithoutView) {
+        auto viewedSignals = metrics.signalsProcessed - metrics.signalsWithoutView;
+        profile->record("npc.actorBridge.signalViewAgeMean", metrics.signalViewAgeSecondsTotal / viewedSignals);
+        profile->record("npc.actorBridge.signalViewAgeMax", metrics.signalViewAgeSecondsMax);
+      }
+    }
+  }
 
   List<Message> messages;
   {

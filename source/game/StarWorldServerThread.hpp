@@ -7,6 +7,7 @@
 namespace Star {
 
 STAR_CLASS(WorldServerThread);
+class NpcActorBridge;
 
 // Runs a WorldServer in a separate thread and guards exceptions that occur in
 // it.  All methods are designed to not throw exceptions, but will instead log
@@ -91,6 +92,7 @@ private:
   HashSet<ConnectionId> m_clients;
 
   WorldServerPtr m_worldServer;
+  unique_ptr<NpcActorBridge> m_npcActorBridge;
   WorldId m_worldId;
   WorldServerAction m_updateAction;
 

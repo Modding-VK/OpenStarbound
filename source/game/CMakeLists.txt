@@ -82,6 +82,7 @@ SET (star_game_HEADERS
     StarNetPacketSocket.hpp
     StarNetworkedAnimator.hpp
     StarNpc.hpp
+    StarNpcActorBridge.hpp
     StarNpcDatabase.hpp
     StarNpcPathShadow.hpp
     StarObject.hpp
@@ -359,6 +360,7 @@ SET (star_game_SOURCES
     StarNetPacketSocket.cpp
     StarNetworkedAnimator.cpp
     StarNpc.cpp
+    StarNpcActorBridge.cpp
     StarNpcDatabase.cpp
     StarNpcPathShadow.cpp
     StarObject.cpp

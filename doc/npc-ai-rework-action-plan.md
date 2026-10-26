@@ -11,6 +11,8 @@ ainda sem aprovação; fases 3–7 pendentes.** A
 latência de reação, inventário completo e aprovação da fase 0 ainda estão
 pendentes. Há uma [auditoria estática de Lua](npc-lua-boundary-audit.md) e um
 [protótipo de busca em modo sombra](npc-path-shadow.md).
+Uma [ponte experimental por mundo](npc-actor-bridge.md) recebe sinais de rede
+diretamente e processa percepção copiada numa thread própria; não executa IA.
 O primeiro marco executável compreende as fases 0–2: medição,
 fronteira de leitura e comparação paralela sem efeitos. Este documento não
 comprova ganho de desempenho nem significa que os NPCs já usam workers.
@@ -136,6 +138,8 @@ As fases começam pendentes; a fase 0 já recebeu instrumentação inicial.
 A fase seguinte depende da aprovação da
 anterior; descobrir uma limitação pode exigir retornar à fronteira de leitura.
 Não iniciar migração ampla enquanto o primeiro marco não produzir evidências.
+O trabalho preparatório da [ponte de atores](npc-actor-bridge.md) não promove
+as fases 5–7: falta transferir propriedade de NPC, Lua e efeitos.
 
 | Fase | Entrega | Dependência | Estado |
 | --- | --- | --- | --- |
