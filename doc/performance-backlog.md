@@ -3,6 +3,9 @@
 As hipóteses de rework discutidas para setores de 64 × 64, dungeons compostas,
 pré-geração e cálculo paralelo de microdungeons estão em
 [world-generation-rework-hypotheses.md](world-generation-rework-hypotheses.md).
+O [plano conceitual avançado de regiões](world-region-rework-advanced-concept.md)
+estuda reconstruir a execução do mundo com propriedade por regiões de setores;
+é uma investigação futura, sem runtime regional implementado.
 O plano de instrumentação por linha do tempo está em
 [tracy-integration-plan.md](tracy-integration-plan.md).
 O painel local do HUD e suas métricas estão em

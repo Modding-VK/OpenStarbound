@@ -3,6 +3,8 @@
 Estado: documento de estudo, sem decisão de implementação. Registrado em
 25/10/2026 a partir da discussão sobre o vilarejo Mantizi do Frackin’ Universe
 (FU) 6.5.8. As propostas abaixo não descrevem alterações já feitas no motor.
+Uma proposta separada para [execução do mundo por regiões de setores](world-region-rework-advanced-concept.md)
+trata a reconstrução da `WorldServerThread` e das fronteiras entre subsistemas.
 
 ## 1. Problema e objetivos
 
