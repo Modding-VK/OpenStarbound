@@ -34,6 +34,24 @@ O log anterior à fila de prefetch mostrou `generation.timeBudgetExhausted` em
 algumas janelas, mas não mediu o tempo de espera de cada setor. Portanto, não
 atribuir a demora do vilarejo Mantizi ao orçamento sem a próxima coleta.
 
+## Atualização de evidência — 26/10/2026
+
+O log da build `6bc48199` reproduziu a fila travada no mesmo planeta, agora
+com as métricas detalhadas. Houve espera concluída de 40,6 s e pedido ainda
+pendente com 60,0 s. Entre 1.295 resultados de tiles básicos coletados, 1.115
+foram invalidados por mudança na revisão do setor; 2.272 resultados prontos
+foram descartados para abrir vagas no limite de tarefas pendentes. O pool
+tinha dois workers e aparecia sem trabalho nas amostras, enquanto a fila de
+setores continuava longa. Ver [dados e limites](performance-baseline.md).
+
+**Próxima prioridade:** localizar os caminhos que incrementam a revisão dos
+setores pendentes e medir coordenadas de resultados invalidados/descartados.
+Depois, avaliar uma política que preserve resultados prontos ainda solicitados
+até sua aplicação ou invalidação, com limite de memória explícito. Repetir o
+mesmo snapshot e rota para comparar espera, tentativas refeitas e integridade
+dos tiles. Aumentar o número de workers ou o orçamento por tick não é a
+primeira mudança indicada por este registro.
+
 ## Próxima coleta: vilarejo Mantizi
 
 1. Guardar cópia do jogador e universo antes de entrar na região inédita.

@@ -371,3 +371,47 @@ matched Mantizi-vs-Glitch timing comparison. A separate missing
 `osbprintedmap8x4` object occurred on another world before arrival and is
 not evidenced as the cause of this planet's queue stall. The three startup
 missing-script warnings also predate the stall.
+
+## Instrumented revisit of the same planet — 2026-10-26
+
+The supplied log ran source ID `6bc48199d070e1a6c30be8172fde747fffe3eb15`
+and visited only the previously discussed celestial planet during gameplay,
+from 22:30:13 to 22:32:49. The world closed normally. This run has the new
+worker, blocked-stage, per-sector, object-call and tile-packet markers.
+
+The longest **completed** sector wait was 40.57 s (sector `[147, 31]`), while
+the oldest **still queued** sector reached 60.01 s (sector `[151, 33]` at the
+final report). During the last two reports, the visible queue averaged 42–43
+sectors with zero completions and no generation budget exhaustion. These are
+sector coordinates, each covering 32 × 32 tiles; the log does not identify
+the village structure occupying them.
+
+The base-tile path scheduled 3,570 jobs, collected 1,295 completed results,
+applied 180, and rejected 1,115 because their sector revision had changed.
+Thus about 86% of **collected** results were stale; this is not a percentage
+of all scheduled jobs. It also evicted 2,272 ready results to make room under
+the pending-job cap, and hit the cap 629 times. The result-age maximum was
+709 ms. The two configured workers were sampled idle with an empty internal
+queue, and collected jobs had a maximum queue-to-worker start delay of 1.3 ms.
+The one-second samples cannot prove the workers were always idle, but the
+observed bottleneck is repeated invalidation/eviction and failure to commit
+base-tile results, not a long queue inside the worker pool. The code increments
+the sector revision on mutating tile access; this log does not identify which
+writer changed each rejected sector or why each ready result was evicted.
+
+Object updates totaled 3.0 s with no update above 50 ms, and the only
+instrumented object API category was 1,341 container reads totaling 5.1 ms.
+This capture does not reproduce the earlier `network_router` object bottleneck.
+The server emitted 390 tile-array packets and the client applied all 390
+captured markers, with a median 8.3 ms and maximum 17.6 ms between those
+local-process markers. They measure enqueue-to-application, not first paint.
+`painter.environment.stars` separately accumulated 55.1 s over 9,331 frames
+(about 5.9 ms per frame); it is a rendering cost, not evidence of the sector
+queue cause.
+
+Next investigation: attribute sector-revision changes to their write paths
+and record sector coordinates on stale/evicted results. Then evaluate whether
+completed results for currently requested sectors can be kept until the world
+thread applies or rejects them, rather than repeatedly discarding and
+recomputing them. Preserve saved-world, dungeon, mod and multiplayer behavior
+while comparing the same restored snapshot and route.
