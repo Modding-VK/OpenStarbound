@@ -128,8 +128,8 @@ até a execução de uma build.
 
 ## Posição e idioma do painel
 
-O painel de desempenho fica centralizado na parte inferior da tela, com margem
-inferior de 20 pixels em janelas de altura suficiente. A largura passa a 560
+O painel de desempenho fica no canto inferior direito da tela, com margens
+inferior e direita de 20 pixels em janelas de tamanho suficiente. A largura passa a 560
 pixels (limitada à largura da janela com margens), para acomodar os textos em
 inglês e afastar o painel do rastreador de missões e dos controles laterais.
 As coordenadas do gráfico em cache continuam sendo recalculadas ao redimensionar.
@@ -142,3 +142,9 @@ deste painel. A coleta, os limites e a simulação não foram alterados.
 A alteração visual ainda depende de conferência dentro do jogo; nenhum workflow
 foi iniciado para esta entrega. O log enviado junto ao pedido permanece para
 análise posterior, conforme a prioridade dada à correção do HUD.
+
+O bloco de diagnóstico legado à esquerda é centralizado no eixo vertical pela
+altura real medida dos textos e do fundo. O deslocamento é aplicado ao fundo
+e às linhas juntos, recalculado conforme o conteúdo e o tamanho da janela.
+Esta mudança de posicionamento recebeu revisão do diff; validação visual em
+jogo permanece pendente.

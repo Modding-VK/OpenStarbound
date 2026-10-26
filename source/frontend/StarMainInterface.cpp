@@ -1476,7 +1476,11 @@ void MainInterface::renderDebug() {
       m_debugTextRect.combine(m_guiContext->determineTextSize(text, positioning).padded(m_config->debugBackgroundPad));
     }
 
+    // Center the measured block, including font bounds and background padding.
+    float debugVerticalShift = m_debugTextRect.isNull() ? 0.0f
+        : windowHeight() / 2.0f - m_debugTextRect.center()[1];
     if (!m_debugTextRect.isNull()) {
+      m_debugTextRect.translate(Vec2F(0, debugVerticalShift));
       RenderQuad& quad = m_guiContext->renderer()->immediatePrimitives()
         .emplace_back(std::in_place_type_t<RenderQuad>(), m_debugTextRect, m_config->debugBackgroundColor.toRgba(), 0.0f).get<RenderQuad>();
 
@@ -1486,7 +1490,7 @@ void MainInterface::renderDebug() {
     m_debugTextRect = RectF::null();
 
     for (size_t index = 0; index != formatted.size(); ++index) {
-      TextPositioning positioning = { Vec2F(m_config->debugOffset[0], windowHeight() - m_config->debugOffset[1] - m_config->textStyle.fontSize * interfaceScale() * index) };
+      TextPositioning positioning = { Vec2F(m_config->debugOffset[0], windowHeight() - m_config->debugOffset[1] - m_config->textStyle.fontSize * interfaceScale() * index + debugVerticalShift) };
       m_guiContext->renderText(formatted[index], positioning);
     }
     auto worldId = printWorldId(m_client->clientContext()->playerWorldId());
@@ -1552,9 +1556,9 @@ void MainInterface::renderDebug() {
 }
 
 void MainInterface::renderPerformance() {
-  // Anchor to the bottom center, clear of the quest tracker and side HUD.
+  // Anchor to the bottom right with the same 20-pixel bottom and side margins.
   float width = min(560.0f, max(1.0f, windowWidth() - 40.0f));
-  float left = (windowWidth() - width) / 2.0f;
+  float left = max(0.0f, windowWidth() - width - 20.0f);
   float right = left + width;
   float top = min(385.0f, windowHeight() - 10.0f);
   m_guiContext->drawQuad(RectF::withSize(Vec2F(left, top - 365.0f), Vec2F(width, 365.0f)),
