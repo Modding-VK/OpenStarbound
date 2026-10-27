@@ -1232,6 +1232,8 @@ namespace Dungeon {
       auto& object = m_objects[pos];
       m_facade->placeObject(displace(pos), object.objectName, object.direction, object.parameters);
     }
+    if (m_profile)
+      m_profile->count("dungeon.flush.objectsPlaced", sortedPositions.size());
 
     for (auto entry : m_vehicles) {
       String vehicleName;
@@ -1239,27 +1241,37 @@ namespace Dungeon {
       tie(vehicleName, parameters) = entry.second;
       m_facade->placeVehicle(displaceF(entry.first), vehicleName, parameters);
     }
+    if (m_profile)
+      m_profile->count("dungeon.flush.vehiclesPlaced", m_vehicles.size());
 
     sortedPositions = List<Vec2I>::from(m_biomeTrees);
     sortByComputedValue(sortedPositions, [](Vec2I pos) { return pos[1] + pos[0] / 1000.0f; });
     for (auto pos : sortedPositions) {
       m_facade->placeBiomeTree(pos);
     }
+    if (m_profile)
+      m_profile->count("dungeon.flush.biomeTreesPlaced", sortedPositions.size());
 
     sortedPositions = List<Vec2I>::from(m_biomeItems);
     sortByComputedValue(sortedPositions, [](Vec2I pos) { return pos[1] + pos[0] / 1000.0f; });
     for (auto pos : sortedPositions) {
       m_facade->placeSurfaceBiomeItems(pos);
     }
+    if (m_profile)
+      m_profile->count("dungeon.flush.biomeItemsPlaced", sortedPositions.size());
 
     phase.next("dungeon.flush.entities");
     for (auto& npc : m_npcs) {
       m_facade->spawnNpc(displaceF(npc.first), npc.second);
     }
+    if (m_profile)
+      m_profile->count("dungeon.flush.npcsSpawned", m_npcs.size());
 
     for (auto& stagehand : m_stagehands) {
       m_facade->spawnStagehand(displaceF(stagehand.first), stagehand.second);
     }
+    if (m_profile)
+      m_profile->count("dungeon.flush.stagehandsSpawned", m_stagehands.size());
 
     phase.next("dungeon.flush.wiresAndLiquids");
     for (auto& wires : m_globalWires) {

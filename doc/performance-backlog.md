@@ -197,3 +197,34 @@ espera chegou a 17,45 s com orçamento e vizinhos bloqueando a fila. Foram
 adicionadas métricas por passagem visível para decidir entre grafo de
 dependências, prioridade de etapas iniciadas e eventual orçamento adaptativo.
 Nenhum valor de orçamento foi alterado nesta etapa.
+
+### Coleta `ceb0017b`: dungeons compostas e espera da fila
+
+No mundo `383738425:-48324202:-255713414:5`, 1.766 passagens da fila
+visível foram medidas. Destas, 200 não avançaram nenhum nível e 1.108
+avançaram níveis sem concluir setor; 487 setores foram concluídos. A espera
+máxima concluída chegou a 9,4 s. Os 1.718 resultados BaseTiles prontos foram
+aplicados, sem descarte por revisão. A fila média era de cerca de 58 setores
+quando amostrada. Esta rota difere do planeta `…:3` da coleta anterior.
+
+Sete gerações de dungeon composta somaram 5,88 s, com pico de 1,66 s;
+`dungeon.flush` somou 3,70 s. Dentro dele, criação de entidades somou 1,55 s
+e colocação de objetos 1,41 s. Essas dungeons são colocadas na criação inicial
+do mundo por `WorldServer::init`; o custo não deve ser atribuído integralmente
+à fila de setores explorados depois. A geração de microdungeons acumulou
+10,88 s e ainda executa na thread do mundo.
+
+O próximo passo seguro é medir os volumes de objetos, veículos, árvores, itens
+de bioma, NPCs e stagehands colocados no `flush`, para separar custo por
+entidade de custo fixo. Contadores agregados foram acrescentados sob
+`explorationProfiling.enabled`, sem registrar payloads ou IDs. Depois da
+coleta, investigar cache de definição e criação de variantes repetidas; só
+propor divisão entre ticks quando houver plano para persistência de operação
+incompleta e recuperação após interrupção.
+
+Para uma divisão futura, manter o footprint inteiro reservado e indisponível
+para geração concorrente até o commit. O plano deve conservar ordem das
+partes, RNG, IDs, fios, líquidos e callbacks; aplicar efeitos na thread do
+mundo; persistir identidade e estágio da operação; e retomar ou desfazer de
+forma determinística após save/reload. Um orçamento entre operações completas
+não resolve o pico interno de 1,66 s observado aqui.
