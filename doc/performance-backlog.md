@@ -183,3 +183,17 @@ A frente de containers recebeu temporizadores por API e fases de conversão,
 mutação e retorno, ativados por `regionalDetails`. Compilação parcial Linux
 concluída; coleta Windows pendente. Reescrita de inventários aguarda esse
 [detalhamento](object-operations.md#frente-de-containers-após-a-coleta-windows-27).
+
+### Atualização após a coleta de `c0da7a4b`
+
+O detalhamento atribuiu 23,61 dos 25,25 s de `containerPutItemsAt` à criação
+do item a partir do JSON. `ItemDatabase::fromJson` passou a reutilizar o cache
+de protótipos existente e devolver um clone independente. As unidades de
+produção afetadas compilam no Linux; a build e a medição Windows permanecem
+pendentes.
+
+No mundo `…:3`, 391 resultados foram aplicados e só um ficou obsoleto, mas a
+espera chegou a 17,45 s com orçamento e vizinhos bloqueando a fila. Foram
+adicionadas métricas por passagem visível para decidir entre grafo de
+dependências, prioridade de etapas iniciadas e eventual orçamento adaptativo.
+Nenhum valor de orçamento foi alterado nesta etapa.

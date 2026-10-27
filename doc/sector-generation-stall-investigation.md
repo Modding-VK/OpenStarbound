@@ -157,3 +157,34 @@ compiladas como objetos no Linux. Compilação completa Windows e observação e
 jogo ainda pendentes; não há medição de ganho após esta alteração. Conferir
 colisão/iluminação nas bordas, mineração/líquidos durante geração, estruturas,
 unload/reload, save e multiplayer antes de promover a correção.
+
+## Espera restante após a correção: mundo `…:3`
+
+Na coleta de `c0da7a4b`, o mundo
+`383738425:-48324202:-255713414:3` aplicou 391 de 392 resultados BaseTiles
+recolhidos; apenas um resultado ficou obsoleto, associado a dois incrementos
+de revisão classificados como armazenamento. Nenhum resultado pronto foi
+expulso. A retenção e a separação do cache de colisão cumpriram seu objetivo
+nesta sessão, embora a equivalência de rota ainda não esteja provada.
+
+Ainda houve espera concluída de 17,45 s. Em 641 amostras, a fila acumulou
+27.399 setores (média aproximada de 42,7); 213 passagens esgotaram o orçamento,
+959 bloqueios vieram de vizinhos e 386 do limite de níveis. Microdungeons
+acumularam 2,81 s, `Finalize` 1,23 s e a montagem de dungeons 3,39 s. Esses
+valores explicam trabalho serial e pressão de fila, mas os contadores agregados
+anteriores não dizem quantas passagens terminaram sem qualquer avanço.
+
+Foram adicionadas métricas limitadas por janela:
+
+- `generation.visiblePass`: duração da parte visível da passagem;
+- `visiblePasses`, `visiblePassQueueDepthEndTotal` e
+  `visiblePassSectorsCompleted`;
+- `visiblePassReadyCommitted` e `visiblePassLevelsAdvanced`;
+- `visiblePassesWithoutProgress` e `visiblePassesWithPartialProgress`.
+
+Os contadores de níveis incluem BaseTiles drenados e níveis avançados pelo
+caminho normal; não representam setores únicos. Uma passagem parcial avança
+algum nível sem concluir setor visível. Essa instrumentação não altera o
+orçamento configurado nem a ordem da geração. A próxima decisão será baseada
+na proporção de passagens sem progresso e no tempo p95/p99, evitando aumentar
+o orçamento antes de saber se ele produziria progresso ou apenas ticks maiores.

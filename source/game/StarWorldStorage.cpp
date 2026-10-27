@@ -351,6 +351,11 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     function<bool(Sector, Sector)> sectorOrdering) {
   STAR_TRACE_ZONE("WorldStorage generate queue");
   try {
+    double visiblePassStart = Time::monotonicTime();
+    size_t queueDepthAtStart = m_generationQueue.size();
+    size_t readyCommittedThisPass = 0;
+    size_t completedThisPass = 0;
+    size_t levelsAdvancedThisPass = 0;
     double generationDeadline = Time::monotonicTime() + max(0.0, timeLimit);
     if (m_explorationProfile && !m_generationQueue.empty()) {
       m_explorationProfile->count("generation.queueDepthSamples");
@@ -407,6 +412,8 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       }
       if (m_explorationProfile)
         m_explorationProfile->count("generation.baseTiles.readyResultsCommitted");
+      ++readyCommittedThisPass;
+      ++levelsAdvancedThisPass;
     }
 
     bool schedulingOnly = false;
@@ -420,6 +427,7 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       auto p = generateSectorToLevel(sector, targetLevel,
           sectorGenerationLevelLimit.value(NPos), true, generationDeadline);
       if (!schedulingOnly && p.first) {
+        ++completedThisPass;
         m_generationQueue.removeFirst();
         if (auto queuedAt = m_generationQueuedAt.ptr(sector)) {
           double wait = Time::monotonicTime() - *queuedAt;
@@ -447,11 +455,24 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       }
       if (sectorGenerationLevelLimit)
         *sectorGenerationLevelLimit -= p.second;
+      levelsAdvancedThisPass += p.second;
       if (schedulingOnly && ++visitedSectors >= m_generationQueue.size())
         break;
     }
     if (!m_generationQueue.empty() && Time::monotonicTime() >= generationDeadline && m_explorationProfile)
       m_explorationProfile->count("generation.timeBudgetExhausted");
+    if (m_explorationProfile && queueDepthAtStart) {
+      m_explorationProfile->count("generation.visiblePasses");
+      m_explorationProfile->count("generation.visiblePassQueueDepthEndTotal", m_generationQueue.size());
+      m_explorationProfile->count("generation.visiblePassSectorsCompleted", completedThisPass);
+      m_explorationProfile->count("generation.visiblePassReadyCommitted", readyCommittedThisPass);
+      m_explorationProfile->count("generation.visiblePassLevelsAdvanced", levelsAdvancedThisPass);
+      m_explorationProfile->record("generation.visiblePass", Time::monotonicTime() - visiblePassStart);
+      if (!completedThisPass && !levelsAdvancedThisPass)
+        m_explorationProfile->count("generation.visiblePassesWithoutProgress");
+      else if (!completedThisPass)
+        m_explorationProfile->count("generation.visiblePassesWithPartialProgress");
+    }
     // Background preparation uses only time left after visible sectors. It
     // never initializes entities or runs the shared microdungeon stages.
     size_t examined = 0;
