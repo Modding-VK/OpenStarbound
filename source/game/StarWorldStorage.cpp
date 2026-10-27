@@ -375,21 +375,39 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       if (oldestSector) {
         m_explorationProfile->recordQueuedSector(Vec2I((int)(*oldestSector)[0], (int)(*oldestSector)[1]),
             now - oldestQueuedAt);
+        if (!m_oldestQueueDiagnosticSector || *m_oldestQueueDiagnosticSector != *oldestSector) {
+          m_oldestQueueDiagnosticSector = *oldestSector;
+          m_lastOldestQueueDiagnosticBucket = 0;
+          m_oldestQueueAttempts = 0;
+          m_oldestQueueFullAttempts = 0;
+          m_oldestQueueAdvances = 0;
+          m_oldestQueueBlockReason = "notSelected";
+          m_oldestQueueBlockingNeighbor.reset();
+        }
         // One diagnostic per ten-second age band, including the exact sector
         // and its current generation level. The queue may contain other
         // sectors that continue to make progress meanwhile.
         size_t bucket = static_cast<size_t>((now - oldestQueuedAt) / 10.0);
         if (bucket >= 1 && bucket > m_lastOldestQueueDiagnosticBucket) {
           auto metadata = m_sectorMetadata.ptr(*oldestSector);
-          Logger::info("[SectorQueue] oldest={} age={:.1f}s generationLevel={} loadLevel={} queued={}",
+          auto blockerMetadata = m_oldestQueueBlockingNeighbor
+              ? m_sectorMetadata.ptr(*m_oldestQueueBlockingNeighbor) : nullptr;
+          Logger::info("[SectorQueue] oldest={} age={:.1f}s generationLevel={} loadLevel={} queued={} attempts={} fullAttempts={} advances={} lastBlock={} blocker={} blockerLevel={}",
               *oldestSector, now - oldestQueuedAt,
               metadata ? static_cast<int>(metadata->generationLevel) : -1,
               metadata ? static_cast<int>(metadata->loadLevel) : -1,
-              m_generationQueue.size());
+              m_generationQueue.size(), m_oldestQueueAttempts, m_oldestQueueFullAttempts,
+              m_oldestQueueAdvances, m_oldestQueueBlockReason,
+              m_oldestQueueBlockingNeighbor,
+              blockerMetadata ? static_cast<int>(blockerMetadata->generationLevel) : -1);
+          m_oldestQueueAttempts = 0;
+          m_oldestQueueFullAttempts = 0;
+          m_oldestQueueAdvances = 0;
         }
         m_lastOldestQueueDiagnosticBucket = bucket;
       } else {
         m_lastOldestQueueDiagnosticBucket = 0;
+        m_oldestQueueDiagnosticSector.reset();
       }
     }
     if (sectorOrdering) {
@@ -442,8 +460,21 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
 
       auto sector = m_generationQueue.firstKey();
       auto targetLevel = schedulingOnly ? SectorGenerationLevel::BaseTiles : SectorGenerationLevel::Complete;
+      m_traceOldestQueueAttempt = m_explorationProfile && m_oldestQueueDiagnosticSector
+          && sector == *m_oldestQueueDiagnosticSector;
+      if (m_traceOldestQueueAttempt) {
+        ++m_oldestQueueAttempts;
+        if (!schedulingOnly)
+          ++m_oldestQueueFullAttempts;
+        m_oldestQueueBlockReason = "none";
+        m_oldestQueueBlockRecorded = false;
+        m_oldestQueueBlockingNeighbor.reset();
+      }
       auto p = generateSectorToLevel(sector, targetLevel,
           sectorGenerationLevelLimit.value(NPos), true, generationDeadline);
+      if (m_traceOldestQueueAttempt && p.second)
+        ++m_oldestQueueAdvances;
+      m_traceOldestQueueAttempt = false;
       if (!schedulingOnly && p.first) {
         ++completedThisPass;
         m_generationQueue.removeFirst();
@@ -896,12 +927,20 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
   STAR_TRACE_ZONE("WorldStorage generate sector");
   TileRevisionScope revisionScope(TileRevisionCause::WorldGeneration, m_tileArray->revisionTrackingEnabled());
   if (Time::monotonicTime() >= generationDeadline) {
+    if (m_traceOldestQueueAttempt && !m_oldestQueueBlockRecorded) {
+      m_oldestQueueBlockReason = "deadline";
+      m_oldestQueueBlockRecorded = true;
+    }
     if (m_explorationProfile)
       m_explorationProfile->count("generation.blocked.deadline");
     return {false, 0};
   }
 
   if (!m_tileArray->sectorValid(sector)) {
+    if (m_traceOldestQueueAttempt && !m_oldestQueueBlockRecorded) {
+      m_oldestQueueBlockReason = "invalidSector";
+      m_oldestQueueBlockRecorded = true;
+    }
     if (m_explorationProfile)
       m_explorationProfile->count("generation.blocked.invalidSector");
     return {false, 0};
@@ -939,6 +978,11 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
             sectorGenerationLevelLimit - totalGeneratedLevels, allowAsync, generationDeadline);
         totalGeneratedLevels += p.second;
         if (!p.first || totalGeneratedLevels >= sectorGenerationLevelLimit) {
+          if (m_traceOldestQueueAttempt && !m_oldestQueueBlockRecorded) {
+            m_oldestQueueBlockReason = !p.first ? "neighbor" : "levelLimit";
+            m_oldestQueueBlockingNeighbor = adjacentSector;
+            m_oldestQueueBlockRecorded = true;
+          }
           if (m_explorationProfile)
             m_explorationProfile->count(!p.first ? "generation.blocked.neighbor" : "generation.blocked.levelLimit");
           return {false, totalGeneratedLevels};
@@ -958,6 +1002,11 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
     double profileStart = m_generationProfilingEnabled ? Time::monotonicTime() : 0.0;
     auto generationResult = m_generatorFacade->generateSectorLevel(this, sector, currentGeneration, allowAsync);
     if (!generationResult.complete) {
+      if (m_traceOldestQueueAttempt && !m_oldestQueueBlockRecorded) {
+        m_oldestQueueBlockReason = generationStages[stageIndex];
+        m_oldestQueueBlockingNeighbor = sector;
+        m_oldestQueueBlockRecorded = true;
+      }
       if (m_explorationProfile) {
         static char const* const blockedStages[] = {
           "generation.blocked.baseTiles", "generation.blocked.microDungeons",
@@ -983,6 +1032,10 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
 
     ++totalGeneratedLevels;
     if (totalGeneratedLevels >= sectorGenerationLevelLimit || Time::monotonicTime() >= generationDeadline) {
+      if (m_traceOldestQueueAttempt && !m_oldestQueueBlockRecorded) {
+        m_oldestQueueBlockReason = totalGeneratedLevels >= sectorGenerationLevelLimit ? "levelLimit" : "deadline";
+        m_oldestQueueBlockRecorded = true;
+      }
       if (m_explorationProfile)
         m_explorationProfile->count(totalGeneratedLevels >= sectorGenerationLevelLimit
             ? "generation.blocked.levelLimit" : "generation.blocked.deadline");

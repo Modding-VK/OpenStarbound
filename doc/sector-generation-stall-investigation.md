@@ -206,3 +206,23 @@ O JSON `oldestQueuedSector` mantém a coordenada por janela. Os contadores de
 bloqueio existentes são agregados: a linha identifica o estágio, mas não
 atribui um motivo de bloqueio exclusivo ao setor. Se a coordenada persistir,
 instrumentar sua dependência específica antes de mudar prioridade/orçamento.
+
+### Rastreamento limitado da dependência do setor mais antigo
+
+Quando `explorationProfiling.enabled` estiver ativo, a mesma linha
+`[SectorQueue]` agora inclui `attempts`, `fullAttempts`, `advances`,
+`lastBlock`, `blocker` e `blockerLevel`. Os contadores referem-se à faixa de
+idade desde a linha anterior e são zerados após cada relatório. `attempts`
+inclui passagens que apenas admitem BaseTiles; `fullAttempts` conta as que
+podiam tentar concluir o setor. `advances` conta tentativas que avançaram ao
+menos um nível, inclusive em vizinhos, não níveis nem setores concluídos.
+
+`lastBlock` é a primeira causa concreta encontrada na **última tentativa**:
+`deadline`, `invalidSector`, `levelLimit`, uma etapa `generation.*` pendente
+ou `neighbor` caso não haja causa mais interna. `blocker` identifica o setor
+que encontrou a causa e `blockerLevel` seu nível atual. `notSelected`
+significa que o setor não foi processado desde que passou a ser o mais antigo;
+`none` significa que a última tentativa não registrou bloqueio. O rastreio
+acompanha só o setor mais antigo e a recursão síncrona da tentativa; não
+guarda cadeia completa, nem demonstra que o setor estava visível ao jogador.
+Nenhum limiar de orçamento ou ordem de geração foi alterado.

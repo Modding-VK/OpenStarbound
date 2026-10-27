@@ -358,6 +358,14 @@ private:
   OrderedHashMap<Sector, float> m_prefetchQueue;
   HashMap<Sector, double> m_generationQueuedAt;
   size_t m_lastOldestQueueDiagnosticBucket = 0;
+  Maybe<Sector> m_oldestQueueDiagnosticSector;
+  size_t m_oldestQueueAttempts = 0;
+  size_t m_oldestQueueFullAttempts = 0;
+  size_t m_oldestQueueAdvances = 0;
+  bool m_traceOldestQueueAttempt = false;
+  bool m_oldestQueueBlockRecorded = false;
+  char const* m_oldestQueueBlockReason = "notSelected";
+  Maybe<Sector> m_oldestQueueBlockingNeighbor;
   bool m_performanceSamplingEnabled = false;
   size_t m_performancePeakQueuedSectors = 0;
   size_t m_performanceLateCompletedSectors = 0;
