@@ -364,15 +364,33 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       double oldestQueuedAt = now;
       Maybe<Sector> oldestSector;
       for (auto const& entry : m_generationQueuedAt) {
+        if (!m_generationQueue.contains(entry.first))
+          continue;
         if (entry.second < oldestQueuedAt) {
           oldestQueuedAt = entry.second;
           oldestSector = entry.first;
         }
       }
       m_explorationProfile->record("generation.oldestQueuedAge", now - oldestQueuedAt);
-      if (oldestSector)
+      if (oldestSector) {
         m_explorationProfile->recordQueuedSector(Vec2I((int)(*oldestSector)[0], (int)(*oldestSector)[1]),
             now - oldestQueuedAt);
+        // One diagnostic per ten-second age band, including the exact sector
+        // and its current generation level. The queue may contain other
+        // sectors that continue to make progress meanwhile.
+        size_t bucket = static_cast<size_t>((now - oldestQueuedAt) / 10.0);
+        if (bucket >= 1 && bucket > m_lastOldestQueueDiagnosticBucket) {
+          auto metadata = m_sectorMetadata.ptr(*oldestSector);
+          Logger::info("[SectorQueue] oldest={} age={:.1f}s generationLevel={} loadLevel={} queued={}",
+              *oldestSector, now - oldestQueuedAt,
+              metadata ? static_cast<int>(metadata->generationLevel) : -1,
+              metadata ? static_cast<int>(metadata->loadLevel) : -1,
+              m_generationQueue.size());
+        }
+        m_lastOldestQueueDiagnosticBucket = bucket;
+      } else {
+        m_lastOldestQueueDiagnosticBucket = 0;
+      }
     }
     if (sectorOrdering) {
       ExplorationProfile::Scope timing(m_explorationProfile.get(), "generation.queueSort");

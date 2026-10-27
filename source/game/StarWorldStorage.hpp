@@ -357,6 +357,7 @@ private:
   OrderedHashMap<Sector, float> m_generationQueue;
   OrderedHashMap<Sector, float> m_prefetchQueue;
   HashMap<Sector, double> m_generationQueuedAt;
+  size_t m_lastOldestQueueDiagnosticBucket = 0;
   bool m_performanceSamplingEnabled = false;
   size_t m_performancePeakQueuedSectors = 0;
   size_t m_performanceLateCompletedSectors = 0;

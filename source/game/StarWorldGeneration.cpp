@@ -371,13 +371,18 @@ void DungeonGeneratorWorld::setBackgroundMaterial(Vec2I const& position, Materia
 }
 
 void DungeonGeneratorWorld::placeObject(Vec2I const& pos, String const& objectName, Star::Direction direction, Json const& parameters) {
+  ExplorationProfile::Scope phase(m_worldServer->explorationProfile(), "dungeon.object.signalRegion");
   m_worldServer->signalRegion(RectI::withSize(pos, {1, 1}));
 
+  phase.next("dungeon.object.createForPlacement");
   auto objectDatabase = Root::singleton().objectDatabase();
-  if (auto object = objectDatabase->createForPlacement(m_worldServer, objectName, pos, direction, parameters))
+  if (auto object = objectDatabase->createForPlacement(m_worldServer, objectName, pos, direction, parameters)) {
+    phase.next("dungeon.object.addEntity");
     m_worldServer->addEntity(object);
-  else
+  } else {
+    phase.stop();
     Logger::warn("Failed to place dungeon object: {} direction: {} position: {}", objectName, (int)direction, pos);
+  }
 }
 
 void DungeonGeneratorWorld::placeVehicle(Vec2F const& pos, String const& vehicleName, Json const& parameters) {

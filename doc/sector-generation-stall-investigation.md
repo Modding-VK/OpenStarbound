@@ -188,3 +188,21 @@ algum nível sem concluir setor visível. Essa instrumentação não altera o
 orçamento configurado nem a ordem da geração. A próxima decisão será baseada
 na proporção de passagens sem progresso e no tempo p95/p99, evitando aumentar
 o orçamento antes de saber se ele produziria progresso ou apenas ticks maiores.
+
+## Setor persistentemente antigo no mundo `…:9`
+
+Na coleta `1704467a`, o setor `[31, 24]` permaneceu como o mais antigo por
+aproximadamente 121 s, enquanto outros setores concluíam. Foram concluídos
+542 setores, com espera máxima de 20,75 s. A coleta não demonstra se esse
+setor estava visível ao jogador. O diagnóstico anterior percorria
+`m_generationQueuedAt` sem confirmar que cada entrada ainda estava na fila;
+essa possibilidade também precisava ser excluída.
+
+O diagnóstico agora considera somente entradas presentes em
+`m_generationQueue`. Com `explorationProfiling.enabled`, em cada nova faixa
+de 10 s do setor mais antigo registra uma linha `[SectorQueue]` com
+coordenada, idade, nível de geração, nível de carregamento e tamanho da fila.
+O JSON `oldestQueuedSector` mantém a coordenada por janela. Os contadores de
+bloqueio existentes são agregados: a linha identifica o estágio, mas não
+atribui um motivo de bloqueio exclusivo ao setor. Se a coordenada persistir,
+instrumentar sua dependência específica antes de mudar prioridade/orçamento.

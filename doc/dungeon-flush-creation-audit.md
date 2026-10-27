@@ -59,3 +59,19 @@ estruturas compostas, FU e mundo flutuante. Um cache não pode fazer um NPC
 reutilizar identidade, script ou estado de outro. Nenhum ganho de desempenho
 é afirmado por esta auditoria; os contadores de volume e a decomposição
 subsequente decidirão qual candidato merece implementação.
+
+## Primeira coleta de volume e decomposição seguinte
+
+Na coleta `1704467a` do mundo `383738425:-48324202:-255713414:9`, uma
+`apexresearchlab` colocou 228 objetos em 11 partes. Seu `dungeon.generate`
+levou 316 ms e `dungeon.flush` 235 ms, dos quais 159 ms pertencem ao bloco
+inclusivo `dungeon.flush.objects`. Não houve NPCs nem stagehands nessa
+dungeon. A amostra não sustenta cache de NPCs como solução para esse caso.
+
+Foram acrescentados temporizadores fixos por chamada de objeto:
+`dungeon.object.signalRegion`, `dungeon.object.createForPlacement` e
+`dungeon.object.addEntity`. `createForPlacement` ainda inclui validação de
+orientação e construção, que poderão ser separadas caso dominem a próxima
+coleta. Os tempos por objeto são subtotais de `dungeon.flush.objects`;
+veículos e itens de bioma continuam dentro deste último. A coleta depende de
+`explorationProfiling.enabled` e não registra nomes nem parâmetros do mod.
