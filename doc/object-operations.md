@@ -196,3 +196,26 @@ foram reescritas. Próximas decisões, condicionadas à coleta:
 Não presumir independência com base no grafo parcial: o limite da coleta da
 sessão descartou chamadas. Paralelização e transações de baús permanecem no
 plano opt-in de objetos; esta extensão só mede os caminhos existentes.
+
+### Resultado da coleta com detalhamento e otimização escolhida
+
+Na coleta Windows de `c0da7a4b`, durante cerca de 80,5 s no mundo
+`383737864:-48324405:61106789:8`, `containerPutItemsAt` acumulou 25,25 s.
+As fases inclusivas atribuíram 23,61 s a `ItemDatabase::fromJson`, 0,49 s à
+mutação/espera local e 1,00 s à codificação da sobra. Updates de objetos
+somaram 51,26 s; um `network_router` alcançou 826,54 ms. A coleta detalhada
+estava ligada e seu custo ainda precisa ser separado em uma comparação final.
+
+`ItemDatabase::fromJson` construía uma instância completa a cada chamada. O
+banco já possui `itemShared`, um cache de protótipos imutáveis cuja API orienta
+o chamador a clonar o resultado. `fromJson` agora usa esse caminho e devolve
+sempre um clone independente. O descritor completo continua sendo a chave,
+incluindo contagem e parâmetros; itens com sementes geradas conservam a regra
+do cache existente. O cache tem expiração e é limpo pela manutenção de `Root`.
+
+Essa mudança preserva a propriedade das instâncias e não altera o JSON, a
+ordem do inventário, permissões, sobras ou callbacks. Cada chamada continua
+recebendo um clone próprio, conforme o contrato existente de `itemShared`. O
+ganho depende do custo de `clone()` de cada tipo de item e da repetição exata
+dos descritores; itens únicos ou muito variáveis podem ter pouco benefício. A
+build Windows e a medição com FU permanecem pendentes.

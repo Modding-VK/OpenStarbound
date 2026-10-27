@@ -160,7 +160,12 @@ ItemPtr ItemDatabase::diskLoad(Json const& diskStore) const {
 }
 
 ItemPtr ItemDatabase::fromJson(Json const& spec) const {
-  return item(ItemDescriptor(spec));
+  // JSON container APIs frequently reconstruct the same descriptor many times
+  // per tick. Reuse the database's immutable prototype and return an independent
+  // clone, as required by itemShared's ownership contract.
+  if (auto prototype = itemShared(ItemDescriptor(spec)))
+    return prototype->clone();
+  return {};
 }
 
 Json ItemDatabase::diskStore(ItemConstPtr const& itemPtr) const {
