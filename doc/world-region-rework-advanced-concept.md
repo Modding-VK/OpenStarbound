@@ -207,6 +207,8 @@ quando o objetivo for equivalência exata. Uma versão que mude esses resultados
 exige formato/versão de mundo próprios e migração explícita, jamais alteração
 silenciosa de um planeta salvo. Ver
 [pesquisa de geração](world-generation-rework-hypotheses.md).
+Para dividir a geração de dungeons compostas entre ticks sem salvar estruturas
+parciais, seguir o [protocolo de reserva e retomada](dungeon-generation-resume-plan.md).
 
 Carregamento de setor salvo pode separar leitura/descompressão e preparação
 sem efeitos da instalação final. `WorldStorage::loadSectorToLevel` hoje lê

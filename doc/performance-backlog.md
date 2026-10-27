@@ -228,3 +228,6 @@ partes, RNG, IDs, fios, líquidos e callbacks; aplicar efeitos na thread do
 mundo; persistir identidade e estágio da operação; e retomar ou desfazer de
 forma determinística após save/reload. Um orçamento entre operações completas
 não resolve o pico interno de 1,66 s observado aqui.
+
+O protocolo de estados, publicação e retomada está detalhado no
+[plano de dungeons interrompíveis](dungeon-generation-resume-plan.md).
