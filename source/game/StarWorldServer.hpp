@@ -321,6 +321,7 @@ public:
 
   // Diagnostics only; caller must already own the world's serialized access.
   ExplorationProfile* explorationProfile() const { return m_explorationProfile.get(); }
+  ExplorationProfilePtr explorationProfileShared() const { return m_explorationProfile; }
 
 private:
   enum class UpdateProfileStage : size_t {

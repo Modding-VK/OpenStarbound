@@ -128,6 +128,7 @@ public:
   };
 
   static void recordNpcPathResult(Maybe<bool> result);
+  static ExplorationProfile* activeNpcProfile();
   bool npcDetailsEnabled() const { return m_npcDetails; }
   void recordNpcPopulation(uint64_t updatedEntities);
 

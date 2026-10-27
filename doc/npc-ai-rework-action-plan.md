@@ -156,6 +156,9 @@ as fases 5–7: falta transferir propriedade de NPC, Lua e efeitos.
 
 - [x] Acrescentar escopos de etapas NPC, callbacks, pathfinding, interações e
       percentis limitados em memória; ver [cobertura e limites](npc-profiling.md).
+- [x] Distinguir chamadas incrementais de `explore()` de buscas completas;
+      medir início, resultado, abandono, retomadas, nós e tempo de parede por
+      busca. Coleta Windows e comparação controlada ainda pendentes.
 - [x] Inspecionar estaticamente as entradas Lua da engine e os bindings
       síncronos; ver [auditoria](npc-lua-boundary-audit.md). Inventário de
       scripts vanilla/FU e frequência real ainda pendentes.

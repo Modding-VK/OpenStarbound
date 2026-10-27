@@ -203,6 +203,10 @@ void ExplorationProfile::recordNpcPathResult(Maybe<bool> result) {
     ++s_currentNpcScope->m_profile->m_npcPathResults[result ? (*result ? 1 : 2) : 0];
 }
 
+ExplorationProfile* ExplorationProfile::activeNpcProfile() {
+  return s_currentNpcScope ? s_currentNpcScope->m_profile : nullptr;
+}
+
 void ExplorationProfile::recordNpcPopulation(uint64_t updatedEntities) {
   if (m_npcDetails) {
     ++m_npcPopulationSamples;

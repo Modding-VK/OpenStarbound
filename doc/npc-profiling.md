@@ -193,3 +193,28 @@ A* não retiraria a maior parte do tempo de NPC observado nesse mundo.
 Faltam cenário com a mesma cópia de universo, reação sob stall, frequência
 de APIs Lua síncronas e medição do custo de captura de snapshots antes de
 aceitar a fase 0 ou ligar a fase 2 para comparação.
+
+## Ciclo completo de uma busca A*
+
+O retorno `pendingExploreCalls` representa uma invocação incremental de
+`PathFinder::explore` ainda sem resultado; várias invocações podem pertencer à
+mesma busca. Para distinguir as duas unidades, foram adicionados contadores
+por busca autorizada de NPC:
+
+| Campo | Significado |
+| --- | --- |
+| `npc.pathfinding.searchesStarted` | Primeiro `explore()` de uma instância. Construção nunca usada não entra. |
+| `searchesSucceeded`, `searchesFailed` | Primeiro resultado final booleano da instância. Um resultado parcial com `returnBest` pode estar em `searchesFailed`. |
+| `searchesAbandoned` | Instância explorada descartada ou reiniciada antes do resultado final. |
+| `searchExploreCallsTotal` | Número de chamadas `explore()` somado para buscas encerradas ou abandonadas. |
+| `searchNodesTotal` | Nós efetivamente fechados pelo A* nessas buscas, sem contar duplicatas da fila aberta. |
+| `npc.pathfinding.searchWall` | Tempo da primeira chamada até conclusão/abandono; inclui intervalos entre ticks. |
+
+Esses campos são agregados no perfil do servidor que iniciou a busca, sem IDs,
+posições, nomes ou parâmetros dos NPCs. A referência sombra usa
+`recordNpcProfile=false` e não entra nos totais. Uma busca que continua viva
+ao final da janela aparece em `searchesStarted` mas seus totais e resultado
+entram em janela posterior. Portanto, não dividir totais de uma janela pelos
+resultados da mesma janela como se fossem necessariamente a mesma coorte.
+Ao desligar o diagnóstico, permanece apenas a verificação do contexto ativo;
+nenhum estado de busca é registrado.

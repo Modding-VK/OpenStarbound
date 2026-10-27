@@ -7,6 +7,7 @@
 #include "StarPlatformerAStarTypes.hpp"
 
 namespace Star {
+STAR_CLASS(ExplorationProfile);
 namespace PlatformerAStar {
 
   STAR_CLASS(PathFinder);
@@ -44,6 +45,7 @@ namespace PlatformerAStar {
     // Does not preserve current search state.
     PathFinder(PathFinder const& rhs);
     PathFinder& operator=(PathFinder const& rhs);
+    ~PathFinder();
 
     Maybe<bool> explore(Maybe<unsigned> maxExploreNodes = {});
     Maybe<Path> const& result() const;
@@ -96,6 +98,12 @@ namespace PlatformerAStar {
     ActorMovementParameters m_movementParams;
     Parameters m_searchParams;
     Maybe<AStar::Search<Edge, Node>> m_astar;
+    weak_ptr<ExplorationProfile> m_searchProfile;
+    bool m_profileSearchStarted = false;
+    bool m_profileSearchFinished = false;
+    uint64_t m_profileExploreCalls = 0;
+    double m_profileSearchStart = 0;
+    void recordAbandonedSearch();
   };
 }
 }

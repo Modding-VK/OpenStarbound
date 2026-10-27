@@ -57,6 +57,7 @@ namespace AStar {
     // maxExploreNodes is exhausted before success or failure, will return
     // nothing.
     Maybe<bool> explore(Maybe<unsigned> maxExploreNodes = {});
+    size_t exploredNodes() const { return m_closedSet.size(); }
     // Returns the result if it was found.
     Maybe<Path<Edge>> const& result() const;
 

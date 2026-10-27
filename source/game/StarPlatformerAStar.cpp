@@ -5,6 +5,8 @@
 #include "StarLiquidTypes.hpp"
 #include "StarJsonExtra.hpp"
 #include "StarExplorationProfile.hpp"
+#include "StarWorldServer.hpp"
+#include "StarTime.hpp"
 #include "StarTrace.hpp"
 
 namespace Star {
@@ -80,7 +82,13 @@ namespace PlatformerAStar {
       ActorMovementParameters movementParameters,
       Parameters searchParameters)
     : PathFinder(make_shared<WorldPathReadSource>(world), searchFrom, searchTo,
-          std::move(movementParameters), std::move(searchParameters)) {}
+          std::move(movementParameters), std::move(searchParameters)) {
+    if (auto activeProfile = ExplorationProfile::activeNpcProfile()) {
+      if (auto server = dynamic_cast<WorldServer*>(world);
+          server && server->explorationProfile() == activeProfile)
+        m_searchProfile = server->explorationProfileShared();
+    }
+  }
 
   PathFinder::PathFinder(shared_ptr<PathReadSource const> readSource,
       Vec2F searchFrom,
@@ -102,8 +110,15 @@ namespace PlatformerAStar {
   }
 
   PathFinder& PathFinder::operator=(PathFinder const& rhs) {
+    if (this == &rhs)
+      return *this;
+    recordAbandonedSearch();
     m_readSource = rhs.m_readSource;
     m_recordNpcProfile = rhs.m_recordNpcProfile;
+    m_searchProfile = rhs.m_searchProfile;
+    m_profileSearchStarted = false;
+    m_profileSearchFinished = false;
+    m_profileExploreCalls = 0;
     m_searchFrom = rhs.m_searchFrom;
     m_searchTo = rhs.m_searchTo;
     m_movementParams = rhs.m_movementParams;
@@ -112,13 +127,44 @@ namespace PlatformerAStar {
     return *this;
   }
 
+  PathFinder::~PathFinder() {
+    recordAbandonedSearch();
+  }
+
+  void PathFinder::recordAbandonedSearch() {
+    if (!m_profileSearchStarted || m_profileSearchFinished)
+      return;
+    if (auto profile = m_searchProfile.lock()) {
+      profile->count("npc.pathfinding.searchesAbandoned");
+      profile->count("npc.pathfinding.searchExploreCallsTotal", m_profileExploreCalls);
+      profile->count("npc.pathfinding.searchNodesTotal", m_astar->exploredNodes());
+      profile->record("npc.pathfinding.searchWall", Time::monotonicTime() - m_profileSearchStart);
+    }
+    m_profileSearchFinished = true;
+  }
+
   Maybe<bool> PathFinder::explore(Maybe<unsigned> maxExploreNodes) {
     STAR_TRACE_ZONE("Platformer path explore");
     if (!m_recordNpcProfile)
       return m_astar->explore(maxExploreNodes);
+    auto searchProfile = m_searchProfile.lock();
+    if (searchProfile && !m_profileSearchStarted) {
+      m_profileSearchStarted = true;
+      m_profileSearchStart = Time::monotonicTime();
+      searchProfile->count("npc.pathfinding.searchesStarted");
+    }
+    if (searchProfile && !m_profileSearchFinished)
+      ++m_profileExploreCalls;
     ExplorationProfile::NpcScope profile(ExplorationProfile::NpcStage::PathExplore);
     auto result = m_astar->explore(maxExploreNodes);
     ExplorationProfile::recordNpcPathResult(result);
+    if (searchProfile && result && !m_profileSearchFinished) {
+      searchProfile->count(*result ? "npc.pathfinding.searchesSucceeded" : "npc.pathfinding.searchesFailed");
+      searchProfile->count("npc.pathfinding.searchExploreCallsTotal", m_profileExploreCalls);
+      searchProfile->count("npc.pathfinding.searchNodesTotal", m_astar->exploredNodes());
+      searchProfile->record("npc.pathfinding.searchWall", Time::monotonicTime() - m_profileSearchStart);
+      m_profileSearchFinished = true;
+    }
     return result;
   }
 
