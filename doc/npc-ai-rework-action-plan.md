@@ -7,8 +7,8 @@ histórico de decisões ali registrado. Integra o
 
 **Estado: fase 0 em execução; fases 1–2 com protótipos desligados por padrão,
 ainda sem aprovação; fases 3–7 pendentes.** A
-[instrumentação detalhada](npc-profiling.md) foi acrescentada; baseline,
-latência de reação, inventário completo e aprovação da fase 0 ainda estão
+[instrumentação detalhada](npc-profiling.md) foi acrescentada; há uma primeira
+coleta de custo, mas latência de reação, inventário completo e aprovação da fase 0 ainda estão
 pendentes. Há uma [auditoria estática de Lua](npc-lua-boundary-audit.md) e um
 [protótipo de busca em modo sombra](npc-path-shadow.md).
 Uma [ponte experimental por mundo](npc-actor-bridge.md) recebe sinais de rede

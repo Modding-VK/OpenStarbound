@@ -56,6 +56,11 @@ de chegada. A remoção de jogador e o unload invalidam a visão copiada. Uma
 thread de NPCs de verdade precisará de cotas por ator,
 prioridade e backpressure medidos antes de ativar comportamento.
 
+A captura no `WorldServerThread` foi corrigida para parar exatamente em
+`MaxNpcs` e `MaxPlayers`. Os limites anteriores admitiam 257 NPCs ou 65
+jogadores e então `publishFrame` rejeitava o frame inteiro. A mudança mantém a visão parcial limitada
+e não transfere autoridade nem executa IA na ponte.
+
 ## Métricas e próximo estágio
 
 Quando o perfil está ligado, `counts` recebe as chaves fixas

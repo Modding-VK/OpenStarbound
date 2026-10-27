@@ -353,13 +353,13 @@ void WorldServerThread::update(WorldServerFidelity fidelity) {
     frame.geometry = m_worldServer->geometry();
     for (auto clientId : unerroredClientIds) {
       if (auto player = m_worldServer->clientPlayer(clientId)) {
-        frame.players.append({clientId, player->position()});
-        if (frame.players.size() > NpcActorBridge::MaxPlayers)
+        if (frame.players.size() >= NpcActorBridge::MaxPlayers)
           break;
+        frame.players.append({clientId, player->position()});
       }
     }
     m_worldServer->forAllEntities([&](EntityPtr const& entity) {
-      if (entity->entityType() == EntityType::Npc && frame.npcs.size() <= NpcActorBridge::MaxNpcs)
+      if (entity->entityType() == EntityType::Npc && frame.npcs.size() < NpcActorBridge::MaxNpcs)
         frame.npcs.append({entity->entityId(), entity->position()});
     });
     m_npcActorBridge->publishFrame(std::move(frame));

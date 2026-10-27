@@ -174,3 +174,22 @@ a linkagem do jogo completo, compilação Windows ou execução de gameplay.
 Implementação entregue para revisão; validação de gameplay, overhead, Windows
 e cenários de NPCs continuam dependentes de build e coleta. Nenhuma medição
 real de ganho foi produzida por esta alteração.
+
+## Primeira referência real: mundo `…:9`
+
+Na coleta Windows `1704467a`, o mundo
+`383738425:-48324202:-255713414:9` teve cerca de 134 s de relatórios.
+`npc.update` acumulou 10,33 s em 63.284 amostras; o maior update observado
+foi 45 ms. `npcStages.lua.update` acumulou 6,64 s e
+`pathfinding.explore` 0,44 s em 4.194 chamadas. `scriptDispatch` acumulou
+2,68 s; `movement`, 1,21 s. Esses tempos são inclusivos e podem se sobrepor:
+não somá-los para obter CPU total. O A* instrumentado representa apenas essa
+parcela de busca, não toda a decisão de IA.
+
+Nesta sessão, `npc.shadow.*` e `npc.actorBridge.*` não apareceram: os dois
+protótipos estavam desligados. A coleta serve como referência de carga, não
+como comparação serial versus worker. Ela sugere que externalizar apenas o
+A* não retiraria a maior parte do tempo de NPC observado nesse mundo.
+Faltam cenário com a mesma cópia de universo, reação sob stall, frequência
+de APIs Lua síncronas e medição do custo de captura de snapshots antes de
+aceitar a fase 0 ou ligar a fase 2 para comparação.
