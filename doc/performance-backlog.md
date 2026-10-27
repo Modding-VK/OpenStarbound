@@ -231,3 +231,6 @@ não resolve o pico interno de 1,66 s observado aqui.
 
 O protocolo de estados, publicação e retomada está detalhado no
 [plano de dungeons interrompíveis](dungeon-generation-resume-plan.md).
+As consultas e construções repetidas no `flush` foram mapeadas na
+[auditoria de criação](dungeon-flush-creation-audit.md); a coleta de volumes
+deve preceder mudanças no cache de NPCs ou objetos.
