@@ -45,6 +45,25 @@ líquidos, área ocupada por entidades ou efeitos dos callbacks. A próxima etap
 dinâmicos antes de permitir uma reserva autoritativa. Bounding boxes de peças
 sozinhas não comprovam isolamento de uma estrutura.
 
+Ampliação da coleta: líquidos e IDs de dungeon têm conjuntos de setores e
+limites próprios (16.384 entradas/1.024 setores por categoria). Os contadores
+`dungeon.footprint.liquid*` e `dungeonId*` informam WritesExamined, Sectors,
+OutsideWorld e TruncatedSamples. A normalização espacial usa wrap horizontal;
+as chamadas reais de aplicação mantêm suas coordenadas e ordem anteriores.
+Os conjuntos podem se sobrepor: não somar suas contagens como setores únicos.
+`flushLiquid` calcula pressão e transfere para o buffer `m_liquids`; a medição
+ocorre depois, no `flush`, sem antecipar a aplicação.
+
+`dungeon.access.*` conta entradas do writer nas consultas Solid/Open/Ocean/
+DungeonId da facade e nos efeitos imediatos PlayerStart/ClearEntity. Consultas
+Solid/Open resolvidas pela superfície artificial não contam como leitura da
+facade. Estes contadores medem chamadas, não coordenadas nem setores únicos.
+ClearEntity consulta entidades numa caixa expandida em um tile, verifica
+spaces/roots/anchors e remove entidades no mundo vivo antes da publicação dos
+buffers. Portanto, uma futura reserva precisa incluir essa operação e suas
+consequências; contar posições solicitadas não demonstra seu alcance completo.
+Todas essas métricas exigem regionalDetails e ainda não autorizam paralelismo.
+
 Uma dungeon é uma unidade lógica com identidade, footprint e conjunto de
 efeitos. Antes do commit, seus tiles, objetos, NPCs, fios e índices não são
 visíveis para jogadores, scripts, IA, rede nem save do mundo ativo. O servidor

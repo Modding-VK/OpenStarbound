@@ -1073,26 +1073,36 @@ namespace Dungeon {
   }
 
   void DungeonGeneratorWriter::setPlayerStart(Vec2F const& startPosition) {
+    if (m_profile && m_profile->regionalDetailsEnabled())
+      m_profile->count("dungeon.access.immediatePlayerStart");
     m_facade->setPlayerStart(startPosition);
   }
 
   bool DungeonGeneratorWriter::checkSolid(Vec2I position, TileLayer layer) {
     if (m_terrainMarkingSurfaceLevel)
       return position.y() < *m_terrainMarkingSurfaceLevel;
+    if (m_profile && m_profile->regionalDetailsEnabled())
+      m_profile->count("dungeon.access.facadeSolidReads");
     return m_facade->checkSolid(position, layer);
   }
 
   bool DungeonGeneratorWriter::checkOpen(Vec2I position, TileLayer layer) {
     if (m_terrainMarkingSurfaceLevel)
       return position.y() >= *m_terrainMarkingSurfaceLevel;
+    if (m_profile && m_profile->regionalDetailsEnabled())
+      m_profile->count("dungeon.access.facadeOpenReads");
     return m_facade->checkOpen(position, layer);
   }
 
   bool DungeonGeneratorWriter::checkLiquid(Vec2I const& position) {
+    if (m_profile && m_profile->regionalDetailsEnabled())
+      m_profile->count("dungeon.access.facadeOceanReads");
     return m_facade->checkOceanLiquid(position);
   }
 
   bool DungeonGeneratorWriter::otherDungeonPresent(Vec2I position) {
+    if (m_profile && m_profile->regionalDetailsEnabled())
+      m_profile->count("dungeon.access.facadeDungeonIdReads");
     return m_facade->getDungeonIdAt(position) != NoDungeonId;
   }
 
@@ -1111,6 +1121,12 @@ namespace Dungeon {
   }
 
   void DungeonGeneratorWriter::clearTileEntities(RectI const& bounds, Set<Vec2I> const& positions, bool clearAnchoredObjects) {
+    if (m_profile && m_profile->regionalDetailsEnabled()) {
+      m_profile->count("dungeon.access.immediateClearEntityCalls");
+      m_profile->count("dungeon.access.clearEntityPositions", positions.size());
+      if (clearAnchoredObjects)
+        m_profile->count("dungeon.access.clearAnchoredObjectCalls");
+    }
     m_facade->clearTileEntities(bounds, positions, clearAnchoredObjects);
   }
 
@@ -1218,6 +1234,28 @@ namespace Dungeon {
         m_profile->count("dungeon.footprint.crossSectorSamples");
       if (truncated)
         m_profile->count("dungeon.footprint.truncatedSamples");
+
+      // Keep independent caps and counters: a large tile buffer must not
+      // silently consume the liquid/ID observation allowance.
+      sectors.clear();
+      examined = outsideWorld = 0;
+      truncated = false;
+      observe(m_liquids);
+      m_profile->count("dungeon.footprint.liquidWritesExamined", examined);
+      m_profile->count("dungeon.footprint.liquidSectors", sectors.size());
+      m_profile->count("dungeon.footprint.liquidOutsideWorld", outsideWorld);
+      if (truncated)
+        m_profile->count("dungeon.footprint.liquidTruncatedSamples");
+
+      sectors.clear();
+      examined = outsideWorld = 0;
+      truncated = false;
+      observe(m_dungeonIds);
+      m_profile->count("dungeon.footprint.dungeonIdWritesExamined", examined);
+      m_profile->count("dungeon.footprint.dungeonIdSectors", sectors.size());
+      m_profile->count("dungeon.footprint.dungeonIdOutsideWorld", outsideWorld);
+      if (truncated)
+        m_profile->count("dungeon.footprint.dungeonIdTruncatedSamples");
     }
 
     PolyF::VertexList terrainBlendingVertexes;
