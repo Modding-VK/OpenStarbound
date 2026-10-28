@@ -1182,6 +1182,44 @@ namespace Dungeon {
     auto displace = [&](Vec2I pos) -> Vec2I { return geometry.xwrap(pos); };
     auto displaceF = [&](Vec2F pos) -> Vec2F { return geometry.xwrap(pos); };
 
+    // Observe only buffered tile writes. This is not the complete dungeon
+    // footprint: facade calls, reads, entity bounds and blending can reach
+    // beyond these positions. Never use this sample to authorize parallelism.
+    if (m_profile && m_profile->regionalDetailsEnabled()) {
+      ExplorationProfile::Scope footprintTiming(m_profile, "dungeon.footprint.observe");
+      HashSet<Vec2I> sectors;
+      size_t examined = 0;
+      size_t outsideWorld = 0;
+      bool truncated = false;
+      auto observe = [&](auto const& writes) {
+        for (auto const& entry : writes) {
+          if (examined >= 16384 || sectors.size() >= 1024) {
+            truncated = true;
+            break;
+          }
+          ++examined;
+          if (!geometry.width() || entry.first[1] < 0 || (uint64_t)entry.first[1] >= geometry.height()) {
+            ++outsideWorld;
+            continue;
+          }
+          auto position = displace(entry.first);
+          sectors.add(Vec2I(position[0] / (int)WorldSectorSize, position[1] / (int)WorldSectorSize));
+        }
+      };
+      observe(m_backgroundMaterial);
+      observe(m_foregroundMaterial);
+      observe(m_foregroundMod);
+      observe(m_backgroundMod);
+      m_profile->count("dungeon.footprint.samples");
+      m_profile->count("dungeon.footprint.bufferedTileWritesExamined", examined);
+      m_profile->count("dungeon.footprint.bufferedTileSectors", sectors.size());
+      m_profile->count("dungeon.footprint.outsideWorld", outsideWorld);
+      if (sectors.size() > 1)
+        m_profile->count("dungeon.footprint.crossSectorSamples");
+      if (truncated)
+        m_profile->count("dungeon.footprint.truncatedSamples");
+    }
+
     PolyF::VertexList terrainBlendingVertexes;
     PolyF::VertexList spaceBlendingVertexes;
     for (auto bb : m_boundingBoxes) {

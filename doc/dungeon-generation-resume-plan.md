@@ -25,6 +25,26 @@ privado ou que um save excluirá esses efeitos.
 
 ## Contrato de visibilidade
 
+### Observação inicial na Experimental
+
+`DungeonGeneratorWriter::flush` agora conta os setores físicos 32×32 atingidos
+pelos buffers de materiais e mods, com wrap horizontal. A coleta exige
+`explorationProfiling.enabled` e `regionalDetails`. Por flush examina no máximo
+16.384 entradas e retém até 1.024 coordenadas de setor temporárias.
+`dungeon.footprint.*` registra samples, bufferedTileWritesExamined,
+bufferedTileSectors, outsideWorld, crossSectorSamples e truncatedSamples;
+`dungeon.footprint.observe` mede seu custo, incluso em `dungeon.flush.markRegions`.
+Os contadores são somas por janela: um setor pode aparecer em vários flushes.
+Uma amostra truncada fornece somente um limite inferior; a seleção segue a
+iteração dos buffers e não é representativa espacialmente.
+
+Esta é cobertura parcial de escrita, sem reservas nem execução paralela nova.
+Não cobre leituras, clearTileEntities anterior ao flush, blending de terreno,
+líquidos, área ocupada por entidades ou efeitos dos callbacks. A próxima etapa
+é capturar esses acessos na facade e distinguir alcance conhecido de efeitos
+dinâmicos antes de permitir uma reserva autoritativa. Bounding boxes de peças
+sozinhas não comprovam isolamento de uma estrutura.
+
 Uma dungeon é uma unidade lógica com identidade, footprint e conjunto de
 efeitos. Antes do commit, seus tiles, objetos, NPCs, fios e índices não são
 visíveis para jogadores, scripts, IA, rede nem save do mundo ativo. O servidor
