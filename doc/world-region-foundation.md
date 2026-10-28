@@ -127,7 +127,10 @@ Próximas entregas, mantendo os critérios do plano avançado:
 2. Completar orçamento global por bytes e por interesse, inclusive templates,
    resultados prontos, múltiplos mundos e cotas dos outros pools.
 3. Grafo de dependências/etapas e recuperação de conflitos sem starvation;
-   usar as identidades deste registro para seguir a rota crítica.
+   a primeira observação limitada desse grafo está descrita no
+   [coordenador](world-region-coordinator.md#grafo-de-dependências-de-geração-em-sombra);
+   falta usar as identidades deste registro para seguir a rota crítica e
+   mudar a política de execução.
 4. Planejamento de dungeons por footprint e persistência por snapshots, antes
    de dividir a instalação e os updates entre donos regionais.
 

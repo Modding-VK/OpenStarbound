@@ -164,3 +164,27 @@ orçamento global dos pools e da auditoria de índices. Só depois um executor
 regional poderá receber estado próprio e publicar mudanças de subsistemas
 auditados. Handoff de entidades, redes de objetos e APIs de mods continuam
 dependências para a simulação regional autoritativa de WRG-09/10/11.
+
+## Grafo de dependências de geração em sombra
+
+A entrega seguinte introduz `WorldGenerationDependencyGraph`. Ele representa a
+regra já presente em `WorldStorage::generateSectorToLevel`: para executar a
+etapa `L` de um setor, é necessário concluir a etapa `L - 1` do próprio setor e
+dos seus vizinhos. `BaseTiles` é a primeira etapa e, portanto, não possui esse
+pré-requisito. Terraform não entra no grafo, pois segue o caminho especial já
+existente.
+
+O grafo é um valor puro, limitado a 256 nós, e recebe vizinhos já normalizados
+pelo `WorldStorage`; ele não carrega setores, lê tiles, mantém ponteiros, muda
+ordem da fila ou inicia workers. Quando `regionalDetails` está ativo, cada passe
+observa somente o primeiro setor da fila atual e registra em `counts`:
+
+- `generation.dependencies.samples`, `nodes`, `edges`: tamanho da observação;
+- `satisfied`, `runnable`, `blocked`, `directBlockers`: estado das etapas sob a
+  regra atual; `runnable` não é uma autorização de execução;
+- `truncated`: atingiu o teto e a amostra não descreve a árvore inteira;
+- `generation.dependencies.observe` em `stages`: custo inclusivo da análise.
+
+Esses números não são ainda um escalonador. Eles permitem comparar os stalls de
+vilas/dungeons com a árvore real de pré-requisitos antes de alterar prioridades
+ou permitir publicação paralela de MicroDungeons, líquidos ou entidades.

@@ -94,11 +94,13 @@ SET_TESTS_PROPERTIES(core_tests PROPERTIES
 ADD_EXECUTABLE(world_generation_contract_tests
   $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base>
   ../game/StarWorldRegionPartition.cpp
+  ../game/StarWorldGenerationDependency.cpp
   ../game/StarWorldGenerationTasks.cpp
   ../game/StarWorldRegionCoordinator.cpp
   gtest/gtest-all.cc
   core_tests_main.cpp
   world_region_partition_test.cpp
+  world_generation_dependency_test.cpp
   world_generation_tasks_test.cpp
   world_region_coordinator_test.cpp)
 TARGET_LINK_LIBRARIES(world_generation_contract_tests ${STAR_EXT_LIBS})

@@ -172,6 +172,7 @@ SET (star_game_HEADERS
     StarWorldClientThread.hpp
     StarWorldClientState.hpp
     StarWorldGeneration.hpp
+    StarWorldGenerationDependency.hpp
     StarWorldGenerationTasks.hpp
     StarWorldRegionPartition.hpp
     StarWorldRegionCoordinator.hpp
@@ -452,6 +453,7 @@ SET (star_game_SOURCES
     StarWorldClientThread.cpp
     StarWorldClientState.cpp
     StarWorldGeneration.cpp
+    StarWorldGenerationDependency.cpp
     StarWorldGenerationTasks.cpp
     StarWorldRegionPartition.cpp
     StarWorldRegionCoordinator.cpp
