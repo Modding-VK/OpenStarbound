@@ -88,3 +88,22 @@ ADD_TEST (NAME game_tests WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} CO
 
 SET_TESTS_PROPERTIES(core_tests PROPERTIES
                      LABELS "NoAssets")
+
+# Ownership and geometry contracts must be runnable without game assets or a
+# mutable Root/World. Compile just these pure game components for this target.
+ADD_EXECUTABLE(world_generation_contract_tests
+  $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base>
+  ../game/StarWorldRegionPartition.cpp
+  ../game/StarWorldGenerationTasks.cpp
+  gtest/gtest-all.cc
+  core_tests_main.cpp
+  world_region_partition_test.cpp
+  world_generation_tasks_test.cpp)
+TARGET_LINK_LIBRARIES(world_generation_contract_tests ${STAR_EXT_LIBS})
+IF(STAR_ENABLE_TRACY)
+  TARGET_LINK_LIBRARIES(world_generation_contract_tests Tracy::TracyClient)
+  TARGET_COMPILE_DEFINITIONS(world_generation_contract_tests PRIVATE STAR_ENABLE_TRACY)
+ENDIF()
+ADD_TEST(NAME world_generation_contract_tests
+  COMMAND $<TARGET_FILE:world_generation_contract_tests>)
+SET_TESTS_PROPERTIES(world_generation_contract_tests PROPERTIES LABELS "NoAssets")

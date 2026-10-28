@@ -1,4 +1,5 @@
 #include "StarExplorationProfile.hpp"
+#include "StarWorldGenerationTasks.hpp"
 #include "StarConfiguration.hpp"
 #include "StarJsonExtra.hpp"
 #include "StarLogging.hpp"
@@ -311,6 +312,22 @@ void ExplorationProfile::recordBaseTileOutcome(Vec2I sector, bool stale, uint64_
   }
 }
 
+void ExplorationProfile::recordGenerationTask(WorldGenerationTaskIdentity const& identity, char const* event, size_t reservedBytes) {
+  if (!m_regionalDetails)
+    return;
+  if (m_generationTaskEvents.size() >= 64) {
+    count("generation.tasks.eventsDropped");
+    return;
+  }
+  m_generationTaskEvents.append(JsonObject{
+    {"worldEpoch", identity.worldEpoch}, {"sequence", identity.sequence},
+    {"sector", JsonArray{identity.sector[0], identity.sector[1]}},
+    {"region", JsonArray{identity.region[0], identity.region[1]}},
+    {"stage", "baseTiles"}, {"event", event}, {"reservedArrayBytes", reservedBytes},
+    {"monotonicMilliseconds", Time::monotonicTime() * 1000}
+  });
+}
+
 void ExplorationProfile::recordEntity(Entity const& entity, double totalSeconds, double luaSeconds, double loggingSeconds) {
   String type = EntityTypeNames.getRight(entity.entityType());
   auto& timing = m_entityTimings[type];
@@ -462,6 +479,8 @@ void ExplorationProfile::report(bool final) {
   };
   auto staleBaseTiles = baseTileOutcomesJson(m_staleBaseTiles);
   auto evictedBaseTiles = baseTileOutcomesJson(m_evictedBaseTiles);
+  auto generationTasks = std::move(m_generationTaskEvents);
+  m_generationTaskEvents = {};
   static char const* const npcStageNames[] = {
     "update", "scriptDispatch", "movement", "status", "shared", "init", "uninit", "damage",
     "damagedOther", "shouldDestroy", "destroy", "interact", "receiveMessage", "callScript",
@@ -492,7 +511,7 @@ void ExplorationProfile::report(bool final) {
   }
   if (!stages.empty() || !counts.empty() || !entityTypes.empty() || !slowEntities.empty()
       || !npcStages.empty() || !oldestQueuedSector.isNull() || !slowSectors.empty() || !tilePackets.empty()
-      || !staleBaseTiles.empty() || !evictedBaseTiles.empty()) {
+      || !staleBaseTiles.empty() || !evictedBaseTiles.empty() || !generationTasks.empty()) {
     Json report = JsonObject{
       {"component", m_component}, {"context", m_context}, {"instance", m_instance},
       {"windowMilliseconds", (now - m_windowStart) * 1000},
@@ -502,6 +521,7 @@ void ExplorationProfile::report(bool final) {
       {"oldestQueuedSector", std::move(oldestQueuedSector)}, {"slowSectors", std::move(slowSectors)},
       {"tilePackets", std::move(tilePackets)},
       {"staleBaseTiles", std::move(staleBaseTiles)}, {"evictedBaseTiles", std::move(evictedBaseTiles)},
+      {"generationTasks", std::move(generationTasks)},
       {"regionalDiagnostics", std::move(regionalDiagnostics)},
       {"npcDetails", m_npcDetails}, {"npcStages", std::move(npcStages)},
       {"percentileMethod", "histogram-upper-bound-8-buckets-per-octave-1us"}

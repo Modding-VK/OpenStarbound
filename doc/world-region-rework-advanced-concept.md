@@ -1,7 +1,8 @@
 # Reestruturação avançada do mundo por regiões de setores
 
-Estado em 26/10/2026: **plano conceitual; nenhum runtime regional foi
-implementado**. Inspirado na propriedade de regiões do Minecraft Java/Folia,
+Estado em 28/10/2026: **fundação inicial implementada na `Experimental`;
+simulação regional ainda pendente**. O [registro de tarefas e a partição
+lógica](world-region-foundation.md) iniciam WRG-03/06. Inspirado na propriedade de regiões do Minecraft Java/Folia,
 sem reutilizar código desses projetos. O alvo é permitir progresso paralelo
 **dentro de um mesmo mundo** sem conceder acesso concorrente ao mesmo estado
 mutável. Isto pode envolver substituir a `WorldServerThread` atual, mas exige
@@ -342,8 +343,9 @@ barreira, o banco ou o commit de inventários.
 
 ## 8. Backlog de geração e progresso regional — revisão de 26/10/2026
 
-**Estado: planejado, sem implementação autorizada por este registro.** Esta
-seção detalha as fases acima para o objetivo de máximo paralelismo seguro.
+**Estado: backlog com implementação inicial autorizada posteriormente em
+28/10/2026; escopo entregue em [fundação regional](world-region-foundation.md).**
+Esta seção detalha as fases acima para o objetivo de máximo paralelismo seguro.
 Preserva a referência conceitual ao Folia e a implementação própria. Minecraft
 Java vanilla não fornece, por si, ticks paralelos de toda a lógica de chunks.
 O objetivo mensurável é reduzir espera e retrabalho, inclusive quando há
@@ -492,7 +494,10 @@ ou manter o mundo no modo legado. Nunca encerrar threads para cumprir orçamento
 
 ### 8.4 Itens executáveis do backlog
 
-Todos os itens abaixo estão **pendentes**. P0 corrige contratos e mede progresso;
+Os contratos completos abaixo continuam pendentes. WRG-03 recebeu um registro
+de tarefas integrado a BaseTiles e WRG-06 recebeu a partição lógica inicial;
+o [escopo implementado](world-region-foundation.md) delimita o que falta.
+P0 corrige contratos e mede progresso;
 P1 constrói o protótipo; P2 amplia paralelismo. A ordem segue dependências, não
 pressupõe que aumentar o número de workers seja a primeira intervenção.
 
@@ -516,6 +521,13 @@ do mundo. Isso reduz retrabalho sem depender da migração completa dos mods. O
 runtime regional usa posteriormente os mesmos contratos de tarefas, versões e
 progresso. O tamanho físico 64×64 permanece uma pesquisa independente, sem ser
 pré-requisito nem correção presumida para esses bloqueios.
+
+Atualização de implementação em 28/10/2026: a branch `Experimental` integra
+identidade `(worldEpoch, sequence, sector, region, stage)`, transições de estado
+e reserva por chave/bytes rasos ao produtor BaseTiles. Unload invalida o ticket
+sem liberar a chave antes do término. A partição 2×2 já trata wrap e regiões
+parciais. Ainda faltam grafo de etapas, orçamento global, donos/turnos em sombra
+e simulação regional; não marcar WRG-03/04/06 como integralmente concluídos.
 
 ### 8.5 Validação obrigatória antes de promover o novo modelo
 

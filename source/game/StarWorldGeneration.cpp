@@ -813,8 +813,11 @@ void WorldGenerator::sectorLoadLevelChanged(WorldStorage* worldStorage, Sector c
       // Keep the key until the producer finishes: reload must not start a
       // second job for the same sector. Null also prevents pointer ABA reuse.
       pending->sourceTiles = nullptr;
-      if (auto profile = m_worldServer->explorationProfile())
+      pending->task->invalidate();
+      if (auto profile = m_worldServer->explorationProfile()) {
         profile->count("generation.baseTiles.pendingInvalidatedOnUnload");
+        profile->recordGenerationTask(pending->task->identity, "invalidated", pending->task->reservedBytes);
+      }
       worldStorage->tileArray()->takeRevisionTracking(sector);
     }
   }
@@ -832,6 +835,8 @@ List<WorldGenerator::Sector> WorldGenerator::readyBaseTileSectors(WorldStorage* 
       return false;
     if (!entry.second.sourceTiles) {
       worldStorage->tileArray()->takeRevisionTracking(entry.first);
+      retireBaseTileTask(entry.second.task, entry.second.task->state() == WorldGenerationTaskState::Failed
+          ? WorldGenerationTaskOutcome::Failed : WorldGenerationTaskOutcome::Cancelled);
       if (auto profile = m_worldServer->explorationProfile())
         profile->count("generation.baseTiles.unloadedResultsDiscarded");
       return true;
@@ -840,6 +845,33 @@ List<WorldGenerator::Sector> WorldGenerator::readyBaseTileSectors(WorldStorage* 
     return false;
   });
   return ready;
+}
+
+void WorldGenerator::retireBaseTileTask(shared_ptr<WorldGenerationTask> const& task, WorldGenerationTaskOutcome outcome) {
+  if (!m_generationTasks || !m_generationTasks->retire(task, outcome))
+    throw StarException("Invalid generation task retirement");
+  if (auto profile = m_worldServer->explorationProfile()) {
+    char const* event = "failed";
+    char const* counter = "generation.tasks.failed";
+    switch (outcome) {
+      case WorldGenerationTaskOutcome::Committed:
+        event = "committed";
+        counter = "generation.tasks.committed";
+        break;
+      case WorldGenerationTaskOutcome::Stale:
+        event = "stale";
+        counter = "generation.tasks.stale";
+        break;
+      case WorldGenerationTaskOutcome::Cancelled:
+        event = "cancelled";
+        counter = "generation.tasks.cancelled";
+        break;
+      case WorldGenerationTaskOutcome::Failed:
+        break;
+    }
+    profile->count(counter);
+    profile->recordGenerationTask(task->identity, event, task->reservedBytes);
+  }
 }
 
 void WorldGenerator::terraformSector(WorldStorage* worldStorage, Sector const& sector) {
@@ -960,7 +992,7 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
   }
   auto pending = m_pendingBaseTiles.ptr(sector);
   if (pending) {
-    if (allowAsync && !pending->promise->poll()) {
+    if (allowAsync && !pending->promise->done()) {
       if (profile) {
         profile->count("generation.baseTiles.pendingPolls");
         profile->record("generation.baseTiles.pendingAge", now - pending->scheduledAt);
@@ -968,8 +1000,17 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
       return {false, {}};
     }
 
-    auto result = std::move(pending->promise->get());
-    bool tilesCurrent = pending->sourceTiles && static_cast<ServerTileSectorArray const&>(*worldStorage->tileArray()).sectorArray(sector) == pending->sourceTiles;
+    PreparedBaseTiles result;
+    try {
+      result = std::move(pending->promise->get());
+    } catch (...) {
+      retireBaseTileTask(pending->task, WorldGenerationTaskOutcome::Failed);
+      m_pendingBaseTiles.remove(sector);
+      throw;
+    }
+    bool taskCurrent = m_generationTasks->contains(pending->task) && pending->task->valid()
+        && pending->task->identity.worldEpoch == m_worldServer->instanceEpoch();
+    bool tilesCurrent = taskCurrent && pending->sourceTiles && static_cast<ServerTileSectorArray const&>(*worldStorage->tileArray()).sectorArray(sector) == pending->sourceTiles;
     bool revisionCurrent = worldStorage->tileArray()->sectorRevision(sector) == pending->sourceTileRevision;
     bool templateCurrent = m_worldServer->worldTemplate().get() == pending->sourceTemplate;
     bool templateRevisionCurrent = m_worldServer->worldTemplate()->generationRevision() == pending->sourceTemplateRevision;
@@ -995,8 +1036,10 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
             revisionReasonJson(revisions, profile, true), now - pending->scheduledAt);
       }
     }
-    m_pendingBaseTiles.remove(sector);
     if (!snapshotStillCurrent) {
+      retireBaseTileTask(pending->task, pending->task->valid()
+          ? WorldGenerationTaskOutcome::Stale : WorldGenerationTaskOutcome::Cancelled);
+      m_pendingBaseTiles.remove(sector);
       if (profile)
         profile->count("generation.baseTiles.staleResults");
       if (!allowAsync) {
@@ -1014,6 +1057,8 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
     }
     if (profile)
       profile->count("generation.baseTiles.resultsApplied");
+    retireBaseTileTask(pending->task, WorldGenerationTaskOutcome::Committed);
+    m_pendingBaseTiles.remove(sector);
     return {true, result.elapsedSeconds};
   }
 
@@ -1051,24 +1096,64 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
   auto templateStore = m_baseTileTemplateStore;
   auto materialDatabase = Root::singleton().materialDatabase();
   double scheduledAt = profile ? Time::monotonicTime() : now;
-  auto promise = workerPool.addProducer<PreparedBaseTiles>(
-      [planet, templateRevision, templateStore, materialDatabase, sectorRegion, tilesHolder, scheduledAt]() mutable {
-        STAR_TRACE_ZONE("Base tiles worker");
-        double start = Time::monotonicTime();
-        auto workerPlanet = workerWorldTemplate(planet, templateRevision, templateStore);
-        prepareBaseTileArray(workerPlanet, materialDatabase, sectorRegion, **tilesHolder);
-        double completedAt = Time::monotonicTime();
-        return PreparedBaseTiles{std::move(*tilesHolder), completedAt - start, start - scheduledAt, completedAt};
+  if (!m_generationTasks) {
+    m_generationTasks = make_unique<WorldGenerationTasks>(m_worldServer->instanceEpoch(),
+        WorldRegionPartition(WorldGeometry(tileArray->size())), pendingLimit,
+        pendingLimit * sizeof(ServerTileSectorArray::Array));
+  }
+  auto task = m_generationTasks->reserve(Vec2U(sector), WorldGenerationTaskStage::BaseTiles,
+      sizeof(ServerTileSectorArray::Array));
+  if (!task) {
+    if (profile)
+      profile->count("generation.tasks.admissionDeferred");
+    return {false, {}};
+  }
+  if (profile) {
+    profile->count("generation.tasks.reserved");
+    profile->recordGenerationTask(task->identity, "reserved", task->reservedBytes);
+  }
+  Maybe<WorkerPoolPromise<PreparedBaseTiles>> promise;
+  try {
+    promise = workerPool.addProducer<PreparedBaseTiles>(
+      [task, planet, templateRevision, templateStore, materialDatabase, sectorRegion, tilesHolder, scheduledAt]() mutable {
+        if (!task->start())
+          throw StarException("Generation task started more than once");
+        try {
+          STAR_TRACE_ZONE("Base tiles worker");
+          double start = Time::monotonicTime();
+          // Invalidation keeps the reservation until this producer exits. A
+          // queued task unloaded in the meantime need not calculate terrain.
+          if (task->valid()) {
+            auto workerPlanet = workerWorldTemplate(planet, templateRevision, templateStore);
+            prepareBaseTileArray(workerPlanet, materialDatabase, sectorRegion, **tilesHolder);
+          }
+          double completedAt = Time::monotonicTime();
+          PreparedBaseTiles result{std::move(*tilesHolder), completedAt - start, start - scheduledAt, completedAt};
+          if (!task->ready())
+            throw StarException("Generation task completed in an invalid state");
+          return result;
+        } catch (...) {
+          task->fail();
+          throw;
+        }
       });
+  } catch (...) {
+    // Enqueue failed before a promise was published. No producer can own this
+    // task when addProducer throws; retire the reservation and propagate.
+    task->fail();
+    retireBaseTileTask(task, WorldGenerationTaskOutcome::Failed);
+    throw;
+  }
   if (profile)
     tileArray->beginRevisionTracking(sector);
   m_pendingBaseTiles[sector] = PendingBaseTiles{
+    task,
     sourceTiles,
     sourceTileRevision,
     planet.get(),
     templateRevision,
     scheduledAt,
-    make_shared<WorkerPoolPromise<PreparedBaseTiles>>(std::move(promise))
+    std::move(promise)
   };
   if (profile)
     profile->count("generation.baseTiles.scheduled");

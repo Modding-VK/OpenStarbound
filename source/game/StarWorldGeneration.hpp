@@ -8,6 +8,7 @@
 #include "StarCellularLiquid.hpp"
 #include "StarBiomePlacement.hpp"
 #include "StarWorkerPool.hpp"
+#include "StarWorldGenerationTasks.hpp"
 
 namespace Star {
 
@@ -146,18 +147,18 @@ private:
     double completedAt;
   };
 
-  typedef shared_ptr<WorkerPoolPromise<PreparedBaseTiles>> BaseTilePromisePtr;
-
   struct PendingBaseTiles {
+    shared_ptr<WorldGenerationTask> task;
     ServerTileSectorArray::Array const* sourceTiles;
     uint64_t sourceTileRevision;
     WorldTemplate const* sourceTemplate;
     uint64_t sourceTemplateRevision;
     double scheduledAt;
-    BaseTilePromisePtr promise;
+    Maybe<WorkerPoolPromise<PreparedBaseTiles>> promise;
   };
 
   void prepareTiles(WorldStorage* worldStorage, Sector const& sector);
+  void retireBaseTileTask(shared_ptr<WorldGenerationTask> const& task, WorldGenerationTaskOutcome outcome);
   SectorGenerationResult prepareTilesAsync(WorldStorage* worldStorage, Sector const& sector, bool allowAsync);
   void generateMicroDungeons(WorldStorage* worldStorage, Sector const& sector);
   void generateCaveLiquid(WorldStorage* worldStorage, Sector const& sector);
@@ -180,6 +181,7 @@ private:
   MicroDungeonFactoryPtr m_microDungeonFactory;
   List<QueuedPlacement> m_queuedPlacements;
   HashMap<Sector, PendingBaseTiles> m_pendingBaseTiles;
+  unique_ptr<WorldGenerationTasks> m_generationTasks;
   double m_lastPoolProfileTime = 0;
   WorldTemplatePtr m_baseTileTemplateSource;
   uint64_t m_baseTileTemplateRevision = 0;

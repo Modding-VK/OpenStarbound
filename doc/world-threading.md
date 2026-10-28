@@ -28,6 +28,13 @@ and commit protocol.
 
 ## Phase 1: base tile preparation
 
+The initial [regional foundation](world-region-foundation.md) now gives each
+asynchronous BaseTiles task an immutable world/sequence/sector/region/stage
+identity and an atomic execution state. Unload revokes the ticket without
+releasing its key until the producer finishes. The registry bounds both task
+count and shallow sector-array bytes. Logical 2×2 regions are identifiers for
+future ownership; they do not execute simulation or Lua in parallel yet.
+
 The first vertical slice moves the `BaseTiles` stage for queued sector
 generation to a bounded process-wide worker pool. It calculates terrain materials, biome
 indexes, biome mods, and initial ocean liquid in an owned copy of one sector.
