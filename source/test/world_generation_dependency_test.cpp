@@ -65,6 +65,20 @@ TEST(WorldGenerationDependencyTest, ACompletedPrerequisiteMakesOnlyItsDependentE
   EXPECT_EQ(analysis.runnableNodes, 4u);
   EXPECT_EQ(analysis.blockedNodes, 1u);
   EXPECT_EQ(analysis.directBlockers, 4u);
+  ASSERT_EQ(analysis.frontier.size(), 4u);
+  EXPECT_EQ(analysis.frontier[0], (WorldGenerationDependencyNode{{3, 7}, 1}));
+}
+
+TEST(WorldGenerationDependencyTest, MultipleRootsShareDependenciesAndExposeOneFrontier) {
+  auto plan = WorldGenerationDependencyGraph::build(
+      List<WorldGenerationDependencyNode>{{{4, 7}, 2}, {{5, 7}, 2}}, crossNeighbors);
+
+  ASSERT_FALSE(plan.truncated);
+  auto analysis = WorldGenerationDependencyGraph::analyze(plan, noGeneration);
+  EXPECT_EQ(analysis.runnableNodes, analysis.frontier.size());
+  EXPECT_EQ(analysis.frontier.size(), 8u);
+  EXPECT_EQ(std::count(analysis.frontier.begin(), analysis.frontier.end(),
+      WorldGenerationDependencyNode{{5, 7}, 1}), 1);
 }
 
 TEST(WorldGenerationDependencyTest, ExpansionStopsAtTheDeclaredBound) {

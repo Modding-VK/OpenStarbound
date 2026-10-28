@@ -176,12 +176,17 @@ existente.
 
 O grafo é um valor puro, limitado a 256 nós, e recebe vizinhos já normalizados
 pelo `WorldStorage`; ele não carrega setores, lê tiles, mantém ponteiros, muda
-ordem da fila ou inicia workers. Quando `regionalDetails` está ativo, cada passe
-observa somente o primeiro setor da fila atual e registra em `counts`:
+ordem da fila ou inicia workers. Ele também expõe uma fronteira estável de
+etapas cujos pré-requisitos diretos já foram satisfeitos. Essa fronteira é uma
+pré-condição para execução futura, não uma autorização de escrita concorrente.
+Quando `regionalDetails` está ativo, cada passe observa até os primeiros oito
+setores da fila atual e registra em `counts`:
 
-- `generation.dependencies.samples`, `nodes`, `edges`: tamanho da observação;
+- `generation.dependencies.samples`, `roots`, `nodes`, `edges`: tamanho da
+  observação; `roots` é limitado a oito;
 - `satisfied`, `runnable`, `blocked`, `directBlockers`: estado das etapas sob a
   regra atual; `runnable` não é uma autorização de execução;
+- `frontier`: número de etapas distintas na fronteira apta da amostra;
 - `truncated`: atingiu o teto e a amostra não descreve a árvore inteira;
 - `generation.dependencies.observe` em `stages`: custo inclusivo da análise.
 

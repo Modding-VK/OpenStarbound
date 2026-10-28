@@ -37,6 +37,10 @@ struct WorldGenerationDependencyAnalysis {
   size_t blockedNodes = 0;
   size_t directBlockers = 0;
   Maybe<WorldGenerationDependencyNode> firstBlocker;
+  // Stable, deduplicated stages whose direct prerequisites already existed in
+  // the sampled state.  A truncated plan must never authorize work from this
+  // list because it may omit a prerequisite.
+  List<WorldGenerationDependencyNode> frontier;
 };
 
 // Mirrors the dependency rule currently implemented by
@@ -53,6 +57,8 @@ public:
   using CurrentLevel = std::function<uint8_t(Vec2U const&)>;
 
   static WorldGenerationDependencyPlan build(Vec2U const& root, uint8_t targetLevel,
+      AdjacentSectors const& adjacentSectors, size_t maxNodes = DefaultMaxNodes);
+  static WorldGenerationDependencyPlan build(List<WorldGenerationDependencyNode> roots,
       AdjacentSectors const& adjacentSectors, size_t maxNodes = DefaultMaxNodes);
   static WorldGenerationDependencyAnalysis analyze(WorldGenerationDependencyPlan const& plan,
       CurrentLevel const& currentLevel);

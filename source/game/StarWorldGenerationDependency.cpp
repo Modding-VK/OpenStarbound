@@ -46,8 +46,19 @@ bool hasIncomingEdge(WorldGenerationDependencyPlan const& plan, WorldGenerationD
 
 WorldGenerationDependencyPlan WorldGenerationDependencyGraph::build(Vec2U const& root, uint8_t targetLevel,
     AdjacentSectors const& adjacentSectors, size_t maxNodes) {
+  return build(List<WorldGenerationDependencyNode>{{root, targetLevel}}, adjacentSectors, maxNodes);
+}
+
+WorldGenerationDependencyPlan WorldGenerationDependencyGraph::build(List<WorldGenerationDependencyNode> roots,
+    AdjacentSectors const& adjacentSectors, size_t maxNodes) {
   WorldGenerationDependencyPlan plan;
-  if (!targetLevel || !adjacentSectors || !maxNodes)
+  if (roots.empty() || !adjacentSectors || !maxNodes)
+    return plan;
+
+  eraseWhere(roots, [](WorldGenerationDependencyNode const& root) { return !root.level; });
+  std::sort(roots.begin(), roots.end());
+  roots.erase(std::unique(roots.begin(), roots.end()), roots.end());
+  if (roots.empty())
     return plan;
 
   auto add = [&](auto&& self, WorldGenerationDependencyNode const& node) -> bool {
@@ -78,7 +89,10 @@ WorldGenerationDependencyPlan WorldGenerationDependencyGraph::build(Vec2U const&
     return true;
   };
 
-  add(add, WorldGenerationDependencyNode{root, targetLevel});
+  for (auto const& root : roots) {
+    if (!add(add, root))
+      break;
+  }
   return plan;
 }
 
@@ -97,8 +111,10 @@ WorldGenerationDependencyAnalysis WorldGenerationDependencyGraph::analyze(WorldG
       ++analysis.blockedNodes;
     } else {
       ++analysis.runnableNodes;
+      analysis.frontier.append(node);
     }
   }
+  std::sort(analysis.frontier.begin(), analysis.frontier.end());
   return analysis;
 }
 

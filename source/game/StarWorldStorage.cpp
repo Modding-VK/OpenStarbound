@@ -496,14 +496,21 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     }
 
     // This is a bounded shadow of the recursive prerequisite rule below.  It
-    // observes the first queued sector only and never changes queue order,
+    // observes a bounded prefix of queued sectors only and never changes queue order,
     // loading, generation or worker admission.  The data identifies whether a
     // future regional scheduler is blocked by stage prerequisites rather than
     // by its own policy.
     if (m_explorationProfile && m_explorationProfile->regionalDetailsEnabled() && !m_generationQueue.empty()) {
       ExplorationProfile::Scope timing(m_explorationProfile.get(), "generation.dependencies.observe");
-      auto root = m_generationQueue.firstKey();
-      auto plan = WorldGenerationDependencyGraph::build(Vec2U(root), static_cast<uint8_t>(SectorGenerationLevel::Complete),
+      static constexpr size_t MaxObservedRoots = 8;
+      List<WorldGenerationDependencyNode> roots;
+      for (auto const& entry : m_generationQueue) {
+        roots.append(WorldGenerationDependencyNode{Vec2U(entry.first), static_cast<uint8_t>(SectorGenerationLevel::Complete)});
+        if (roots.size() == MaxObservedRoots)
+          break;
+      }
+      auto rootCount = roots.size();
+      auto plan = WorldGenerationDependencyGraph::build(std::move(roots),
           [this](Vec2U const& observed) {
             List<Vec2U> result;
             auto neighbors = adjacentSectors(Sector(observed[0], observed[1]));
@@ -517,12 +524,14 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
           return uint8_t(0);
         });
       m_explorationProfile->count("generation.dependencies.samples");
+      m_explorationProfile->count("generation.dependencies.roots", rootCount);
       m_explorationProfile->count("generation.dependencies.nodes", plan.nodes.size());
       m_explorationProfile->count("generation.dependencies.edges", plan.edges.size());
       m_explorationProfile->count("generation.dependencies.satisfied", analysis.satisfiedNodes);
       m_explorationProfile->count("generation.dependencies.runnable", analysis.runnableNodes);
       m_explorationProfile->count("generation.dependencies.blocked", analysis.blockedNodes);
       m_explorationProfile->count("generation.dependencies.directBlockers", analysis.directBlockers);
+      m_explorationProfile->count("generation.dependencies.frontier", analysis.frontier.size());
       if (plan.truncated)
         m_explorationProfile->count("generation.dependencies.truncated");
     }
