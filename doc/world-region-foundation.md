@@ -18,7 +18,10 @@ rejeitadas. Geometria vazia ou não representável por `RectI` é indisponível.
 Esta região é um identificador de planejamento. Não é um dono de entidades ou
 de tiles, nem comprova independência entre dois trabalhos. Nenhuma dimensão,
 chave do banco `.world`, semente, distribuição de estruturas ou pacote foi
-alterado. Ainda falta o registro de donos/turnos regionais em sombra.
+alterado. A entrega seguinte adicionou o
+[coordenador de turnos em sombra](world-region-coordinator.md), com captura
+limitada de metadados e validação observacional; donos de estado vivo continuam
+pendentes.
 
 ## Tarefas reais de geração
 
@@ -118,8 +121,9 @@ Mantizi/Glitch, edição de tiles e multiplayer exigem validação em jogo.
 
 Próximas entregas, mantendo os critérios do plano avançado:
 
-1. Captura limitada de metadados, donos/turnos regionais em sombra e auditoria
-   de leitura/escrita; a partição sozinha não autoriza simulação paralela.
+1. Captura limitada e turnos regionais em sombra agora estão implementados no
+   [coordenador](world-region-coordinator.md). Faltam propriedade de entidades,
+   migração rastreável e auditoria completa de leitura/escrita.
 2. Completar orçamento global por bytes e por interesse, inclusive templates,
    resultados prontos, múltiplos mundos e cotas dos outros pools.
 3. Grafo de dependências/etapas e recuperação de conflitos sem starvation;

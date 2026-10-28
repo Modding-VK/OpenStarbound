@@ -9,6 +9,7 @@
 #include "StarWireEntity.hpp"
 #include "StarWorldImpl.hpp"
 #include "StarWorldGeneration.hpp"
+#include "StarWorldRegionCoordinator.hpp"
 #include "StarItemDescriptor.hpp"
 #include "StarItemDrop.hpp"
 #include "StarObjectDatabase.hpp"
@@ -87,6 +88,15 @@ WorldServer::WorldServer(WorldChunks const& chunks) {
 }
 
 WorldServer::~WorldServer() {
+  if (m_regionCoordinator) {
+    for (auto const& turn : m_regionTurns) {
+      m_explorationProfile->count("regional.shadow.cancelled");
+      m_explorationProfile->recordRegionalTurn(*turn, "cancelled", m_currentStep);
+    }
+    m_regionCoordinator->cancelAll();
+    m_regionTurns.clear();
+    m_worldStorage->clearRegionalObservations();
+  }
   if (m_explorationProfile)
     m_explorationProfile->report(true);
   for (auto& p : m_scriptContexts)
@@ -1368,7 +1378,70 @@ void WorldServer::update(float dt) {
   LogMap::set(strf("server_{}_active_liquid", m_worldId), m_liquidEngine->activeCells());
   LogMap::set(strf("server_{}_lua_mem", m_worldId), m_luaRoot->luaMemoryUsage());
 
+  updateRegionalShadow();
   recordProfileStage(UpdateProfileStage::CleanupAndNetworking);
+}
+
+void WorldServer::updateRegionalShadow() {
+  if (!m_regionCoordinator)
+    return;
+  auto profile = m_explorationProfile.get();
+  ExplorationProfile::Scope timing(profile, "regional.shadow.observe");
+  ExplorationProfile::Scope phase(profile, "regional.shadow.validate");
+  // Leases survive a real legacy update. Validate only the captured metadata,
+  // including changes made by WorldServerThread actions between updates.
+  for (auto const& turn : m_regionTurns) {
+    auto current = m_worldStorage->captureRegionalSnapshot(turn->snapshot.region, m_currentStep);
+    WorldRegionSnapshot unavailable;
+    unavailable.region = turn->snapshot.region;
+    unavailable.captureStep = m_currentStep;
+    auto outcome = m_regionCoordinator->finish(turn, current ? *current : unavailable);
+    char const* event = "foreign";
+    if (outcome == WorldRegionTurnOutcome::Accepted) {
+      profile->count("regional.shadow.unchanged");
+      event = "unchanged";
+    } else if (outcome == WorldRegionTurnOutcome::Stale) {
+      profile->count("regional.shadow.stale");
+      event = "stale";
+    } else {
+      profile->count("regional.shadow.foreign");
+    }
+    profile->recordRegionalTurn(*turn, event, m_currentStep);
+  }
+  m_regionTurns.clear();
+  if (m_regionCoordinator->activeCount()) {
+    profile->count("regional.shadow.resetAfterForeign");
+    m_regionCoordinator->cancelAll();
+  }
+  m_worldStorage->clearRegionalObservations();
+  phase.stop();
+
+  double now = Time::monotonicTime();
+  if (now < m_nextRegionShadowCapture)
+    return;
+  m_nextRegionShadowCapture = now + 0.25;
+  phase.next("regional.shadow.capture");
+  auto snapshots = m_worldStorage->captureRegionalSnapshots(m_currentStep);
+  if (!snapshots) {
+    profile->count("regional.shadow.captureRejected");
+    return;
+  }
+  profile->count("regional.shadow.frames");
+  profile->count("regional.shadow.candidateRegions", snapshots->size());
+  size_t candidates = snapshots->size();
+  phase.next("regional.shadow.schedule");
+  m_regionTurns = m_regionCoordinator->schedule(m_currentStep, std::move(*snapshots));
+  if (candidates && m_regionTurns.empty())
+    profile->count("regional.shadow.scheduleRejected");
+  profile->count("regional.shadow.scheduled", m_regionTurns.size());
+  profile->count("regional.shadow.notSelected", candidates - m_regionTurns.size());
+  for (auto const& turn : m_regionTurns) {
+    for (auto const& sector : turn->snapshot.sectors) {
+      if (!sector.loaded)
+        profile->count("regional.shadow.missingSectorObservations");
+    }
+    profile->recordRegionalTurn(*turn, "scheduled", m_currentStep);
+  }
 }
 
 WorldGeometry WorldServer::geometry() const {
@@ -2070,6 +2143,18 @@ void WorldServer::init(bool firstTime) {
   m_geometry = WorldGeometry(m_worldTemplate->size());
   m_entityMap = m_worldStorage->entityMap();
   m_tileArray = m_worldStorage->tileArray();
+  auto threading = root.configuration()->get("worldThreading", JsonObject());
+  if (threading.getBool("regionShadow", false)) {
+    if (m_explorationProfile && m_explorationProfile->regionalDetailsEnabled()) {
+      unsigned lanes = static_cast<unsigned>(clamp<uint64_t>(
+          threading.getUInt("regionShadowLanes", 4), 1, WorldRegionCoordinator::MaxTurns));
+      m_regionCoordinator = make_unique<WorldRegionCoordinator>(m_instanceEpoch,
+          WorldRegionPartition(m_geometry), lanes);
+      Logger::info("[RegionShadow] enabled epoch={} simulatedLanes={}", m_instanceEpoch, lanes);
+    } else {
+      Logger::warn("[RegionShadow] requires explorationProfiling.enabled and regionalDetails");
+    }
+  }
   m_tileGetterFunction = [&](Vec2I pos) -> ServerTile const& { return m_tileArray->tile(pos); };
   m_damageManager = make_shared<DamageManager>(this, ServerConnectionId);
   m_wireProcessor = make_shared<WireProcessor>(m_worldStorage);

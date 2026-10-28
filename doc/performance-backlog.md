@@ -7,8 +7,10 @@ O [plano conceitual avançado de regiões](world-region-rework-advanced-concept.
 organiza reconstruir a execução do mundo com propriedade por regiões de setores.
 A [fundação inicial](world-region-foundation.md), na branch `Experimental`,
 integra identidade e registro de tarefas ao pipeline BaseTiles e adiciona a
-partição lógica 2×2. Donos/turnos em sombra, grafo de etapas e runtime regional
-continuam pendentes.
+partição lógica 2×2. O [coordenador em sombra](world-region-coordinator.md)
+agora captura metadados limitados, reserva turnos exclusivos e revalida revisões
+no update seguinte. Grafo de etapas, orçamento global, propriedade/migração de
+entidades e runtime regional autoritativo continuam pendentes.
 O plano de instrumentação por linha do tempo está em
 [tracy-integration-plan.md](tracy-integration-plan.md).
 O painel local do HUD e suas métricas estão em

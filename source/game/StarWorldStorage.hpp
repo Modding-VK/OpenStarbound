@@ -10,6 +10,7 @@
 #include "StarRpcPromise.hpp"
 #include "StarBiomePlacement.hpp"
 #include "StarExplorationProfile.hpp"
+#include "StarWorldRegionCoordinator.hpp"
 
 namespace Star {
 
@@ -144,6 +145,12 @@ public:
   Maybe<SectorGenerationLevel> sectorGenerationLevel(Sector sector) const;
   // Returns true if the sector is both loaded and fully generated.
   bool sectorActive(Sector) const;
+
+  // Bounded, owner-thread-only metadata observation. No load, signal, or DB
+  // access. Start a new observation frame only after retiring previous turns.
+  Maybe<List<WorldRegionSnapshot>> captureRegionalSnapshots(uint64_t step);
+  Maybe<WorldRegionSnapshot> captureRegionalSnapshot(Vec2U region, uint64_t step) const;
+  void clearRegionalObservations();
 
   // Fully load the given sector and reset its TTL without triggering any
   // generation.
@@ -342,6 +349,7 @@ private:
   ServerTileSectorArrayPtr m_tileArray;
   EntityMapPtr m_entityMap;
   WorldGeneratorFacadePtr m_generatorFacade;
+  unique_ptr<WorldRegionObservation> m_regionObservation;
 
   bool m_floatingDungeonWorld;
 

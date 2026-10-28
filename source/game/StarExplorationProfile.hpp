@@ -12,6 +12,7 @@ namespace Star {
 STAR_CLASS(ExplorationProfile);
 STAR_CLASS(World);
 struct WorldGenerationTaskIdentity;
+struct WorldRegionTurn;
 
 // Optional wall-clock diagnostics. Callers must serialize access; the world
 // server and its storage share a collector under the existing world lock.
@@ -131,6 +132,7 @@ public:
   static void recordNpcPathResult(Maybe<bool> result);
   static ExplorationProfile* activeNpcProfile();
   bool npcDetailsEnabled() const { return m_npcDetails; }
+  bool regionalDetailsEnabled() const { return m_regionalDetails; }
   void recordNpcPopulation(uint64_t updatedEntities);
 
   void setContext(String context);
@@ -144,6 +146,7 @@ public:
       JsonObject reasons, double ageSeconds);
   // Bounded lifecycle trace; only regionalDetails enables per-task records.
   void recordGenerationTask(WorldGenerationTaskIdentity const& identity, char const* event, size_t reservedBytes);
+  void recordRegionalTurn(WorldRegionTurn const& turn, char const* event, uint64_t observationStep);
   // Call at an outer operation boundary, never inside a timed scope. Final
   // reports preserve short windows when a world closes before the interval.
   void report(bool final = false);
@@ -241,6 +244,7 @@ private:
   List<BaseTileOutcome> m_staleBaseTiles;
   List<BaseTileOutcome> m_evictedBaseTiles;
   JsonArray m_generationTaskEvents;
+  JsonArray m_regionTurnEvents;
 };
 
 }

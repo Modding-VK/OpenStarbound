@@ -2,7 +2,10 @@
 
 Estado em 28/10/2026: **fundação inicial implementada na `Experimental`;
 simulação regional ainda pendente**. O [registro de tarefas e a partição
-lógica](world-region-foundation.md) iniciam WRG-03/06. Inspirado na propriedade de regiões do Minecraft Java/Folia,
+lógica](world-region-foundation.md) iniciam WRG-03/06. O
+[coordenador observacional](world-region-coordinator.md) acrescenta snapshots de
+metadados, reservas exclusivas de turno e validação no update seguinte, com
+consulta registrada ao upstream oficial. Inspirado na propriedade de regiões do Minecraft Java/Folia,
 sem reutilizar código desses projetos. O alvo é permitir progresso paralelo
 **dentro de um mesmo mundo** sem conceder acesso concorrente ao mesmo estado
 mutável. Isto pode envolver substituir a `WorldServerThread` atual, mas exige
@@ -526,8 +529,10 @@ Atualização de implementação em 28/10/2026: a branch `Experimental` integra
 identidade `(worldEpoch, sequence, sector, region, stage)`, transições de estado
 e reserva por chave/bytes rasos ao produtor BaseTiles. Unload invalida o ticket
 sem liberar a chave antes do término. A partição 2×2 já trata wrap e regiões
-parciais. Ainda faltam grafo de etapas, orçamento global, donos/turnos em sombra
-e simulação regional; não marcar WRG-03/04/06 como integralmente concluídos.
+parciais. A continuação adicionou turnos em sombra, captura limitada e revisão
+local do ciclo de carga/descarga. Ainda faltam grafo de etapas, orçamento global,
+propriedade/migração de entidades e simulação regional; não marcar WRG-03/04/06
+como integralmente concluídos. Ver [contratos, fonte oficial e limites](world-region-coordinator.md).
 
 ### 8.5 Validação obrigatória antes de promover o novo modelo
 

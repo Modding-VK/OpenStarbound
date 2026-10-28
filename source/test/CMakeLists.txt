@@ -95,10 +95,12 @@ ADD_EXECUTABLE(world_generation_contract_tests
   $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base>
   ../game/StarWorldRegionPartition.cpp
   ../game/StarWorldGenerationTasks.cpp
+  ../game/StarWorldRegionCoordinator.cpp
   gtest/gtest-all.cc
   core_tests_main.cpp
   world_region_partition_test.cpp
-  world_generation_tasks_test.cpp)
+  world_generation_tasks_test.cpp
+  world_region_coordinator_test.cpp)
 TARGET_LINK_LIBRARIES(world_generation_contract_tests ${STAR_EXT_LIBS})
 IF(STAR_ENABLE_TRACY)
   TARGET_LINK_LIBRARIES(world_generation_contract_tests Tracy::TracyClient)

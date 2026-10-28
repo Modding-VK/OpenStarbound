@@ -3,6 +3,10 @@
 Implementado como coleta opcional no `ExplorationProfile` do servidor. Esta
 etapa prepara o plano regional; não executa objetos ou regiões em paralelo.
 
+O [coordenador em sombra](world-region-coordinator.md) acrescenta observação de
+turnos e revisões de setores mediante `worldThreading.regionShadow`. Seus dados
+são separados das arestas de objetos abaixo e não provam independência de scripts.
+
 ## Ativação
 
 Mesclar no objeto existente em `starbound.config`, com o jogo fechado:

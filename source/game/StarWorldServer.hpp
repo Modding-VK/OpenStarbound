@@ -36,6 +36,8 @@ STAR_CLASS(WorldServer);
 STAR_CLASS(TileEntity);
 STAR_CLASS(UniverseSettings);
 STAR_CLASS(UniverseServer);
+class WorldRegionCoordinator;
+struct WorldRegionTurn;
 
 STAR_EXCEPTION(WorldServerException, StarException);
 
@@ -423,6 +425,7 @@ private:
 
   void dirtyCollision(RectI const& region);
   void freshenCollision(RectI const& region);
+  void updateRegionalShadow();
 
   Vec2F findPlayerStart(Maybe<Vec2F> firstTry = {});
   Vec2F findPlayerSpaceStart(float targetX);
@@ -470,6 +473,9 @@ private:
   double m_currentTime;
   uint64_t m_currentStep;
   uint64_t m_instanceEpoch = 0;
+  unique_ptr<WorldRegionCoordinator> m_regionCoordinator;
+  List<shared_ptr<WorldRegionTurn const>> m_regionTurns;
+  double m_nextRegionShadowCapture = 0;
   bool m_updateProfilingEnabled = false;
   ExplorationProfilePtr m_explorationProfile;
   std::array<UpdateProfileTiming, UpdateProfileStageCount> m_updateProfile{};

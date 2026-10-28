@@ -174,6 +174,7 @@ SET (star_game_HEADERS
     StarWorldGeneration.hpp
     StarWorldGenerationTasks.hpp
     StarWorldRegionPartition.hpp
+    StarWorldRegionCoordinator.hpp
     StarWorldImpl.hpp
     StarWorldLayout.hpp
     StarWorldParameters.hpp
@@ -453,6 +454,7 @@ SET (star_game_SOURCES
     StarWorldGeneration.cpp
     StarWorldGenerationTasks.cpp
     StarWorldRegionPartition.cpp
+    StarWorldRegionCoordinator.cpp
     StarWorldLayout.cpp
     StarWorldParameters.cpp
     StarWorldPerformance.cpp

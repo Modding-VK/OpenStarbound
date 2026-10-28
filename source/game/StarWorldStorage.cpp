@@ -109,6 +109,83 @@ void WorldStorage::setWorldMetadata(VersionedJson const& metadata) {
   m_db.insert(metadataKey(), writeWorldMetadata({Vec2U(m_tileArray->size()), metadata}));
 }
 
+Maybe<List<WorldRegionSnapshot>> WorldStorage::captureRegionalSnapshots(uint64_t step) {
+  if (!m_regionObservation)
+    m_regionObservation = make_unique<WorldRegionObservation>();
+  m_regionObservation->reset();
+  // loadedSectors() allocates the complete list, so enforce the cap first.
+  if (m_tileArray->loadedSectorCount() > WorldRegionObservation::MaxSectors)
+    return {};
+  WorldRegionPartition partition{WorldGeometry(m_tileArray->size())};
+  HashSet<Vec2U> regions;
+  for (auto const& sector : m_tileArray->loadedSectors()) {
+    auto region = partition.regionForSector(Vec2U(sector));
+    if (!region)
+      return {};
+    regions.add(*region);
+    if (regions.size() > WorldRegionCoordinator::MaxRegions)
+      return {};
+  }
+  List<WorldRegionSnapshot> snapshots;
+  for (auto const& region : regions) {
+    auto bounds = *partition.regionBounds(region);
+    for (int64_t x = bounds.xMin(); x < bounds.xMax(); x += WorldSectorSize) {
+      for (int64_t y = bounds.yMin(); y < bounds.yMax(); y += WorldSectorSize) {
+        if (!m_regionObservation->watch(Vec2U(x / WorldSectorSize, y / WorldSectorSize))) {
+          m_regionObservation->reset();
+          return {};
+        }
+      }
+    }
+    auto snapshot = captureRegionalSnapshot(region, step);
+    if (!snapshot) {
+      m_regionObservation->reset();
+      return {};
+    }
+    snapshots.append(std::move(*snapshot));
+  }
+  return snapshots;
+}
+
+Maybe<WorldRegionSnapshot> WorldStorage::captureRegionalSnapshot(Vec2U region, uint64_t step) const {
+  if (!m_regionObservation)
+    return {};
+  WorldRegionPartition partition{WorldGeometry(m_tileArray->size())};
+  auto bounds = partition.regionBounds(region);
+  if (!bounds)
+    return {};
+  WorldRegionSnapshot snapshot;
+  snapshot.region = region;
+  snapshot.captureStep = step;
+  for (int64_t x = bounds->xMin(); x < bounds->xMax(); x += WorldSectorSize) {
+    for (int64_t y = bounds->yMin(); y < bounds->yMax(); y += WorldSectorSize) {
+      WorldRegionSectorState state;
+      state.sector = Vec2U(x / WorldSectorSize, y / WorldSectorSize);
+      auto revision = m_regionObservation->revision(state.sector);
+      if (!revision)
+        return {};
+      state.incarnation = *revision;
+      Sector sector(state.sector);
+      state.loaded = m_tileArray->sectorLoaded(sector);
+      state.contentRevision = m_tileArray->sectorRevision(sector);
+      if (state.loaded) {
+        auto metadata = m_sectorMetadata.ptr(sector);
+        if (!metadata || metadata->loadLevel == SectorLoadLevel::None)
+          return {};
+        state.loadLevel = static_cast<uint8_t>(metadata->loadLevel);
+        state.generationLevel = static_cast<uint8_t>(metadata->generationLevel);
+      }
+      snapshot.sectors.append(state);
+    }
+  }
+  return snapshot;
+}
+
+void WorldStorage::clearRegionalObservations() {
+  if (m_regionObservation)
+    m_regionObservation->reset();
+}
+
 ServerTileSectorArrayPtr const& WorldStorage::tileArray() const {
   return m_tileArray;
 }
@@ -1098,6 +1175,8 @@ void WorldStorage::loadSectorToLevel(Sector const& sector, SectorLoadLevel targe
       }
 
       metadata.loadLevel = currentLoad;
+      if (m_regionObservation)
+        m_regionObservation->changed(Vec2U(sector));
       timing.next("storage.tiles.callbacks");
       m_generatorFacade->sectorLoadLevelChanged(this, sector, currentLoad);
 
@@ -1140,6 +1219,8 @@ void WorldStorage::loadSectorToLevel(Sector const& sector, SectorLoadLevel targe
       updateSectorUniques(sector, readUniques);
 
       metadata.loadLevel = currentLoad;
+      if (m_regionObservation)
+        m_regionObservation->changed(Vec2U(sector));
       timing.next("storage.entities.callbacks");
       m_generatorFacade->sectorLoadLevelChanged(this, sector, currentLoad);
     }
@@ -1214,6 +1295,8 @@ bool WorldStorage::unloadSectorToLevel(Sector const& sector, SectorLoadLevel tar
 
       if (metadata.loadLevel == SectorLoadLevel::Entities) {
         metadata.loadLevel = SectorLoadLevel::Tiles;
+        if (m_regionObservation)
+          m_regionObservation->changed(Vec2U(sector));
         m_generatorFacade->sectorLoadLevelChanged(this, sector, SectorLoadLevel::Tiles);
       }
     }
@@ -1227,6 +1310,8 @@ bool WorldStorage::unloadSectorToLevel(Sector const& sector, SectorLoadLevel tar
       m_db.insert(tileSectorKey(sector), writeTileSector(sectorStore));
       m_syncedTileRevisions.remove(sector);
       m_sectorMetadata.remove(sector);
+      if (m_regionObservation)
+        m_regionObservation->changed(Vec2U(sector));
       m_generatorFacade->sectorLoadLevelChanged(this, sector, SectorLoadLevel::None);
       return true;
     }
