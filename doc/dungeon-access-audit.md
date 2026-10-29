@@ -805,6 +805,100 @@ Fontes: [WorldServer](../source/game/StarWorldServer.cpp),
 [WorldStorage](../source/game/StarWorldStorage.cpp) e
 [WorldGeneration](../source/game/StarWorldGeneration.cpp).
 
+## Vigésima quarta passagem: seletor de terreno com cache
+
+`WorldLayout(Json)` reconstrói seletores de terreno por
+`TerrainDatabase::loadSelector`. Para o tipo `cache`, a factory instancia
+`CacheSelector`. Seu construtor lê `sourceConfig.getString("type")` em
+`sourceType`, mas chama `createSelectorType(type, sourceConfig, ...)`, onde
+`type` é o membro herdado definido como `"cache"`. Assim, o tipo interno
+declarado no JSON é ignorado; a construção tenta criar outro `CacheSelector`
+com a configuração interna. Isso é um defeito estático para configurações
+que usem esse seletor. A pesquisa nos assets versionados não encontrou uma
+ocorrência de `"type": "cache"`; não atribuir a ele os travamentos ou
+atrasos observados sem confirmar o conteúdo efetivo dos mods/assets.
+
+`CacheSelector::get` usa um LRU mutável. O caminho atual de `BaseTiles`
+reconstrói um `WorldTemplate` por thread e evita compartilhar essa instância
+do cache entre workers. Um novo planejador não deve compartilhar um seletor
+com cache mutável entre threads sem contrato de sincronização; corrigir o
+parâmetro da factory e auditar a propriedade do cache são trabalhos
+separados.
+
+`IslandSurfaceSelector::get` também mantém `columnCache` mutável. Os demais
+seletores compostos examinados (`max`, `minMax`, `rotate`, `displacement` e
+`mix`) passam o tipo interno lido da configuração ao criar sub-seletores;
+isso reforça que o uso de `type` em `CacheSelector` é uma exceção concreta,
+sem demonstrar que os demais seletores sejam inteiramente puros.
+
+Fontes: [WorldLayout](../source/game/StarWorldLayout.cpp),
+[TerrainDatabase](../source/game/StarTerrainDatabase.cpp),
+[CacheSelector](../source/game/terrain/StarCacheSelector.cpp) e
+[WorldGeneration](../source/game/StarWorldGeneration.cpp).
+
+## Vigésima quinta passagem: pré-geração de regiões de bioma
+
+`WorldServer::pregenerateAddBiome` e `pregenerateExpandBiome` percorrem as
+regiões previstas e acumulam o resultado com
+`generationComplete = generationComplete && signalRegion(region)`.
+Depois que uma região retorna `false`, o curto-circuito de `&&` impede a
+chamada de `signalRegion` para todas as regiões seguintes **naquela
+invocação**. A própria `signalRegion` enfileira todos os setores da região
+antes de conferir quais já estão ativos. Assim, o uso repetido da API pode
+avançar região por região, mas uma chamada não alimenta a fila com o
+footprint completo quando a primeira região está pendente.
+
+As funções são expostas a scripts por `world.pregenerateAddBiome` e
+`world.pregenerateExpandBiome`, sob permissão de construção. Isso pode
+aumentar o tempo de preparação de biomas largos ou partidos pela emenda e
+interage com a prioridade de setores. O efeito em mods específicos depende
+de confirmação de uso. Um planejador regional deve sinalizar todo o
+footprint antes de reduzir o estado `generationComplete`, preservando o
+retorno `false` até que cada setor esteja ativo.
+
+Fontes: [WorldServer](../source/game/StarWorldServer.cpp) e
+[WorldLuaBindings](../source/game/scripting/StarWorldLuaBindings.cpp).
+
+## Vigésima sexta passagem: escopo do estado de geração de dungeon
+
+`WorldServer::placeDungeon` altera `m_generatingDungeon` e
+`m_tileProtectionEnabled` antes de construir o gerador. A restauração para
+`false` e `true`, respectivamente, ocorre apenas no fim do caminho normal.
+Uma exceção de construção, geração ou substituição de blocos pula a
+restauração. Além disso, a rotina escreve `true` em proteção em vez de
+restaurar o valor anterior. `m_generatingDungeon` muda o comportamento de
+`signalRegion`: com a flag ativa, ele carrega setores sem disparar geração.
+
+Não há evidência nesta passagem de que uma exceção seja recuperada e o
+mesmo mundo continue executando; portanto, isto é um risco de contrato e
+de recuperação, não uma causa demonstrada dos setores parados. A aplicação
+de planos de dungeon deverá ter escopo de estado com restauração garantida
+e registrar a fase de falha, inclusive quando recusar um plano antes da
+publicação.
+
+Fonte: [WorldServer](../source/game/StarWorldServer.cpp).
+
+## Vigésima sétima passagem: seed transitória dos seletores
+
+`TerrainSelectorParameters()` chama `Random::randu64()` para preencher
+`seed`. `WorldLayout::buildRegion` e `WorldLayout::addBiomeRegion` criam
+`baseSelectorParameters` pelo construtor padrão, mas todos os seletores
+examinados nessas rotas recebem cópias com seed substituída por
+`staticRandomU64(...)`. O sorteio inicial é, portanto, transitório no
+resultado desses seletores e ainda assim avança o RNG global. A geração
+inicial de regiões e cada adição de bioma podem alterar a sequência de
+sorteios de outros sistemas sem alterar a seed final do seletor.
+
+Isso amplia a dependência de RNG descrita na sétima passagem. Para um
+planejador que execute partes da geração fora da thread do mundo, criar
+parâmetros com seed explícita evita depender da ordem de agendamento.
+Antes de mudar o construtor ou as chamadas, comparar mundos existentes,
+pois o consumo histórico de RNG pode ter efeitos secundários em escolhas
+subsequentes. Esta passagem não atribui o atraso de setores a esse sorteio.
+
+Fontes: [TerrainDatabase](../source/game/StarTerrainDatabase.cpp) e
+[WorldLayout](../source/game/StarWorldLayout.cpp).
+
 ## Encaminhamento após as passagens estáticas
 
 1. Investigar primeiro a escrita de `CaveLiquid` em vizinho já ativo, a
