@@ -557,3 +557,18 @@ mundos, além do limite local e da métrica de tempo na fila.
 Fontes: [WorldGeneration](../source/game/StarWorldGeneration.cpp),
 [WorldGenerationTasks](../source/game/StarWorldGenerationTasks.cpp) e
 [WorkerPool](../source/core/StarWorkerPool.cpp).
+
+## Encaminhamento após as passagens estáticas
+
+1. Investigar primeiro a escrita de `CaveLiquid` em vizinho já ativo, com
+   sequência de geração, revisão, visita do motor de líquidos e pacotes de
+   rede; esse é um risco de consistência observável.
+2. Isolar o sorteio transitório na desserialização de `WorldTemplate`, sob
+   revisão de equivalência da sequência de RNG.
+3. Corrigir a prioridade espacial na emenda horizontal com `WorldGeometry`,
+   mantendo os estágios e o orçamento atuais como controle da comparação.
+4. Definir orçamento global para o pool antes de admitir planos de dungeons
+   ou microdungeons de múltiplos mundos.
+5. Só então pilotar `DungeonPlan` com footprint completo, snapshot, checagem
+   de conflitos, aplicação ordenada e protocolo de retomada. A coordenação
+   regional observacional e os locks de caches não satisfazem esses contratos.
