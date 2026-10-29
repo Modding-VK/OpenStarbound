@@ -899,6 +899,82 @@ subsequentes. Esta passagem não atribui o atraso de setores a esse sorteio.
 Fontes: [TerrainDatabase](../source/game/StarTerrainDatabase.cpp) e
 [WorldLayout](../source/game/StarWorldLayout.cpp).
 
+## Vigésima oitava passagem: revisão global para mudança espacial
+
+`WorldTemplate::addBiomeRegion` e `expandBiomeRegion` alteram uma região
+delimitada do layout, mas limpam todo `m_blockCache` e incrementam uma
+única `m_generationRevision` do template. Cada tarefa `BaseTiles` guarda
+essa revisão ao ser enfileirada; na publicação, uma revisão diferente
+invalida o resultado independentemente da distância entre o setor e a
+região alterada. A próxima admissão também serializa novamente o template
+para o cache dos workers. Essa política é conservadora e preserva a
+correção diante de mudanças de layout, porém pode descartar trabalho
+de setores não afetados por uma terraformação localizada.
+
+`setLayerEnvironmentBiome` também incrementa a revisão, mas sua implementação
+altera o bioma ambiente de **todas as células de uma camada**; não o tratar
+como uma operação local de um único setor. A métrica
+`generation.baseTiles.staleTemplateRevision` permite observar quantas
+tarefas são descartadas por essa causa, sem estabelecer por si só que isso
+explique os atrasos relatados. Uma invalidação espacial futura precisaria
+considerar blend, vizinhança, wrap e mutações de camada, e só então comparar
+com a revisão global atual.
+
+Fontes: [WorldTemplate](../source/game/StarWorldTemplate.cpp),
+[WorldLayout](../source/game/StarWorldLayout.cpp) e
+[WorldGeneration](../source/game/StarWorldGeneration.cpp).
+
+## Vigésima nona passagem: identidade de regiões após recarregar o mundo
+
+`WorldLayout::addLayer` reutiliza o mesmo `WorldRegionPtr` em células que
+representam a mesma região e copia a última célula para a primeira na
+emenda horizontal. `expandRegionInLayer` usa igualdade entre esses ponteiros
+**somente nas pontas** para juntar as duas partes de uma região que cruza a
+emenda antes de calcular `currentWidth` e os retângulos de expansão.
+
+`WorldLayout::toJson` grava cada célula pelo seu valor. Ao reconstruir o
+layout, o construtor cria um `WorldRegion` novo para **cada** célula, sem
+restaurar a identidade compartilhada. `WorldTemplate(Json)` usa esse caminho
+ao abrir o mundo salvo e ao criar snapshots para workers. Portanto, uma
+região que ocupava as duas pontas pode deixar de ser reconhecida como uma
+unidade por `previewExpandBiomeRegion` e `expandBiomeRegion` após reload.
+O cálculo pode considerar só a ponta selecionada como largura atual;
+os retângulos previstos e o espaço final ocupado pela região podem mudar.
+O caso de expansão para a largura total tem um ramo próprio e não depende
+dessa comparação.
+
+Para a nova engine, identidade de região e topologia circular devem ser
+dados explícitos e persistentes, não inferidos por igualdade de endereços.
+Antes de corrigir o legado, comparar uma expansão que cruza a emenda no
+mesmo mundo antes e depois de salvar/reabrir, incluindo a prévia, os setores
+marcados para terraformação e o layout resultante. Esta passagem identifica
+uma divergência estática; não há evidência de que os mundos dos logs tenham
+usado essa API nessa posição.
+
+Fontes: [WorldLayout](../source/game/StarWorldLayout.cpp),
+[WorldTemplate](../source/game/StarWorldTemplate.cpp) e
+[WorldServer](../source/game/StarWorldServer.cpp).
+
+## Trigésima passagem: posse na fronteira vertical de camadas
+
+`WorldLayout::findLayerAndCell` escolhe a última camada cujo `yStart` é
+**estritamente menor** que `y`. Uma posição exatamente em `yStart` de uma
+camada interna é, portanto, atribuída à camada anterior para adição,
+expansão e seleção de bioma ambiente. `getWeighting`, usado para calcular
+terreno e biomas dos blocos, reconhece a camada iniciada naquele `y` e,
+quando há blending, mistura seus pesos com os da anterior. São políticas
+distintas de seleção de camada, não uma equivalência automática.
+
+Pode ser uma convenção intencional para a API de edição, mas um plano
+regional precisa codificar explicitamente qual camada possui a linha de
+fronteira e quais vizinhas são **lidas** para blending. Copiar apenas a
+camada escolhida por `findLayerAndCell` para um snapshot excluiria uma
+dependência real de leitura nessa faixa. Uma alteração do critério legado
+exigiria comparar posicionamento de biomas e estruturas nas linhas de
+fronteira antes de adotá-la.
+
+Fonte: [WorldLayout](../source/game/StarWorldLayout.cpp).
+
 ## Encaminhamento após as passagens estáticas
 
 1. Investigar primeiro a escrita de `CaveLiquid` em vizinho já ativo, a
@@ -920,3 +996,7 @@ Fontes: [TerrainDatabase](../source/game/StarTerrainDatabase.cpp) e
 7. Antes de compartilhar seletores entre workers, corrigir o tipo interno do
    `CacheSelector`, verificar os caches mutáveis e eliminar seeds transitórias
    somente após comparar o consumo histórico de RNG.
+8. Tornar persistente a identidade das regiões que cruzam a emenda e definir
+   a posse da linha de fronteira vertical antes de paralelizar edição de
+   biomas. Comparar `previewExpandBiomeRegion` e o layout final antes/depois
+   de salvar e reabrir o mesmo mundo.
