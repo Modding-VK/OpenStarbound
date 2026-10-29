@@ -75,8 +75,11 @@ Ela termina após o unload para `None`; pedidos apenas enfileirados não a criam
 As [métricas do ciclo de vida](sector-thread-lifecycle-metrics.md) comparam
 threads e setores carregados, registram pico, falhas e latências de criação e
 parada. Se a criação de uma thread falhar, o preview se desliga e o mundo segue
-pelo fluxo atual. As threads aguardam em condição, sem consultar
-tiles ou executar gameplay. Este estágio mede o custo do ciclo de vida e
+pelo fluxo atual. Opcionalmente, `worldThreading.sectorThreadMailboxPreview`
+envia cópias versionadas dos metadados a cada 60 passos para as threads
+calcularem um ticket e devolverem um resultado. O dono do mundo valida a
+incarnação, nível e revisão antes de aceitá-lo; o ticket não altera gameplay.
+Sem essa opção, as threads aguardam em condição. Este estágio mede o custo do ciclo de vida e
 verifica a correspondência com setores carregados; **não paraleliza a
 simulação**. A opção só deve ser habilitada para esse experimento até que
 ownership, mensagens e persistência estejam migrados.

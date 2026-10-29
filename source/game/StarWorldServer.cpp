@@ -1375,6 +1375,7 @@ void WorldServer::update(float dt) {
 
   LogMap::set(strf("server_{}_entities", m_worldId), strf("{} in {} sectors", m_entityMap->size(), m_tileArray->loadedSectorCount()));
   if (m_worldStorage->sectorThreadPreviewEnabled() && m_currentStep % 60 == 0) {
+    m_worldStorage->sampleSectorThreadMailbox();
     auto threadMetrics = m_worldStorage->sectorThreadMetrics();
     LogMap::set(strf("server_{}_sector_threads", m_worldId),
         strf("{} / {} loaded ({} tiles, {} entities); peak {}", threadMetrics.current,
@@ -1391,8 +1392,18 @@ void WorldServer::update(float dt) {
         strf("p95 {}; p99 {}; max {}; total {}", threadMetrics.stopP95Microseconds,
             threadMetrics.stopP99Microseconds, threadMetrics.stopMaximumMicroseconds,
             threadMetrics.stopTotalMicroseconds));
+    if (threadMetrics.mailboxEnabled) {
+      LogMap::set(strf("server_{}_sector_mailbox", m_worldId),
+          strf("sent {}; done {}; valid {}; stale {}; cancelled {}; busy {}",
+              threadMetrics.submitted, threadMetrics.completed, threadMetrics.accepted,
+              threadMetrics.stale, threadMetrics.cancelled, threadMetrics.skippedBusy));
+      LogMap::set(strf("server_{}_sector_mailbox_us", m_worldId),
+          strf("wait p95/p99 {}/{}; work p95/p99 {}/{}",
+              threadMetrics.queueWaitP95Microseconds, threadMetrics.queueWaitP99Microseconds,
+              threadMetrics.computeP95Microseconds, threadMetrics.computeP99Microseconds));
+    }
     if (m_currentStep == 60 || m_currentStep % 300 == 0)
-      Logger::info("Sector thread preview {}: current={}/{} tilesOnly={} withEntities={} peak={} created={} stopped={} failed={} disabled={} startP95Us={} startP99Us={} startMaxUs={} startTotalUs={} stopP95Us={} stopP99Us={} stopMaxUs={} stopTotalUs={}",
+      Logger::info("Sector thread preview {}: current={}/{} tilesOnly={} withEntities={} peak={} created={} stopped={} failed={} disabled={} startP95Us={} startP99Us={} startMaxUs={} startTotalUs={} stopP95Us={} stopP99Us={} stopMaxUs={} stopTotalUs={} mailbox={} sent={} done={} valid={} stale={} cancelled={} busy={} waitP95Us={} waitP99Us={} workP95Us={} workP99Us={}",
           m_worldId, threadMetrics.current, threadMetrics.loadedSectors,
           threadMetrics.tilesOnly, threadMetrics.withEntities, threadMetrics.peak,
           threadMetrics.created, threadMetrics.destroyed, threadMetrics.failedCreations,
@@ -1400,7 +1411,11 @@ void WorldServer::update(float dt) {
           threadMetrics.startP99Microseconds, threadMetrics.startMaximumMicroseconds,
           threadMetrics.startTotalMicroseconds, threadMetrics.stopP95Microseconds,
           threadMetrics.stopP99Microseconds, threadMetrics.stopMaximumMicroseconds,
-          threadMetrics.stopTotalMicroseconds);
+          threadMetrics.stopTotalMicroseconds, threadMetrics.mailboxEnabled,
+          threadMetrics.submitted, threadMetrics.completed, threadMetrics.accepted,
+          threadMetrics.stale, threadMetrics.cancelled, threadMetrics.skippedBusy,
+          threadMetrics.queueWaitP95Microseconds, threadMetrics.queueWaitP99Microseconds,
+          threadMetrics.computeP95Microseconds, threadMetrics.computeP99Microseconds);
   }
   LogMap::set(strf("server_{}_time", m_worldId), strf("age = {:4.2f}, day = {:4.2f}/{:4.2f}s", epochTime(), timeOfDay(), dayLength()));
   LogMap::set(strf("server_{}_active_liquid", m_worldId), m_liquidEngine->activeCells());

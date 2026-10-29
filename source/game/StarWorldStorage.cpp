@@ -24,11 +24,15 @@
 
 namespace Star {
 
-// Lifecycle-only preview. The worker never dereferences WorldStorage or tile
-// data; moving simulation here requires explicit ownership and messaging.
+// Experimental sector mailbox. The worker receives only copied metadata and
+// never dereferences WorldStorage or tiles; simulation ownership is separate.
 class WorldSectorThreads {
 public:
   using Sector = WorldStorage::Sector;
+
+  explicit WorldSectorThreads(bool mailboxEnabled) {
+    m_metrics.mailboxEnabled = mailboxEnabled;
+  }
 
   ~WorldSectorThreads() {
     for (auto& entry : m_threads)
@@ -44,7 +48,7 @@ public:
     STAR_TRACE_ZONE("Sector thread start");
     auto start = Time::monotonicMicroseconds();
     try {
-      m_threads.emplace(key, make_unique<Worker>());
+      m_threads.emplace(key, make_unique<Worker>(++m_nextIncarnation));
     } catch (std::exception const& e) {
       ++m_metrics.failedCreations;
       m_metrics.disabledAfterFailure = true;
@@ -69,6 +73,8 @@ public:
     auto it = m_threads.find(std::make_pair(sector[0], sector[1]));
     if (it == m_threads.end())
       return;
+    if (it->second->hasOutstanding())
+      ++m_metrics.cancelled;
     STAR_TRACE_ZONE("Sector thread stop");
     auto start = Time::monotonicMicroseconds();
     m_threads.erase(it);
@@ -83,6 +89,42 @@ public:
     return m_threads.size();
   }
 
+  bool mailboxEnabled() const {
+    return m_metrics.mailboxEnabled && !m_metrics.disabledAfterFailure;
+  }
+
+  void sample(Sector const& sector, uint8_t loadLevel, uint8_t generationLevel,
+      uint64_t contentRevision) {
+    if (!m_metrics.mailboxEnabled || m_metrics.disabledAfterFailure)
+      return;
+    auto it = m_threads.find(std::make_pair(sector[0], sector[1]));
+    if (it == m_threads.end())
+      return;
+    Message result;
+    if (it->second->takeResult(result)) {
+      ++m_metrics.completed;
+      m_queueWaitSamples.add(static_cast<uint64_t>(result.startedAt - result.sentAt));
+      m_computeSamples.add(static_cast<uint64_t>(result.doneAt - result.startedAt));
+      if (result.incarnation == it->second->incarnation && result.contentRevision == contentRevision
+          && result.loadLevel == loadLevel && result.generationLevel == generationLevel
+          && result.signature == ticketSignature(result))
+        ++m_metrics.accepted;
+      else
+        ++m_metrics.stale;
+    }
+    Message message;
+    message.sequence = ++m_nextSequence;
+    message.incarnation = it->second->incarnation;
+    message.contentRevision = contentRevision;
+    message.loadLevel = loadLevel;
+    message.generationLevel = generationLevel;
+    message.sentAt = Time::monotonicMicroseconds();
+    if (it->second->post(message))
+      ++m_metrics.submitted;
+    else
+      ++m_metrics.skippedBusy;
+  }
+
   WorldSectorThreadMetrics metrics() const {
     auto result = m_metrics;
     result.enabled = true;
@@ -91,10 +133,33 @@ public:
     result.startP99Microseconds = m_startSamples.percentile(99);
     result.stopP95Microseconds = m_stopSamples.percentile(95);
     result.stopP99Microseconds = m_stopSamples.percentile(99);
+    result.queueWaitP95Microseconds = m_queueWaitSamples.percentile(95);
+    result.queueWaitP99Microseconds = m_queueWaitSamples.percentile(99);
+    result.computeP95Microseconds = m_computeSamples.percentile(95);
+    result.computeP99Microseconds = m_computeSamples.percentile(99);
     return result;
   }
 
 private:
+  struct Message {
+    uint64_t sequence = 0;
+    uint64_t incarnation = 0;
+    uint64_t contentRevision = 0;
+    uint8_t loadLevel = 0;
+    uint8_t generationLevel = 0;
+    int64_t sentAt = 0;
+    int64_t startedAt = 0;
+    int64_t doneAt = 0;
+    uint64_t signature = 0;
+  };
+
+  static uint64_t ticketSignature(Message const& message) {
+    // A transport check for immutable metadata, not a hash of world tiles.
+    return (message.sequence * 33u) ^ (message.incarnation * 65599u)
+        ^ message.contentRevision ^ (uint64_t(message.loadLevel) << 16)
+        ^ (uint64_t(message.generationLevel) << 24);
+  }
+
   struct Samples {
     static constexpr size_t Capacity = 256;
     std::array<uint64_t, Capacity> values{};
@@ -117,14 +182,34 @@ private:
   };
 
   struct Worker {
-    Worker() : thread([this] {
+    explicit Worker(uint64_t incarnation) : incarnation(incarnation), thread([this] {
 #ifdef STAR_ENABLE_TRACY
-      tracy::SetThreadName("Sector lifecycle preview");
+      tracy::SetThreadName("Sector mailbox preview");
 #endif
       std::unique_lock<std::mutex> lock(mutex);
       ready = true;
       wake.notify_one();
-      wake.wait(lock, [this] { return stopping; });
+      while (true) {
+        wake.wait(lock, [this] { return stopping || hasPending; });
+        if (stopping)
+          break;
+        Message work = pending;
+        hasPending = false;
+        processing = true;
+        lock.unlock();
+        work.startedAt = Time::monotonicMicroseconds();
+        {
+          STAR_TRACE_ZONE("Sector immutable metadata task");
+          work.signature = WorldSectorThreads::ticketSignature(work);
+        }
+        work.doneAt = Time::monotonicMicroseconds();
+        lock.lock();
+        processing = false;
+        if (!stopping) {
+          result = work;
+          hasResult = true;
+        }
+      }
     }) {
       std::unique_lock<std::mutex> lock(mutex);
       wake.wait(lock, [this] { return ready; });
@@ -143,6 +228,32 @@ private:
       wake.notify_one();
     }
 
+    bool post(Message const& message) {
+      {
+        std::lock_guard<std::mutex> lock(mutex);
+        if (stopping || hasPending || processing || hasResult)
+          return false;
+        pending = message;
+        hasPending = true;
+      }
+      wake.notify_one();
+      return true;
+    }
+
+    bool takeResult(Message& out) {
+      std::lock_guard<std::mutex> lock(mutex);
+      if (!hasResult)
+        return false;
+      out = result;
+      hasResult = false;
+      return true;
+    }
+
+    bool hasOutstanding() {
+      std::lock_guard<std::mutex> lock(mutex);
+      return hasPending || processing || hasResult;
+    }
+
     Worker(Worker const&) = delete;
     Worker& operator=(Worker const&) = delete;
 
@@ -150,6 +261,12 @@ private:
     std::condition_variable wake;
     bool stopping = false;
     bool ready = false;
+    bool hasPending = false;
+    bool processing = false;
+    bool hasResult = false;
+    Message pending;
+    Message result;
+    uint64_t const incarnation;
     std::thread thread;
   };
 
@@ -159,6 +276,10 @@ private:
   WorldSectorThreadMetrics m_metrics;
   Samples m_startSamples;
   Samples m_stopSamples;
+  Samples m_queueWaitSamples;
+  Samples m_computeSamples;
+  uint64_t m_nextIncarnation = 0;
+  uint64_t m_nextSequence = 0;
 };
 
 WorldChunks WorldStorage::getWorldChunksUpdate(WorldChunks const& oldChunks, WorldChunks const& newChunks) {
@@ -394,6 +515,17 @@ WorldSectorThreadMetrics WorldStorage::sectorThreadMetrics() const {
     }
   }
   return result;
+}
+
+void WorldStorage::sampleSectorThreadMailbox() {
+  if (!m_sectorThreads || !m_sectorThreads->mailboxEnabled())
+    return;
+  for (auto const& entry : m_sectorMetadata) {
+    if (entry.second.loadLevel == SectorLoadLevel::None)
+      continue;
+    m_sectorThreads->sample(entry.first, static_cast<uint8_t>(entry.second.loadLevel),
+        static_cast<uint8_t>(entry.second.generationLevel), m_tileArray->sectorRevision(entry.first));
+  }
 }
 
 void WorldStorage::loadSector(Sector sector) {
@@ -1196,9 +1328,9 @@ WorldStorage::WorldStorage() {
   auto storageConfig = Root::singleton().assets()->json("/worldstorage.config");
   m_sectorTimeToLive = jsonToVec2F(storageConfig.get("sectorTimeToLive"));
   m_generationQueueTimeToLive = storageConfig.getFloat("generationQueueTimeToLive");
-  if (Root::singleton().configuration()->get("worldThreading", JsonObject())
-          .getBool("sectorThreadLifecyclePreview", false))
-    m_sectorThreads = make_unique<WorldSectorThreads>();
+  auto threading = Root::singleton().configuration()->get("worldThreading", JsonObject());
+  if (threading.getBool("sectorThreadLifecyclePreview", false))
+    m_sectorThreads = make_unique<WorldSectorThreads>(threading.getBool("sectorThreadMailboxPreview", false));
 }
 
 bool WorldStorage::belongsInSector(Sector const& sector, Vec2F const& position) const {

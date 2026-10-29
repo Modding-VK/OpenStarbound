@@ -77,6 +77,17 @@ struct WorldSectorThreadMetrics {
   uint64_t startP99Microseconds = 0;
   uint64_t stopP95Microseconds = 0;
   uint64_t stopP99Microseconds = 0;
+  bool mailboxEnabled = false;
+  uint64_t submitted = 0;
+  uint64_t completed = 0;
+  uint64_t accepted = 0;
+  uint64_t stale = 0;
+  uint64_t cancelled = 0;
+  uint64_t skippedBusy = 0;
+  uint64_t queueWaitP95Microseconds = 0;
+  uint64_t queueWaitP99Microseconds = 0;
+  uint64_t computeP95Microseconds = 0;
+  uint64_t computeP99Microseconds = 0;
 };
 
 struct WorldGeneratorFacade {
@@ -168,11 +179,14 @@ public:
   // Returns true if the sector is both loaded and fully generated.
   bool sectorActive(Sector) const;
 
-  // Experimental lifecycle preview: one sleeping OS thread per loaded sector.
-  // No live world state is read or modified by these threads yet.
+  // Experimental preview: one OS thread per loaded sector, optionally
+  // processing copied metadata. No live world state is accessed by workers.
   size_t sectorThreadCount() const;
   bool sectorThreadPreviewEnabled() const;
   WorldSectorThreadMetrics sectorThreadMetrics() const;
+  // Optional immutable metadata round trip. Results are checked by the world
+  // owner; workers never read WorldStorage or apply gameplay changes.
+  void sampleSectorThreadMailbox();
 
   // Bounded, owner-thread-only metadata observation. No load, signal, or DB
   // access. Start a new observation frame only after retiring previous turns.
