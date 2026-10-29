@@ -136,7 +136,7 @@ public:
       ++m_metrics.skippedBusy;
     else {
       ++m_metrics.rejectedDispatches;
-      disableAfterFailure("invalid sector mailbox dispatch", false);
+      disableAfterFailure("invalid sector mailbox dispatch", false, sector);
     }
   }
 
