@@ -209,3 +209,57 @@ operações, não apenas o estado final dos tiles: callbacks e RNG podem observa
 estados intermediários. Um worker só deve receber definições e escolhas já
 congeladas, além de snapshots completos das consultas. Vehicle e outros
 spawns permanecem intenções até a aplicação autoritativa.
+
+## Quarta passagem: subclasses de objetos e itens
+
+`ObjectDatabase::createObject` escolhe a subclasse pelo `type` da configuração:
+`object`, `loungeable`, `container`, `farmable`, `teleporter` ou `physics`.
+`getConfig` protege a busca e a carga do cache com `m_cacheMutex`, mas esse lock
+não cobre o construtor, a escolha de orientação, `init` nem os scripts.
+Consequentemente, preparar um `ObjectPtr` no worker não é uma fronteira segura
+para o primeiro plano. Guardar nome, parâmetros, posição e direção; executar
+`createForPlacement` e `addEntity` no aplicador.
+
+| Subclasse | Dependência confirmada | Consequência para o plano |
+| --- | --- | --- |
+| `container` | `init` chama primeiro `Object::init`; depois lê `threatLevel`, cria `initialItems` e preenche `treasurePools`. `update` pode envelhecer itens por Lua e invocar `containerCallback`. | A ordem script → conteúdo e a autoridade sobre o inventário pertencem ao mundo. A descrição de um baú não deve conter um inventário pré-computado no piloto. |
+| `farmable` | O construtor lê configuração de assets; `update` e `enterStage` consultam tempo, líquidos, mods e ocupação, podem modificar solo, criar planta e agendar `world()->timer`. | O objeto instalado tem dependências dinâmicas além do footprint de colocação. |
+| `teleporter` | O construtor usa `configValue("uniqueId", Uuid().hex())`; `Uuid()` usa `Random::randBytes`. O argumento padrão é avaliado mesmo com `uniqueId` configurado. | Criar a entidade antecipadamente desloca o consumo do RNG global. O ID efetivo e a sequência observável devem ser preservados. |
+| `physics` | `init` registra callbacks Lua de força/colisão, chama `Object::init` e calcula a caixa que inclui regiões de força; `uninit` remove callbacks. | A caixa relevante pode exceder os tiles da orientação; registro e remoção de callbacks ficam no aplicador. |
+| `loungeable` | `setOrientationIndex` carrega posições de assento e estado de orientação; a interação pode devolver `SitDown` para uma entidade. | A orientação final e o ID da entidade definem âncoras/interação; não antecipar essa decisão. |
+
+O `ItemBrush` grava apenas um `ItemDescriptor` no writer. Durante `flush`, os
+drops vêm **depois** de NPCs, stagehands e fios, e antes de líquidos e IDs de
+dungeon. A facade chama `ItemDrop::createRandomizedDrop(descriptor, position)`:
+isso cria o item via `ItemDatabase::item`, lê `/itemdrop.config`, usa
+`Random::randf()` para deslocamento/velocidade e adiciona a entidade ao mundo.
+`ItemDatabase::item` chama `tryCreateItem`; `itemConfig` pode executar um script
+Lua `builder` do asset. Em caso de erro, `tryCreateItem` pode passar pelos
+handlers Lua do `Rebuilder` e produzir o item genérico de recuperação. Assim,
+mesmo a factory de um drop pode executar código de mod e produzir efeitos
+observáveis. O plano deve carregar o descriptor, sem materializar o item ou
+sortear seu movimento no worker inicial.
+
+O cache de protótipos de `ItemDatabase::itemShared` tem mutex, mas `item()`
+chama diretamente `tryCreateItem`, sem usar esse cache. O builder Lua usa
+`m_luaMutex` e o `Rebuilder` usa outro mutex próprio. Esses locks serializam
+trechos específicos; não demonstram isolamento do RNG, dos assets, dos
+callbacks ou da ordem de criação. Também não convém interpretar uma eventual
+contenda nesses locks como ganho garantido ao adicionar workers.
+
+### Próxima fronteira de auditoria
+
+Antes de mover factories ao pool, analisar cada tipo de item e seus scripts de
+construção, os handlers de recuperação de mods e a propriedade do RNG. Para o
+primeiro `DungeonPlan`, basta serializar descrições imutáveis e aplicar
+factories na sequência legada. Perfis de custo de `createForPlacement`,
+`addEntity` e `ItemDatabase::item` são necessários para avaliar quanto tempo
+restará na thread do mundo após paralelizar apenas a preparação.
+
+Fontes: [ObjectDatabase](../source/game/StarObjectDatabase.cpp),
+[subclasses](../source/game/objects), [ItemDatabase](../source/game/StarItemDatabase.cpp),
+[ItemDrop](../source/game/StarItemDrop.cpp),
+[Rebuilder](../source/game/StarRebuilder.cpp),
+[Uuid](../source/core/StarUuid.cpp),
+[writer](../source/game/StarDungeonGenerator.cpp) e
+[facade](../source/game/StarWorldGeneration.cpp).
