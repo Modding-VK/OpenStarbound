@@ -493,6 +493,12 @@ enfileirar atualização de tile para clientes. `generateSectorLevel(Finalize)`
 ativa a região **do setor solicitado**, não toda a caixa escrita por
 `CaveLiquid`.
 
+No `WorldServer::update`, `generateQueue` roda antes de
+`queueUpdatePackets`. A ausência de enfileiramento no write direto não é
+compensada automaticamente pela montagem posterior dos pacotes: para um
+setor que já recebeu o pacote inicial, o código de rede envia apenas as
+posições presentes nas filas de atualização, salvo outro evento que as inclua.
+
 Isso cria uma condição que deve ser investigada com rastreamento de sequência:
 se um setor vizinho já estiver `Complete` e monitorado quando outro setor lhe
 alterar líquido/background, o caminho de escrita examinado não agenda por si
@@ -558,11 +564,68 @@ Fontes: [WorldGeneration](../source/game/StarWorldGeneration.cpp),
 [WorldGenerationTasks](../source/game/StarWorldGenerationTasks.cpp) e
 [WorkerPool](../source/core/StarWorkerPool.cpp).
 
+## Décima quinta passagem: coordenadas de líquido na emenda do planeta
+
+`generateCaveLiquid` mantém `candidateNodes` e `solidSurroundings` nas
+coordenadas da caixa acolchoada, que podem ter `x < 0` ou `x >= width` perto
+da emenda horizontal. Apenas o acesso ao array de tiles usa `wrapCoords`.
+Depois, `determineLiquidLevel` copia esses candidatos para `openSet`, mas
+normaliza **cada vizinho** com `geometry.xwrap` antes de procurá-lo no set.
+Exemplo: com um candidato em `x = -1` e outro em `x = 0`, o vizinho esquerdo
+de `0` é procurado como `width - 1`, enquanto o set contém `-1`. Os dois
+tiles fisicamente adjacentes podem ser separados em clusters diferentes.
+`levelCluster` ainda consulta `filled` usando coordenadas cruas.
+
+O efeito visual e a frequência desse caso dependem de haver seeds, cavidades
+e líquido elegíveis perto da emenda; esta auditoria estática não os mede.
+Antes de paralelizar o estágio, escolher uma representação única para as
+coordenadas dos sets e preservar os limites da caixa de busca em espaço
+desenrolado. Comparar pressão/volume resultantes nas duas bordas do planeta
+com e sem a correção.
+
+Fontes: [WorldGeneration](../source/game/StarWorldGeneration.cpp) e
+[WorldGeometry](../source/base/StarWorldGeometry.hpp).
+
+## Décima sexta passagem: colocação de plantas e falha parcial
+
+`WorldGenerator::placePlant` lê spaces, roots, ocupação de plantas, materiais
+e IDs de dungeon antes de instalar a planta. Depois altera diretamente
+tiles dos spaces próximos e dos roots; só no fim chama
+`WorldServer::addEntity`. Se `modifyTile` devolver `nullptr` após alguma
+alteração anterior, a função retorna `false` **sem restaurar os tiles já
+alterados**. A condição depende de footprint da variante além dos setores
+carregados ou dos limites do mundo; não foi demonstrada sua frequência em
+assets reais.
+
+`addEntity` chama `updateTileEntityTiles`, que pode enfileirar avisos para
+material spaces quando modifica tile ou colisão. Isso não equivale a publicar
+automaticamente todas as alterações anteriores de `placePlant`, como
+background ou cópia de tile em spaces, e não resolve o retorno parcial antes
+de instalar a entidade. Um plano regional precisa preparar e validar o
+footprint **inteiro** antes da primeira escrita, inclusive resultado da
+factory da planta; a aplicação deve ter caminho definido para falha de
+instalação sem deixar tiles órfãos.
+
+Há uma segunda implementação, `DungeonGeneratorWorld::placePlant`, usada por
+árvores/itens de bioma da facade de dungeon. Ela chama
+`WorldServer::modifyServerTile` em cada space/root, o que enfileira avisos e
+suja colisão, mas também pode retornar depois de escritas parciais. As duas
+implementações **não são equivalentes**: no ajuste de space, a de setor fixa
+`CollisionKind::None`, enquanto a de dungeon termina com a colisão do
+material foreground. O rework não deve fundi-las antes de decidir qual
+comportamento é esperado e comparar estruturas/plantas geradas nos dois
+caminhos.
+
+Fontes: [WorldGeneration](../source/game/StarWorldGeneration.cpp),
+[WorldServer](../source/game/StarWorldServer.cpp) e
+[TileSectorArray](../source/game/StarTileSectorArray.hpp).
+
 ## Encaminhamento após as passagens estáticas
 
-1. Investigar primeiro a escrita de `CaveLiquid` em vizinho já ativo, com
-   sequência de geração, revisão, visita do motor de líquidos e pacotes de
-   rede; esse é um risco de consistência observável.
+1. Investigar primeiro a escrita de `CaveLiquid` em vizinho já ativo, a
+   separação de clusters junto à emenda horizontal e falhas parciais de
+   `placePlant`. Registrar sequência de geração, revisões, visitas do motor
+   de líquidos e pacotes de rede; são riscos de consistência observável.
 2. Isolar o sorteio transitório na desserialização de `WorldTemplate`, sob
    revisão de equivalência da sequência de RNG.
 3. Corrigir a prioridade espacial na emenda horizontal com `WorldGeometry`,
