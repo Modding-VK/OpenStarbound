@@ -405,3 +405,155 @@ completo de leitura/escrita, inclusive cruzamentos de regiões e wrap.
 Fontes: [WorldGenerationTasks](../source/game/StarWorldGenerationTasks.cpp),
 [WorldRegionCoordinator](../source/game/StarWorldRegionCoordinator.cpp) e
 [WorldRegionPartition](../source/game/StarWorldRegionPartition.cpp).
+
+## Nona passagem: persistência, reload e estágios parciais
+
+`WorldStorage::generateSectorToLevel` atualiza `metadata.generationLevel`
+depois de cada estágio concluído e marca o setor sujo. `syncSector` grava
+tiles com esse nível quando a revisão mudou; entidades persistentes são
+serializadas por setor quando o nível de carga inclui entidades. `sync` passa
+pelos setores carregados e só então faz `m_db.commit`. No reload, o tile
+sector restaura o nível de geração e os dados de entidade são criados,
+inicializados e indexados em uma etapa de carga separada.
+
+Esse formato permite retomar **estágios inteiros** pelo nível salvo, mas não
+codifica uma dungeon em planejamento, parcialmente aplicada ou aguardando
+commit. O futuro plano não pode publicar metade das operações e marcar o
+estágio como completo. Também não deve inferir atomicidade de uma estrutura
+composta apenas porque o banco comita setores no final: callbacks, entidades
+ativas e pacotes já podem observar efeitos em memória antes do sync. A
+proposta de intenção durável e recuperação de
+[dungeon-generation-resume-plan.md](dungeon-generation-resume-plan.md)
+continua necessária antes de aplicação interrompível.
+
+No unload, entidades persistentes são serializadas pelo setor de sua
+**posição**, enquanto uma entidade que só o sobrepõe pertence a outro setor.
+Um footprint regional deve distinguir ocupação, setor dono e identidade;
+reservar todos os setores tocados não muda automaticamente a propriedade da
+entidade nem seu índice de IDs únicos.
+
+Fontes: [WorldStorage](../source/game/StarWorldStorage.cpp) e
+[WorldServer](../source/game/StarWorldServer.cpp).
+
+## Décima passagem: publicação observável pelo cliente
+
+`WorldStorage::sectorActive` exige carga `Loaded` e geração `Complete`.
+`WorldServer` mantém setores pendentes por cliente e só envia o pacote completo
+de tiles quando o setor está ativo. Depois envia atualizações pendentes de
+tile, dano e líquido, e consulta entidades monitoradas para produzir os
+pacotes correspondentes. Portanto, a fronteira de ativação já impede que o
+cliente receba um setor base incompleto como pacote inicial.
+
+Isso **não** cria uma publicação atômica para uma dungeon que cruza setores:
+os setores podem completar em passos distintos, e `addEntity`/`modifyTile`
+atuam no mundo vivo antes da formação dos pacotes. Um commit regional precisa
+definir o ponto em que todas as partes e entidades passam a ser observáveis,
+além de preservar a ordem de IDs, `init`, índices e atualizações de rede.
+Conferir apenas o pacote inicial de tiles seria insuficiente para provar
+integridade visual ou mecânica em multiplayer.
+
+Fontes: [WorldServer](../source/game/StarWorldServer.cpp) e
+[WorldStorage](../source/game/StarWorldStorage.cpp).
+
+## Décima primeira passagem: fila visível e prioridade espacial
+
+`WorldServer::update` entrega à fila um orçamento de tempo e limite opcional
+de estágios por passo. `WorldStorage::generateQueue` ordena os setores
+solicitados, publica resultados `BaseTiles` prontos, tenta completar o
+primeiro setor e, quando ele bloqueia, só agenda/prepara `BaseTiles` dos
+demais nessa passagem. Os estágios de microdungeon, líquido e finalização
+continuam serializados nessa ordem. Prefetch usa apenas o tempo que sobra
+**depois** de esvaziar a fila visível; a quantidade de workers por si só não
+garante avanço de dungeons quando a fila visível permanece cheia.
+
+A ordenação calcula `vmag(sectorCenter - player->position())` para o jogador
+mais próximo. Essa subtração é plana; não usa `WorldGeometry::diff`, embora o
+mundo faça wrap horizontal. Junto à emenda do planeta, um setor fisicamente
+próximo pode ser ordenado como distante. Isso é uma inconsistência concreta
+da prioridade, não prova de que seja a causa dos atrasos observados nos logs.
+Uma correção isolada deve usar distância com wrap e comparar a ordem em
+cenários próximos à emenda antes de integrar prioridades por velocidade.
+
+O prefetch usa `worldStoragePrefetchPad` limitado a 32 tiles e só é ativado
+quando `sectorWorkers > 0`; ele prepara `BaseTiles`, sem entidades nem
+microdungeons. Um plano de pré-geração direcional precisa manter essa
+distinção e evitar anunciar um setor como pronto antes de `Complete`.
+
+Fontes: [WorldServer](../source/game/StarWorldServer.cpp),
+[WorldStorage](../source/game/StarWorldStorage.cpp) e
+[WorldGeometry](../source/base/StarWorldGeometry.hpp).
+
+## Décima segunda passagem: escrita transfronteira e avisos de rede
+
+O cálculo de `CaveLiquid` grava pelo `tileArray->modifyTile` em posições da
+caixa acolchoada, inclusive em setores vizinhos já carregados. Esse helper
+marca a revisão do setor físico atingido, mas não executa os efeitos de
+`WorldServer::modifyServerTile`: sujar colisão, visitar o motor de líquidos e
+enfileirar atualização de tile para clientes. `generateSectorLevel(Finalize)`
+ativa a região **do setor solicitado**, não toda a caixa escrita por
+`CaveLiquid`.
+
+Isso cria uma condição que deve ser investigada com rastreamento de sequência:
+se um setor vizinho já estiver `Complete` e monitorado quando outro setor lhe
+alterar líquido/background, o caminho de escrita examinado não agenda por si
+um pacote de tile para esse vizinho. O código não prova que o cliente ficará
+permanentemente divergente, pois outros sistemas podem visitar ou atualizar
+o mesmo tile depois. Um modelo regional deve declarar todas as posições
+escritas e publicar os avisos/ativações para **cada setor realmente alterado**.
+
+`WorldServer::placeDungeon` também altera `m_generatingDungeon` e
+`m_tileProtectionEnabled` antes de chamar o gerador, mas os restaura somente
+no retorno normal. Uma exceção do gerador pode deixar esses flags alterados
+durante o unwinding. Esse caminho é acessível por Lua e comando; qualquer
+refatoração de execução ou retry precisa restaurar estado com escopo de
+exceção, sem presumir que falhas sempre encerram o mundo imediatamente.
+
+Fontes: [WorldGeneration](../source/game/StarWorldGeneration.cpp),
+[WorldServer](../source/game/StarWorldServer.cpp),
+[TileSectorArray](../source/game/StarTileSectorArray.hpp) e
+[WorldLuaBindings](../source/game/scripting/StarWorldLuaBindings.cpp).
+
+## Décima terceira passagem: profundidade dos pré-requisitos
+
+`SectorGenerationLevel::Complete` é `Finalize` (nível 4). Para executar um
+estágio acima de `BaseTiles`, `generateSectorToLevel` exige o nível anterior
+do próprio setor e de `adjacentSectors`, que cobre os setores da região
+acolchoada em 32 tiles. Assim, completar um setor central pode depender de
+`CaveLiquid` numa vizinhança 3×3, `MicroDungeons` numa 5×5 e `BaseTiles`
+numa 7×7, até **49 setores base** longe das bordas do mundo. Não são 49
+jobs necessariamente novos: níveis já satisfeitos retornam imediatamente.
+
+Essa expansão explica por que a solicitação visível de um único setor pode
+alcançar muito mais trabalho e por que o limite de estágios por passo pode
+interromper a cadeia antes de tornar o setor ativo. O grafo observacional
+atual capta até oito raízes e 256 nós; quando trunca, sua fronteira não
+representa todos os pré-requisitos. Para o novo scheduler, a admissão deve
+calcular a cadeia completa ou tratar explicitamente a parte ainda não
+resolvida, sem usar uma fronteira truncada como autorização de execução.
+
+Fontes: [WorldStorage](../source/game/StarWorldStorage.cpp),
+[WorldGenerationDependency](../source/game/StarWorldGenerationDependency.cpp)
+e [WorldStorage.hpp](../source/game/StarWorldStorage.hpp).
+
+## Décima quarta passagem: limite local versus pool global
+
+`worldSectorWorkerPool()` é um singleton do processo, configurado com até
+oito workers. Já `m_pendingBaseTiles` e `WorldGenerationTasks` pertencem a
+cada `WorldGenerator`/mundo. Cada mundo admite até `2 × workers` preparações
+pendentes e reserva, contabilmente, um `sizeof(SectorArray)` por tarefa. O
+`WorkerPool::queueWork` acrescenta trabalhos à fila compartilhada sem um
+limite global próprio. Em servidores com vários mundos ativos, a soma das
+admissões pode exceder o teto de 16 resultados citado para **um** mundo e
+elevar o tempo de espera dos jobs, embora só existam até oito threads desse
+pool.
+
+O cálculo de bytes reservado cobre o array de tiles do resultado; não inclui
+o JSON de `WorldTemplate::store`, o template reconstruído por worker, caches
+do template, promise ou overhead da fila. Não tratar `reservedBytes` como
+medida exata da memória da geração. Para expandir o pool a microdungeons ou
+planos regionais, é preciso orçamento global de jobs/bytes e prioridade entre
+mundos, além do limite local e da métrica de tempo na fila.
+
+Fontes: [WorldGeneration](../source/game/StarWorldGeneration.cpp),
+[WorldGenerationTasks](../source/game/StarWorldGenerationTasks.cpp) e
+[WorkerPool](../source/core/StarWorkerPool.cpp).
