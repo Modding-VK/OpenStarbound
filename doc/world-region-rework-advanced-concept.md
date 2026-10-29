@@ -237,6 +237,11 @@ que o modelo do Folia pode substituir o tick global sem adaptar os sistemas.
   detalhes em [modelo de NPCs](npc-externalization-concept.md). Entidades cujo
   modo `Master` pertence ao cliente mantêm esse contrato: o setor não assume
   silenciosamente controle de IA ou simulação que o servidor não possuía.
+- **Monstros, veículos e stagehands:** possuem tipos e contratos próprios de
+  autoridade, Lua e persistência. Veículos têm controles de passageiros e
+  stagehands podem ter área de broadcast multissetor. A
+  [auditoria das fronteiras](entity-sector-story-boundary-audit.md) impede
+  admiti-los automaticamente na thread de NPCs.
 - **Mundo global e scripts:** clima, dia, spawn global, universo, quests e
   contextos Lua que podem ler ou escrever qualquer lugar mantêm uma fase
   serial enquanto não houver uma API regional. `world.entityQuery` pode chamar
@@ -605,8 +610,8 @@ pressupõe que aumentar o número de workers seja a primeira intervenção.
 | WRG-07 / P1 | Planejamento imutável de microdungeons e dungeons por footprint, conflitos determinísticos e ativação consistente (8). Depende de WRG-02, WRG-05 e WRG-06. | Mesmos tiles, distribuição, IDs únicos e entidades com 1/N workers; Glitch/Mantizi íntegros mesmo cruzando regiões e após reload. |
 | WRG-08 / P1 | Leitura/preparação de setores salvos, instalação local e persistência por snapshots. Depende de WRG-03–06 e auditoria de DB/Lua. | Save/reload sem perda ou duplicação; dados salvos nunca regenerados por engano; banco serial preserva checkpoint consistente. |
 | WRG-09 / P2 | Substituir o update monolítico por uma thread dedicada para cada setor carregado (`Tiles` ou `Entities`), inicialmente com passo/barreira comum. Depende de WRG-06–08, integração ao ciclo atual de carga/unload e auditoria de todos os acessos globais. | Instalações e updates locais realmente sobrepostos em setores distintos, sem acesso mutável cruzado; uma thread por setor carregado, sem alterar interesse, TTL ou `keepAlive`; custo das threads e da barreira medido separadamente. |
-| WRG-10 / P2 | Passos locais e sincronização só das dependências, transações entre setores e handoff; remover barreira global do caminho normal. Depende de WRG-09 e contratos de relógio/rede/save. | Setor independente progride durante atraso de outro; sem estado contraditório nas bordas, duplicação de efeitos ou checkpoint inconsistente. |
-| WRG-11 / P2 | Integrar APIs opt-in de objetos/NPCs e planejamento de redes independentes, inclusive no mesmo setor. Depende dos planos respectivos e WRG-09; independência entre passos depende de WRG-10. | Baú compartilhado exige commit ordenado; redes independentes ganham paralelismo; mods desconhecidos têm fallback explícito. |
+| WRG-10 / P2 | Passos locais e sincronização só das dependências, transações entre setores e handoff; remover barreira global do caminho normal. Depende de WRG-09 e contratos de relógio/rede/save. Líquidos e fios exigem protocolo de borda/rede antes de sair da fase serial. | Setor independente progride durante atraso de outro; sem estado contraditório nas bordas, duplicação de efeitos ou checkpoint inconsistente. |
+| WRG-11 / P2 | Integrar APIs opt-in de objetos/NPCs e planejamento de redes independentes, inclusive no mesmo setor. Auditar contratos específicos de monstros, veículos e stagehands; não incluí-los automaticamente no serviço de NPCs. Depende dos planos respectivos e WRG-09; independência entre passos depende de WRG-10. | Baú compartilhado exige commit ordenado; redes independentes ganham paralelismo; mods desconhecidos e entidades sem contrato têm fallback explícito. |
 | WRG-12 / P2 | Ajuste de cotas de trabalho nas threads existentes, mantendo uma thread por setor carregado; mudanças em prefetch, TTL ou interesse exigem decisão separada. Depende da validação de WRG-05 e WRG-09–11. | Ganho de latência/p95/p99 em hardware distinto sem ativar entidades distantes, saturar memória ou atrasar jogadores de menor prioridade. |
 
 WRG-02–05 podem ser entregues primeiro no modelo atual, com validação pela thread

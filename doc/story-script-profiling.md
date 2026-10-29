@@ -36,3 +36,8 @@ missões da história para threads setoriais, inventariar callbacks concretos,
 leituras/escritas globais, ordem observável, passagem entre mundos e efeitos
 de save/reload; a instrumentação não demonstra que um callback seja seguro
 para paralelismo.
+
+A [auditoria das fronteiras de entidades e setores](entity-sector-story-boundary-audit.md)
+inclui `Stagehand`, monstros e veículos entre os possíveis scripts de um local.
+O estágio `quest.update` inclui os updates de quests; callbacks de conclusão
+ou recompensa disparados fora dele ainda não têm medição própria.
