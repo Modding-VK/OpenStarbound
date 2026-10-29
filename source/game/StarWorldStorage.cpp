@@ -16,9 +16,10 @@
 #include "StarTime.hpp"
 
 #include <condition_variable>
+#include <algorithm>
+#include <exception>
 #include <map>
 #include <mutex>
-#include <system_error>
 #include <thread>
 
 namespace Star {
@@ -29,34 +30,117 @@ class WorldSectorThreads {
 public:
   using Sector = WorldStorage::Sector;
 
+  ~WorldSectorThreads() {
+    for (auto& entry : m_threads)
+      entry.second->requestStop();
+  }
+
   void loaded(Sector const& sector) {
+    if (m_metrics.disabledAfterFailure)
+      return;
     auto key = std::make_pair(sector[0], sector[1]);
-    if (m_threads.find(key) == m_threads.end())
+    if (m_threads.find(key) != m_threads.end())
+      return;
+    STAR_TRACE_ZONE("Sector thread start");
+    auto start = Time::monotonicMicroseconds();
+    try {
       m_threads.emplace(key, make_unique<Worker>());
+    } catch (std::exception const& e) {
+      ++m_metrics.failedCreations;
+      m_metrics.disabledAfterFailure = true;
+      Logger::warn("Sector thread lifecycle preview disabled after thread creation failed: {}", e.what());
+      for (auto& entry : m_threads)
+        entry.second->requestStop();
+      while (!m_threads.empty()) {
+        auto key = m_threads.begin()->first;
+        unloaded(Sector(key.first, key.second));
+      }
+      return;
+    }
+    auto elapsed = static_cast<uint64_t>(Time::monotonicMicroseconds() - start);
+    m_startSamples.add(elapsed);
+    m_metrics.startTotalMicroseconds += elapsed;
+    m_metrics.startMaximumMicroseconds = std::max(m_metrics.startMaximumMicroseconds, elapsed);
+    ++m_metrics.created;
+    m_metrics.peak = std::max(m_metrics.peak, m_threads.size());
   }
 
   void unloaded(Sector const& sector) {
-    m_threads.erase(std::make_pair(sector[0], sector[1]));
+    auto it = m_threads.find(std::make_pair(sector[0], sector[1]));
+    if (it == m_threads.end())
+      return;
+    STAR_TRACE_ZONE("Sector thread stop");
+    auto start = Time::monotonicMicroseconds();
+    m_threads.erase(it);
+    auto elapsed = static_cast<uint64_t>(Time::monotonicMicroseconds() - start);
+    m_stopSamples.add(elapsed);
+    m_metrics.stopTotalMicroseconds += elapsed;
+    m_metrics.stopMaximumMicroseconds = std::max(m_metrics.stopMaximumMicroseconds, elapsed);
+    ++m_metrics.destroyed;
   }
 
   size_t count() const {
     return m_threads.size();
   }
 
+  WorldSectorThreadMetrics metrics() const {
+    auto result = m_metrics;
+    result.enabled = true;
+    result.current = m_threads.size();
+    result.startP95Microseconds = m_startSamples.percentile(95);
+    result.startP99Microseconds = m_startSamples.percentile(99);
+    result.stopP95Microseconds = m_stopSamples.percentile(95);
+    result.stopP99Microseconds = m_stopSamples.percentile(99);
+    return result;
+  }
+
 private:
+  struct Samples {
+    static constexpr size_t Capacity = 256;
+    std::array<uint64_t, Capacity> values{};
+    size_t count = 0;
+    size_t next = 0;
+
+    void add(uint64_t value) {
+      values[next] = value;
+      next = (next + 1) % Capacity;
+      count = std::min(count + 1, Capacity);
+    }
+
+    uint64_t percentile(unsigned p) const {
+      if (!count)
+        return 0;
+      auto sorted = values;
+      std::sort(sorted.begin(), sorted.begin() + count);
+      return sorted[((count - 1) * p + 99) / 100];
+    }
+  };
+
   struct Worker {
     Worker() : thread([this] {
+#ifdef STAR_ENABLE_TRACY
+      tracy::SetThreadName("Sector lifecycle preview");
+#endif
       std::unique_lock<std::mutex> lock(mutex);
+      ready = true;
+      wake.notify_one();
       wake.wait(lock, [this] { return stopping; });
-    }) {}
+    }) {
+      std::unique_lock<std::mutex> lock(mutex);
+      wake.wait(lock, [this] { return ready; });
+    }
 
     ~Worker() {
+      requestStop();
+      thread.join();
+    }
+
+    void requestStop() {
       {
         std::lock_guard<std::mutex> lock(mutex);
         stopping = true;
       }
       wake.notify_one();
-      thread.join();
     }
 
     Worker(Worker const&) = delete;
@@ -65,12 +149,16 @@ private:
     std::mutex mutex;
     std::condition_variable wake;
     bool stopping = false;
+    bool ready = false;
     std::thread thread;
   };
 
   // The world owner thread alone changes this map. Individual workers only
   // wait for shutdown, so they cannot race with world state or the registry.
   std::map<std::pair<unsigned, unsigned>, unique_ptr<Worker>> m_threads;
+  WorldSectorThreadMetrics m_metrics;
+  Samples m_startSamples;
+  Samples m_stopSamples;
 };
 
 WorldChunks WorldStorage::getWorldChunksUpdate(WorldChunks const& oldChunks, WorldChunks const& newChunks) {
@@ -292,6 +380,20 @@ size_t WorldStorage::sectorThreadCount() const {
 
 bool WorldStorage::sectorThreadPreviewEnabled() const {
   return static_cast<bool>(m_sectorThreads);
+}
+
+WorldSectorThreadMetrics WorldStorage::sectorThreadMetrics() const {
+  auto result = m_sectorThreads ? m_sectorThreads->metrics() : WorldSectorThreadMetrics{};
+  result.loadedSectors = m_tileArray->loadedSectorCount();
+  if (m_sectorThreads) {
+    for (auto const& entry : m_sectorMetadata) {
+      if (entry.second.loadLevel == SectorLoadLevel::Tiles)
+        ++result.tilesOnly;
+      else if (entry.second.loadLevel == SectorLoadLevel::Entities)
+        ++result.withEntities;
+    }
+  }
+  return result;
 }
 
 void WorldStorage::loadSector(Sector sector) {
@@ -1256,14 +1358,8 @@ void WorldStorage::loadSectorToLevel(Sector const& sector, SectorLoadLevel targe
     }
 
     if (currentLoad == SectorLoadLevel::Tiles) {
-      if (m_sectorThreads) {
-        try {
-          m_sectorThreads->loaded(sector);
-        } catch (std::system_error const& e) {
-          Logger::warn("Sector thread lifecycle preview disabled after thread creation failed: {}", e.what());
-          m_sectorThreads.reset();
-        }
-      }
+      if (m_sectorThreads)
+        m_sectorThreads->loaded(sector);
       ExplorationProfile::Scope total(m_explorationProfile.get(), "storage.tiles.total");
       ExplorationProfile::Scope timing(m_explorationProfile.get(), "storage.tiles.read");
       auto res = m_db.find(tileSectorKey(sector));

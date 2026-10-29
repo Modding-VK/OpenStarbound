@@ -72,10 +72,10 @@ Implementação inicial em 29/10/2026: `worldThreading.sectorThreadLifecyclePrev
 (padrão `false`) cria uma thread ociosa por setor quando `WorldStorage` começa
 a carregar seus tiles, inclusive para prefetch que chega ao nível `Tiles`.
 Ela termina após o unload para `None`; pedidos apenas enfileirados não a criam.
-O contador `server_<worldId>_sector_threads` compara threads e setores com
-tiles carregados no mapa de diagnóstico quando a opção está ligada. Se a
-criação de uma thread falhar, o preview se desliga e o mundo segue pelo fluxo
-atual. As threads aguardam em condição, sem consultar
+As [métricas do ciclo de vida](sector-thread-lifecycle-metrics.md) comparam
+threads e setores carregados, registram pico, falhas e latências de criação e
+parada. Se a criação de uma thread falhar, o preview se desliga e o mundo segue
+pelo fluxo atual. As threads aguardam em condição, sem consultar
 tiles ou executar gameplay. Este estágio mede o custo do ciclo de vida e
 verifica a correspondência com setores carregados; **não paraleliza a
 simulação**. A opção só deve ser habilitada para esse experimento até que

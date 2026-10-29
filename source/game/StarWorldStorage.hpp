@@ -58,6 +58,27 @@ struct WorldGenerationQueueSnapshot {
   double maximumQueuedSeconds = 0;
 };
 
+struct WorldSectorThreadMetrics {
+  bool enabled = false;
+  bool disabledAfterFailure = false;
+  size_t current = 0;
+  size_t peak = 0;
+  size_t loadedSectors = 0;
+  size_t tilesOnly = 0;
+  size_t withEntities = 0;
+  uint64_t created = 0;
+  uint64_t destroyed = 0;
+  uint64_t failedCreations = 0;
+  uint64_t startTotalMicroseconds = 0;
+  uint64_t stopTotalMicroseconds = 0;
+  uint64_t startMaximumMicroseconds = 0;
+  uint64_t stopMaximumMicroseconds = 0;
+  uint64_t startP95Microseconds = 0;
+  uint64_t startP99Microseconds = 0;
+  uint64_t stopP95Microseconds = 0;
+  uint64_t stopP99Microseconds = 0;
+};
+
 struct WorldGeneratorFacade {
   typedef ServerTileSectorArray::Sector Sector;
 
@@ -151,6 +172,7 @@ public:
   // No live world state is read or modified by these threads yet.
   size_t sectorThreadCount() const;
   bool sectorThreadPreviewEnabled() const;
+  WorldSectorThreadMetrics sectorThreadMetrics() const;
 
   // Bounded, owner-thread-only metadata observation. No load, signal, or DB
   // access. Start a new observation frame only after retiring previous turns.
