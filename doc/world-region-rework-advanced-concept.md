@@ -202,6 +202,16 @@ alterações reais. Etapas que tocam vizinhos registram toda a cobertura e as
 revisões lidas; cobertura ausente é indisponível, jamais terreno vazio.
 Workers não acessam `WorldTemplate` vivo nem sua árvore de caches mutáveis.
 
+O snapshot do layout precisa carregar identidade lógica e adjacência das
+regiões de bioma através da emenda horizontal. O layout legado compartilha
+ponteiros entre as células das duas pontas, mas a serialização grava apenas
+valores e a recarga cria ponteiros independentes; a expansão de biomas usa
+essa identidade para calcular sua largura. Definir também a posse da linha
+`yStart` entre camadas e as leituras adicionais exigidas pelo blending. Antes
+de transferir edição de biomas a workers, comparar prévia, setores sinalizados
+e resultado da expansão antes/depois de reload. Ver
+[auditoria do acesso a dungeons](dungeon-access-audit.md).
+
 Microdungeons e dungeons compostas são operações de **footprint**, não uma
 tarefa arbitrariamente independente por setor. Propor localização, peças,
 NPCs, objetos, líquidos e tiles em uma estrutura intermediária imutável;
