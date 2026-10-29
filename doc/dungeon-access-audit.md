@@ -263,3 +263,145 @@ Fontes: [ObjectDatabase](../source/game/StarObjectDatabase.cpp),
 [Uuid](../source/core/StarUuid.cpp),
 [writer](../source/game/StarDungeonGenerator.cpp) e
 [facade](../source/game/StarWorldGeneration.cpp).
+
+## Quinta passagem: microdungeons por setor
+
+Esta passagem examina o caminho de microdungeons, separado do piloto de
+dungeons compostas iniciado em `WorldServer::init`. Em
+`WorldStorage::generateSectorToLevel`, o estágio `MicroDungeons` só começa
+depois de levar os setores adjacentes ao estágio anterior. O prefetch em
+segundo plano prepara apenas `BaseTiles`; não executa microdungeons. No
+`WorldGenerator`, apenas `BaseTiles` usa `prepareTilesAsync`; o ramo
+`MicroDungeons` chama `generateMicroDungeons` diretamente.
+
+`generateMicroDungeons` percorre cada tile do setor 32×32, consulta itens
+potenciais/válidos no `WorldTemplate` e inclui distribuições de placements
+enfileirados. Depois ordena a fila e tenta cada microdungeon. A posição é
+semeada por `worldTemplate()->seedFor`; o nome é escolhido por
+`staticRandomFrom`. Para uma tentativa bem-sucedida, o gerador altera tiles
+retornados, substitui blocos de bioma e pode satisfazer uma promise de
+placement enfileirado. O estágio todo deve preservar essa sequência e o
+estado `fulfilled` das solicitações; paralelizar apenas a chamada ao factory
+não isola esses efeitos.
+
+O `MicroDungeonFactory` tem `m_generating` e rejeita reentrada. Tenta o anchor
+na altura original e em três tiles para cima e para baixo. O `bounds` passado
+pela geração do setor é `sectorRegion.padded(WorldSectorSize - 1)`; no
+factory, ele limita **somente o retângulo do anchor candidato**. Após escolher
+o anchor, `DungeonGenerator::buildDungeon` expande conectores e peças sem
+receber esse `bounds`. Logo, o retângulo acolchoado não é prova de footprint
+máximo nem reserva suficiente para execução simultânea de setores vizinhos.
+
+A fila de placements usa `sort` sobre pares `(BiomeItemPlacement,
+QueuedPlacement*)`; `BiomeItemPlacement::operator<` compara apenas prioridade.
+Quando prioridades empatam, o desempate do par alcança o ponteiro da entrada
+enfileirada. Não tratar essa ordem como chave espacial estável em um novo
+agendador. Primeiro registrar a ordem efetiva e definir desempate explícito
+sob uma regra de compatibilidade, sem alterar silenciosamente a geração
+legada.
+
+Para um futuro piloto de microdungeons, a unidade de reserva precisa ser a
+**estrutura completa produzida**, incluindo leituras de candidatos rejeitados,
+peças expandidas, efeitos do writer/facade e alterações de bioma após retorno.
+Uma primeira versão pode usar planejamento serial contra snapshot e recusar
+planos cujo alcance exceda a cobertura; o factory atual não deve ser invocado
+em paralelo como objeto compartilhado.
+
+Fontes: [WorldStorage](../source/game/StarWorldStorage.cpp),
+[WorldGeneration](../source/game/StarWorldGeneration.cpp),
+[MicroDungeonFactory](../source/game/StarMicroDungeon.cpp),
+[BiomePlacement](../source/game/StarBiomePlacement.cpp),
+[StarAlgorithm](../source/core/StarAlgorithm.hpp).
+
+## Sexta passagem: líquidos, finalização e revisões de setor
+
+Depois de `MicroDungeons`, `WorldStorage::generateSectorToLevel` exige os
+vizinhos no estágio anterior antes de avançar para `CaveLiquid` e `Finalize`.
+Essa dependência é recursiva e conserva uma borda preparada; não equivale a
+permitir escrita concorrente nesses vizinhos.
+
+`generateCaveLiquid` calcula a partir de seeds do setor e percorre tiles numa
+caixa acolchoada por `WorldSectorSize - 1` em cada direção. Lê foreground,
+background, líquidos e IDs de dungeon, com wrap horizontal, e pode gravar
+líquido e background **fora do setor solicitado**. A geometria dos candidatos
+depende dos tiles vivos dentro da caixa; reservar só o setor de origem é
+insuficiente. O estágio seguinte ativa a região no motor de líquidos, outro
+efeito que precisa continuar com a autoridade do mundo.
+
+`prepareSector` atualiza os tiles do setor e faz consultas de vizinhos ao
+colocar grass. Em seguida, seleciona itens de bioma e chama `placePlant` ou
+`createForPlacement`/`addEntity`. `placePlant` consulta tiles, plantas já
+instaladas, spaces e roots da planta; pode **modificar tiles vizinhos** antes
+de instalar a entidade. A borda de leitura/escrita depende da variante da
+planta, não apenas da dimensão fixa do setor. O caminho de floating dungeon
+usa `prepareSectorBiomeBlocks`, com menos efeitos, mas ainda consulta tiles
+vizinhos no cálculo de grass.
+
+`TileSectorArray::modifyTile` incrementa a revisão do setor físico quando
+retorna um ponteiro válido, **antes de saber se o chamador mudou algum campo**.
+Assim, `sectorRevision` é um indicador conservador de acesso mutável, não uma
+prova de alteração semântica. `prepareTilesAsync` exige igualdade dessa
+revisão ao publicar um resultado: acessos mutáveis sem alteração real podem
+descartar preparação válida. Uma revisão semântica mais precisa poderia
+reduzir rejeições, mas só depois de auditar todos os escritores e sem perder
+invalidação por mudanças de tiles, template, entidades ou estado de geração.
+
+Fontes: [WorldGeneration](../source/game/StarWorldGeneration.cpp),
+[WorldStorage](../source/game/StarWorldStorage.cpp) e
+[TileSectorArray](../source/game/StarTileSectorArray.hpp).
+
+## Sétima passagem: snapshot de terreno base e RNG compartilhado
+
+O caminho assíncrono de `BaseTiles` copia o array do setor e serializa o
+`WorldTemplate` quando a identidade ou `generationRevision` muda. O worker
+reconstrói um template por thread, guardado em cache `thread_local` com chave
+de identidade/revisão, e calcula os tiles nessa cópia. Na publicação, o dono
+do mundo verifica tarefa/época, ponteiro e revisão dos tiles de origem,
+identidade e revisão do template. Esse é um padrão útil para o plano regional:
+snapshot isolado, validação antes de publicar e retenção da reserva até o
+producer terminar.
+
+Há uma dependência de RNG ainda não isolada. `WorldTemplate(Json const& store)`
+chama o construtor padrão antes de substituir a seed pelo valor armazenado.
+O construtor padrão executa `Random::randu64()`. `Random` usa uma fonte global
+protegida por mutex: isso evita acesso simultâneo sem lock, mas cada
+reconstrução do template no worker **consome uma amostra da sequência global**.
+O número e a ordem dessas reconstruções dependem de worker, cache e revisões;
+logo, a preparação de terreno pode alterar escolhas aleatórias posteriores
+mesmo quando o resultado dos tiles é determinístico. Uma correção específica
+deve construir o template desserializado sem sortear seed transitória,
+preservando a seed efetiva do store; antes de aplicá-la, avaliar se alguma
+sequência legada depende inadvertidamente desse consumo.
+
+O `WorldLayout(Json)` e `TerrainDatabase::loadSelector` recebem seeds
+serializadas no trecho examinado; esta passagem **não prova** ausência de
+outros efeitos durante a reconstrução de todo o grafo de assets. Para o
+`DungeonPlan`, não compartilhar o `WorldTemplate` vivo com workers e não
+assumir que desserialização é pura sem essa auditoria transitiva.
+
+Fontes: [WorldGeneration](../source/game/StarWorldGeneration.cpp),
+[WorldTemplate](../source/game/StarWorldTemplate.cpp),
+[WorldLayout](../source/game/StarWorldLayout.cpp),
+[TerrainDatabase](../source/game/StarTerrainDatabase.cpp) e
+[Random](../source/core/StarRandom.cpp).
+
+## Oitava passagem: alcance real das reservas existentes
+
+`WorldGenerationTasks::reserve` usa a chave `(sector, stage)`, recusa tarefa
+duplicada e mantém a reserva de bytes até `retire` após conclusão do producer.
+O enum de estágios e a própria admissão aceitam **somente `BaseTiles`**. A
+identidade inclui época do mundo, sequência, setor, região e estágio, mas
+`region` serve como metadado: o registro não bloqueia outra tarefa em setor
+vizinho nem cobre o footprint de uma dungeon ou do líquido de caverna.
+
+`WorldRegionCoordinator` modela turnos exclusivos por região com snapshots de
+metadados e lanes lógicas. Seu comentário e API delimitam um scheduler
+**shadow**, sem execução de callbacks ou publicação de tiles. Aceitar um turno
+após comparar o snapshot não constitui reserva física de tiles, entidades,
+template, fios ou RNG. O próximo mecanismo de admissão deve manter o contrato
+de não duplicar tarefas por identidade e acrescentar conflitos pelo conjunto
+completo de leitura/escrita, inclusive cruzamentos de regiões e wrap.
+
+Fontes: [WorldGenerationTasks](../source/game/StarWorldGenerationTasks.cpp),
+[WorldRegionCoordinator](../source/game/StarWorldRegionCoordinator.cpp) e
+[WorldRegionPartition](../source/game/StarWorldRegionPartition.cpp).
