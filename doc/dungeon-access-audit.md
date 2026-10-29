@@ -975,6 +975,47 @@ fronteira antes de adotá-la.
 
 Fonte: [WorldLayout](../source/game/StarWorldLayout.cpp).
 
+## Trigésima primeira passagem: revisões sem mudança de líquido
+
+`TileSectorArray::modifyTile` incrementa a revisão do setor assim que devolve
+um tile carregado. `WorldServer::modifyLiquid` chama esse acesso antes de
+verificar se o bloco aceita líquido; em bloco sólido, a chamada termina sem
+alterar o líquido. `WorldServer::setLiquid` também obtém acesso mutável antes
+de `LiquidStore::update` decidir se existe mudança e pacote a enviar. Uma
+chamada a `modifyLiquid` que chega a `setLiquid` pode incrementar a revisão
+duas vezes para a mesma posição.
+
+Essas revisões provocam gravação do setor no próximo `sync` e podem fazer
+`BaseTiles` descartar um snapshot mesmo quando o conteúdo permaneceu igual.
+Os contadores de revisão registram acesso mutável, não necessariamente uma
+mudança semântica; a métrica de resultado obsoleto deve ser interpretada com
+essa limitação. Antes de alterar a política, separar inspeção `const` de
+escrita efetiva e manter os avisos ao motor de líquidos e aos clientes apenas
+quando a mudança requer esses efeitos. A frequência e o peso desse caminho
+nos mundos observados ainda exigem medição.
+
+Fontes: [TileSectorArray](../source/game/StarTileSectorArray.hpp) e
+[WorldServer](../source/game/StarWorldServer.cpp).
+
+## Trigésima segunda passagem: tentativa de agendamento regional rejeitada
+
+`WorldRegionCoordinator::schedule` grava `m_lastStep = step` antes de
+validar quantidade, formato, passo de captura e duplicação dos snapshots.
+Uma entrada inválida retorna sem criar turnos, mas consome esse passo: uma
+segunda tentativa no mesmo `step` é recusada pelo teste de monotonicidade.
+O uso observacional atual chama o agendador no máximo uma vez após a captura
+de cada passo e recomeça em passo posterior; não há indicação de perda de
+trabalho de geração por essa rota hoje.
+
+Um scheduler regional com retries no mesmo passo precisa separar validação
+de aceitação do passo. O marcador monotônico deve avançar apenas quando a
+entrada for aceita, e a política para tentativa vazia ou recusada deve ser
+explícita. Esse detalhe importa especialmente quando snapshots de fronteira
+ficarem temporariamente indisponíveis.
+
+Fontes: [WorldRegionCoordinator](../source/game/StarWorldRegionCoordinator.cpp)
+e [WorldServer](../source/game/StarWorldServer.cpp).
+
 ## Encaminhamento após as passagens estáticas
 
 1. Investigar primeiro a escrita de `CaveLiquid` em vizinho já ativo, a
