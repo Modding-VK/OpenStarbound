@@ -1152,6 +1152,26 @@ Fontes: [WorldLayout](../source/game/StarWorldLayout.cpp),
 [WorldServer](../source/game/StarWorldServer.cpp) e
 [WorldStorage](../source/game/StarWorldStorage.cpp).
 
+## Trigésima nona passagem: justiça da fila visível
+
+`WorldServer::update` fornece a `WorldStorage::generateQueue` um comparador
+baseado exclusivamente na menor distância plana até um jogador. A fila é
+reordenada por esse comparador em cada passagem. O instante de enfileiramento
+é guardado para diagnóstico, mas não participa da prioridade; pedidos novos
+e mais próximos podem continuar passando à frente de um setor antigo. As
+entradas também têm TTL e podem expirar se deixarem de ser solicitadas.
+
+Isso define uma possibilidade de espera prolongada sob fluxo contínuo de
+setores próximos, não prova starvation nos mundos dos logs. A distância sem
+wrap já foi registrada na décima primeira passagem. Para o plano regional,
+combinar proximidade com idade, dependências herdadas e limite de espera, sem
+deixar prefetch distante competir livremente com um setor visível. Comparar
+`generation.queueSort`, idade do mais antigo, progresso parcial e expiração
+antes de mudar a política.
+
+Fontes: [WorldServer](../source/game/StarWorldServer.cpp) e
+[WorldStorage](../source/game/StarWorldStorage.cpp).
+
 ## Encaminhamento após as passagens estáticas
 
 1. Investigar primeiro a escrita de `CaveLiquid` em vizinho já ativo, a
