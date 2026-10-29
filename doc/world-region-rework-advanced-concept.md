@@ -1,9 +1,10 @@
 # Reestruturação avançada do mundo por setores com threads dedicadas
 
-## Decisão de arquitetura: uma thread por setor admitido
+## Decisão de arquitetura: uma thread por setor carregado
 
-Decisão do projeto em 29/10/2026: **cada setor físico admitido no novo runtime
-tem sua própria thread do sistema operacional**, desde a geração até o unload.
+Decisão do projeto em 29/10/2026: **cada setor físico carregado no novo runtime
+tem sua própria thread do sistema operacional**, desde o início do carregamento
+até o unload.
 A relação é um para um: nenhum pool executa alternadamente a simulação de dois setores. Uma região
 lógica de 2×2 setores permanece útil para métricas, planejamento e conflitos,
 mas não é a unidade que possui a thread ou o estado mutável. Setores
@@ -15,14 +16,26 @@ observacional existente e não definem a posse de threads do runtime alvo.
 Cada thread coordena a geração e possui tiles, entidades ancoradas, líquidos
 e filas locais do seu setor. Lê vizinhos por snapshots confirmados; mudanças em outro setor viram
 mensagens ou intenções versionadas. Um coordenador do mundo controla relógio,
-admissão, identidade, transferência de entidades e checkpoint, sem executar
+identidade, transferência de entidades e checkpoint, sem executar
 Lua local no lugar da thread dona. Um serviço serializa as escritas no banco
 `.world`. Estruturas que cruzam setores exigem reserva e publicação coerente
 dos donos envolvidos. Workers auxiliares ainda podem preparar cálculos puros,
 mas nunca substituem a thread dona da simulação do setor.
 
-O ciclo de vida é `descarregado → admitido → thread iniciada → gerando → ativo →
-drenando → thread encerrada → descarregado`. Um setor ativo só é publicado aos
+As condições que iniciam ou mantêm uma thread seguem o carregamento atual do
+`WorldStorage`: pedidos de jogadores, carregamento de setores vizinhos,
+prefetch que efetivamente carrega tiles, acesso por entidades e outras chamadas
+existentes. Um setor apenas enfileirado ainda não possui thread. A passagem de
+`None` para `Tiles` ou `Entities` cria a thread antes de instalar estado local;
+ela permanece enquanto o setor tiver qualquer nível de carga diferente de
+`None`, mesmo se contiver apenas tiles ou estiver ocioso. TTL, entidades
+`keepAlive`, transições de nível e unload existentes decidem quando ela termina.
+Não criar um raio, limite de admissão ou política de retenção independentes
+para threads; prefetch não pode acionar mais threads que setores carregados.
+
+O ciclo de vida é `descarregado → pedido existente → thread iniciada →
+carregando/gerando → ativo ou apenas tiles → drenando → thread encerrada →
+descarregado`. Um setor ativo só é publicado aos
 clientes após sua thread dona estar pronta; a mesma identidade de setor não
 pode ter duas threads vivas. No unload, revogar novos pedidos, terminar ou
 cancelar propostas, confirmar o estado durável e juntar a thread antes de
@@ -31,14 +44,15 @@ outros setores e não esperam de forma bloqueante por outra thread setorial.
 
 Criar uma thread por setor pode multiplicar pilhas, trocas de contexto e
 contenção em mundos com muitos setores ativos, inclusive no multiplayer.
-Um planeta de 2048×2048 tiles contém 4096 setores de 32×32; admiti-los todos
+Um planeta de 2048×2048 tiles contém 4096 setores de 32×32; carregá-los todos
 ao mesmo tempo exigiria 4096 threads só para esse planeta.
 Threads ociosas devem dormir sem polling. Antes de ativar esse runtime, medir
 quantidade simultânea de setores, memória por thread, latência de acordar,
-overhead de agendamento e progresso com 1, poucos e muitos núcleos. Definir
-limite de admissão e comportamento explícito quando o hardware não comportar
-todos os setores solicitados; não declarar compatibilidade ampla ou ganho de
-desempenho antes dessa validação. O tamanho físico de 32×32 e o formato do
+overhead de agendamento e progresso com 1, poucos e muitos núcleos. Se o custo
+for inviável nas condições de carregamento já existentes, o runtime novo não
+deve ser habilitado nesse ambiente; alterar as regras de carregamento exige
+decisão separada. Não declarar compatibilidade ampla ou ganho de desempenho
+antes dessa validação. O tamanho físico de 32×32 e o formato do
 save permanecem como base inicial.
 
 Estado em 28/10/2026: **fundação inicial implementada na `Experimental`;
@@ -107,7 +121,7 @@ setores distantes, sozinho, não remove o custo concentrado desses roteadores.
 ## 2. Modelo de propriedade proposto
 
 **Setor** é a unidade de tiles, geração, chaves persistidas, transferência
-inicial aos clientes e posse de uma thread desde a admissão até o unload.
+inicial aos clientes e posse de uma thread desde o carregamento até o unload.
 **Região lógica** agrupa setores apenas para planejar, observar dependências e
 coordenar estruturas que cruzam fronteiras. A partição 2×2 existente ainda
 serve a esse propósito; ela não compartilha uma thread entre seus setores.
@@ -115,15 +129,15 @@ O wrap horizontal e as bordas verticais criam grupos parciais que precisam de
 normalização pela `WorldGeometry`.
 
 Uma região lógica de 64×64 tiles pode reunir **quatro setores físicos de
-32×32**, com até quatro threads donas quando todos estiverem admitidos. Isso não
+32×32**, com até quatro threads donas quando todos estiverem carregados. Isso não
 muda chaves do banco, geração por setor ou pacotes de tiles.
 
 | Estado/operação | Dono no modo setorial proposto | Regra de acesso |
 | --- | --- | --- |
-| Tiles, líquidos locais, colisão derivada e entidades com âncora no setor | Thread dona do setor admitido | Escrita exclusiva; setores vizinhos recebem visão imutável ou mensagens. |
+| Tiles, líquidos locais, colisão derivada e entidades com âncora no setor | Thread dona do setor carregado | Escrita exclusiva; setores vizinhos recebem visão imutável ou mensagens. |
 | Entidade que atravessa uma fronteira | Um setor de origem ou destino, nunca ambos | Transferência identificada na fronteira de tick; índice global aponta ao dono confirmado. |
 | Entidade/estrutura que ocupa vários setores | Dono definido pela âncora e projeções nos demais | Mutações remotas passam por intenção multissetor; nenhuma cópia fantasma escreve. |
-| Relógio, identidade, registro global, política de admissão e ordenação entre regiões | Coordenador do mundo | Metadados pequenos; não executar Lua arbitrário durante agendamento. |
+| Relógio, identidade, registro global e ordenação entre setores | Coordenador do mundo | Acompanha o ciclo de carga existente; metadados pequenos, sem Lua arbitrário durante agendamento. |
 | Banco `.world`, índices únicos e checkpoint | Serviço de armazenamento com escrita serial por mundo | Recebe snapshots/alterações confirmadas e preserva uma ordem de commit. |
 | Pacotes dos jogadores e deltas aos clientes | Entrada de rede e montagem após estado confirmado | Encaminhar ao dono, validar no servidor e ordenar eventos visíveis. |
 | Cálculos puros de terreno, NPC e objetos | Pools específicos com limites compartilhados | Usar cópias/snapshots; propor efeitos para o dono autoritativo. |
@@ -132,7 +146,7 @@ muda chaves do banco, geração por setor ou pacotes de tiles.
 flowchart LR
   C[Clientes] --> I[Entrada e sequência por mundo]
   I --> W[Coordenador do mundo]
-  W --> Q[Admissão de setores ativos]
+  W --> Q[Eventos de carga e unload existentes]
   Q --> R1[Setor A, thread dedicada]
   Q --> R2[Setor B, thread dedicada]
   R1 --> X[Mensagens e propostas entre setores]
@@ -307,7 +321,7 @@ volta no meio de um callback ou de uma transação parcial.
 | Perfil | Execução | Elegibilidade |
 | --- | --- | --- |
 | Legado | `WorldServerThread` atual, mesma API síncrona e ordem observável | Padrão para saves/mods existentes; permite melhorias de geração pura verificadas. |
-| Setorial experimental | A thread dona de cada setor admitido atualiza somente subsistemas auditados; demais efeitos passam por commit serial | Apenas mundo/asset stack explicitamente habilitados, com falha segura se faltar capacidade. |
+| Setorial experimental | A thread dona de cada setor carregado atualiza somente subsistemas auditados; demais efeitos passam por commit serial | Apenas mundo/asset stack explicitamente habilitados, com falha segura se faltar capacidade. |
 | Setorial completo | Entidades e scripts portados para APIs versionadas por setor/ator/objeto | Ativado após equivalência, save/reload e multiplayer comprovados. |
 
 Uma mistura de Lua antigo com regiões paralelas não é automaticamente segura.
@@ -334,12 +348,13 @@ auditoria própria, inclusive para regras de geometria e persistência.
 
 ## 6. Escalonamento e observabilidade
 
-O número de threads dedicadas ativas deve ser contabilizado por máquina e
-admitido de modo justo entre mundos. Priorizar setores visíveis, setor do
+O número de threads dedicadas deve acompanhar os setores carregados e ser
+contabilizado por mundo e por máquina. Priorizar setores visíveis, setor do
 jogador e direção de
 movimento, com cotas de prefetch, geração, NPCs e objetos para não deixar
 nenhuma classe sem progresso. Limitar tamanho da fila, bytes de snapshots,
-quantidade de intenções, regiões ativas, retries e tempo de retenção. Reduzir
+quantidade de intenções e retries. As regras atuais de TTL e retenção continuam
+definindo o unload. Reduzir
 trabalho distante sob sobrecarga antes de atrasar ações visíveis. Mais workers
 em uma base densa podem apenas aumentar contenção, memória e latência do
 commit.
@@ -366,10 +381,10 @@ objetos; coordenam seus contratos de propriedade.
 | 1. Identidade regional em sombra | Tabela setor→região, época, dono, snapshots e simulação de escalonamento sem efeitos | Cobertura correta em wrap, unload, entidade móvel e estrutura cruzada; custo da captura limitado. |
 | 2. Geração desacoplada | Admissão única por setor/etapa, preparação pura paralela e commit determinístico; proteger resultados prontos visíveis | Mesma semente produz tiles/estruturas equivalentes no perfil legado; reduz espera sem crescimento ilimitado de memória. |
 | 3. Persistência por snapshots | Separar leitura/preparação de instalação e serializar checkpoints por mundo | Carregar/reiniciar/sincronizar sem perda, duplicação de entidade ou mundo parcialmente salvo. |
-| 4. Thread dedicada por setor admitido, opt-in | Extrair mapa local e updates auditados para a thread dona de cada setor, inicialmente com passo comum | Estado setorial determinístico com 1 e N setores admitidos; nenhuma escrita cruzada direta. |
+| 4. Thread dedicada por setor carregado, opt-in | Extrair mapa local e updates auditados para a thread dona de cada setor, inicialmente com passo comum | Estado setorial determinístico com 1 e N setores carregados; nenhuma escrita cruzada direta. |
 | 5. Transações de fronteira | Handoff de entidades, líquidos/fios/tiles de borda, dano e inventário em commits ordenados | Sem efeitos duplicados/parciais, deadlock ou entidade atualizada duas vezes; comportamento multiplayer coerente. |
 | 6. APIs de mods e atores | Contratos versionados para objetos, NPCs e scripts globais; capacidade e fallback explícitos | Mods adaptados funcionam em modo setorial; mods antigos seguem íntegros no legado. |
-| 7. Escala e protocolo | Avaliar passos setoriais independentes, admissão de threads e orçamento dos pools auxiliares | Ganho sustentado em hardware distinto sem regressão de integridade, save ou cliente antigo. |
+| 7. Escala e protocolo | Avaliar passos setoriais independentes e custo das threads criadas pelo carregamento atual; orçar os pools auxiliares | Ganho sustentado em hardware distinto sem regressão de integridade, save ou cliente antigo. |
 
 Na fase 0, comparar pelo menos: planeta novo com Mantizi Estate e outras
 dungeons compostas; planeta já explorado com vilarejo Glitch; base FU com
@@ -382,9 +397,10 @@ não apenas média de CPU.
 
 ### Decisões ainda abertas
 
-1. Qual o limite de admissão simultânea de setores por mundo e por máquina,
-   e qual o comportamento quando esse limite for atingido? A relação entre
-   setor admitido e thread dedicada permanece fixa.
+1. Quanto custam as threads para o número de setores que o jogo já carrega,
+   inclusive tiles de prefetch e setores mantidos por TTL ou `keepAlive`? Se
+   esse custo for excessivo, o perfil novo precisa permanecer desligado até
+   haver uma decisão separada sobre o carregamento.
 2. Quanto da física, líquido, fios e dano pode ser setorial sem exigir um
    commit global dominante? Nenhum desses subsistemas foi auditado para isso.
 3. Que ordem observável será prometida à API setorial quando dois scripts
@@ -454,7 +470,7 @@ redes independentes. Não há ainda benchmark comparativo com profiling desligad
 
 Separar **demanda de carregamento**, **preparação de conteúdo**, **simulação**,
 **publicação** e **persistência**. A nova organização da `WorldServerThread`
-mantém um coordenador leve de identidade, entrada e admissão. As threads donas
+mantém um coordenador leve de identidade, entrada e ciclo de carga. As threads donas
 dos setores executam simulação e instalação local; workers auxiliares calculam sobre entradas
 imutáveis. O coordenador não recebe todo resultado para executar nele Lua,
 instalação de entidades ou um commit global de todos os tiles.
@@ -475,13 +491,13 @@ flowchart TD
   L --> B[Fila de persistência consistente]
 ```
 
-O desenho mantém setores físicos de 32×32. Cada setor ativo tem sua thread
+O desenho mantém setores físicos de 32×32. Cada setor carregado tem sua thread
 dedicada; a região lógica de 2×2 é apenas um agrupamento de planejamento.
 Setores independentes podem preparar e instalar mudanças locais simultaneamente
 após a auditoria de propriedade. Preparação pura e redes de objetos opt-in
 podem usar pools auxiliares com orçamento próprio. Reservar capacidade para
-simulação, rede e cliente local; medir custo da thread por setor e impor
-admissão explícita antes de prometer escala em máquinas diferentes.
+simulação, rede e cliente local; medir custo da thread por setor sob as regras
+atuais de carregamento antes de prometer escala em máquinas diferentes.
 
 O protótipo mantém o passo comum da seção 3. **O alvo posterior é sincronização
 apenas dos donos envolvidos numa dependência**, com passos locais e limites de
@@ -570,10 +586,10 @@ pressupõe que aumentar o número de workers seja a primeira intervenção.
 | WRG-06 / P1 | Coordenador leve e identidade regional em sombra para observar dependências; orçamento global de pools auxiliares. Depende de WRG-01 e WRG-03. | Identidade e reservas lógicas sem threads regionais; wrap correto, migração rastreável e custo limitado; sem alterar saves. |
 | WRG-07 / P1 | Planejamento imutável de microdungeons e dungeons por footprint, conflitos determinísticos e ativação consistente (8). Depende de WRG-02, WRG-05 e WRG-06. | Mesmos tiles, distribuição, IDs únicos e entidades com 1/N workers; Glitch/Mantizi íntegros mesmo cruzando regiões e após reload. |
 | WRG-08 / P1 | Leitura/preparação de setores salvos, instalação local e persistência por snapshots. Depende de WRG-03–06 e auditoria de DB/Lua. | Save/reload sem perda ou duplicação; dados salvos nunca regenerados por engano; banco serial preserva checkpoint consistente. |
-| WRG-09 / P2 | Substituir o update monolítico por uma thread dedicada para cada setor admitido, inicialmente com passo/barreira comum. Depende de WRG-06–08, admissão de threads e auditoria de todos os acessos globais. | Instalações e updates locais realmente sobrepostos em setores distintos, sem acesso mutável cruzado; custo das threads e da barreira medido separadamente. |
+| WRG-09 / P2 | Substituir o update monolítico por uma thread dedicada para cada setor carregado (`Tiles` ou `Entities`), inicialmente com passo/barreira comum. Depende de WRG-06–08, integração ao ciclo atual de carga/unload e auditoria de todos os acessos globais. | Instalações e updates locais realmente sobrepostos em setores distintos, sem acesso mutável cruzado; uma thread por setor carregado, sem alterar interesse, TTL ou `keepAlive`; custo das threads e da barreira medido separadamente. |
 | WRG-10 / P2 | Passos locais e sincronização só das dependências, transações entre setores e handoff; remover barreira global do caminho normal. Depende de WRG-09 e contratos de relógio/rede/save. | Setor independente progride durante atraso de outro; sem estado contraditório nas bordas, duplicação de efeitos ou checkpoint inconsistente. |
 | WRG-11 / P2 | Integrar APIs opt-in de objetos/NPCs e planejamento de redes independentes, inclusive no mesmo setor. Depende dos planos respectivos e WRG-09; independência entre passos depende de WRG-10. | Baú compartilhado exige commit ordenado; redes independentes ganham paralelismo; mods desconhecidos têm fallback explícito. |
-| WRG-12 / P2 | Ajuste de cotas, admissão de threads e prefetch por direção/velocidade, mantendo uma thread por setor admitido. Depende da validação de WRG-05 e WRG-09–11. | Ganho de latência/p95/p99 em hardware distinto sem ativar entidades distantes, saturar memória ou atrasar jogadores de menor prioridade. |
+| WRG-12 / P2 | Ajuste de cotas de trabalho nas threads existentes, mantendo uma thread por setor carregado; mudanças em prefetch, TTL ou interesse exigem decisão separada. Depende da validação de WRG-05 e WRG-09–11. | Ganho de latência/p95/p99 em hardware distinto sem ativar entidades distantes, saturar memória ou atrasar jogadores de menor prioridade. |
 
 WRG-02–05 podem ser entregues primeiro no modelo atual, com validação pela thread
 do mundo. Isso reduz retrabalho sem depender da migração completa dos mods. O
