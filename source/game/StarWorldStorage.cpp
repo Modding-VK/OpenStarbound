@@ -15,11 +15,14 @@
 #include "StarLiquidsDatabase.hpp"
 #include "StarTime.hpp"
 
-#include <condition_variable>
 #include <algorithm>
+#include <atomic>
+#include <condition_variable>
 #include <exception>
 #include <map>
 #include <mutex>
+#include <stdexcept>
+#include <string>
 #include <thread>
 
 namespace Star {
@@ -29,6 +32,7 @@ namespace Star {
 class WorldSectorThreads {
 public:
   using Sector = WorldStorage::Sector;
+  enum class PostResult { Accepted, Busy, Invalid };
 
   explicit WorldSectorThreads(bool mailboxEnabled) {
     m_metrics.mailboxEnabled = mailboxEnabled;
@@ -37,6 +41,7 @@ public:
   ~WorldSectorThreads() {
     for (auto& entry : m_threads)
       entry.second->requestStop();
+    m_threads.clear();
   }
 
   void loaded(Sector const& sector) {
@@ -50,15 +55,7 @@ public:
     try {
       m_threads.emplace(key, make_unique<Worker>(sector, ++m_nextIncarnation));
     } catch (std::exception const& e) {
-      ++m_metrics.failedCreations;
-      m_metrics.disabledAfterFailure = true;
-      Logger::warn("Sector thread lifecycle preview disabled after thread creation failed: {}", e.what());
-      for (auto& entry : m_threads)
-        entry.second->requestStop();
-      while (!m_threads.empty()) {
-        auto key = m_threads.begin()->first;
-        unloaded(Sector(key.first, key.second));
-      }
+      disableAfterFailure(e.what(), true);
       return;
     }
     auto elapsed = static_cast<uint64_t>(Time::monotonicMicroseconds() - start);
@@ -93,6 +90,13 @@ public:
     return m_metrics.mailboxEnabled && !m_metrics.disabledAfterFailure;
   }
 
+  void recordOwnerSample(uint64_t elapsed) {
+    m_ownerSampleTimes.add(elapsed);
+    ++m_metrics.ownerSampleCount;
+    m_metrics.ownerSampleTotalMicroseconds += elapsed;
+    m_metrics.ownerSampleMaximumMicroseconds = std::max(m_metrics.ownerSampleMaximumMicroseconds, elapsed);
+  }
+
   void sample(Sector const& sector, uint8_t loadLevel, uint8_t generationLevel,
       uint64_t contentRevision) {
     if (!m_metrics.mailboxEnabled || m_metrics.disabledAfterFailure)
@@ -100,6 +104,10 @@ public:
     auto it = m_threads.find(std::make_pair(sector[0], sector[1]));
     if (it == m_threads.end())
       return;
+    if (it->second->hasFailed()) {
+      disableAfterFailure("sector worker exited unexpectedly", false, sector);
+      return;
+    }
     Message result;
     if (it->second->takeResult(result)) {
       ++m_metrics.completed;
@@ -121,16 +129,24 @@ public:
     message.loadLevel = loadLevel;
     message.generationLevel = generationLevel;
     message.sentAt = Time::monotonicMicroseconds();
-    if (it->second->post(message))
+    auto posted = it->second->post(message);
+    if (posted == PostResult::Accepted)
       ++m_metrics.submitted;
-    else
+    else if (posted == PostResult::Busy)
       ++m_metrics.skippedBusy;
+    else {
+      ++m_metrics.rejectedDispatches;
+      disableAfterFailure("invalid sector mailbox dispatch", false);
+    }
   }
 
   WorldSectorThreadMetrics metrics() const {
     auto result = m_metrics;
     result.enabled = true;
+    result.mailboxEnabled = mailboxEnabled();
     result.current = m_threads.size();
+    result.processCurrent = s_processCurrent.load(std::memory_order_relaxed);
+    result.processPeak = s_processPeak.load(std::memory_order_relaxed);
     result.startP95Microseconds = m_startSamples.percentile(95);
     result.startP99Microseconds = m_startSamples.percentile(99);
     result.stopP95Microseconds = m_stopSamples.percentile(95);
@@ -139,10 +155,42 @@ public:
     result.queueWaitP99Microseconds = m_queueWaitSamples.percentile(99);
     result.computeP95Microseconds = m_computeSamples.percentile(95);
     result.computeP99Microseconds = m_computeSamples.percentile(99);
+    result.ownerSampleP95Microseconds = m_ownerSampleTimes.percentile(95);
+    result.ownerSampleP99Microseconds = m_ownerSampleTimes.percentile(99);
     return result;
   }
 
+  void inspectFailures() {
+    if (m_metrics.disabledAfterFailure)
+      return;
+    for (auto const& entry : m_threads) {
+      if (entry.second->hasFailed()) {
+        disableAfterFailure("sector worker exited unexpectedly", false,
+            Sector(entry.first.first, entry.first.second));
+        return;
+      }
+    }
+  }
+
 private:
+  void disableAfterFailure(char const* reason, bool creation, Maybe<Sector> sector = {}) {
+    if (creation)
+      ++m_metrics.failedCreations;
+    else
+      ++m_metrics.runtimeFailures;
+    m_metrics.disabledAfterFailure = true;
+    for (auto& entry : m_threads)
+      entry.second->requestStop();
+    while (!m_threads.empty()) {
+      auto key = m_threads.begin()->first;
+      unloaded(Sector(key.first, key.second));
+    }
+    if (sector)
+      Logger::warn("Sector thread preview disabled after failure at {}:{}: {}", (*sector)[0], (*sector)[1], reason);
+    else
+      Logger::warn("Sector thread preview disabled after failure: {}", reason);
+  }
+
   struct Message {
     Sector sector;
     uint64_t sequence = 0;
@@ -181,47 +229,65 @@ private:
         return 0;
       auto sorted = values;
       std::sort(sorted.begin(), sorted.begin() + count);
-      return sorted[((count - 1) * p + 99) / 100];
+      auto rank = (count * p + 99) / 100;
+      return sorted[rank - 1];
     }
   };
 
   struct Worker {
     explicit Worker(Sector sector, uint64_t incarnation) : sector(sector), incarnation(incarnation) {
       thread = std::thread([this] {
+        try {
 #ifdef STAR_ENABLE_TRACY
-        tracy::SetThreadName("Sector mailbox preview");
+          auto threadName = std::string("Sector ") + std::to_string(sector[0]) + ":" + std::to_string(sector[1]);
+          tracy::SetThreadName(threadName.c_str());
 #endif
-        std::unique_lock<std::mutex> lock(mutex);
-        ready = true;
-        wake.notify_one();
-        while (true) {
-          wake.wait(lock, [this] { return stopping || hasPending; });
-          if (stopping)
-            break;
-          Message work = pending;
-          hasPending = false;
-          processing = true;
-          lock.unlock();
-          work.startedAt = Time::monotonicMicroseconds();
+          std::unique_lock<std::mutex> lock(mutex);
+          ready = true;
+          wake.notify_one();
+          while (true) {
+            wake.wait(lock, [this] { return stopping || hasPending; });
+            if (stopping)
+              break;
+            Message work = pending;
+            hasPending = false;
+            processing = true;
+            lock.unlock();
+            work.startedAt = Time::monotonicMicroseconds();
+            {
+              STAR_TRACE_ZONE("Sector immutable metadata task");
+              work.signature = WorldSectorThreads::ticketSignature(work);
+            }
+            work.doneAt = Time::monotonicMicroseconds();
+            lock.lock();
+            processing = false;
+            if (!stopping) {
+              result = work;
+              hasResult = true;
+            }
+          }
+        } catch (...) {
+          failed.store(true, std::memory_order_release);
           {
-            STAR_TRACE_ZONE("Sector immutable metadata task");
-            work.signature = WorldSectorThreads::ticketSignature(work);
+            std::lock_guard<std::mutex> lock(mutex);
+            ready = true;
           }
-          work.doneAt = Time::monotonicMicroseconds();
-          lock.lock();
-          processing = false;
-          if (!stopping) {
-            result = work;
-            hasResult = true;
-          }
+          wake.notify_one();
         }
       });
+      auto processCount = WorldSectorThreads::s_processCurrent.fetch_add(1, std::memory_order_relaxed) + 1;
+      auto previousPeak = WorldSectorThreads::s_processPeak.load(std::memory_order_relaxed);
+      while (previousPeak < processCount && !WorldSectorThreads::s_processPeak.compare_exchange_weak(
+          previousPeak, processCount, std::memory_order_relaxed)) {}
       try {
         std::unique_lock<std::mutex> lock(mutex);
         wake.wait(lock, [this] { return ready; });
+        if (failed.load(std::memory_order_acquire))
+          throw std::runtime_error("sector worker failed during startup");
       } catch (...) {
         requestStop();
         thread.join();
+        WorldSectorThreads::s_processCurrent.fetch_sub(1, std::memory_order_relaxed);
         throw;
       }
     }
@@ -229,6 +295,7 @@ private:
     ~Worker() {
       requestStop();
       thread.join();
+      WorldSectorThreads::s_processCurrent.fetch_sub(1, std::memory_order_relaxed);
     }
 
     void requestStop() {
@@ -239,18 +306,20 @@ private:
       wake.notify_one();
     }
 
-    bool post(Message const& message) {
+    PostResult post(Message const& message) {
       {
         std::lock_guard<std::mutex> lock(mutex);
-        if (stopping || hasPending || processing || hasResult || message.sector != sector
-            || message.incarnation != incarnation || message.sequence <= latestSequence)
-          return false;
+        if (stopping || failed.load(std::memory_order_acquire) || message.sector != sector || message.incarnation != incarnation
+            || message.sequence <= latestSequence)
+          return PostResult::Invalid;
+        if (hasPending || processing || hasResult)
+          return PostResult::Busy;
         pending = message;
         latestSequence = message.sequence;
         hasPending = true;
       }
       wake.notify_one();
-      return true;
+      return PostResult::Accepted;
     }
 
     bool takeResult(Message& out) {
@@ -267,6 +336,10 @@ private:
       return hasPending || processing || hasResult;
     }
 
+    bool hasFailed() const {
+      return failed.load(std::memory_order_acquire);
+    }
+
     Worker(Worker const&) = delete;
     Worker& operator=(Worker const&) = delete;
 
@@ -277,6 +350,7 @@ private:
     bool hasPending = false;
     bool processing = false;
     bool hasResult = false;
+    std::atomic<bool> failed{false};
     Message pending;
     Message result;
     Sector const sector;
@@ -287,15 +361,21 @@ private:
 
   // The world owner thread alone changes this map. Individual workers only
   // wait for shutdown, so they cannot race with world state or the registry.
-  std::map<std::pair<unsigned, unsigned>, unique_ptr<Worker>> m_threads;
+  std::map<std::pair<size_t, size_t>, unique_ptr<Worker>> m_threads;
   WorldSectorThreadMetrics m_metrics;
   Samples m_startSamples;
   Samples m_stopSamples;
   Samples m_queueWaitSamples;
   Samples m_computeSamples;
+  Samples m_ownerSampleTimes;
   uint64_t m_nextIncarnation = 0;
   uint64_t m_nextSequence = 0;
+  static std::atomic<size_t> s_processCurrent;
+  static std::atomic<size_t> s_processPeak;
 };
+
+std::atomic<size_t> WorldSectorThreads::s_processCurrent{0};
+std::atomic<size_t> WorldSectorThreads::s_processPeak{0};
 
 WorldChunks WorldStorage::getWorldChunksUpdate(WorldChunks const& oldChunks, WorldChunks const& newChunks) {
   WorldChunks update;
@@ -533,14 +613,21 @@ WorldSectorThreadMetrics WorldStorage::sectorThreadMetrics() const {
 }
 
 void WorldStorage::sampleSectorThreadMailbox() {
-  if (!m_sectorThreads || !m_sectorThreads->mailboxEnabled())
+  if (!m_sectorThreads)
     return;
+  auto startedAt = Time::monotonicMicroseconds();
+  m_sectorThreads->inspectFailures();
+  if (!m_sectorThreads->mailboxEnabled()) {
+    m_sectorThreads->recordOwnerSample(static_cast<uint64_t>(Time::monotonicMicroseconds() - startedAt));
+    return;
+  }
   for (auto const& entry : m_sectorMetadata) {
     if (entry.second.loadLevel == SectorLoadLevel::None)
       continue;
     m_sectorThreads->sample(entry.first, static_cast<uint8_t>(entry.second.loadLevel),
         static_cast<uint8_t>(entry.second.generationLevel), m_tileArray->sectorRevision(entry.first));
   }
+  m_sectorThreads->recordOwnerSample(static_cast<uint64_t>(Time::monotonicMicroseconds() - startedAt));
 }
 
 void WorldStorage::loadSector(Sector sector) {
@@ -1505,8 +1592,6 @@ void WorldStorage::loadSectorToLevel(Sector const& sector, SectorLoadLevel targe
     }
 
     if (currentLoad == SectorLoadLevel::Tiles) {
-      if (m_sectorThreads)
-        m_sectorThreads->loaded(sector);
       ExplorationProfile::Scope total(m_explorationProfile.get(), "storage.tiles.total");
       ExplorationProfile::Scope timing(m_explorationProfile.get(), "storage.tiles.read");
       auto res = m_db.find(tileSectorKey(sector));
@@ -1535,6 +1620,8 @@ void WorldStorage::loadSectorToLevel(Sector const& sector, SectorLoadLevel targe
       }
 
       metadata.loadLevel = currentLoad;
+      if (m_sectorThreads)
+        m_sectorThreads->loaded(sector);
       if (m_regionObservation)
         m_regionObservation->changed(Vec2U(sector));
       timing.next("storage.tiles.callbacks");

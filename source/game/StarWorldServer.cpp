@@ -1378,15 +1378,19 @@ void WorldServer::update(float dt) {
     m_worldStorage->sampleSectorThreadMailbox();
     auto threadMetrics = m_worldStorage->sectorThreadMetrics();
     LogMap::set(strf("server_{}_sector_threads", m_worldId),
-        strf("{} / {} loaded ({} tiles, {} entities); peak {}", threadMetrics.current,
+        strf("{} / {} loaded ({} tiles, {} entities); peak {}; process {}/{} peak", threadMetrics.current,
             threadMetrics.loadedSectors, threadMetrics.tilesOnly,
-            threadMetrics.withEntities, threadMetrics.peak));
-    if (!threadMetrics.disabledAfterFailure && threadMetrics.current != threadMetrics.loadedSectors)
+            threadMetrics.withEntities, threadMetrics.peak,
+            threadMetrics.processCurrent, threadMetrics.processPeak));
+    if (m_currentStep % 300 == 0 && !threadMetrics.disabledAfterFailure
+        && threadMetrics.current != threadMetrics.loadedSectors)
       Logger::warn("Sector thread preview {}: {} threads for {} loaded sectors",
           m_worldId, threadMetrics.current, threadMetrics.loadedSectors);
     LogMap::set(strf("server_{}_sector_thread_lifecycle", m_worldId),
-        strf("created {}; stopped {}; failed {}; disabled {}", threadMetrics.created,
-            threadMetrics.destroyed, threadMetrics.failedCreations, threadMetrics.disabledAfterFailure));
+        strf("created {}; stopped {}; spawn failed {}; runtime failed {}; dispatch rejected {}; disabled {}", threadMetrics.created,
+            threadMetrics.destroyed, threadMetrics.failedCreations,
+            threadMetrics.runtimeFailures, threadMetrics.rejectedDispatches,
+            threadMetrics.disabledAfterFailure));
     LogMap::set(strf("server_{}_sector_thread_start_us", m_worldId),
         strf("p95 {}; p99 {}; max {}; total {}", threadMetrics.startP95Microseconds,
             threadMetrics.startP99Microseconds, threadMetrics.startMaximumMicroseconds,
@@ -1395,26 +1399,32 @@ void WorldServer::update(float dt) {
         strf("p95 {}; p99 {}; max {}; total {}", threadMetrics.stopP95Microseconds,
             threadMetrics.stopP99Microseconds, threadMetrics.stopMaximumMicroseconds,
             threadMetrics.stopTotalMicroseconds));
-    if (threadMetrics.mailboxEnabled) {
-      LogMap::set(strf("server_{}_sector_mailbox", m_worldId),
-          strf("sent {}; done {}; valid {}; stale {}; cancelled {}; busy {}",
-              threadMetrics.submitted, threadMetrics.completed, threadMetrics.accepted,
-              threadMetrics.stale, threadMetrics.cancelled, threadMetrics.skippedBusy));
-      LogMap::set(strf("server_{}_sector_mailbox_us", m_worldId),
-          strf("wait p95/p99 {}/{}; work p95/p99 {}/{}",
-              threadMetrics.queueWaitP95Microseconds, threadMetrics.queueWaitP99Microseconds,
-              threadMetrics.computeP95Microseconds, threadMetrics.computeP99Microseconds));
-    }
+    LogMap::set(strf("server_{}_sector_thread_owner_us", m_worldId),
+        strf("p95 {}; p99 {}; max {}; total {}; samples {}", threadMetrics.ownerSampleP95Microseconds,
+            threadMetrics.ownerSampleP99Microseconds, threadMetrics.ownerSampleMaximumMicroseconds,
+            threadMetrics.ownerSampleTotalMicroseconds, threadMetrics.ownerSampleCount));
+    LogMap::set(strf("server_{}_sector_mailbox", m_worldId),
+        strf("active {}; sent {}; done {}; valid {}; stale {}; cancelled {}; busy {}",
+            threadMetrics.mailboxEnabled, threadMetrics.submitted, threadMetrics.completed,
+            threadMetrics.accepted, threadMetrics.stale, threadMetrics.cancelled, threadMetrics.skippedBusy));
+    LogMap::set(strf("server_{}_sector_mailbox_us", m_worldId),
+        strf("wait p95/p99 {}/{}; work p95/p99 {}/{}",
+            threadMetrics.queueWaitP95Microseconds, threadMetrics.queueWaitP99Microseconds,
+            threadMetrics.computeP95Microseconds, threadMetrics.computeP99Microseconds));
     if (m_currentStep == 60 || m_currentStep % 300 == 0)
-      Logger::info("Sector thread preview {}: current={}/{} tilesOnly={} withEntities={} peak={} created={} stopped={} failed={} disabled={} startP95Us={} startP99Us={} startMaxUs={} startTotalUs={} stopP95Us={} stopP99Us={} stopMaxUs={} stopTotalUs={} mailbox={} sent={} done={} valid={} stale={} cancelled={} busy={} waitP95Us={} waitP99Us={} workP95Us={} workP99Us={}",
+      Logger::info("Sector thread preview {}: current={}/{} tilesOnly={} withEntities={} peak={} processCurrent={} processPeak={} created={} stopped={} spawnFailed={} runtimeFailed={} dispatchRejected={} disabled={} startP95Us={} startP99Us={} startMaxUs={} startTotalUs={} stopP95Us={} stopP99Us={} stopMaxUs={} stopTotalUs={} ownerP95Us={} ownerP99Us={} ownerMaxUs={} ownerTotalUs={} mailbox={} sent={} done={} valid={} stale={} cancelled={} busy={} waitP95Us={} waitP99Us={} workP95Us={} workP99Us={}",
           m_worldId, threadMetrics.current, threadMetrics.loadedSectors,
           threadMetrics.tilesOnly, threadMetrics.withEntities, threadMetrics.peak,
+          threadMetrics.processCurrent, threadMetrics.processPeak,
           threadMetrics.created, threadMetrics.destroyed, threadMetrics.failedCreations,
+          threadMetrics.runtimeFailures, threadMetrics.rejectedDispatches,
           threadMetrics.disabledAfterFailure, threadMetrics.startP95Microseconds,
           threadMetrics.startP99Microseconds, threadMetrics.startMaximumMicroseconds,
           threadMetrics.startTotalMicroseconds, threadMetrics.stopP95Microseconds,
           threadMetrics.stopP99Microseconds, threadMetrics.stopMaximumMicroseconds,
-          threadMetrics.stopTotalMicroseconds, threadMetrics.mailboxEnabled,
+          threadMetrics.stopTotalMicroseconds, threadMetrics.ownerSampleP95Microseconds,
+          threadMetrics.ownerSampleP99Microseconds, threadMetrics.ownerSampleMaximumMicroseconds,
+          threadMetrics.ownerSampleTotalMicroseconds, threadMetrics.mailboxEnabled,
           threadMetrics.submitted, threadMetrics.completed, threadMetrics.accepted,
           threadMetrics.stale, threadMetrics.cancelled, threadMetrics.skippedBusy,
           threadMetrics.queueWaitP95Microseconds, threadMetrics.queueWaitP99Microseconds,

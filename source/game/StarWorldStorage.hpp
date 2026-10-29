@@ -63,12 +63,16 @@ struct WorldSectorThreadMetrics {
   bool disabledAfterFailure = false;
   size_t current = 0;
   size_t peak = 0;
+  size_t processCurrent = 0;
+  size_t processPeak = 0;
   size_t loadedSectors = 0;
   size_t tilesOnly = 0;
   size_t withEntities = 0;
   uint64_t created = 0;
   uint64_t destroyed = 0;
   uint64_t failedCreations = 0;
+  uint64_t runtimeFailures = 0;
+  uint64_t rejectedDispatches = 0;
   uint64_t startTotalMicroseconds = 0;
   uint64_t stopTotalMicroseconds = 0;
   uint64_t startMaximumMicroseconds = 0;
@@ -88,6 +92,11 @@ struct WorldSectorThreadMetrics {
   uint64_t queueWaitP99Microseconds = 0;
   uint64_t computeP95Microseconds = 0;
   uint64_t computeP99Microseconds = 0;
+  uint64_t ownerSampleP95Microseconds = 0;
+  uint64_t ownerSampleP99Microseconds = 0;
+  uint64_t ownerSampleMaximumMicroseconds = 0;
+  uint64_t ownerSampleTotalMicroseconds = 0;
+  uint64_t ownerSampleCount = 0;
 };
 
 struct WorldGeneratorFacade {

@@ -69,8 +69,8 @@ permanece 32×32 neste plano inicial; [setores de 64×64](world-generation-rewor
 são uma hipótese independente.
 
 Implementação inicial em 29/10/2026: `worldThreading.sectorThreadLifecyclePreview`
-(padrão `false`) cria uma thread ociosa por setor quando `WorldStorage` começa
-a carregar seus tiles, inclusive para prefetch que chega ao nível `Tiles`.
+(padrão `false`) cria uma thread ociosa por setor após instalar os tiles e antes
+do callback de carga, inclusive para prefetch que chega ao nível `Tiles`.
 Ela termina após o unload para `None`; pedidos apenas enfileirados não a criam.
 As [métricas do ciclo de vida](sector-thread-lifecycle-metrics.md) comparam
 threads e setores carregados, registram pico, falhas e latências de criação e
