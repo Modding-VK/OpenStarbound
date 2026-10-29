@@ -914,3 +914,9 @@ Fontes: [TerrainDatabase](../source/game/StarTerrainDatabase.cpp) e
 5. Só então pilotar `DungeonPlan` com footprint completo, snapshot, checagem
    de conflitos, aplicação ordenada e protocolo de retomada. A coordenação
    regional observacional e os locks de caches não satisfazem esses contratos.
+6. Ao incluir terraformação e pré-geração no piloto, sinalizar todas as
+   regiões previstas por chamada, versionar mutações do template e garantir
+   restauração das flags temporárias de dungeon em qualquer saída.
+7. Antes de compartilhar seletores entre workers, corrigir o tipo interno do
+   `CacheSelector`, verificar os caches mutáveis e eliminar seeds transitórias
+   somente após comparar o consumo histórico de RNG.
