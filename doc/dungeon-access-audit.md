@@ -133,10 +133,11 @@ Esse caminho precisa declarar incompatibilidade com planejamento isolado ou
 usar conteúdo cujo contrato de callbacks tenha sido auditado. Não repetir o
 callback durante retry, nem executá-lo no mundo para descobrir seu alcance.
 
-Pendências mais específicas: expandir placementValid/anchorsValid, subclasses
-de objetos e veículos, itens gerados por factories e chamadas indiretas dos
-brushes. Caches internos e locks das databases ainda precisam de auditoria de
-concorrência; a existência de cache não prova segurança de acesso em worker.
+As passagens seguintes detalham placementValid/anchorsValid, os brushes
+reconhecidos e o caminho inicial dos veículos. Continuam pendentes subclasses
+de objetos, itens gerados por factories e a segurança concorrente dos caches
+internos das databases. A existência de um lock em um cache não demonstra
+segurança do restante da operação em um worker.
 
 ### Ancoragem e ocupação: dependências confirmadas
 
@@ -155,3 +156,56 @@ rejeitadas antes da escolhida. A revisão precisa cobrir proteção, ocupação 
 entidades e tiles/mods nesses pontos. Uma revisão somente dos tiles escritos
 pelo writer pode aprovar um plano cuja orientação já deixou de ser válida.
 Fonte: [ObjectOrientation e ObjectConfig](../source/game/StarObjectDatabase.cpp).
+
+## Terceira passagem: brushes, regras e veículos
+
+`Part::canPlace` percorre tiles e regras até a primeira falha; `Tile::canPlace`
+consulta o ID de dungeon antes das demais regras. `Part::place` percorre a
+mesma peça **dez vezes**, na ordem Clear, Wall, Mods, Object, BiomeTrees,
+BiomeItems, Wire, Item, Npc e DungeonId. Dentro de cada fase, os brushes do
+tile rodam na ordem em que aparecem no asset. Um plano de operações não pode
+simplesmente agrupar todos os brushes de um tile: isso mudaria a precedência
+entre tiles de fases diferentes. A seleção dos conectores ainda usa o RNG
+`m_rand` do gerador e as contagens de peças já colocadas.
+
+| Brush ou entrada | Quando decide e o que alcança | Implicação |
+| --- | --- | --- |
+| Clear, Front, Back, Surface, SurfaceBackground | Preparam materiais/mods e, conforme colisão, limpeza de líquido; Surface consulta buffers vizinhos em `y+1` na fase Mods | Preservar ordem das fases e a visão dos buffers, inclusive na borda entre setores. |
+| Liquid | Na fase Wall resolve nome do líquido, acumula posição; `flushLiquid` agrupa posições contíguas e calcula pressão | O conjunto de posições é local, mas a ordem de escrita no buffer final precisa de comparação. |
+| Object, Vehicle, BiomeTree, BiomeItems, Item, Stagehand, DungeonId, Wire | Acumulam descrições ou posições; seus efeitos de mundo aparecem no `flush` | Não usar somente posições âncora como footprint completo de leitura/escrita. |
+| PlayerStart | Chama `setPlayerStart` já na fase Npc, antes do `flush` | Efeito global imediato; substituir por intenção exige validar decisões subsequentes. |
+| RandomBrush | `Random::randi64()` ao construir a definição; escolha por posição usa `staticRandomI32` dessa seed | Uma reconstrução privada da definição pode escolher brushes diferentes sem capturar a seed escolhida. |
+| NpcBrush | Seed `stable` vira `Random::randu64()` na construção; espécies separadas por vírgula são escolhidas com `Random::randFrom` durante a fase Npc | O RNG global participa tanto da definição quanto da colocação. A seed efetiva do NPC não representa todo o consumo. |
+| TMX Rectangle/Polyline | Rectangle expande uma área em tiles; Polyline emite cada vértice, usada também para fios | O footprint deve usar tiles emitidos pelo reader, não apenas a âncora ou o retângulo do objeto TMX. |
+
+Os brushes reconhecidos pelo parser são explícitos em
+[StarDungeonGenerator.cpp](../source/game/StarDungeonGenerator.cpp). O TMX
+permite atribuir brushes e regras a Rectangle e Polyline; isso não cria uma
+API C++ arbitrária de brush para mods, mas os assets podem combinar essas
+operações e scripts das entidades resultantes continuam arbitrários. A análise
+de concorrência deve considerar também o carregamento das definições: o cache
+de `DungeonDefinitions` usa mutex, mas um brush de RNG global pode ser criado
+quando a definição é reconstruída. A ordem e o instante dessa reconstrução
+podem influenciar escolhas futuras.
+
+`DungeonGeneratorWorld::placeVehicle` sinaliza o setor, cria um Vehicle com
+configuração e o adiciona ao mundo. `VehicleDatabase::create` apenas busca a
+configuração e constrói o objeto; não valida footprint nem segurança para
+concorrência. `WorldServer::addEntity` executa `Vehicle::init`, que inicializa
+movimento e Lua com callbacks de veículo, configuração, movimento e animação.
+`Vehicle::uninit` executa o caminho correspondente. O campo `m_luaMutex` em
+VehicleDatabase não demonstra que essa sequência seja segura fora do dono do
+mundo; a criação e o init são operações distintas. Fontes:
+[StarWorldGeneration.cpp](../source/game/StarWorldGeneration.cpp),
+[StarVehicleDatabase.cpp](../source/game/StarVehicleDatabase.cpp) e
+[StarVehicle.cpp](../source/game/StarVehicle.cpp).
+
+### Critério para o primeiro DungeonPlan
+
+O plano precisa registrar a **ordem de emissão por fase e peça**, a versão ou
+identidade das definições, a seed local de conectores e as escolhas aleatórias
+efetivas dos brushes. Para provar equivalência, comparar a sequência de
+operações, não apenas o estado final dos tiles: callbacks e RNG podem observar
+estados intermediários. Um worker só deve receber definições e escolhas já
+congeladas, além de snapshots completos das consultas. Vehicle e outros
+spawns permanecem intenções até a aplicação autoritativa.
