@@ -1374,6 +1374,9 @@ void WorldServer::update(float dt) {
   m_expiryTimer.tick(dt);
 
   LogMap::set(strf("server_{}_entities", m_worldId), strf("{} in {} sectors", m_entityMap->size(), m_tileArray->loadedSectorCount()));
+  if (m_worldStorage->sectorThreadPreviewEnabled())
+    LogMap::set(strf("server_{}_sector_threads", m_worldId),
+        strf("{} / {} loaded", m_worldStorage->sectorThreadCount(), m_tileArray->loadedSectorCount()));
   LogMap::set(strf("server_{}_time", m_worldId), strf("age = {:4.2f}, day = {:4.2f}/{:4.2f}s", epochTime(), timeOfDay(), dayLength()));
   LogMap::set(strf("server_{}_active_liquid", m_worldId), m_liquidEngine->activeCells());
   LogMap::set(strf("server_{}_lua_mem", m_worldId), m_luaRoot->luaMemoryUsage());

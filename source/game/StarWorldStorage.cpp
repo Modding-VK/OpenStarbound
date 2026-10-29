@@ -15,7 +15,63 @@
 #include "StarLiquidsDatabase.hpp"
 #include "StarTime.hpp"
 
+#include <condition_variable>
+#include <map>
+#include <mutex>
+#include <system_error>
+#include <thread>
+
 namespace Star {
+
+// Lifecycle-only preview. The worker never dereferences WorldStorage or tile
+// data; moving simulation here requires explicit ownership and messaging.
+class WorldSectorThreads {
+public:
+  using Sector = WorldStorage::Sector;
+
+  void loaded(Sector const& sector) {
+    auto key = std::make_pair(sector[0], sector[1]);
+    if (m_threads.find(key) == m_threads.end())
+      m_threads.emplace(key, make_unique<Worker>());
+  }
+
+  void unloaded(Sector const& sector) {
+    m_threads.erase(std::make_pair(sector[0], sector[1]));
+  }
+
+  size_t count() const {
+    return m_threads.size();
+  }
+
+private:
+  struct Worker {
+    Worker() : thread([this] {
+      std::unique_lock<std::mutex> lock(mutex);
+      wake.wait(lock, [this] { return stopping; });
+    }) {}
+
+    ~Worker() {
+      {
+        std::lock_guard<std::mutex> lock(mutex);
+        stopping = true;
+      }
+      wake.notify_one();
+      thread.join();
+    }
+
+    Worker(Worker const&) = delete;
+    Worker& operator=(Worker const&) = delete;
+
+    std::mutex mutex;
+    std::condition_variable wake;
+    bool stopping = false;
+    std::thread thread;
+  };
+
+  // The world owner thread alone changes this map. Individual workers only
+  // wait for shutdown, so they cannot race with world state or the registry.
+  std::map<std::pair<unsigned, unsigned>, unique_ptr<Worker>> m_threads;
+};
 
 WorldChunks WorldStorage::getWorldChunksUpdate(WorldChunks const& oldChunks, WorldChunks const& newChunks) {
   WorldChunks update;
@@ -228,6 +284,14 @@ bool WorldStorage::sectorActive(Sector sector) const {
       return true;
   }
   return false;
+}
+
+size_t WorldStorage::sectorThreadCount() const {
+  return m_sectorThreads ? m_sectorThreads->count() : 0;
+}
+
+bool WorldStorage::sectorThreadPreviewEnabled() const {
+  return static_cast<bool>(m_sectorThreads);
 }
 
 void WorldStorage::loadSector(Sector sector) {
@@ -1030,6 +1094,9 @@ WorldStorage::WorldStorage() {
   auto storageConfig = Root::singleton().assets()->json("/worldstorage.config");
   m_sectorTimeToLive = jsonToVec2F(storageConfig.get("sectorTimeToLive"));
   m_generationQueueTimeToLive = storageConfig.getFloat("generationQueueTimeToLive");
+  if (Root::singleton().configuration()->get("worldThreading", JsonObject())
+          .getBool("sectorThreadLifecyclePreview", false))
+    m_sectorThreads = make_unique<WorldSectorThreads>();
 }
 
 bool WorldStorage::belongsInSector(Sector const& sector, Vec2F const& position) const {
@@ -1189,6 +1256,14 @@ void WorldStorage::loadSectorToLevel(Sector const& sector, SectorLoadLevel targe
     }
 
     if (currentLoad == SectorLoadLevel::Tiles) {
+      if (m_sectorThreads) {
+        try {
+          m_sectorThreads->loaded(sector);
+        } catch (std::system_error const& e) {
+          Logger::warn("Sector thread lifecycle preview disabled after thread creation failed: {}", e.what());
+          m_sectorThreads.reset();
+        }
+      }
       ExplorationProfile::Scope total(m_explorationProfile.get(), "storage.tiles.total");
       ExplorationProfile::Scope timing(m_explorationProfile.get(), "storage.tiles.read");
       auto res = m_db.find(tileSectorKey(sector));
@@ -1354,6 +1429,8 @@ bool WorldStorage::unloadSectorToLevel(Sector const& sector, SectorLoadLevel tar
       m_sectorMetadata.remove(sector);
       if (m_regionObservation)
         m_regionObservation->changed(Vec2U(sector));
+      if (m_sectorThreads)
+        m_sectorThreads->unloaded(sector);
       m_generatorFacade->sectorLoadLevelChanged(this, sector, SectorLoadLevel::None);
       return true;
     }

@@ -19,6 +19,7 @@ STAR_EXCEPTION(WorldStorageException, StarException);
 STAR_CLASS(EntityMap);
 STAR_STRUCT(WorldGeneratorFacade);
 STAR_CLASS(WorldStorage);
+class WorldSectorThreads;
 
 typedef HashMap<ByteArray, Maybe<ByteArray>> WorldChunks;
 
@@ -145,6 +146,11 @@ public:
   Maybe<SectorGenerationLevel> sectorGenerationLevel(Sector sector) const;
   // Returns true if the sector is both loaded and fully generated.
   bool sectorActive(Sector) const;
+
+  // Experimental lifecycle preview: one sleeping OS thread per loaded sector.
+  // No live world state is read or modified by these threads yet.
+  size_t sectorThreadCount() const;
+  bool sectorThreadPreviewEnabled() const;
 
   // Bounded, owner-thread-only metadata observation. No load, signal, or DB
   // access. Start a new observation frame only after retiring previous turns.
@@ -358,6 +364,7 @@ private:
   std::array<GenerationProfileTiming, GenerationProfileStageCount> m_generationProfile{};
 
   StableHashMap<Sector, SectorMetadata> m_sectorMetadata;
+  unique_ptr<WorldSectorThreads> m_sectorThreads;
   // Tile data exposes mutation revisions through TileSectorArray. Entity state
   // remains fully synchronized because scripts can mutate entities without
   // passing through WorldStorage.

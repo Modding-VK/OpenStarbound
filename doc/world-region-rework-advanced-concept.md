@@ -68,6 +68,19 @@ fases, medições e um caminho legado íntegro. O tamanho físico de cada setor
 permanece 32×32 neste plano inicial; [setores de 64×64](world-generation-rework-hypotheses.md)
 são uma hipótese independente.
 
+Implementação inicial em 29/10/2026: `worldThreading.sectorThreadLifecyclePreview`
+(padrão `false`) cria uma thread ociosa por setor quando `WorldStorage` começa
+a carregar seus tiles, inclusive para prefetch que chega ao nível `Tiles`.
+Ela termina após o unload para `None`; pedidos apenas enfileirados não a criam.
+O contador `server_<worldId>_sector_threads` compara threads e setores com
+tiles carregados no mapa de diagnóstico quando a opção está ligada. Se a
+criação de uma thread falhar, o preview se desliga e o mundo segue pelo fluxo
+atual. As threads aguardam em condição, sem consultar
+tiles ou executar gameplay. Este estágio mede o custo do ciclo de vida e
+verifica a correspondência com setores carregados; **não paraleliza a
+simulação**. A opção só deve ser habilitada para esse experimento até que
+ownership, mensagens e persistência estejam migrados.
+
 ## 1. Motivação e limite da analogia
 
 Hoje há uma `WorldServerThread` por mundo ativo. Ela protege `WorldServer`
