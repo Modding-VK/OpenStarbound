@@ -1016,6 +1016,27 @@ ficarem temporariamente indisponíveis.
 Fontes: [WorldRegionCoordinator](../source/game/StarWorldRegionCoordinator.cpp)
 e [WorldServer](../source/game/StarWorldServer.cpp).
 
+## Trigésima terceira passagem: Terraform no grafo de dependências
+
+`SectorGenerationLevel::Terraform` tem valor 5, acima de `Complete`/`Finalize`
+(4), mas indica que o setor ainda precisa de `reapplyBiome`. O caminho real
+de `generateSectorToLevel(Complete)` trata `Terraform` num ramo especial
+**antes** da comparação numérica entre níveis. `sectorActive` também exige
+igualdade com `Complete`.
+
+O grafo observacional passa o valor bruto de `generationLevel` a
+`WorldGenerationDependencyGraph::analyze`, que considera um nó satisfeito
+quando `currentLevel >= node.level`. Assim, um setor em `Terraform` é contado
+como satisfeito até no nó `Complete`, e pode desaparecer da fronteira de
+trabalho ou dos bloqueadores exibidos pela métrica. O grafo ainda não
+autoriza geração, logo o efeito atual é diagnóstico. Antes de usá-lo para
+admissão real, representar `Terraform` como estado de transição distinto e
+incluir a etapa de reaplicação na análise, sem reclassificar setores ativos.
+
+Fontes: [WorldStorage](../source/game/StarWorldStorage.cpp),
+[WorldStorage.hpp](../source/game/StarWorldStorage.hpp) e
+[WorldGenerationDependency](../source/game/StarWorldGenerationDependency.cpp).
+
 ## Encaminhamento após as passagens estáticas
 
 1. Investigar primeiro a escrita de `CaveLiquid` em vizinho já ativo, a
@@ -1041,3 +1062,6 @@ e [WorldServer](../source/game/StarWorldServer.cpp).
    a posse da linha de fronteira vertical antes de paralelizar edição de
    biomas. Comparar `previewExpandBiomeRegion` e o layout final antes/depois
    de salvar e reabrir o mesmo mundo.
+9. Corrigir o modelo de estados do grafo observacional para `Terraform` antes
+   de empregar seus contadores de fronteira como critério de admissão. Separar
+   também revisão de conteúdo e acesso mutável sem mudança ao medir descartes.
