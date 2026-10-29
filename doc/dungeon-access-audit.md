@@ -137,3 +137,21 @@ Pendências mais específicas: expandir placementValid/anchorsValid, subclasses
 de objetos e veículos, itens gerados por factories e chamadas indiretas dos
 brushes. Caches internos e locks das databases ainda precisam de auditoria de
 concorrência; a existência de cache não prova segurança de acesso em worker.
+
+### Ancoragem e ocupação: dependências confirmadas
+
+`ObjectOrientation::placementValid` examina cada `space` transladado para a
+posição do objeto. Rejeita ocupação em foreground e proteção do tile.
+`anchorsValid` examina cada âncora transladada: conectividade e, conforme a
+definição, mod de solo arado, material de solo ou material específico. Quando
+`anchorAny` está ativo, a escolha aceita ao menos uma âncora válida; caso
+contrário, exige todas. `findValidOrientation` tenta primeiro orientações com
+afinidade de direção e depois faz uma segunda passagem geral. A primeira
+orientação válida determina o resultado.
+
+Logo, o footprint de leitura de um objeto inclui a união dos `spaces` e das
+âncoras de **todas as orientações que podem ser tentadas**, inclusive as
+rejeitadas antes da escolhida. A revisão precisa cobrir proteção, ocupação de
+entidades e tiles/mods nesses pontos. Uma revisão somente dos tiles escritos
+pelo writer pode aprovar um plano cuja orientação já deixou de ser válida.
+Fonte: [ObjectOrientation e ObjectConfig](../source/game/StarObjectDatabase.cpp).
