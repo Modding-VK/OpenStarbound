@@ -1109,6 +1109,28 @@ Fontes: [WorldServer](../source/game/StarWorldServer.cpp),
 [WorldLayout](../source/game/StarWorldLayout.cpp) e
 [WorldLuaBindings](../source/game/scripting/StarWorldLuaBindings.cpp).
 
+## Trigésima sétima passagem: coordenada horizontal da inserção de bioma
+
+`WorldLayout::findLayerAndCell` normaliza o X recebido por
+`findContainingCell`. Porém, `previewAddBiomeRegion` e `addBiomeRegion`
+inserem as novas fronteiras usando o X original quando ele é positivo, ou
+`1` quando é zero/negativo. Para X negativo ou maior que a largura do
+planeta, a célula escolhida usa a posição normalizada, enquanto as
+fronteiras inseridas usam outra posição. Isso pode produzir uma prévia e um
+layout incompatíveis com a posição pretendida; para X além da largura, a
+fronteira pode ficar fora do intervalo ordinário do planeta.
+
+A API Lua passa a coordenada recebida ao servidor sem normalizá-la nessa
+rota. Não há evidência de que os mods dos logs tenham chamado a API com X
+fora do intervalo. Antes de permitir inserção paralela, normalizar o X uma
+vez para seleção e inserção e comparar o comportamento na emenda, incluindo
+o caso especial de X zero. O formato salvo de mundos já alterados precisa ser
+tratado separadamente de novas chamadas.
+
+Fontes: [WorldLayout](../source/game/StarWorldLayout.cpp),
+[WorldServer](../source/game/StarWorldServer.cpp) e
+[WorldLuaBindings](../source/game/scripting/StarWorldLuaBindings.cpp).
+
 ## Encaminhamento após as passagens estáticas
 
 1. Investigar primeiro a escrita de `CaveLiquid` em vizinho já ativo, a
