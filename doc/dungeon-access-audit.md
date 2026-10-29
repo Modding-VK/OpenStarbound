@@ -1037,6 +1037,31 @@ Fontes: [WorldStorage](../source/game/StarWorldStorage.cpp),
 [WorldStorage.hpp](../source/game/StarWorldStorage.hpp) e
 [WorldGenerationDependency](../source/game/StarWorldGenerationDependency.cpp).
 
+## Trigésima quarta passagem: alcance das caixas na emenda horizontal
+
+`TileSectorArray::sectorFor` normaliza qualquer coordenada horizontal por
+`pmod`, mas `validSectorsFor` passa por `splitRect`, que exige por assert
+`xMin >= -worldWidth` e `xMax <= 2 * worldWidth`. A função só depois reduz
+uma caixa mais larga que o planeta ao mundo inteiro. Portanto, a política de
+wrap para posições isoladas não garante que uma caixa arbitrariamente
+deslocada seja aceita nas consultas por região.
+
+As caixas usuais de setor com padding de 32 tiles permanecem nesse intervalo
+em mundos de largura suficiente; esta passagem não demonstra falha no
+carregamento observado. O planejador de estruturas e o prefetch direcional
+precisam normalizar a origem da caixa ou dividir intervalos amplos antes de
+chamar `validSectorsFor`, incluindo os casos de mundo estreito, coordenada
+negativa e deslocamento maior que uma volta completa.
+
+`WorldGeometry::splitRect` tem outra restrição: aceita origem normalizada
+automaticamente, porém exige largura da caixa menor ou igual à largura do
+planeta. O novo modelo não pode trocar uma dessas duas APIs pela outra sem
+tratar caixas largas; a divisão de footprint deve usar a geometria adequada
+ao contrato de cada chamador.
+
+Fontes: [TileSectorArray](../source/game/StarTileSectorArray.hpp) e
+[WorldGeometry](../source/base/StarWorldGeometry.cpp).
+
 ## Encaminhamento após as passagens estáticas
 
 1. Investigar primeiro a escrita de `CaveLiquid` em vizinho já ativo, a
