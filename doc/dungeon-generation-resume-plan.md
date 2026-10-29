@@ -6,6 +6,9 @@ microdungeons só entram depois de auditar seus contratos separadamente.
 
 ## Motivo e limite observado
 
+A [auditoria estática de acessos](dungeon-access-audit.md) detalha a matriz
+writer/facade/mundo e a sequência de separação entre planejamento e aplicação.
+
 Na coleta Windows `ceb0017b`, o mundo `383738425:-48324202:-255713414:5`
 executou sete `dungeon.generate` em 5,88 s, com uma chamada de 1,66 s.
 `dungeon.flush` acumulou 3,70 s: 1,55 s em entidades e 1,41 s em objetos.
