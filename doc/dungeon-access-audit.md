@@ -620,6 +620,107 @@ Fontes: [WorldGeneration](../source/game/StarWorldGeneration.cpp),
 [WorldServer](../source/game/StarWorldServer.cpp) e
 [TileSectorArray](../source/game/StarTileSectorArray.hpp).
 
+## Décima sétima passagem: coalescência e ordem do flush
+
+O writer guarda materiais, mods, líquidos, IDs, objetos, veículos, drops,
+NPCs e stagehands em `Map` indexado pela posição. Uma segunda escrita à mesma
+chave substitui a primeira **antes do flush**. Árvores/itens de bioma usam
+`Set`, portanto pedidos repetidos à mesma posição se reduzem a uma entrada.
+As requisições de fios usam `StringMap<Set<posição>>`: a posição se deduplica
+por grupo, mas grupos diferentes continuam separados. Transformar cada brush
+num comando aplicado imediatamente criaria objetos ou entidades que o legado
+descarta e mudaria a ordem de suas factories/RNG.
+
+No flush, `Map` percorre chaves ordenadas por coordenada, enquanto objetos e
+bioma recebem uma ordenação adicional por `y + x/1000`. Essa ordenação usa
+`std::sort` e não promete estabilidade para valores calculados iguais.
+`StringMap` dos fios é um hash map; reconstruir os grupos com outra inserção
+ou implementação pode alterar sua ordem de iteração. O primeiro plano deve
+capturar o **estado final dos buffers** e a sequência efetiva de flush, com
+chaves/ordem explícitas, em vez de assumir que a ordem de pintura é a de
+publicação. Não introduzir uma ordenação nova sem comparar os efeitos
+observáveis de scripts, fios e RNG.
+
+Fontes: [DungeonGenerator](../source/game/StarDungeonGenerator.cpp),
+[StarMap](../source/core/StarMap.hpp),
+[StarString](../source/core/StarString.hpp) e
+[StarAlgorithm](../source/core/StarAlgorithm.hpp).
+
+## Décima oitava passagem: lacunas das bounding boxes do writer
+
+`finishPart` só adiciona `m_currentBounds` quando alguma operação chamou
+`markPosition`. Materiais, mods, líquidos consolidados, objetos, veículos,
+bioma, drops e spawns o fazem. `requestWire`, `setDungeonId`,
+`setPlayerStart` e `clearTileEntities` **não** ampliam essa caixa. As duas
+últimas operações podem atingir o mundo imediatamente; fios e IDs só serão
+aplicados no flush. Portanto, `boundingBoxes()` não delimita todos os efeitos
+da peça, mesmo antes de considerar anchors, scripts e queries.
+
+No flush, `markRegion` e os polígonos de terreno/espaço usam essas boxes. A
+inicialização de floating dungeons também usa as boxes retornadas para
+`generateRegion`. Uma peça cuja contribuição consiste apenas nas operações
+omitidas pode ter efeito sem caixa correspondente. Isso não comprova falha
+visual em assets existentes, mas invalida usar `boundingBoxes()` como
+footprint de reserva ou como prova de ativação completa. O plano deve unir
+as posições efetivas e os alcances externos de cada tipo de operação.
+
+Fontes: [DungeonGenerator](../source/game/StarDungeonGenerator.cpp),
+[WorldGeneration](../source/game/StarWorldGeneration.cpp) e
+[WorldServer](../source/game/StarWorldServer.cpp).
+
+## Décima nona passagem: aliases de posição na emenda
+
+As chaves dos buffers do writer usam coordenadas de peça **antes** de
+`xwrap`. A normalização ocorre no flush, ao chamar a facade. Portanto,
+posições `x = -1` e `x = width - 1` são chaves diferentes no buffer, embora
+atinjam o mesmo tile físico ao aplicar. A substituição por chave da passagem
+anterior só vale para coordenadas cruas idênticas. Em uma dungeon que cruza a
+emenda, duas escritas podem colidir no mundo após terem sobrevivido separadas
+no plano; a ordem de iteração das chaves cruas decide qual chega por último.
+
+Isso vale também para spawns/objetos no mesmo ponto físico: o segundo
+placement pode encontrar a ocupação criada pelo primeiro, dependendo da
+ordem. `clearTileEntityPositions` já normaliza as posições, enquanto
+`partBounds`, `preserveTiles` e `modifiedTiles` são mantidos no espaço de
+peça. Uma refatoração que normalize tudo ao inserir nos buffers pode mudar
+colisões, remoções e resultado final. O contrato novo precisa distinguir
+coordenada lógica da peça e coordenada física de escrita, conservando a ordem
+legada até uma migração explícita da semântica de emenda.
+
+`flushLiquid` também agrupa `m_pendingLiquids` por vizinhança das coordenadas
+cruas, sem `xwrap`. Clusters que se tocam fisicamente na emenda podem receber
+pressões separadas antes de as escritas serem normalizadas no flush. Isso é
+distinto do erro de representação de `CaveLiquid`: aqui o algoritmo não
+normaliza durante a busca. Os dois caminhos precisam de cenários próprios
+na comparação de mundo gerado.
+
+Fontes: [DungeonGenerator](../source/game/StarDungeonGenerator.cpp) e
+[WorldGeneration](../source/game/StarWorldGeneration.cpp).
+
+## Vigésima passagem: alcance do blending de terreno
+
+O `DungeonGenerator::generate` só ativa `terrainMarkingSurfaceLevel` quando
+recebe `markSurfaceAndTerrain`; na inicialização de dungeons principais esse
+argumento vem de `blendWithTerrain`. Microdungeons e colocação por comando
+usam o caminho sem esse blending. Quando ativo, o flush não envia uma região
+por peça: reúne os vértices das bounding boxes acima/abaixo do nível de
+superfície e envia o **convex hull** de cada conjunto para `markTerrain` e
+`markSpace`. O hull pode incluir área entre peças que nenhum buffer de tile
+escreveu. Ainda há extensão vertical opcional do espaço de superfície.
+
+Esses polígonos entram em `WorldTemplate::m_customTerrainRegions`, limpam o
+cache inteiro de blocos e incrementam `generationRevision`. Cada consulta
+posterior de `customTerrainWeighting` examina a lista de regiões e calcula
+distância quando o ponto toca a caixa ampliada pelo blend. Assim, o footprint
+de leitura e o custo futuro não se reduzem à união de tiles escritos. Um
+plano paralelo precisa reservar e versionar o polígono resultante, além de
+decidir como evitar invalidação global excessiva sem mudar o blending.
+
+Fontes: [DungeonGenerator](../source/game/StarDungeonGenerator.cpp),
+[WorldServer](../source/game/StarWorldServer.cpp),
+[MicroDungeon](../source/game/StarMicroDungeon.cpp) e
+[WorldTemplate](../source/game/StarWorldTemplate.cpp).
+
 ## Encaminhamento após as passagens estáticas
 
 1. Investigar primeiro a escrita de `CaveLiquid` em vizinho já ativo, a
