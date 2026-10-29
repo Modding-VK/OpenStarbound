@@ -211,6 +211,11 @@ essa identidade para calcular sua largura. Definir também a posse da linha
 de transferir edição de biomas a workers, comparar prévia, setores sinalizados
 e resultado da expansão antes/depois de reload. Ver
 [auditoria do acesso a dungeons](dungeon-access-audit.md).
+Prévia, pré-geração e commit devem receber o mesmo X canônico e a mesma
+largura limitada ao planeta. O legado seleciona a célula com X normalizado,
+mas pode inserir a fronteira com o X original; a pré-geração também deixa de
+limitar a largura aplicada pela alteração posterior. Caixas espaciais devem
+respeitar as restrições de cada API de wrap.
 
 Microdungeons e dungeons compostas são operações de **footprint**, não uma
 tarefa arbitrariamente independente por setor. Propor localização, peças,

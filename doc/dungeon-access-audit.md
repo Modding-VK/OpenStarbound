@@ -1159,3 +1159,6 @@ Fontes: [WorldLayout](../source/game/StarWorldLayout.cpp),
 9. Corrigir o modelo de estados do grafo observacional para `Terraform` antes
    de empregar seus contadores de fronteira como critério de admissão. Separar
    também revisão de conteúdo e acesso mutável sem mudança ao medir descartes.
+10. Compartilhar normalização de largura e X entre prévia, pré-geração e
+    alteração de bioma. Incluir coordenadas fora da volta canônica e caixas
+    mais largas que o planeta nos critérios de aceitação do futuro plano.
