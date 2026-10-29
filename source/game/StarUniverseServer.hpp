@@ -25,6 +25,7 @@ STAR_CLASS(UniverseServer);
 STAR_CLASS(WorldTemplate);
 STAR_CLASS(WorldServer);
 STAR_CLASS(UniverseSettings);
+STAR_CLASS(ExplorationProfile);
 
 STAR_EXCEPTION(UniverseServerException, StarException);
 
@@ -309,6 +310,7 @@ private:
 
   mutable RecursiveMutex m_luaLock;
   LuaRootPtr m_luaRoot;
+  ExplorationProfilePtr m_storyProfile;
 
   typedef LuaMessageHandlingComponent<LuaUpdatableComponent<LuaBaseComponent>> ScriptComponent;
   typedef shared_ptr<ScriptComponent> ScriptComponentPtr;

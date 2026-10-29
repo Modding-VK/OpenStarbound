@@ -242,6 +242,8 @@ que o modelo do Folia pode substituir o tick global sem adaptar os sistemas.
   serial enquanto não houver uma API regional. `world.entityQuery` pode chamar
   script do alvo; uma consulta aparentemente de leitura não é necessariamente
   pura. Não executar VM Lua ou caches mutáveis compartilhados em dois donos.
+  O [diagnóstico de scripts de missões e locais](story-script-profiling.md)
+  mede os pontos atuais sem transferir sua execução.
 - **Ações externas ao tick:** hoje `WorldServerThread::executeAction` chama
   callbacks sobre `WorldServer*` sob o mutex, inclusive em caminhos de comando
   e do `UniverseServer`. O modo regional precisa substituir esse acesso por

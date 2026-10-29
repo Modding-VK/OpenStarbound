@@ -5,6 +5,7 @@
 namespace Star {
 
 STAR_CLASS(QuestManager);
+STAR_CLASS(ExplorationProfile);
 
 struct QuestIndicator {
   String indicatorImage;
@@ -14,6 +15,7 @@ struct QuestIndicator {
 class QuestManager {
 public:
   QuestManager(Player* player);
+  ~QuestManager();
 
   void diskLoad(Json const& quests);
   Json diskStore();
@@ -70,6 +72,7 @@ private:
   bool questValidOnServer(QuestPtr quest) const;
 
   Player* m_player;
+  ExplorationProfilePtr m_storyProfile;
   World* m_world;
   UniverseClient* m_client;
 

@@ -21,6 +21,8 @@
 #include "StarUniverseServerLuaBindings.hpp"
 #include "StarCelestialLuaBindings.hpp"
 #include "StarVersioningDatabase.hpp"
+#include "StarExplorationProfile.hpp"
+#include "StarTrace.hpp"
 
 namespace Star {
 
@@ -50,6 +52,7 @@ UniverseServer::UniverseServer(String const& storageDir, bool const& isLocal)
   }
 
   startLuaScripts();
+  m_storyProfile = ExplorationProfile::create("universeScripts");
 
   Logger::info("UniverseServer: Acquiring universe lock file");
 
@@ -104,6 +107,10 @@ UniverseServer::~UniverseServer() {
   stop();
   stopLua();
   join();
+  RecursiveMutexLocker storyProfileLocker(m_luaLock);
+  if (m_storyProfile)
+    m_storyProfile->report(true);
+  storyProfileLocker.unlock();
   m_workerPool.stop();
 
   RecursiveMutexLocker locker(m_mainLock);
@@ -1362,6 +1369,7 @@ void UniverseServer::clearBrokenWorlds() {
 }
 
 void UniverseServer::handleWorldMessages() {
+  STAR_TRACE_ZONE("UniverseServer forward world messages");
   RecursiveMutexLocker locker(m_mainLock);
   ReadLocker clientsLocker(m_clientsLock);
 
@@ -1387,6 +1395,7 @@ void UniverseServer::handleWorldMessages() {
 }
 
 void UniverseServer::handleUniverseMessages() {
+  STAR_TRACE_ZONE("UniverseServer handle universe messages");
   
   ReadLocker clientsLocker(m_clientsLock, false);
   for (auto const& uuid : m_universeMessagePromises.keys()) {
@@ -2374,23 +2383,26 @@ WarpToWorld UniverseServer::resolveWarpAction(WarpAction warpAction, ConnectionI
   WorldId toWorldId;
   SpawnTarget spawnTarget;
   
-  RecursiveMutexLocker luaLocker(m_luaLock);
-  for (auto& p : m_scriptContexts) {
-    auto out = p.second->invoke<Json>("overrideWarp", warpActionToJson(warpAction), clientId, deploy);
-    if (out && *out) {
-      auto& jout = *out;
-      if (auto world = jout.optString("worldId")) {
-        toWorldId = parseWorldId(*world);
-      } else {
-        toWorldId = clientContext->playerWorldId();
+  {
+    RecursiveMutexLocker luaLocker(m_luaLock);
+    STAR_TRACE_ZONE("UniverseServer warp override scripts");
+    ExplorationProfile::Scope timing(m_storyProfile.get(), "story.universe.warpOverride");
+    for (auto& p : m_scriptContexts) {
+      auto out = p.second->invoke<Json>("overrideWarp", warpActionToJson(warpAction), clientId, deploy);
+      if (out && *out) {
+        auto& jout = *out;
+        if (auto world = jout.optString("worldId")) {
+          toWorldId = parseWorldId(*world);
+        } else {
+          toWorldId = clientContext->playerWorldId();
+        }
+        if (jout.opt("spawnTarget")) {
+          spawnTarget = spawnTargetFromJson(jout.get("spawnTarget"));
+        }
+        return WarpToWorld(toWorldId, spawnTarget);
       }
-      if (jout.opt("spawnTarget")) {
-        spawnTarget = spawnTargetFromJson(jout.get("spawnTarget"));
-      }
-      return WarpToWorld(toWorldId, spawnTarget);
     }
   }
-  luaLocker.unlock();
 
   if (auto toWorld = warpAction.ptr<WarpToWorld>()) {
     if (!toWorld->world)
@@ -3150,8 +3162,13 @@ void UniverseServer::startLuaScripts() {
 
 void UniverseServer::updateLua() {
   RecursiveMutexLocker luaLocker(m_luaLock);
-  for (auto& p : m_scriptContexts)
+  if (m_storyProfile)
+    m_storyProfile->report();
+  STAR_TRACE_ZONE("UniverseServer script contexts");
+  for (auto& p : m_scriptContexts) {
+    ExplorationProfile::Scope timing(m_storyProfile.get(), "story.universe.contextUpdate");
     p.second->update();
+  }
 }
 
 void UniverseServer::stopLua() {
@@ -3194,6 +3211,8 @@ RpcPromise<Json> UniverseServer::sendUniverseMessage(ConnectionId const& connect
 Maybe<ChainableJsonMessageResponse> UniverseServer::receiveMessage(String const& message, bool const& local, JsonArray const& args) {
   Maybe<ChainableJsonMessageResponse> result;
   RecursiveMutexLocker luaLocker(m_luaLock);
+  STAR_TRACE_ZONE("UniverseServer script message");
+  ExplorationProfile::Scope timing(m_storyProfile.get(), "story.universe.message");
   for (auto& p : m_scriptContexts) {
     result = p.second->handleMessage(message, local, args);
     if (result)

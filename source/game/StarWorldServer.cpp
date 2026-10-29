@@ -944,6 +944,8 @@ bool WorldServer::sendPacket(ConnectionId clientId, PacketPtr const& packet) {
 }
 
 Maybe<ChainableJsonMessageResponse> WorldServer::receiveMessage(ConnectionId fromConnection, String const& message, JsonArray const& args) {
+  STAR_TRACE_ZONE("WorldServer script message");
+  ExplorationProfile::Scope timing(m_explorationProfile.get(), "story.world.message");
   Maybe<ChainableJsonMessageResponse> result;
   for (auto& p : m_scriptContexts) {
     result = p.second->handleMessage(message, fromConnection == ServerConnectionId, args);
@@ -1242,8 +1244,10 @@ void WorldServer::update(float dt) {
 
   {
     STAR_TRACE_ZONE("WorldServer script contexts");
-    for (auto& pair : m_scriptContexts)
+    for (auto& pair : m_scriptContexts) {
+      ExplorationProfile::Scope timing(m_explorationProfile.get(), "story.world.contextUpdate");
       pair.second->update(pair.second->updateDt(dt));
+    }
   }
 
   recordProfileStage(UpdateProfileStage::ScriptContexts);

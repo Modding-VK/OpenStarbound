@@ -9,13 +9,21 @@
 #include "StarTime.hpp"
 #include "StarClientContext.hpp"
 #include "StarUniverseClient.hpp"
+#include "StarExplorationProfile.hpp"
+#include "StarTrace.hpp"
 
 namespace Star {
 
 QuestManager::QuestManager(Player* player) {
   m_player = player;
+  m_storyProfile = ExplorationProfile::create("playerQuests");
   m_world = nullptr;
   m_trackOnWorldQuests = false;
+}
+
+QuestManager::~QuestManager() {
+  if (m_storyProfile)
+    m_storyProfile->report(true);
 }
 
 QuestTemplatePtr getTemplate(String const& templateId) {
@@ -123,6 +131,8 @@ bool QuestManager::canStart(QuestArcDescriptor const& questArc) const {
 }
 
 void QuestManager::offer(QuestPtr const& quest) {
+  STAR_TRACE_ZONE("QuestManager offer");
+  ExplorationProfile::Scope timing(m_storyProfile.get(), "quest.offer");
   m_quests[quest->questId()] = quest;
   quest->init(m_player, m_world, m_client);
   quest->offer();
@@ -353,6 +363,8 @@ Maybe<QuestIndicator> QuestManager::getQuestIndicator(EntityPtr const& entity) c
 }
 
 StringSet QuestManager::interestingObjects() {
+  STAR_TRACE_ZONE("QuestManager interesting objects");
+  ExplorationProfile::Scope timing(m_storyProfile.get(), "quest.interestingObjects");
   StringSet result;
   m_quests.values().exec([&result](QuestPtr const& quest) {
     if (auto resp = quest->receiveMessage("interestingObjects", true, JsonArray()))
@@ -363,6 +375,8 @@ StringSet QuestManager::interestingObjects() {
 }
 
 Maybe<ChainableJsonMessageResponse> QuestManager::receiveMessage(String const& message, bool localMessage, JsonArray const& args) {
+  STAR_TRACE_ZONE("QuestManager receive message");
+  ExplorationProfile::Scope timing(m_storyProfile.get(), "quest.message");
   starAssert(m_world);
   Maybe<ChainableJsonMessageResponse> result;
   m_quests.values().exec([&result, message, localMessage, args](
@@ -371,6 +385,10 @@ Maybe<ChainableJsonMessageResponse> QuestManager::receiveMessage(String const& m
 }
 
 void QuestManager::update(float dt) {
+  STAR_TRACE_ZONE("QuestManager update");
+  if (m_storyProfile)
+    m_storyProfile->report();
+  ExplorationProfile::Scope timing(m_storyProfile.get(), "quest.update");
   startInitialQuests();
 
   if (m_trackedQuestId && !isActive(*m_trackedQuestId))
