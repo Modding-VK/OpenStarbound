@@ -987,13 +987,13 @@ Expands the biome region currently at `position` by `width` blocks.
 
 #### `bool` world.pregenerateAddBiome(`Vec2I` position, `int` width)
 
-Signals the regions needed to add a biome region of `width` tiles at `position`. Returns `true` when all signaled sectors are active, including when there are no regions to signal; returns `false` while any sector is pending or when the caller lacks build permission.
+Attempts to signal the regions needed to add a biome region of `width` tiles at `position`. Returns `true` when every preview region is active, including when there are no regions to signal; returns `false` while a region is pending or when the caller lacks build permission. If a region is pending, later regions are signaled on subsequent calls.
 
 ---
 
 #### `bool` world.pregenerateExpandBiome(`Vec2I` position, `int` width)
 
-Signals the regions needed to expand the biome at `position` to `width` blocks. Returns `true` when all signaled sectors are active, including when there are no regions to signal; returns `false` while any sector is pending or when the caller lacks build permission.
+Attempts to signal the regions needed to expand the biome at `position` to `width` blocks. Returns `true` when every preview region is active, including when there are no regions to signal; returns `false` while a region is pending or when the caller lacks build permission. If a region is pending, later regions are signaled on subsequent calls.
 
 ---
 
