@@ -1088,6 +1088,27 @@ Fontes: [WorldStorage](../source/game/StarWorldStorage.cpp),
 [Npc](../source/game/StarNpc.cpp), [Object](../source/game/StarObject.cpp) e
 [LuaComponents](../source/game/scripting/StarLuaComponents.cpp).
 
+## Trigésima sexta passagem: largura da pré-geração de bioma
+
+`WorldServer::addBiomeRegion` e `expandBiomeRegion` limitam a largura pedida
+à largura do planeta **antes** de consultar a prévia e marcar setores para
+terraformação. `pregenerateAddBiome` e `pregenerateExpandBiome` chamam as
+mesmas prévias sem esse limite. Para uma largura maior que a do planeta, a
+pré-geração pode sinalizar um footprint diferente do usado pela alteração
+posterior; a rotina de expansão só possui ramo especial de largura total
+quando `newWidth == worldWidth`, não quando a ultrapassa.
+
+A diferença é alcançável pela API Lua, mas não há evidência de uso desse
+valor nos mods observados. O contrato futuro deve normalizar parâmetros uma
+vez e compartilhar o mesmo plano de footprint entre consulta, pré-geração e
+commit. Isso também evita depender da interpretação de caixas largas pelas
+duas implementações de wrap auditadas na passagem anterior.
+
+Fontes: [WorldServer](../source/game/StarWorldServer.cpp),
+[WorldTemplate](../source/game/StarWorldTemplate.cpp),
+[WorldLayout](../source/game/StarWorldLayout.cpp) e
+[WorldLuaBindings](../source/game/scripting/StarWorldLuaBindings.cpp).
+
 ## Encaminhamento após as passagens estáticas
 
 1. Investigar primeiro a escrita de `CaveLiquid` em vizinho já ativo, a
