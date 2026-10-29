@@ -721,6 +721,90 @@ Fontes: [DungeonGenerator](../source/game/StarDungeonGenerator.cpp),
 [MicroDungeon](../source/game/StarMicroDungeon.cpp) e
 [WorldTemplate](../source/game/StarWorldTemplate.cpp).
 
+## Vigésima primeira passagem: ID, init e índices de entidades
+
+`WorldServer::addEntity` reserva um ID, chama `entity->init`, depois chama
+`EntityMap::addEntity` e, para `TileEntity`, atualiza tiles de ocupação.
+`WorldStorage::loadSectorToLevel(Entities)` usa a mesma ordem por entidade:
+desserialização, `initEntity`, inclusão no mapa e só depois atualização do
+índice persistente de IDs únicos. `EntityMap::addEntity` ainda pode rejeitar
+ID/unique ID duplicado ou bounding box inválida. Como `init` pode executar
+Lua, uma falha nessa validação ocorre **após** efeitos de inicialização; o
+código não desfaz `init` nesse caminho.
+
+`reserveEntityId` avança o cursor do mapa e procura IDs presentes no índice
+vivo, mas não cria um registro de reserva separado. A ordem sequencial atual
+fornece o contexto dessa API. Uma preparação concorrente não deve chamar
+`init` nem tratar um ID obtido como posse durável até a publicação pelo dono
+do mundo. O plano precisa validar identidade/bounds e reservar IDs/unique
+IDs sob autoridade única, preservando quando scripts podem observar cada
+entidade e seus índices. Não prometer rollback de callbacks Lua arbitrários.
+
+Fontes: [EntityMap](../source/game/StarEntityMap.cpp),
+[WorldServer](../source/game/StarWorldServer.cpp) e
+[WorldStorage](../source/game/StarWorldStorage.cpp).
+
+## Vigésima segunda passagem: placements enfileirados e promise
+
+`world.enqueuePlacement` constrói distribuições com seeds do RNG global e
+guarda um `QueuedPlacement` no `WorldGenerator`. Em cada chamada de
+`generateMicroDungeons`, a varredura de 32×32 tiles percorre **todos** os
+pedidos pendentes e avalia suas distribuições. A lista só é filtrada por
+`fulfilled` após essa varredura; não há, nos caminhos examinados, limite de
+quantidade, expiração ou falha explícita para um pedido que nunca encontre
+posição. Portanto, o custo de seleção contém um termo proporcional a
+`1024 × pedidos pendentes × distribuições`, antes de considerar as tentativas
+de gerar a estrutura. Isso é um limite de desenho, não uma medição do custo
+real dos mods atuais.
+
+O campo guarda `RpcPromiseKeeper`, não `AutoFailRpcPromiseKeeper`. A destruição
+do keeper comum não sinaliza falha. Logo, se o mundo/`WorldGenerator` for
+destruído ainda com pedidos não satisfeitos, uma promise retida pelo chamador
+pode permanecer pendente. Um protocolo novo precisa cancelar explicitamente
+pedidos no unload/encerramento e não deixar uma espera Lua sem desfecho.
+
+Quando a microdungeon é gerada, o código chama `queued->promise.fulfill` e
+marca `fulfilled` **antes** de percorrer `modifiedTiles` para substituir
+blocos de bioma e aplicar o dungeon ID enfileirado. A promise tem estado
+protegido por mutex e pode ser observada como concluída antes desse
+pós-processamento. Um futuro executor deve concluir o resultado só após
+publicação consistente, com caminho de erro/cancelamento definido. Alterar
+essa ordem na implementação legada exigiria avaliação de compatibilidade
+com scripts que aguardam a promise.
+
+Fontes: [WorldGeneration](../source/game/StarWorldGeneration.cpp),
+[WorldLuaBindings](../source/game/scripting/StarWorldLuaBindings.cpp) e
+[RpcPromise](../source/core/StarRpcPromise.hpp).
+
+## Vigésima terceira passagem: terraformação de bioma
+
+`WorldServer::addBiomeRegion` e `expandBiomeRegion` primeiro marcam os
+setores da prévia como `Terraform` via `triggerTerraformSector`; só depois
+alteram o layout do `WorldTemplate`. Ao voltar a gerar até `Complete`,
+`WorldStorage::generateSectorToLevel` usa um ramo especial que chama
+`reapplyBiome` diretamente, sem passar pela recursão comum de vizinhos dos
+quatro estágios iniciais. Essa ordem é parte do contrato: os setores são
+marcados antes de a revisão do template mudar.
+
+`reapplyBiome` consulta entidades numa caixa de setor ampliada em um tile,
+remove plantas/objetos de bioma cujo `tilePosition` coincide com posições
+alteradas, escreve tiles via `WorldServer::modifyServerTile` e pode colocar
+novos itens de bioma. A rotina de plantas nesse caminho tenta a posição
+original e oito deslocamentos próximos, em ordem fixa; difere tanto de
+`WorldGenerator::placePlant` quanto de `DungeonGeneratorWorld::placePlant`.
+Logo, há **três** políticas de colocação de plantas no arquivo. Unificá-las
+ou calcular o footprint apenas pelo setor marcado pode mudar densidade,
+posição e colisão após terraformação.
+
+Para o modelo regional, a mutação do template deve ser uma barreira
+versionada, e o plano de terraformação deve cobrir leituras de vizinhos,
+remoções de entidades, tentativas alternativas de posição e spawns. Não
+tratar o ramo `Terraform` como uma simples atualização de material 32×32.
+
+Fontes: [WorldServer](../source/game/StarWorldServer.cpp),
+[WorldStorage](../source/game/StarWorldStorage.cpp) e
+[WorldGeneration](../source/game/StarWorldGeneration.cpp).
+
 ## Encaminhamento após as passagens estáticas
 
 1. Investigar primeiro a escrita de `CaveLiquid` em vizinho já ativo, a
