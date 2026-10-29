@@ -469,6 +469,8 @@ ou manter o mundo no modo legado. Nunca encerrar threads para cumprir orçamento
    de varrer repetidamente toda a fila. Workers nunca ficam bloqueados esperando
    jobs do próprio pool. Prioridade de setor visível é herdada pelos seus
    pré-requisitos; detectar ciclos e diagnosticar, sem expor terreno incompleto.
+   Representar `Terraform` como estado pendente próprio: seu valor legado é
+   numericamente maior que `Complete`, mas ainda requer reaplicação do bioma.
 4. **Revisões semânticas e caches.** Separar versão de conteúdo de versão/validade
    de cache derivado. Enumerar campos realmente lidos e escritos por cada etapa;
    no primeiro recorte, uma revisão conservadora de conteúdo por setor é aceitável.

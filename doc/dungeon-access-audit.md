@@ -1069,8 +1069,10 @@ persistentes, remove cada uma do `EntityMap`, chama
 `WorldGenerator::destructEntity` e **depois** usa `storeVersionedEntity` para
 serializá-la. `destructEntity` atualiza tiles de ocupação de objetos e chama
 `entity->uninit()`. Em NPCs e objetos, `uninit` inclui o desligamento do
-componente de script. Logo, o estado salvo é capturado após esses callbacks
-de encerramento, enquanto a entidade já não consta no índice vivo.
+componente de script. `LuaBaseComponent::uninit` invoca o callback Lua
+`uninit` quando presente; `Npc::diskStore` e `Object::diskStore` leem o
+`scriptStorage` depois disso. Logo, o estado salvo é capturado após esses
+callbacks de encerramento, enquanto a entidade já não consta no índice vivo.
 
 Um executor regional não deve serializar antecipadamente o estado da
 entidade em um worker e publicar esse snapshot como equivalente ao legado:
@@ -1083,7 +1085,8 @@ nova engine deve preservar ou versionar explicitamente.
 
 Fontes: [WorldStorage](../source/game/StarWorldStorage.cpp),
 [WorldGeneration](../source/game/StarWorldGeneration.cpp),
-[Npc](../source/game/StarNpc.cpp) e [Object](../source/game/StarObject.cpp).
+[Npc](../source/game/StarNpc.cpp), [Object](../source/game/StarObject.cpp) e
+[LuaComponents](../source/game/scripting/StarLuaComponents.cpp).
 
 ## Encaminhamento após as passagens estáticas
 
