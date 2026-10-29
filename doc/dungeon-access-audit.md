@@ -1172,6 +1172,28 @@ antes de mudar a política.
 Fontes: [WorldServer](../source/game/StarWorldServer.cpp) e
 [WorldStorage](../source/game/StarWorldStorage.cpp).
 
+## Quadragésima passagem: retorno Lua da pré-geração de biomas
+
+Os bindings de `world.pregenerateAddBiome` e
+`world.pregenerateExpandBiome` retornam o `bool` produzido pelo servidor;
+sem permissão de construção retornam `false`. O servidor inicia com
+`generationComplete = true` e só o reduz quando alguma região sinalizada
+ainda não está ativa. Uma prévia vazia, portanto, também retorna `true`,
+embora nenhuma região seja sinalizada. O `false` pode significar trabalho
+pendente **ou** falta de permissão, sem distinção pelo valor isolado.
+
+A referência `doc/lua/world.md` e o stub `doc/lua/stubs/world.lua` declaravam
+`void` para ambas as funções; foram alinhados ao binding nesta auditoria.
+Essa diferença podia levar mods a ignorar a espera ou interpretar
+incorretamente a conclusão. Um contrato
+versionado futuro deve separar estados de entrada inválida, permissão,
+nenhum trabalho e trabalho pendente, preservando o retorno booleano legado
+para scripts existentes.
+
+Fontes: [WorldLuaBindings](../source/game/scripting/StarWorldLuaBindings.cpp),
+[WorldServer](../source/game/StarWorldServer.cpp),
+[referência Lua](lua/world.md) e [stub Lua](lua/stubs/world.lua).
+
 ## Encaminhamento após as passagens estáticas
 
 1. Investigar primeiro a escrita de `CaveLiquid` em vizinho já ativo, a

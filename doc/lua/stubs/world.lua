@@ -949,13 +949,13 @@ function world.expandBiomeRegion(position, width) end
 --- Signals a region for asynchronous generation. The region signaled is the region that needs to be generated to add a biome region of `width` tiles to `position`. ---
 ---@param position Vec2I
 ---@param width number
----@return void
+---@return boolean
 function world.pregenerateAddBiome(position, width) end
 
 --- Signals a region for asynchronous generation. The region signaled is the region that needs to be generated to expand the biome at `position` by `width` blocks. ---
 ---@param position Vec2I
 ---@param width number
----@return void
+---@return boolean
 function world.pregenerateExpandBiome(position, width) end
 
 --- Sets the environment biome for a layer to the biome at `position`. ---
