@@ -26,11 +26,23 @@ Uma falha de criação encerra as threads do preview, registra o motivo no log e
 mantém o mundo no fluxo legado.
 
 O mailbox comporta uma entrada e um resultado por setor. O worker só recebe
-coordenada implícita, incarnação, níveis de carga/geração e revisão dos tiles;
+coordenada do setor, sequência, incarnação, níveis de carga/geração e revisão dos tiles;
 não recebe ponteiro para o mundo. O dono compara o resultado com os metadados
 atuais. Uma rejeição `stale` significa que o setor mudou durante a viagem da
 mensagem; o ticket nunca altera tiles, entidades, scripts ou save. Os tickets
 submetidos que ainda não terminaram não são contados como `completed`.
+
+## Revisão estática antes da primeira build
+
+- Uma segunda carga do mesmo setor reutiliza a thread registrada; o unload
+  retira o registro e aguarda `join` antes de aceitar uma nova incarnação.
+- A mailbox só aceita a coordenada e a incarnação de sua thread, com sequência
+  crescente. A resposta é conferida novamente contra coordenada, sequência,
+  incarnação, níveis e revisão atuais antes de contar como aceita.
+- O unload cancela o pedido ou resultado pendente. Uma falha na criação encerra
+  o preview, preservando o processamento legado do mundo.
+- Essa revisão examina contratos e fluxo de controle; compilação e observação
+  em jogo ainda são necessárias para validar integração e custo.
 
 Para avaliar o custo, comparar a mesma rota e o mesmo save com o preview
 desligado e ligado. Usar junto o painel de desempenho do mundo (ticks lentos,
@@ -47,5 +59,5 @@ equivalente. A build diagnóstica Tracy identifica as threads do preview e as
 zonas de criação/parada; sua visualização não transforma tempo em espera em
 tempo de CPU. Estes contadores do sistema não são estimados pelo HUD, porque
 medidas indiretas de stack ou de CPU por thread seriam enganosas. Nenhum desses
-dados demonstra ganho de paralelismo da simulação enquanto as threads só
-aguardarem o unload.
+dados demonstra ganho de paralelismo da simulação enquanto as threads apenas
+aguardarem ou processarem tickets de metadados.

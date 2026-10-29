@@ -48,7 +48,7 @@ public:
     STAR_TRACE_ZONE("Sector thread start");
     auto start = Time::monotonicMicroseconds();
     try {
-      m_threads.emplace(key, make_unique<Worker>(++m_nextIncarnation));
+      m_threads.emplace(key, make_unique<Worker>(sector, ++m_nextIncarnation));
     } catch (std::exception const& e) {
       ++m_metrics.failedCreations;
       m_metrics.disabledAfterFailure = true;
@@ -105,7 +105,8 @@ public:
       ++m_metrics.completed;
       m_queueWaitSamples.add(static_cast<uint64_t>(result.startedAt - result.sentAt));
       m_computeSamples.add(static_cast<uint64_t>(result.doneAt - result.startedAt));
-      if (result.incarnation == it->second->incarnation && result.contentRevision == contentRevision
+      if (result.sector == sector && result.sequence == it->second->latestSequence
+          && result.incarnation == it->second->incarnation && result.contentRevision == contentRevision
           && result.loadLevel == loadLevel && result.generationLevel == generationLevel
           && result.signature == ticketSignature(result))
         ++m_metrics.accepted;
@@ -113,6 +114,7 @@ public:
         ++m_metrics.stale;
     }
     Message message;
+    message.sector = sector;
     message.sequence = ++m_nextSequence;
     message.incarnation = it->second->incarnation;
     message.contentRevision = contentRevision;
@@ -142,6 +144,7 @@ public:
 
 private:
   struct Message {
+    Sector sector;
     uint64_t sequence = 0;
     uint64_t incarnation = 0;
     uint64_t contentRevision = 0;
@@ -156,6 +159,7 @@ private:
   static uint64_t ticketSignature(Message const& message) {
     // A transport check for immutable metadata, not a hash of world tiles.
     return (message.sequence * 33u) ^ (message.incarnation * 65599u)
+        ^ (uint64_t(message.sector[0]) << 32) ^ uint64_t(message.sector[1])
         ^ message.contentRevision ^ (uint64_t(message.loadLevel) << 16)
         ^ (uint64_t(message.generationLevel) << 24);
   }
@@ -182,7 +186,7 @@ private:
   };
 
   struct Worker {
-    explicit Worker(uint64_t incarnation) : incarnation(incarnation), thread([this] {
+    explicit Worker(Sector sector, uint64_t incarnation) : sector(sector), incarnation(incarnation), thread([this] {
 #ifdef STAR_ENABLE_TRACY
       tracy::SetThreadName("Sector mailbox preview");
 #endif
@@ -231,9 +235,11 @@ private:
     bool post(Message const& message) {
       {
         std::lock_guard<std::mutex> lock(mutex);
-        if (stopping || hasPending || processing || hasResult)
+        if (stopping || hasPending || processing || hasResult || message.sector != sector
+            || message.incarnation != incarnation || message.sequence <= latestSequence)
           return false;
         pending = message;
+        latestSequence = message.sequence;
         hasPending = true;
       }
       wake.notify_one();
@@ -266,7 +272,9 @@ private:
     bool hasResult = false;
     Message pending;
     Message result;
+    Sector const sector;
     uint64_t const incarnation;
+    uint64_t latestSequence = 0;
     std::thread thread;
   };
 
