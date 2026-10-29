@@ -1062,6 +1062,29 @@ ao contrato de cada chamador.
 Fontes: [TileSectorArray](../source/game/StarTileSectorArray.hpp) e
 [WorldGeometry](../source/base/StarWorldGeometry.cpp).
 
+## Trigésima quinta passagem: persistência após desligar entidades
+
+No descarregamento, `WorldStorage::unloadSectorToLevel` classifica entidades
+persistentes, remove cada uma do `EntityMap`, chama
+`WorldGenerator::destructEntity` e **depois** usa `storeVersionedEntity` para
+serializá-la. `destructEntity` atualiza tiles de ocupação de objetos e chama
+`entity->uninit()`. Em NPCs e objetos, `uninit` inclui o desligamento do
+componente de script. Logo, o estado salvo é capturado após esses callbacks
+de encerramento, enquanto a entidade já não consta no índice vivo.
+
+Um executor regional não deve serializar antecipadamente o estado da
+entidade em um worker e publicar esse snapshot como equivalente ao legado:
+isso perderia alterações feitas durante `uninit` e mudaria a visibilidade de
+consultas ao mapa. Para migração de dono, unload e checkpoint, é necessário
+definir uma barreira que ordene remoção, callbacks, atualização de ocupação,
+serialização e índice de IDs únicos. Esta passagem não demonstra que um mod
+específico altere seu estado durante `uninit`; identifica o contrato que a
+nova engine deve preservar ou versionar explicitamente.
+
+Fontes: [WorldStorage](../source/game/StarWorldStorage.cpp),
+[WorldGeneration](../source/game/StarWorldGeneration.cpp),
+[Npc](../source/game/StarNpc.cpp) e [Object](../source/game/StarObject.cpp).
+
 ## Encaminhamento após as passagens estáticas
 
 1. Investigar primeiro a escrita de `CaveLiquid` em vizinho já ativo, a
