@@ -1381,6 +1381,9 @@ void WorldServer::update(float dt) {
         strf("{} / {} loaded ({} tiles, {} entities); peak {}", threadMetrics.current,
             threadMetrics.loadedSectors, threadMetrics.tilesOnly,
             threadMetrics.withEntities, threadMetrics.peak));
+    if (!threadMetrics.disabledAfterFailure && threadMetrics.current != threadMetrics.loadedSectors)
+      Logger::warn("Sector thread preview {}: {} threads for {} loaded sectors",
+          m_worldId, threadMetrics.current, threadMetrics.loadedSectors);
     LogMap::set(strf("server_{}_sector_thread_lifecycle", m_worldId),
         strf("created {}; stopped {}; failed {}; disabled {}", threadMetrics.created,
             threadMetrics.destroyed, threadMetrics.failedCreations, threadMetrics.disabledAfterFailure));

@@ -186,37 +186,44 @@ private:
   };
 
   struct Worker {
-    explicit Worker(Sector sector, uint64_t incarnation) : sector(sector), incarnation(incarnation), thread([this] {
+    explicit Worker(Sector sector, uint64_t incarnation) : sector(sector), incarnation(incarnation) {
+      thread = std::thread([this] {
 #ifdef STAR_ENABLE_TRACY
-      tracy::SetThreadName("Sector mailbox preview");
+        tracy::SetThreadName("Sector mailbox preview");
 #endif
-      std::unique_lock<std::mutex> lock(mutex);
-      ready = true;
-      wake.notify_one();
-      while (true) {
-        wake.wait(lock, [this] { return stopping || hasPending; });
-        if (stopping)
-          break;
-        Message work = pending;
-        hasPending = false;
-        processing = true;
-        lock.unlock();
-        work.startedAt = Time::monotonicMicroseconds();
-        {
-          STAR_TRACE_ZONE("Sector immutable metadata task");
-          work.signature = WorldSectorThreads::ticketSignature(work);
+        std::unique_lock<std::mutex> lock(mutex);
+        ready = true;
+        wake.notify_one();
+        while (true) {
+          wake.wait(lock, [this] { return stopping || hasPending; });
+          if (stopping)
+            break;
+          Message work = pending;
+          hasPending = false;
+          processing = true;
+          lock.unlock();
+          work.startedAt = Time::monotonicMicroseconds();
+          {
+            STAR_TRACE_ZONE("Sector immutable metadata task");
+            work.signature = WorldSectorThreads::ticketSignature(work);
+          }
+          work.doneAt = Time::monotonicMicroseconds();
+          lock.lock();
+          processing = false;
+          if (!stopping) {
+            result = work;
+            hasResult = true;
+          }
         }
-        work.doneAt = Time::monotonicMicroseconds();
-        lock.lock();
-        processing = false;
-        if (!stopping) {
-          result = work;
-          hasResult = true;
-        }
+      });
+      try {
+        std::unique_lock<std::mutex> lock(mutex);
+        wake.wait(lock, [this] { return ready; });
+      } catch (...) {
+        requestStop();
+        thread.join();
+        throw;
       }
-    }) {
-      std::unique_lock<std::mutex> lock(mutex);
-      wake.wait(lock, [this] { return ready; });
     }
 
     ~Worker() {

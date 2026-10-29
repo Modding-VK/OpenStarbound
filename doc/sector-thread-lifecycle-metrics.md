@@ -11,7 +11,7 @@ após 60 passos e depois a cada 300 passos.
 
 | Chave | Significado |
 | --- | --- |
-| `sector_threads` | Threads atuais / setores com tiles carregados, divisão entre `Tiles` e `Entities`, pico de threads desde a abertura do mundo. A diferença entre os dois primeiros números aponta uma falha na correspondência 1:1. |
+| `sector_threads` | Threads atuais / setores com tiles carregados, divisão entre `Tiles` e `Entities`, pico de threads desde a abertura do mundo. A diferença entre os dois primeiros números aponta uma falha na correspondência 1:1 enquanto o preview estiver ativo; após falha de criação, o desligamento é esperado. |
 | `sector_thread_lifecycle` | Criações, encerramentos, falhas de criação e desligamento automático do preview. |
 | `sector_thread_start_us` | p95, p99, máximo e soma, em microssegundos, desde o pedido de criação até a thread sinalizar que começou a esperar. |
 | `sector_thread_stop_us` | p95, p99, máximo e soma, em microssegundos, para sinalizar a parada e concluir o `join`. |
@@ -41,6 +41,11 @@ submetidos que ainda não terminaram não são contados como `completed`.
   incarnação, níveis e revisão atuais antes de contar como aceita.
 - O unload cancela o pedido ou resultado pendente. Uma falha na criação encerra
   o preview, preservando o processamento legado do mundo.
+- Se a espera pela confirmação de início falhar após criar a thread, o
+  construtor sinaliza a parada e faz `join` antes de propagar o erro. Uma
+  divergência entre threads e setores carregados é registrada como aviso no log.
+- O projeto já liga suporte a threads nas plataformas suportadas; a nova
+  mailbox usa apenas a biblioteca padrão e a instrumentação Tracy existente.
 - Essa revisão examina contratos e fluxo de controle; compilação e observação
   em jogo ainda são necessárias para validar integração e custo.
 
