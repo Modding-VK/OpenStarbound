@@ -1131,6 +1131,27 @@ Fontes: [WorldLayout](../source/game/StarWorldLayout.cpp),
 [WorldServer](../source/game/StarWorldServer.cpp) e
 [WorldLuaBindings](../source/game/scripting/StarWorldLuaBindings.cpp).
 
+## Trigésima oitava passagem: setor repetido na prévia de terraformação
+
+`expandRegionInLayer` pode devolver duas faixas de expansão. Cada faixa é
+acolchoada pelo blend antes de `WorldServer::expandBiomeRegion` converter
+seus retângulos em setores. O servidor percorre as listas separadamente,
+sem deduplicar setores físicos entre elas. Se as faixas ou seus halos caírem
+no mesmo setor, `triggerTerraformSector` é chamado mais de uma vez para ele.
+
+Após a primeira chamada, `generationLevel` já é `Terraform` e a chamada
+seguinte não repete a geração até `Complete`, mas repete a consulta/carga do
+setor e `markSectorDirty`. O mesmo padrão de loop existe em
+`addBiomeRegion`; a duplicação depende da geometria dos retângulos. O futuro
+plano de footprint deve construir um conjunto canônico de setores antes de
+marcar ou reservar qualquer um, inclusive nas duas pontas da emenda. Não há
+medição de frequência desse caso nos logs disponíveis.
+
+Fontes: [WorldLayout](../source/game/StarWorldLayout.cpp),
+[WorldTemplate](../source/game/StarWorldTemplate.cpp),
+[WorldServer](../source/game/StarWorldServer.cpp) e
+[WorldStorage](../source/game/StarWorldStorage.cpp).
+
 ## Encaminhamento após as passagens estáticas
 
 1. Investigar primeiro a escrita de `CaveLiquid` em vizinho já ativo, a
