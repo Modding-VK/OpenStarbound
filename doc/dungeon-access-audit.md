@@ -86,3 +86,54 @@ As métricas atuais são amostras parciais e não implementam reservas.
 Não é necessário aguardar logs para implementar os contratos de plano e
 snapshot. Logs e testes em jogo serão necessários para medir overhead e
 comprovar que o novo planejamento conserva as decisões e os efeitos observáveis.
+
+## Segunda passagem: factories, callbacks e template
+
+Auditoria estática adicional sobre a mesma implementação. Os pontos abaixo
+restringem a separação proposta; não dependem de nova coleta de logs.
+
+| Caminho confirmado | Consequência para o plano |
+| --- | --- |
+| ObjectDatabase::createForPlacement → canPlaceObject → findValidOrientation | Valida placementValid e anchorsValid das orientações contra World antes de criar o objeto. A factory não é uma função apenas de JSON. |
+| Object::init | Pode escolher orientação novamente, registra callbacks object/config/animator e inicializa o componente de script no Master. Preservar o estado observado nessa segunda validação. |
+| LuaBaseComponent init/uninit | Invoca os entrypoints Lua init/uninit; LuaWorldComponent instala a API world. Um callback legado tem acesso além dos setores da estrutura. |
+| Object::uninit | Desinicializa o script antes de Entity::uninit. A remoção feita durante escolha das peças tem efeitos observáveis por scripts. |
+| Npc::init | Inicializa movimento/status/tools, equipa itens e inicializa script com callbacks de NPC, status, comportamento e movimento. Não transferir init inteiro a um worker. |
+| Stagehand::init | No Master com m_scripted, inicializa script e callbacks de comportamento. Ausência de corpo físico não implica ausência de dependências. |
+| TreasureDatabase::createTreasureChest | Lê threatLevel, escolhe definição e container por seed e cria objeto com treasurePools/treasureSeed. A geração do conteúdo ainda ocorre depois. |
+| ContainerObject::init | Primeiro chama Object::init (incluindo script), depois, se ainda não inicializado, cria itens e preenche tesouro, finalizando com itemsUpdated. Pré-preencher baú antes do init pode mudar o que o script observa. |
+| WorldTemplate::addCustomTerrainRegion/addCustomSpaceRegion | Acrescenta polígono, limpa m_blockCache inteiro e incrementa m_generationRevision. Dependência atual é global ao template, mesmo com polígono local. |
+
+Fontes adicionais: [ObjectDatabase](../source/game/StarObjectDatabase.cpp),
+[Object](../source/game/StarObject.cpp), [Npc](../source/game/StarNpc.cpp),
+[Stagehand](../source/game/StarStagehand.cpp),
+[componentes Lua](../source/game/scripting/StarLuaComponents.cpp),
+[callbacks do mundo](../source/game/scripting/StarLuaComponents.hpp),
+[Treasure](../source/game/StarTreasure.cpp),
+[ContainerObject](../source/game/objects/StarContainerObject.cpp),
+[WorldTemplate](../source/game/StarWorldTemplate.cpp).
+
+### RNG e ordem observável dos baús
+
+ContainerObject::init também avalia Random::randu64() no argumento de fallback,
+mesmo com treasureSeed explícita. A seleção entre treasurePools usa
+Random::randValueFrom; só depois fillWithTreasure recebe a seed incrementada.
+Portanto, copiar apenas treasureSeed para um worker não estabelece equivalência
+de seleção nem do consumo de RNG. O primeiro plano deve guardar a intenção de
+criar o baú e deixar essa sequência no aplicador serial. Uma separação futura
+de conteúdo exige capturar escolhas e preservar a ordem relativa ao init Lua.
+
+### Fronteira recomendada após esta passagem
+
+O piloto deve preparar geometria, buffers e descrições de entidades. O aplicador
+continua responsável por orientação final, init/uninit, tesouros, alterações do
+template e efeitos de rede. Para planejar após uma remoção com uninit arbitrário,
+uma projeção de ocupação não basta: o script pode alterar outras dependências.
+Esse caminho precisa declarar incompatibilidade com planejamento isolado ou
+usar conteúdo cujo contrato de callbacks tenha sido auditado. Não repetir o
+callback durante retry, nem executá-lo no mundo para descobrir seu alcance.
+
+Pendências mais específicas: expandir placementValid/anchorsValid, subclasses
+de objetos e veículos, itens gerados por factories e chamadas indiretas dos
+brushes. Caches internos e locks das databases ainda precisam de auditoria de
+concorrência; a existência de cache não prova segurança de acesso em worker.
