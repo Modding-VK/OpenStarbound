@@ -21,17 +21,22 @@
 #include <exception>
 #include <map>
 #include <mutex>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <thread>
 
 namespace Star {
 
-// Experimental sector mailbox. The worker receives only copied metadata and
-// never dereferences WorldStorage or tiles; simulation ownership is separate.
+// Experimental logical-region mailbox. One worker owns a 2x2 group of loaded
+// physical sectors. It receives only copied metadata and never dereferences
+// WorldStorage or tiles; simulation ownership is separate.
 class WorldSectorThreads {
 public:
   using Sector = WorldStorage::Sector;
+  using Region = Vec2U;
+  using SectorKey = std::pair<size_t, size_t>;
+  using RegionKey = std::pair<size_t, size_t>;
   enum class PostResult { Accepted, Busy, Invalid };
 
   explicit WorldSectorThreads(bool mailboxEnabled) {
@@ -44,16 +49,31 @@ public:
     m_threads.clear();
   }
 
-  void loaded(Sector const& sector) {
+  void loaded(Sector const& sector, Vec2U const& worldSize) {
     if (m_metrics.disabledAfterFailure)
       return;
-    auto key = std::make_pair(sector[0], sector[1]);
-    if (m_threads.find(key) != m_threads.end())
+    auto region = regionFor(sector, worldSize);
+    if (!region) {
+      disableAfterFailure("invalid logical region for loaded sector", false, sector);
       return;
+    }
+    auto sectorKey = keyFor(sector);
+    auto regionKey = keyForRegion(*region);
+    auto existing = m_sectorRegions.find(sectorKey);
+    if (existing != m_sectorRegions.end())
+      return;
+    auto it = m_threads.find(regionKey);
+    if (it != m_threads.end()) {
+      m_regionSectors[regionKey].insert(sectorKey);
+      m_sectorRegions.emplace(sectorKey, regionKey);
+      return;
+    }
     STAR_TRACE_ZONE("Sector thread start");
     auto start = Time::monotonicMicroseconds();
     try {
-      m_threads.emplace(key, make_unique<Worker>(sector, ++m_nextIncarnation));
+      m_threads.emplace(regionKey, make_unique<Worker>(*region, ++m_nextIncarnation));
+      m_regionSectors[regionKey].insert(sectorKey);
+      m_sectorRegions.emplace(sectorKey, regionKey);
     } catch (std::exception const& e) {
       disableAfterFailure(e.what(), true);
       return;
@@ -67,14 +87,26 @@ public:
   }
 
   void unloaded(Sector const& sector) {
-    auto it = m_threads.find(std::make_pair(sector[0], sector[1]));
+    auto sectorIt = m_sectorRegions.find(keyFor(sector));
+    if (sectorIt == m_sectorRegions.end())
+      return;
+    auto regionKey = sectorIt->second;
+    auto it = m_threads.find(regionKey);
     if (it == m_threads.end())
+      return;
+    auto members = m_regionSectors.find(regionKey);
+    if (members != m_regionSectors.end())
+      members->second.erase(sectorIt->first);
+    m_sectorRegions.erase(sectorIt);
+    if (members != m_regionSectors.end() && !members->second.empty())
       return;
     if (it->second->hasOutstanding())
       ++m_metrics.cancelled;
     STAR_TRACE_ZONE("Sector thread stop");
     auto start = Time::monotonicMicroseconds();
     m_threads.erase(it);
+    m_regionSectors.erase(regionKey);
+    m_sampledRegions.erase(regionKey);
     auto elapsed = static_cast<uint64_t>(Time::monotonicMicroseconds() - start);
     m_stopSamples.add(elapsed);
     m_metrics.stopTotalMicroseconds += elapsed;
@@ -101,20 +133,28 @@ public:
       uint64_t contentRevision) {
     if (!m_metrics.mailboxEnabled || m_metrics.disabledAfterFailure)
       return;
-    auto it = m_threads.find(std::make_pair(sector[0], sector[1]));
+    auto sectorIt = m_sectorRegions.find(keyFor(sector));
+    if (sectorIt == m_sectorRegions.end())
+      return;
+    auto it = m_threads.find(sectorIt->second);
     if (it == m_threads.end())
       return;
-    if (it->second->hasFailed()) {
+    if (m_sampledRegions.find(sectorIt->second) != m_sampledRegions.end())
+      return;
+    m_sampledRegions.insert(sectorIt->second);
+    auto& worker = *it->second;
+    if (worker.hasFailed()) {
       disableAfterFailure("sector worker exited unexpectedly", false, sector);
       return;
     }
     Message result;
-    if (it->second->takeResult(result)) {
+    if (worker.takeResult(result)) {
       ++m_metrics.completed;
       m_queueWaitSamples.add(static_cast<uint64_t>(result.startedAt - result.sentAt));
       m_computeSamples.add(static_cast<uint64_t>(result.doneAt - result.startedAt));
-      if (result.sector == sector && result.sequence == it->second->latestSequence
-          && result.incarnation == it->second->incarnation && result.contentRevision == contentRevision
+      if (result.sector == sector && result.region == regionFromKey(sectorIt->second)
+          && result.sequence == worker.latestSequence
+          && result.incarnation == worker.incarnation && result.contentRevision == contentRevision
           && result.loadLevel == loadLevel && result.generationLevel == generationLevel
           && result.signature == ticketSignature(result))
         ++m_metrics.accepted;
@@ -123,13 +163,14 @@ public:
     }
     Message message;
     message.sector = sector;
+    message.region = regionFromKey(sectorIt->second);
     message.sequence = ++m_nextSequence;
-    message.incarnation = it->second->incarnation;
+    message.incarnation = worker.incarnation;
     message.contentRevision = contentRevision;
     message.loadLevel = loadLevel;
     message.generationLevel = generationLevel;
     message.sentAt = Time::monotonicMicroseconds();
-    auto posted = it->second->post(message);
+    auto posted = worker.post(message);
     if (posted == PostResult::Accepted)
       ++m_metrics.submitted;
     else if (posted == PostResult::Busy)
@@ -172,6 +213,10 @@ public:
     }
   }
 
+  void beginSampleCycle() {
+    m_sampledRegions.clear();
+  }
+
 private:
   void disableAfterFailure(char const* reason, bool creation, Maybe<Sector> sector = {}) {
     if (creation)
@@ -181,18 +226,19 @@ private:
     m_metrics.disabledAfterFailure = true;
     for (auto& entry : m_threads)
       entry.second->requestStop();
-    while (!m_threads.empty()) {
-      auto key = m_threads.begin()->first;
-      unloaded(Sector(key.first, key.second));
-    }
+    m_threads.clear();
+    m_regionSectors.clear();
+    m_sectorRegions.clear();
+    m_sampledRegions.clear();
     if (sector)
-      Logger::warn("Sector thread preview disabled after failure at {}:{}: {}", (*sector)[0], (*sector)[1], reason);
+      Logger::warn("Logical region thread preview disabled after failure near sector {}:{}: {}", (*sector)[0], (*sector)[1], reason);
     else
-      Logger::warn("Sector thread preview disabled after failure: {}", reason);
+      Logger::warn("Logical region thread preview disabled after failure: {}", reason);
   }
 
   struct Message {
     Sector sector;
+    Region region;
     uint64_t sequence = 0;
     uint64_t incarnation = 0;
     uint64_t contentRevision = 0;
@@ -208,6 +254,7 @@ private:
     // A transport check for immutable metadata, not a hash of world tiles.
     return (message.sequence * 33u) ^ (message.incarnation * 65599u)
         ^ (uint64_t(message.sector[0]) << 32) ^ uint64_t(message.sector[1])
+        ^ (uint64_t(message.region[0]) << 17) ^ (uint64_t(message.region[1]) << 49)
         ^ message.contentRevision ^ (uint64_t(message.loadLevel) << 16)
         ^ (uint64_t(message.generationLevel) << 24);
   }
@@ -235,11 +282,11 @@ private:
   };
 
   struct Worker {
-    explicit Worker(Sector sector, uint64_t incarnation) : sector(sector), incarnation(incarnation) {
+    explicit Worker(Region region, uint64_t incarnation) : region(region), incarnation(incarnation) {
       thread = std::thread([this] {
         try {
 #ifdef STAR_ENABLE_TRACY
-          auto threadName = std::string("Sector ") + std::to_string(sector[0]) + ":" + std::to_string(sector[1]);
+          auto threadName = std::string("World region ") + std::to_string(region[0]) + ":" + std::to_string(region[1]);
           tracy::SetThreadName(threadName.c_str());
 #endif
           std::unique_lock<std::mutex> lock(mutex);
@@ -255,7 +302,7 @@ private:
             lock.unlock();
             work.startedAt = Time::monotonicMicroseconds();
             {
-              STAR_TRACE_ZONE("Sector immutable metadata task");
+              STAR_TRACE_ZONE("Logical region immutable metadata task");
               work.signature = WorldSectorThreads::ticketSignature(work);
             }
             work.doneAt = Time::monotonicMicroseconds();
@@ -309,7 +356,7 @@ private:
     PostResult post(Message const& message) {
       {
         std::lock_guard<std::mutex> lock(mutex);
-        if (stopping || failed.load(std::memory_order_acquire) || message.sector != sector || message.incarnation != incarnation
+        if (stopping || failed.load(std::memory_order_acquire) || message.region != region || message.incarnation != incarnation
             || message.sequence <= latestSequence)
           return PostResult::Invalid;
         if (hasPending || processing || hasResult)
@@ -353,15 +400,34 @@ private:
     std::atomic<bool> failed{false};
     Message pending;
     Message result;
-    Sector const sector;
+    Region const region;
     uint64_t const incarnation;
     uint64_t latestSequence = 0;
     std::thread thread;
   };
 
-  // The world owner thread alone changes this map. Individual workers only
-  // wait for shutdown, so they cannot race with world state or the registry.
-  std::map<std::pair<size_t, size_t>, unique_ptr<Worker>> m_threads;
+  static SectorKey keyFor(Sector const& sector) {
+    return {sector[0], sector[1]};
+  }
+
+  static RegionKey keyForRegion(Region const& region) {
+    return {region[0], region[1]};
+  }
+
+  static Region regionFromKey(RegionKey const& key) {
+    return Region(key.first, key.second);
+  }
+
+  static Maybe<Region> regionFor(Sector const& sector, Vec2U const& worldSize) {
+    return WorldRegionPartition(WorldGeometry(worldSize)).regionForSector(Vec2U(sector));
+  }
+
+  // The world owner thread alone changes these registries. Individual workers
+  // only wait for shutdown, so they cannot race with world state or ownership.
+  std::map<RegionKey, unique_ptr<Worker>> m_threads;
+  std::map<RegionKey, std::set<SectorKey>> m_regionSectors;
+  std::map<SectorKey, RegionKey> m_sectorRegions;
+  std::set<RegionKey> m_sampledRegions;
   WorldSectorThreadMetrics m_metrics;
   Samples m_startSamples;
   Samples m_stopSamples;
@@ -617,6 +683,7 @@ void WorldStorage::sampleSectorThreadMailbox() {
     return;
   auto startedAt = Time::monotonicMicroseconds();
   m_sectorThreads->inspectFailures();
+  m_sectorThreads->beginSampleCycle();
   if (!m_sectorThreads->mailboxEnabled()) {
     m_sectorThreads->recordOwnerSample(static_cast<uint64_t>(Time::monotonicMicroseconds() - startedAt));
     return;
@@ -662,8 +729,10 @@ void WorldStorage::queueSectorActivation(Sector sector) {
   }
 
   auto p = m_generationQueue.insert(sector, m_generationQueueTimeToLive);
-  if (p.second && (m_explorationProfile || m_performanceSamplingEnabled))
-    m_generationQueuedAt[sector] = Time::monotonicTime();
+  if (p.second) {
+    m_generationRequests[sector] = GenerationRequest{++m_generationRequestSequence, Time::monotonicTime()};
+    recordGenerationRequest(sector, "admitted");
+  }
   if (m_performanceSamplingEnabled)
     m_performancePeakQueuedSectors = max(m_performancePeakQueuedSectors, m_generationQueue.size());
   p.first->second = m_generationQueueTimeToLive;
@@ -718,15 +787,6 @@ void WorldStorage::setPerformanceSamplingEnabled(bool enabled) {
   m_performancePeakQueuedSectors = enabled ? m_generationQueue.size() : 0;
   m_performanceLateCompletedSectors = 0;
   m_performanceMaximumQueuedSeconds = 0;
-  if (enabled) {
-    double now = Time::monotonicTime();
-    for (auto const& entry : m_generationQueue) {
-      if (!m_generationQueuedAt.contains(entry.first))
-        m_generationQueuedAt[entry.first] = now;
-    }
-  } else if (!m_explorationProfile) {
-    m_generationQueuedAt.clear();
-  }
 }
 
 Json WorldStorage::generationProfilingData() const {
@@ -758,10 +818,10 @@ WorldGenerationQueueSnapshot WorldStorage::generationQueueSnapshot(double overdu
   snapshot.peakQueuedSectors = m_performancePeakQueuedSectors;
   snapshot.lateCompletedSectors = m_performanceLateCompletedSectors;
   double now = Time::monotonicTime();
-  for (auto const& entry : m_generationQueuedAt) {
+  for (auto const& entry : m_generationRequests) {
     if (!m_generationQueue.contains(entry.first))
       continue;
-    double age = max(0.0, now - entry.second);
+    double age = max(0.0, now - entry.second.queuedAt);
     snapshot.oldestQueuedSeconds = max(snapshot.oldestQueuedSeconds, age);
     if (age >= overdueSeconds)
       ++snapshot.overdueSectors;
@@ -841,11 +901,11 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       double now = Time::monotonicTime();
       double oldestQueuedAt = now;
       Maybe<Sector> oldestSector;
-      for (auto const& entry : m_generationQueuedAt) {
+      for (auto const& entry : m_generationRequests) {
         if (!m_generationQueue.contains(entry.first))
           continue;
-        if (entry.second < oldestQueuedAt) {
-          oldestQueuedAt = entry.second;
+        if (!oldestSector || entry.second.sequence < m_generationRequests.get(*oldestSector).sequence) {
+          oldestQueuedAt = entry.second.queuedAt;
           oldestSector = entry.first;
         }
       }
@@ -853,8 +913,11 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       if (oldestSector) {
         m_explorationProfile->recordQueuedSector(Vec2I((int)(*oldestSector)[0], (int)(*oldestSector)[1]),
             now - oldestQueuedAt);
-        if (!m_oldestQueueDiagnosticSector || *m_oldestQueueDiagnosticSector != *oldestSector) {
+        auto sequence = m_generationRequests.get(*oldestSector).sequence;
+        if (!m_oldestQueueDiagnosticSector || *m_oldestQueueDiagnosticSector != *oldestSector
+            || m_oldestQueueDiagnosticSequence != sequence) {
           m_oldestQueueDiagnosticSector = *oldestSector;
+          m_oldestQueueDiagnosticSequence = sequence;
           m_lastOldestQueueDiagnosticBucket = 0;
           m_oldestQueueAttempts = 0;
           m_oldestQueueFullAttempts = 0;
@@ -870,14 +933,15 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
           auto metadata = m_sectorMetadata.ptr(*oldestSector);
           auto blockerMetadata = m_oldestQueueBlockingNeighbor
               ? m_sectorMetadata.ptr(*m_oldestQueueBlockingNeighbor) : nullptr;
-          Logger::info("[SectorQueue] oldest={} age={:.1f}s generationLevel={} loadLevel={} queued={} attempts={} fullAttempts={} advances={} lastBlock={} blocker={} blockerLevel={}",
+          Logger::info("[SectorQueue] oldest={} age={:.1f}s generationLevel={} loadLevel={} queued={} attempts={} fullAttempts={} advances={} lastBlock={} blocker={} blockerLevel={} requestEpoch={} requestSequence={}",
               *oldestSector, now - oldestQueuedAt,
               metadata ? static_cast<int>(metadata->generationLevel) : -1,
               metadata ? static_cast<int>(metadata->loadLevel) : -1,
               m_generationQueue.size(), m_oldestQueueAttempts, m_oldestQueueFullAttempts,
               m_oldestQueueAdvances, m_oldestQueueBlockReason,
               m_oldestQueueBlockingNeighbor,
-              blockerMetadata ? static_cast<int>(blockerMetadata->generationLevel) : -1);
+              blockerMetadata ? static_cast<int>(blockerMetadata->generationLevel) : -1,
+              m_generationRequestEpoch, sequence);
           m_oldestQueueAttempts = 0;
           m_oldestQueueFullAttempts = 0;
           m_oldestQueueAdvances = 0;
@@ -893,6 +957,22 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       m_generationQueue.sort([&sectorOrdering](auto const& a, auto const& b) {
           return sectorOrdering(a.first, b.first);
         });
+    }
+
+    // Observe an oldest-request opportunity without changing execution order.
+    // Identity exists without instrumentation; the extra scan is diagnostic only.
+    if (m_explorationProfile && m_explorationProfile->regionalDetailsEnabled() && !m_generationQueue.empty()) {
+      auto selected = m_generationQueue.firstKey();
+      auto oldest = selected;
+      for (auto const& entry : m_generationRequests) {
+        if (entry.second.sequence < m_generationRequests.get(oldest).sequence)
+          oldest = entry.first;
+      }
+      m_explorationProfile->count("generation.selection.samples");
+      if (oldest != selected)
+        m_explorationProfile->count("generation.selection.oldestDiffers");
+      recordGenerationRequest(selected, "selectedHead");
+      recordGenerationRequest(oldest, "shadowOldest");
     }
 
     // This is a bounded shadow of the recursive prerequisite rule below.  It
@@ -997,8 +1077,8 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       if (!schedulingOnly && p.first) {
         ++completedThisPass;
         m_generationQueue.removeFirst();
-        if (auto queuedAt = m_generationQueuedAt.ptr(sector)) {
-          double wait = Time::monotonicTime() - *queuedAt;
+        if (auto request = m_generationRequests.ptr(sector)) {
+          double wait = Time::monotonicTime() - request->queuedAt;
           if (m_explorationProfile) {
             m_explorationProfile->record("generation.sectorWait", wait);
             m_explorationProfile->recordCompletedSector(Vec2I((int)sector[0], (int)sector[1]), wait);
@@ -1009,7 +1089,8 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
             if (wait >= 0.1)
               ++m_performanceLateCompletedSectors;
           }
-          m_generationQueuedAt.remove(sector);
+          recordGenerationRequest(sector, "completed");
+          m_generationRequests.remove(sector);
         }
       } else if (!schedulingOnly) {
         // Preserve ordered processing of higher generation levels. Once the
@@ -1082,11 +1163,12 @@ void WorldStorage::tick(float dt, String const* worldId) {
         p.second -= dt;
         if (p.second <= 0.0f) {
           if (m_performanceSamplingEnabled) {
-            if (auto queuedAt = m_generationQueuedAt.ptr(p.first))
+            if (auto request = m_generationRequests.ptr(p.first))
               m_performanceMaximumQueuedSeconds = max(m_performanceMaximumQueuedSeconds,
-                  Time::monotonicTime() - *queuedAt);
+                  Time::monotonicTime() - request->queuedAt);
           }
-          m_generationQueuedAt.remove(p.first);
+          recordGenerationRequest(p.first, "expired");
+          m_generationRequests.remove(p.first);
           if (m_explorationProfile)
             m_explorationProfile->count("generation.sectorsExpired");
           return true;
@@ -1429,17 +1511,36 @@ void WorldStorage::openDatabase(BTreeDatabase& db, IODevicePtr device) {
 }
 
 WorldStorage::WorldStorage() {
+  static std::atomic<uint64_t> nextRequestEpoch{0};
+  m_generationRequestEpoch = nextRequestEpoch.fetch_add(1, std::memory_order_relaxed) + 1;
   auto storageConfig = Root::singleton().assets()->json("/worldstorage.config");
   m_sectorTimeToLive = jsonToVec2F(storageConfig.get("sectorTimeToLive"));
   m_generationQueueTimeToLive = storageConfig.getFloat("generationQueueTimeToLive");
   auto threading = Root::singleton().configuration()->get("worldThreading", JsonObject());
-  if (threading.getBool("sectorThreadLifecyclePreview", false))
-    m_sectorThreads = make_unique<WorldSectorThreads>(threading.getBool("sectorThreadMailboxPreview", false));
+  bool lifecyclePreview = threading.getBool("logicalRegionThreadLifecyclePreview",
+      threading.getBool("sectorThreadLifecyclePreview", false));
+  if (lifecyclePreview) {
+    bool mailboxPreview = threading.getBool("logicalRegionThreadMailboxPreview",
+        threading.getBool("sectorThreadMailboxPreview", false));
+    m_sectorThreads = make_unique<WorldSectorThreads>(mailboxPreview);
+  }
 }
 
 bool WorldStorage::belongsInSector(Sector const& sector, Vec2F const& position) const {
   WorldGeometry geometry(m_tileArray->size());
   return RectF(m_tileArray->sectorRegion(sector)).belongs(geometry.limit(position));
+}
+
+void WorldStorage::recordGenerationRequest(Sector const& sector, char const* event) {
+  if (!m_explorationProfile)
+    return;
+  if (auto request = m_generationRequests.ptr(sector)) {
+    auto metadata = m_sectorMetadata.ptr(sector);
+    m_explorationProfile->recordGenerationRequest(m_generationRequestEpoch, request->sequence,
+        Vec2I((int)sector[0], (int)sector[1]), event,
+        max(0.0, Time::monotonicTime() - request->queuedAt),
+        metadata ? static_cast<int>(metadata->generationLevel) : -1);
+  }
 }
 
 float WorldStorage::randomizedSectorTTL() const {
@@ -1623,7 +1724,7 @@ void WorldStorage::loadSectorToLevel(Sector const& sector, SectorLoadLevel targe
 
       metadata.loadLevel = currentLoad;
       if (m_sectorThreads)
-        m_sectorThreads->loaded(sector);
+    m_sectorThreads->loaded(sector, m_tileArray->size());
       if (m_regionObservation)
         m_regionObservation->changed(Vec2U(sector));
       timing.next("storage.tiles.callbacks");
@@ -1763,6 +1864,9 @@ bool WorldStorage::unloadSectorToLevel(Sector const& sector, SectorLoadLevel tar
       sectorStore.generationLevel = metadata.generationLevel;
       m_db.insert(tileSectorKey(sector), writeTileSector(sectorStore));
       m_syncedTileRevisions.remove(sector);
+      // Unloading does not remove existing queue interest. Preserve the request
+      // identity and report an observation rather than a false terminal event.
+      recordGenerationRequest(sector, "unloaded");
       m_sectorMetadata.remove(sector);
       if (m_regionObservation)
         m_regionObservation->changed(Vec2U(sector));

@@ -1,5 +1,24 @@
 # Backlog de desempenho da exploração
 
+## Prioridade vigente — 03/11/2026
+
+Por decisão do usuário, trabalhar primeiro no threading por setores, conforme
+o [plano de threads dedicadas](world-region-rework-advanced-concept.md).
+A externalização de NPCs está suspensa: não iniciar novas implementações,
+investigações específicas ou ativações dessa frente até retomada explícita.
+Os planos e protótipos existentes ficam preservados como histórico.
+Interações e transferência de entidades continuam sendo requisitos de
+correção do threading por setores, sem reabrir um serviço externo de IA.
+
+As [evidências dos 41 logs](log-audit-2026-11-03-deep.md) orientam o trabalho
+de progresso das etapas de geração, dependências e finalização dos setores.
+O [recorte de progresso e contratos por etapa](sector-scheduler-progress-plan.md)
+reconstrói os setores presos e define a sequência: identidade de pedido,
+seleção com oportunidade para pedidos antigos e pré-requisitos, validação de
+conflitos e execução pelas threads donas. Identidade independente do HUD e
+comparação observacional de candidatos implementadas; nova política de execução
+e validação em jogo continuam pendentes.
+
 As hipóteses de rework discutidas para setores de 64 × 64, dungeons compostas,
 pré-geração e cálculo paralelo de microdungeons estão em
 [world-generation-rework-hypotheses.md](world-generation-rework-hypotheses.md).

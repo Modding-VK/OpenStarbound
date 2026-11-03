@@ -389,6 +389,25 @@ void ExplorationProfile::recordGenerationTask(WorldGenerationTaskIdentity const&
   });
 }
 
+void ExplorationProfile::recordGenerationRequest(uint64_t epoch, uint64_t sequence, Vec2I sector,
+    char const* event, double ageSeconds, int generationLevel) {
+  count(strf("generation.requests.{}", event).c_str());
+  if (!m_regionalDetails)
+    return;
+  bool selection = String(event) == "selectedHead" || String(event) == "shadowOldest";
+  auto& events = selection ? m_generationSelectionEvents : m_generationRequestEvents;
+  if (events.size() >= (selection ? 16 : 64)) {
+    count(selection ? "generation.selection.eventsDropped" : "generation.requests.eventsDropped");
+    return;
+  }
+  events.append(JsonObject{
+    {"requestEpoch", epoch}, {"requestSequence", sequence},
+    {"sector", jsonFromVec2I(sector)}, {"event", event},
+    {"ageMilliseconds", ageSeconds * 1000}, {"generationLevel", generationLevel},
+    {"monotonicMilliseconds", Time::monotonicTime() * 1000}
+  });
+}
+
 void ExplorationProfile::recordRegionalTurn(WorldRegionTurn const& turn, char const* event, uint64_t observationStep) {
   if (!m_regionalDetails)
     return;
@@ -587,6 +606,10 @@ void ExplorationProfile::report(bool final) {
   auto evictedBaseTiles = baseTileOutcomesJson(m_evictedBaseTiles);
   auto generationTasks = std::move(m_generationTaskEvents);
   m_generationTaskEvents = {};
+  auto generationRequests = std::move(m_generationRequestEvents);
+  m_generationRequestEvents = {};
+  auto generationSelections = std::move(m_generationSelectionEvents);
+  m_generationSelectionEvents = {};
   auto regionTurns = std::move(m_regionTurnEvents);
   m_regionTurnEvents = {};
   auto storyHops = std::move(m_storyHops);
@@ -622,7 +645,7 @@ void ExplorationProfile::report(bool final) {
   if (!stages.empty() || !counts.empty() || !maxima.empty() || !entityTypes.empty() || !slowEntities.empty()
       || !npcStages.empty() || !oldestQueuedSector.isNull() || !slowSectors.empty() || !tilePackets.empty()
       || !staleBaseTiles.empty() || !evictedBaseTiles.empty() || !generationTasks.empty() || !regionTurns.empty()
-      || !storyHops.empty()) {
+      || !storyHops.empty() || !generationRequests.empty() || !generationSelections.empty()) {
     Json report = JsonObject{
       {"component", m_component}, {"context", m_context}, {"instance", m_instance},
       {"windowMilliseconds", (now - m_windowStart) * 1000},
@@ -633,6 +656,8 @@ void ExplorationProfile::report(bool final) {
       {"tilePackets", std::move(tilePackets)},
       {"staleBaseTiles", std::move(staleBaseTiles)}, {"evictedBaseTiles", std::move(evictedBaseTiles)},
       {"generationTasks", std::move(generationTasks)},
+      {"generationRequests", std::move(generationRequests)},
+      {"generationSelections", std::move(generationSelections)},
       {"regionTurns", std::move(regionTurns)},
       {"storyHops", std::move(storyHops)},
       {"regionalDiagnostics", std::move(regionalDiagnostics)},
@@ -686,7 +711,7 @@ void ExplorationProfile::report(bool final) {
         if (category == "npcs")
           npcStages = object.get("npcStages");
         bool hasData = !stages.empty() || !counts.empty() || !maxima.empty() || !entityTypes.empty() || !slowEntities.empty()
-            || !npcStages.isNull() && !npcStages.toObject().empty();
+            || (!npcStages.isNull() && !npcStages.toObject().empty());
         fields.set("stages", std::move(stages));
         fields.set("counts", std::move(counts));
         fields.set("maxima", std::move(maxima));
@@ -710,11 +735,11 @@ void ExplorationProfile::report(bool final) {
       sectors.set("tilePackets", object.get("tilePackets"));
       sectors.set("regionalDiagnostics", object.get("regionalDiagnostics"));
       sectors.set("regionTurns", object.get("regionTurns"));
-      bool hasSectors = !sectors.getObject("counts").empty()
+      bool hasSectors = !sectors.get("counts").toObject().empty()
           || !sectors.get("oldestQueuedSector").isNull()
-          || !sectors.getArray("slowSectors").empty()
-          || !sectors.getArray("tilePackets").empty()
-          || !sectors.getArray("regionTurns").empty();
+          || !sectors.get("slowSectors").toArray().empty()
+          || !sectors.get("tilePackets").toArray().empty()
+          || !sectors.get("regionTurns").toArray().empty();
       makeCategory("sectors", std::move(sectors), hasSectors);
 
       JsonObject generation;
@@ -723,23 +748,27 @@ void ExplorationProfile::report(bool final) {
       generation.set("staleBaseTiles", object.get("staleBaseTiles"));
       generation.set("evictedBaseTiles", object.get("evictedBaseTiles"));
       generation.set("generationTasks", object.get("generationTasks"));
-      bool hasGeneration = !generation.getObject("stages").empty() || !generation.getObject("counts").empty()
-          || !generation.getArray("staleBaseTiles").empty() || !generation.getArray("evictedBaseTiles").empty()
-          || !generation.getArray("generationTasks").empty();
+      generation.set("generationRequests", object.get("generationRequests"));
+      generation.set("generationSelections", object.get("generationSelections"));
+      bool hasGeneration = !generation.get("stages").toObject().empty() || !generation.get("counts").toObject().empty()
+          || !generation.get("staleBaseTiles").toArray().empty() || !generation.get("evictedBaseTiles").toArray().empty()
+          || !generation.get("generationTasks").toArray().empty()
+          || !generation.get("generationRequests").toArray().empty()
+          || !generation.get("generationSelections").toArray().empty();
       makeCategory("generation", std::move(generation), hasGeneration);
 
       JsonObject wiring;
       wiring.set("stages", selectByPrefix(object.get("stages"), {"wiring."}));
       wiring.set("counts", selectByPrefix(object.get("counts"), {"wiring."}));
       wiring.set("maxima", selectByPrefix(object.get("maxima"), {"wiring."}));
-      bool hasWiring = !wiring.getObject("stages").empty() || !wiring.getObject("counts").empty() || !wiring.getObject("maxima").empty();
+      bool hasWiring = !wiring.get("stages").toObject().empty() || !wiring.get("counts").toObject().empty() || !wiring.get("maxima").toObject().empty();
       makeCategory("wiring", std::move(wiring), hasWiring);
 
       JsonObject liquids;
       liquids.set("stages", selectByPrefix(object.get("stages"), {"liquid."}));
       liquids.set("counts", selectByPrefix(object.get("counts"), {"liquid."}));
       liquids.set("maxima", selectByPrefix(object.get("maxima"), {"liquid."}));
-      bool hasLiquids = !liquids.getObject("stages").empty() || !liquids.getObject("counts").empty() || !liquids.getObject("maxima").empty();
+      bool hasLiquids = !liquids.get("stages").toObject().empty() || !liquids.get("counts").toObject().empty() || !liquids.get("maxima").toObject().empty();
       makeCategory("liquids", std::move(liquids), hasLiquids);
 
       JsonObject scripts;
@@ -747,8 +776,8 @@ void ExplorationProfile::report(bool final) {
       scripts.set("storyHops", object.get("storyHops"));
       if (m_component == "playerQuests" || m_component == "universeScripts")
         scripts.set("allStages", object.get("stages"));
-      bool hasScripts = !scripts.getObject("stages").empty() || !scripts.getArray("storyHops").empty()
-          || (scripts.contains("allStages") && !scripts.getObject("allStages").empty());
+      bool hasScripts = !scripts.get("stages").toObject().empty() || !scripts.get("storyHops").toArray().empty()
+          || (scripts.contains("allStages") && !scripts.get("allStages").toObject().empty());
       makeCategory("scripts", std::move(scripts), hasScripts);
     } catch (...) {
       if (!m_reportWriteFailureLogged) {

@@ -188,8 +188,9 @@ public:
   // Returns true if the sector is both loaded and fully generated.
   bool sectorActive(Sector) const;
 
-  // Experimental preview: one OS thread per loaded sector, optionally
-  // processing copied metadata. No live world state is accessed by workers.
+  // Experimental preview: one OS thread per loaded 2x2 logical region,
+  // optionally processing copied metadata. Physical 32x32 sectors remain the
+  // storage and network unit. No live world state is accessed by workers.
   size_t sectorThreadCount() const;
   bool sectorThreadPreviewEnabled() const;
   WorldSectorThreadMetrics sectorThreadMetrics() const;
@@ -383,6 +384,7 @@ private:
   List<Sector> adjacentSectors(Sector const& sector) const;
 
   void recordGenerationProfile(size_t stage, double elapsedSeconds);
+  void recordGenerationRequest(Sector const& sector, char const* event);
 
   // Replace the sector uniques for this sector with the given set
   void updateSectorUniques(Sector const& sector, UniqueIndexStore const& sectorUniques);
@@ -417,9 +419,18 @@ private:
   StableHashMap<Sector, uint64_t> m_syncedTileRevisions;
   OrderedHashMap<Sector, float> m_generationQueue;
   OrderedHashMap<Sector, float> m_prefetchQueue;
-  HashMap<Sector, double> m_generationQueuedAt;
+  struct GenerationRequest {
+    uint64_t sequence;
+    double queuedAt;
+  };
+  // Runtime identity survives HUD/profiling toggles and interest renewals.
+  // Sequence is unique within this storage lifetime, not a BaseTiles task ID.
+  uint64_t m_generationRequestEpoch = 0;
+  uint64_t m_generationRequestSequence = 0;
+  HashMap<Sector, GenerationRequest> m_generationRequests;
   size_t m_lastOldestQueueDiagnosticBucket = 0;
   Maybe<Sector> m_oldestQueueDiagnosticSector;
+  uint64_t m_oldestQueueDiagnosticSequence = 0;
   size_t m_oldestQueueAttempts = 0;
   size_t m_oldestQueueFullAttempts = 0;
   size_t m_oldestQueueAdvances = 0;

@@ -5,8 +5,10 @@ Plano elaborado em 25/10/2026 na branch `perf/threading-audit`, com base na
 histórico de decisões ali registrado. Integra o
 [backlog de desempenho](performance-backlog.md).
 
-**Estado: fase 0 em execução; fases 1–2 com protótipos desligados por padrão,
-ainda sem aprovação; fases 3–7 pendentes.** A
+**Estado em 03/11/2026: frente suspensa por decisão do usuário; threading por
+setores tem precedência. Retomar a externalização de NPCs somente após decisão
+explícita.** O estado técnico preservado é: fase 0 incompleta; fases 1–2 com
+protótipos desligados por padrão, ainda sem aprovação; fases 3–7 pendentes. A
 [instrumentação detalhada](npc-profiling.md) foi acrescentada; há uma primeira
 coleta de custo, mas latência de reação, inventário completo e aprovação da fase 0 ainda estão
 pendentes. Há uma [auditoria estática de Lua](npc-lua-boundary-audit.md) e um

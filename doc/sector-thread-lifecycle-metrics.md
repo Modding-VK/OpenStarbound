@@ -1,24 +1,25 @@
-# Métricas do ciclo de vida das threads por setor
+# Métricas do ciclo de vida das threads por região lógica
 
-O preview `worldThreading.sectorThreadLifecyclePreview` é desligado por padrão.
-Quando ligado, cada setor carregado tem uma thread. Sem
-`worldThreading.sectorThreadMailboxPreview`, ela apenas espera o unload. Com a
-segunda opção ligada, processa um ticket de metadados imutáveis por setor a
-cada 60 passos. Nenhum trabalho de simulação roda nela. A coleta de métricas
+O preview `worldThreading.logicalRegionThreadLifecyclePreview` é desligado por
+padrão. Quando ligado, cada região lógica de até quatro setores físicos 32×32
+tem uma thread enquanto ao menos um de seus setores estiver carregado. Sem
+`worldThreading.logicalRegionThreadMailboxPreview`, ela apenas espera o unload.
+Com a segunda opção ligada, processa um ticket de metadados imutáveis de um
+setor representativo por região a cada 60 passos. Nenhum trabalho de simulação
+roda nela. Os nomes antigos `sectorThreadLifecyclePreview` e
+`sectorThreadMailboxPreview` continuam aceitos por compatibilidade. A coleta de métricas
 de ciclo de vida ocorre com o primeiro preview; a coleta de tickets exige o
 segundo. O servidor publica um resumo a cada 60 passos no mapa de
-diagnóstico `server_<worldId>_*` e uma linha `Sector thread preview` no log
+diagnóstico `server_<worldId>_*` e uma linha `Logical region thread preview` no log
 após 60 passos e depois a cada 300 passos.
 
 | Chave | Significado |
 | --- | --- |
-| `sector_threads` | Threads atuais / setores com tiles carregados, divisão entre `Tiles` e `Entities`, pico desse mundo, total e pico do processo. A diferença entre os dois primeiros números aponta uma falha na correspondência 1:1 enquanto o preview estiver ativo; após falha de criação, o desligamento é esperado. O total do processo soma todos os mundos com o preview ativo. |
-| `sector_thread_lifecycle` | Criações, encerramentos, falhas de criação, falhas em runtime (worker ou protocolo), despachos rejeitados por identidade/sequência e desligamento automático do preview. Um mailbox ocupado é contado separadamente em `sector_mailbox`. |
-| `sector_thread_start_us` | p95, p99, máximo e soma, em microssegundos, desde o pedido de criação até a thread sinalizar que começou a esperar. |
-| `sector_thread_stop_us` | p95, p99, máximo e soma, em microssegundos, para sinalizar a parada e concluir o `join`. |
-| `sector_thread_owner_us` | Tempo gasto pela thread do mundo ao inspecionar falhas e, se habilitado, recolher e enviar tickets. p95/p99 dos últimos 256 passos de coleta, máximo, soma e amostras. |
-| `sector_mailbox` | Estado ativo do mailbox e tickets enviados, concluídos, aceitos, obsoletos, cancelados no unload e não enviados por mailbox ocupado. Continua visível após desligamento por falha para preservar os contadores finais. |
-| `sector_mailbox_us` | p95/p99 de espera entre envio e início do cálculo, e de duração do cálculo; janela de 256 resultados. |
+| `logical_region_threads` | Threads atuais de região / setores físicos carregados, divisão entre `Tiles` e `Entities`, pico desse mundo, total e pico do processo. O total do processo soma todos os mundos com o preview ativo. |
+| `logical_region_thread_lifecycle` | Criações, encerramentos, falhas de criação, falhas em runtime, despachos rejeitados e desligamento automático. |
+| `logical_region_thread_start_us`, `logical_region_thread_stop_us` | p95, p99, máximo e soma, em microssegundos, para criação ou parada com `join`. |
+| `logical_region_thread_owner_us` | Tempo gasto pela thread do mundo ao inspecionar falhas e, se habilitado, recolher e enviar tickets. |
+| `logical_region_mailbox`, `logical_region_mailbox_us` | Estado do mailbox e p95/p99 de espera e cálculo, em janela de 256 resultados. |
 
 O pico do processo vale desde o início da execução, inclusive mundos que já
 foram descarregados. Os percentis usam o posto mais próximo (*nearest rank*)
@@ -32,8 +33,9 @@ Uma falha de criação, de worker ou de protocolo encerra as threads do preview,
 motivo no log e mantém o mundo no fluxo legado.
 Quando a falha parte de um worker, o aviso inclui a coordenada do setor.
 
-O mailbox comporta uma entrada e um resultado por setor. O worker só recebe
-coordenada do setor, sequência, incarnação, níveis de carga/geração e revisão dos tiles;
+O mailbox comporta uma entrada e um resultado por região. O worker só recebe
+coordenadas da região e de um setor representativo, sequência, incarnação,
+níveis de carga/geração e revisão dos tiles;
 não recebe ponteiro para o mundo. O dono compara o resultado com os metadados
 atuais. Uma rejeição `stale` significa que o setor mudou durante a viagem da
 mensagem; o ticket nunca altera tiles, entidades, scripts ou save. Os tickets
@@ -41,11 +43,11 @@ submetidos que ainda não terminaram não são contados como `completed`.
 
 ## Revisão estática antes da primeira build
 
-- A thread começa após instalar os tiles e antes do callback de carga; uma
-  falha de leitura anterior não deixa uma thread para um setor ausente.
-- Uma segunda carga do mesmo setor reutiliza a thread registrada; o unload
-  retira o registro e aguarda `join` antes de aceitar uma nova incarnação.
-- A mailbox só aceita a coordenada e a incarnação de sua thread, com sequência
+- A thread começa após instalar o primeiro setor físico da região e antes do
+  callback de carga; uma falha de leitura anterior não deixa uma thread viva.
+- Cargas adicionais da mesma região reutilizam a thread registrada; somente o
+  unload do último setor retira o registro e aguarda `join`.
+- A mailbox só aceita a coordenada regional e a incarnação de sua thread, com sequência
   crescente. A resposta é conferida novamente contra coordenada, sequência,
   incarnação, níveis e revisão atuais antes de contar como aceita.
 - O unload cancela o pedido ou resultado pendente. Uma falha na criação ou

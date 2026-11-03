@@ -1,51 +1,60 @@
 # Reestruturação avançada do mundo por setores com threads dedicadas
 
-## Decisão de arquitetura: uma thread por setor carregado
+Prioridade confirmada em 03/11/2026: implementar primeiro o threading por
+setores. A frente separada de externalização de NPCs fica suspensa até retomada
+explícita. Os contratos de acesso e transferência de entidades necessários à
+correção dos setores permanecem no escopo deste plano. Os itens futuros de
+integração com APIs de NPCs não autorizam retomar aquela frente durante esta etapa.
 
-Decisão do projeto em 29/10/2026: **cada setor físico carregado no novo runtime
-tem sua própria thread do sistema operacional**, desde o início do carregamento
-até o unload.
-A relação é um para um: nenhum pool executa alternadamente a simulação de dois setores. Uma região
-lógica de 2×2 setores permanece útil para métricas, planejamento e conflitos,
-mas não é a unidade que possui a thread ou o estado mutável. Setores
-descarregados não executam e não mantêm uma thread viva. O modo legado
-continua disponível para mundos/conteúdo que ainda não suportam o novo
-contrato. Referências a reservas e identidades regionais descrevem a fundação
-observacional existente e não definem a posse de threads do runtime alvo.
+O [plano de progresso do agendador](sector-scheduler-progress-plan.md) relaciona
+os atrasos dos 41 logs aos contratos de cada etapa. Ele detalha o recorte
+preparatório de identidade, seleção e dependências antes da execução paralela.
+
+## Decisão de arquitetura: uma thread por região lógica carregada
+
+Decisão atual do projeto: **cada região lógica carregada de 2×2 setores físicos
+tem sua própria thread do sistema operacional**, desde o primeiro setor físico
+instalado até o unload do último. Uma região mede até 64×64 tiles; os setores
+físicos permanecem com 32×32. Nenhum pool executa alternadamente a simulação
+de duas regiões. Uma região sem setores carregados não mantém thread viva. O
+modo legado continua disponível para mundos/conteúdo que ainda não suportam o
+novo contrato.
 
 Cada thread coordena a geração e possui tiles, entidades ancoradas, líquidos
-e filas locais do seu setor. Lê vizinhos por snapshots confirmados; mudanças em outro setor viram
-mensagens ou intenções versionadas. Um coordenador do mundo controla relógio,
+e filas locais dos setores físicos da sua região. Acesso a outra região usa
+snapshots confirmados; mudanças remotas viram mensagens ou intenções
+versionadas. Um coordenador do mundo controla relógio,
 identidade, transferência de entidades e checkpoint, sem executar
 Lua local no lugar da thread dona. Um serviço serializa as escritas no banco
 `.world`. Estruturas que cruzam setores exigem reserva e publicação coerente
 dos donos envolvidos. Workers auxiliares ainda podem preparar cálculos puros,
-mas nunca substituem a thread dona da simulação do setor.
+mas nunca substituem a thread dona da simulação regional.
 
 As condições que iniciam ou mantêm uma thread seguem o carregamento atual do
 `WorldStorage`: pedidos de jogadores, carregamento de setores vizinhos,
 prefetch que efetivamente carrega tiles, acesso por entidades e outras chamadas
 existentes. Um setor apenas enfileirado ainda não possui thread. A passagem de
-`None` para `Tiles` ou `Entities` cria a thread antes de instalar estado local;
-ela permanece enquanto o setor tiver qualquer nível de carga diferente de
-`None`, mesmo se contiver apenas tiles ou estiver ocioso. TTL, entidades
-`keepAlive`, transições de nível e unload existentes decidem quando ela termina.
+`None` para `Tiles` ou `Entities` cria a thread da sua região antes de instalar
+estado local; ela permanece enquanto ao menos um setor físico da região tiver
+nível de carga diferente de `None`. TTL, entidades `keepAlive`, transições de
+nível e unload existentes decidem quando o último membro sai.
 Não criar um raio, limite de admissão ou política de retenção independentes
 para threads; prefetch não pode acionar mais threads que setores carregados.
 
-O ciclo de vida é `descarregado → pedido existente → thread iniciada →
-carregando/gerando → ativo ou apenas tiles → drenando → thread encerrada →
-descarregado`. Um setor ativo só é publicado aos
-clientes após sua thread dona estar pronta; a mesma identidade de setor não
+O ciclo de vida é `região sem setores carregados → pedido existente → thread
+iniciada → carregando/gerando → setores ativos ou apenas tiles → drenando →
+thread encerrada → região sem setores carregados`. Um setor ativo só é
+publicado aos clientes após sua região dona estar pronta; a mesma região não
 pode ter duas threads vivas. No unload, revogar novos pedidos, terminar ou
 cancelar propostas, confirmar o estado durável e juntar a thread antes de
 liberar sua identidade. Threads não executam Lua enquanto seguram locks de
 outros setores e não esperam de forma bloqueante por outra thread setorial.
 
-Criar uma thread por setor pode multiplicar pilhas, trocas de contexto e
+Criar uma thread por região pode multiplicar pilhas, trocas de contexto e
 contenção em mundos com muitos setores ativos, inclusive no multiplayer.
-Um planeta de 2048×2048 tiles contém 4096 setores de 32×32; carregá-los todos
-ao mesmo tempo exigiria 4096 threads só para esse planeta.
+Um planeta de 2048×2048 tiles contém 4096 setores de 32×32, agrupados em até
+1024 regiões lógicas 2×2; carregá-los todos ao mesmo tempo exigiria 1024
+threads só para esse planeta.
 Threads ociosas devem dormir sem polling. Antes de ativar esse runtime, medir
 quantidade simultânea de setores, memória por thread, latência de acordar,
 overhead de agendamento e progresso com 1, poucos e muitos núcleos. Se o custo
@@ -68,19 +77,23 @@ fases, medições e um caminho legado íntegro. O tamanho físico de cada setor
 permanece 32×32 neste plano inicial; [setores de 64×64](world-generation-rework-hypotheses.md)
 são uma hipótese independente.
 
-Implementação inicial em 29/10/2026: `worldThreading.sectorThreadLifecyclePreview`
-(padrão `false`) cria uma thread ociosa por setor após instalar os tiles e antes
-do callback de carga, inclusive para prefetch que chega ao nível `Tiles`.
-Ela termina após o unload para `None`; pedidos apenas enfileirados não a criam.
+Implementação inicial: `worldThreading.logicalRegionThreadLifecyclePreview`
+(padrão `false`) cria uma thread ociosa por região após instalar o primeiro
+setor físico e antes do callback de carga, inclusive para prefetch que chega ao
+nível `Tiles`. Ela termina quando o último setor físico faz unload para `None`;
+pedidos apenas enfileirados não a criam. O nome anterior
+`sectorThreadLifecyclePreview` continua aceito apenas por compatibilidade de
+configuração.
 As [métricas do ciclo de vida](sector-thread-lifecycle-metrics.md) comparam
 threads e setores carregados, registram pico, falhas e latências de criação e
 parada. Se a criação de uma thread falhar, o preview se desliga e o mundo segue
-pelo fluxo atual. Opcionalmente, `worldThreading.sectorThreadMailboxPreview`
-envia cópias versionadas dos metadados a cada 60 passos para as threads
+pelo fluxo atual. Opcionalmente, `worldThreading.logicalRegionThreadMailboxPreview`
+envia uma cópia versionada de metadados de um setor físico por região a cada 60
+passos para as threads
 calcularem um ticket e devolverem um resultado. O dono do mundo valida a
 incarnação, nível e revisão antes de aceitá-lo; o ticket não altera gameplay.
 Sem essa opção, as threads aguardam em condição. Este estágio mede o custo do ciclo de vida e
-verifica a correspondência com setores carregados; **não paraleliza a
+verifica o ciclo de vida regional; **não paraleliza a
 simulação**. A opção só deve ser habilitada para esse experimento até que
 ownership, mensagens e persistência estejam migrados.
 

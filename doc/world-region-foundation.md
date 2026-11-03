@@ -15,8 +15,10 @@ pela largura real da `WorldGeometry` antes da divisão; índices de setores e
 regiões já devem ser canônicos. Coordenadas verticais fora do mundo são
 rejeitadas. Geometria vazia ou não representável por `RectI` é indisponível.
 
-Esta região é um identificador de planejamento. Não é um dono de entidades ou
-de tiles, nem comprova independência entre dois trabalhos. Nenhuma dimensão,
+No fluxo legado, esta região continua sendo um identificador de planejamento e
+não é dona de entidades ou tiles. No preview experimental de ciclo de vida,
+ela já é a unidade da thread ociosa: uma região cria sua thread ao carregar o
+primeiro setor físico e a encerra após o unload do último. Nenhuma dimensão,
 chave do banco `.world`, semente, distribuição de estruturas ou pacote foi
 alterado. A entrega seguinte adicionou o
 [coordenador de turnos em sombra](world-region-coordinator.md), com captura

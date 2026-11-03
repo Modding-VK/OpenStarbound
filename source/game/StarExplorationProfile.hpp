@@ -152,6 +152,8 @@ public:
       JsonObject reasons, double ageSeconds);
   // Bounded lifecycle trace; only regionalDetails enables per-task records.
   void recordGenerationTask(WorldGenerationTaskIdentity const& identity, char const* event, size_t reservedBytes);
+  void recordGenerationRequest(uint64_t epoch, uint64_t sequence, Vec2I sector,
+      char const* event, double ageSeconds, int generationLevel);
   void recordRegionalTurn(WorldRegionTurn const& turn, char const* event, uint64_t observationStep);
   // Call at an outer operation boundary, never inside a timed scope. Final
   // reports preserve short windows when a world closes before the interval.
@@ -258,6 +260,8 @@ private:
   List<BaseTileOutcome> m_staleBaseTiles;
   List<BaseTileOutcome> m_evictedBaseTiles;
   JsonArray m_generationTaskEvents;
+  JsonArray m_generationRequestEvents;
+  JsonArray m_generationSelectionEvents;
   JsonArray m_regionTurnEvents;
   JsonArray m_storyHops;
 };
