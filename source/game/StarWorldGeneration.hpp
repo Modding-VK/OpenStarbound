@@ -175,6 +175,8 @@ private:
   void retireBaseTileTask(shared_ptr<WorldGenerationTask> const& task, WorldGenerationTaskOutcome outcome);
   SectorGenerationResult prepareTilesAsync(WorldStorage* worldStorage, Sector const& sector, bool allowAsync);
   void generateMicroDungeons(WorldStorage* worldStorage, Sector const& sector);
+  void applyMicroDungeonPlan(WorldStorage* worldStorage, MicroDungeonPlan const& plan,
+      DungeonGeneratorWorldPtr const& facade, ExplorationProfile* profile, bool planPreview);
   void generateCaveLiquid(WorldStorage* worldStorage, Sector const& sector);
   void prepareSector(WorldStorage* worldStorage, Sector const& sector);
   void prepareSectorBiomeBlocks(WorldStorage* worldStorage, Sector const& sector);

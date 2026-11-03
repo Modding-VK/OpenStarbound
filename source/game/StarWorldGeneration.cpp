@@ -1282,41 +1282,53 @@ void WorldGenerator::generateMicroDungeons(WorldStorage* worldStorage, ServerTil
   }
 
   for (auto const& plan : plans) {
-    QueuedPlacement* queued = plan.queuedPlacement ? &m_queuedPlacements[*plan.queuedPlacement] : nullptr;
-    if (queued && queued->fulfilled)
-      continue;
-    Maybe<DungeonId> dungeonId;
-    if (auto generateResult = m_microDungeonFactory->generate(plan.bounds, plan.dungeonName, plan.position,
-        plan.seed, m_worldServer->threatLevel(), facade)) {
-      if (profile && planPreview) {
-        profile->count("generation.microDungeonPlan.accepted");
-        profile->count("generation.microDungeonPlan.footprintTiles", generateResult->second.size());
-        HashSet<WorldStorage::Sector> footprintSectors;
-        for (auto const& position : generateResult->second) {
-          if (auto affectedSector = worldStorage->sectorForPosition(position))
-            footprintSectors.add(*affectedSector);
-        }
-        profile->record("generation.microDungeonPlan.footprintSectors", footprintSectors.size());
-        if (footprintSectors.size() > 1)
-          profile->count("generation.microDungeonPlan.crossSectorAccepted");
-      }
-        if (queued) {
-          dungeonId = queued->dungeonId;
-          queued->promise.fulfill(plan.position);
-          queued->fulfilled = true;
-        }
-        for (auto position : generateResult->second) {
-          if (ServerTile* tile = m_worldServer->modifyServerTile(position)) {
-            replaceBiomeBlocks(tile);
-            tile->dungeonId = dungeonId.value(tile->dungeonId);
-          }
-        }
-      }
-    }
-  
+    applyMicroDungeonPlan(worldStorage, plan, facade, profile, planPreview);
+  }
+
   m_queuedPlacements = m_queuedPlacements.filtered([&](QueuedPlacement& p) {
-      return !p.fulfilled;
-    });
+    return !p.fulfilled;
+  });
+}
+
+void WorldGenerator::applyMicroDungeonPlan(WorldStorage* worldStorage, MicroDungeonPlan const& plan,
+    DungeonGeneratorWorldPtr const& facade, ExplorationProfile* profile, bool planPreview) {
+  QueuedPlacement* queued = plan.queuedPlacement ? &m_queuedPlacements[*plan.queuedPlacement] : nullptr;
+  if (queued && queued->fulfilled)
+    return;
+
+  // This is the only live-world generation call in the microdungeon pipeline.
+  // Planning above is value-only; all tiles, entities and promises remain in
+  // the legacy owner-thread path below.
+  auto generateResult = m_microDungeonFactory->generate(plan.bounds, plan.dungeonName, plan.position,
+      plan.seed, m_worldServer->threatLevel(), facade);
+  if (!generateResult)
+    return;
+
+  if (profile && planPreview) {
+    profile->count("generation.microDungeonPlan.accepted");
+    profile->count("generation.microDungeonPlan.footprintTiles", generateResult->second.size());
+    HashSet<WorldStorage::Sector> footprintSectors;
+    for (auto const& position : generateResult->second) {
+      if (auto affectedSector = worldStorage->sectorForPosition(position))
+        footprintSectors.add(*affectedSector);
+    }
+    profile->record("generation.microDungeonPlan.footprintSectors", footprintSectors.size());
+    if (footprintSectors.size() > 1)
+      profile->count("generation.microDungeonPlan.crossSectorAccepted");
+  }
+
+  Maybe<DungeonId> dungeonId;
+  if (queued) {
+    dungeonId = queued->dungeonId;
+    queued->promise.fulfill(plan.position);
+    queued->fulfilled = true;
+  }
+  for (auto position : generateResult->second) {
+    if (ServerTile* tile = m_worldServer->modifyServerTile(position)) {
+      replaceBiomeBlocks(tile);
+      tile->dungeonId = dungeonId.value(tile->dungeonId);
+    }
+  }
 }
 
 void WorldGenerator::generateCaveLiquid(WorldStorage* worldStorage, ServerTileSectorArray::Sector const& sector) {
