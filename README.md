@@ -123,6 +123,8 @@ official sources with pinned versions and verified integrity. See the
 [dependency source policy](doc/dependency-sources.md).
 Development and agent review practices are documented in
 [development security](doc/development-security.md).
+As práticas de eficiência do trabalho agentivo estão em
+[agent token optimization](doc/agent-token-optimization.md).
 
 Note: Some of these [texts](## "hi :3") are just tooltips rather than links. 
 

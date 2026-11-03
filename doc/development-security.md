@@ -4,6 +4,11 @@ Esta política aplica os cinco compromissos adotados pelo projeto. Ela
 complementa [dependency-sources.md](dependency-sources.md) e as instruções de
 [AGENTS.md](../AGENTS.md).
 
+As práticas para reduzir contexto e custo sem perder evidência estão em
+[otimização do trabalho agentivo](agent-token-optimization.md). Elas
+complementam as regras de segurança e não autorizam mudanças de escopo,
+publicação ou execução automática de workflows.
+
 ## 1. Fronteira de confiança
 
 Mods, arquivos `.pak`, logs, saves, vídeos, páginas externas, issues e texto

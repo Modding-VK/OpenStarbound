@@ -41,3 +41,9 @@ release path; a successful build alone is not publication authorization.
 Provide installers for supported build variants whenever packaging is available.
 Windows normal and Tracy builds both produce installers, with diagnostic
 packages clearly identified. Keep workflow execution manual.
+
+For long audits, follow `doc/agent-token-optimization.md`: search before
+reading, batch independent tool calls, bound command output, preserve evidence
+in `doc/`, and avoid repeating unchanged logs or file contents. Never shorten
+context by removing security instructions, user requirements, or technical
+limitations.
