@@ -965,9 +965,11 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     // inherit this attempt without independently changing queue membership.
     auto threading = Root::singleton().configuration()->get("worldThreading", JsonObject());
     bool fairnessPreview = threading.getBool("generationFairnessSchedulerPreview", false);
+    bool dependencyPreview = threading.getBool("generationDependencySchedulerPreview", false);
     unsigned fairnessInterval = min<unsigned>(max<unsigned>(
         threading.getUInt("generationFairnessIntervalPasses", 4), 1), 60);
-    if (fairnessPreview && !m_generationQueue.empty()
+    Maybe<WorldGenerationDependencyNode> dependencyPriority;
+    if ((fairnessPreview || dependencyPreview) && !m_generationQueue.empty()
         && ++m_generationFairnessPasses % fairnessInterval == 0) {
       Maybe<Sector> oldest;
       for (auto const& entry : m_generationRequests) {
@@ -977,15 +979,55 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
           oldest = entry.first;
       }
       if (oldest) {
-        auto selected = m_generationQueue.firstKey();
-        if (selected != *oldest) {
-          m_generationQueue.toFront(*oldest);
-          if (m_explorationProfile) {
-            m_explorationProfile->count("generation.fairness.promoted");
-            recordGenerationRequest(*oldest, "fairnessPromoted");
+        if (dependencyPreview) {
+          auto plan = WorldGenerationDependencyGraph::build(Vec2U(*oldest),
+              static_cast<uint8_t>(SectorGenerationLevel::Complete),
+              [this](Vec2U const& observed) {
+                List<Vec2U> result;
+                for (auto const& neighbor : adjacentSectors(Sector(observed[0], observed[1])))
+                  result.append(Vec2U(neighbor));
+                return result;
+              });
+          auto analysis = WorldGenerationDependencyGraph::analyze(plan, [this](Vec2U const& observed) {
+              if (auto metadata = m_sectorMetadata.ptr(Sector(observed[0], observed[1])))
+                return static_cast<uint8_t>(metadata->generationLevel);
+              return uint8_t(0);
+            });
+          if (plan.truncated) {
+            if (m_explorationProfile)
+              m_explorationProfile->count("generation.dependencyScheduler.truncated");
+          } else {
+            for (auto const& candidate : analysis.frontier) {
+              Sector sector(candidate.sector[0], candidate.sector[1]);
+              if (!m_generationQueue.contains(sector))
+                continue;
+              if (!dependencyPriority || candidate.level < dependencyPriority->level
+                  || (candidate.level == dependencyPriority->level && candidate < *dependencyPriority))
+                dependencyPriority = candidate;
+            }
           }
-        } else if (m_explorationProfile) {
-          m_explorationProfile->count("generation.fairness.alreadySelected");
+          if (dependencyPriority) {
+            auto prioritySector = Sector(dependencyPriority->sector[0], dependencyPriority->sector[1]);
+            m_generationQueue.toFront(prioritySector);
+            if (m_explorationProfile) {
+              m_explorationProfile->count("generation.dependencyScheduler.promoted");
+              recordGenerationRequest(prioritySector, "dependencyPromoted");
+            }
+          } else if (m_explorationProfile) {
+            m_explorationProfile->count("generation.dependencyScheduler.frontierUnavailable");
+          }
+        }
+        if (!dependencyPriority) {
+          auto selected = m_generationQueue.firstKey();
+          if (selected != *oldest) {
+            m_generationQueue.toFront(*oldest);
+            if (m_explorationProfile) {
+              m_explorationProfile->count("generation.fairness.promoted");
+              recordGenerationRequest(*oldest, "fairnessPromoted");
+            }
+          } else if (m_explorationProfile) {
+            m_explorationProfile->count("generation.fairness.alreadySelected");
+          }
         }
       }
     }
@@ -1084,12 +1126,17 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
 
     bool schedulingOnly = false;
     size_t visitedSectors = 0;
+    bool dependencyPriorityAttempted = false;
     while (!m_generationQueue.empty()) {
       if ((sectorGenerationLevelLimit && *sectorGenerationLevelLimit == 0) || Time::monotonicTime() >= generationDeadline)
         break;
 
       auto sector = m_generationQueue.firstKey();
-      auto targetLevel = schedulingOnly ? SectorGenerationLevel::BaseTiles : SectorGenerationLevel::Complete;
+      bool dependencyTarget = !schedulingOnly && dependencyPriority && !dependencyPriorityAttempted
+          && sector == Sector(dependencyPriority->sector[0], dependencyPriority->sector[1]);
+      auto targetLevel = schedulingOnly ? SectorGenerationLevel::BaseTiles
+          : dependencyTarget ? static_cast<SectorGenerationLevel>(dependencyPriority->level)
+                             : SectorGenerationLevel::Complete;
       m_traceOldestQueueAttempt = m_explorationProfile && m_oldestQueueDiagnosticSector
           && sector == *m_oldestQueueDiagnosticSector;
       if (m_traceOldestQueueAttempt) {
@@ -1102,10 +1149,12 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       }
       auto p = generateSectorToLevel(sector, targetLevel,
           sectorGenerationLevelLimit.value(NPos), true, generationDeadline);
+      if (dependencyTarget)
+        dependencyPriorityAttempted = true;
       if (m_traceOldestQueueAttempt && p.second)
         ++m_oldestQueueAdvances;
       m_traceOldestQueueAttempt = false;
-      if (!schedulingOnly && p.first) {
+      if (!schedulingOnly && targetLevel == SectorGenerationLevel::Complete && p.first) {
         ++completedThisPass;
         m_generationQueue.removeFirst();
         if (auto request = m_generationRequests.ptr(sector)) {
@@ -1123,6 +1172,10 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
           recordGenerationRequest(sector, "completed");
           m_generationRequests.remove(sector);
         }
+      } else if (dependencyTarget) {
+        // A dependency stage was given one bounded chance. Keep its activation
+        // request alive, then return to normal distance ordering next pass.
+        m_generationQueue.toBack(sector);
       } else if (!schedulingOnly) {
         // Preserve ordered processing of higher generation levels. Once the
         // first requested sector blocks on asynchronous base tiles, later

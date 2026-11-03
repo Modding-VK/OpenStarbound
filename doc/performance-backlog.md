@@ -17,7 +17,9 @@ reconstrói os setores presos e define a sequência: identidade de pedido,
 seleção com oportunidade para pedidos antigos e pré-requisitos, validação de
 conflitos e execução pelas threads donas. Identidade independente do HUD,
 comparação observacional e promoção experimental limitada do pedido mais antigo
-estão implementadas; a validação em jogo continua pendente.
+estão implementadas. A próxima camada também pode promover uma etapa
+executável da árvore de dependências que já esteja na fila; a validação em jogo
+continua pendente.
 
 As hipóteses de rework discutidas para setores de 64 × 64, dungeons compostas,
 pré-geração e cálculo paralelo de microdungeons estão em

@@ -145,6 +145,22 @@ mais próximo. Com `regionalDetails`, o evento limitado de pedido usa
 `fairnessPromoted`. Comparar essa opção desligada e ligada na mesma rota é
 obrigatório antes de adotá-la como padrão.
 
+`worldThreading.generationDependencySchedulerPreview` usa o mesmo intervalo,
+mas constrói a árvore limitada de pré-requisitos do pedido antigo. Se uma etapa
+executável dessa árvore já tiver um pedido legítimo na fila, ela recebe a
+promoção e é executada somente até o nível necessário. Assim, uma BaseTiles ou
+etapa intermediária não é removida da fila como se estivesse completa. Se o
+pré-requisito não estiver na fila, o scheduler registra
+`generation.dependencyScheduler.frontierUnavailable` e promove o pedido antigo
+pelo caminho normal, deixando a rotina autoritativa existente decidir o
+carregamento recursivo. As métricas `generation.dependencyScheduler.promoted`
+e o evento `dependencyPromoted` permitem comparar os dois casos. Um grafo
+truncado nunca autoriza promoção de dependência; ele é contado em
+`generation.dependencyScheduler.truncated` e recai no caminho normal.
+
+Essa política nunca adiciona interesse, carrega um vizinho somente para o
+agendador, ou altera a ordem de publicação de estruturas, entidades e tiles.
+
 ## Primeiro recorte implementado
 
 `WorldStorage` mantém uma sequência por entrada e um epoch por instância de
