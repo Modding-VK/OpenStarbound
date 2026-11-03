@@ -1131,6 +1131,8 @@ void WorldStorage::tick(float dt, String const* worldId) {
         });
 
       if (keepAlive) {
+        if (needsUnload && m_explorationProfile)
+          m_explorationProfile->count("storage.unloadDeferred.keepAlive");
         setSectorTimeToLive(sector, randomizedSectorTTL());
       } else if (needsUnload) {
         (unloadSectorToLevel(sector, SectorLoadLevel::None) ? unloaded : skipped)++;
@@ -1700,8 +1702,11 @@ bool WorldStorage::unloadSectorToLevel(Sector const& sector, SectorLoadLevel tar
       }
 
       bool keepAlive = m_generatorFacade->entityKeepAlive(this, entity);
-      if (keepAlive && !force)
+      if (keepAlive && !force) {
+        if (m_explorationProfile)
+          m_explorationProfile->count("storage.unloadDeferred.keepAlive");
         return false;
+      }
 
       if (m_generatorFacade->entityPersistent(this, entity))
         entitiesToStore.append(std::move(entity));
@@ -1750,6 +1755,8 @@ bool WorldStorage::unloadSectorToLevel(Sector const& sector, SectorLoadLevel tar
   }
 
   if (targetLoadLevel == SectorLoadLevel::None) {
+    if (entitiesOverlap && m_explorationProfile)
+      m_explorationProfile->count("storage.unloadDeferred.overlap");
     if (metadata.loadLevel > SectorLoadLevel::None && !entitiesOverlap) {
       TileSectorStore sectorStore;
       sectorStore.tiles = m_tileArray->unloadSector(sector);

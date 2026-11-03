@@ -35,6 +35,16 @@ static int const PlantAdjustmentLimit = 2;
 
 namespace {
 
+bool crossesLiquidSector(WorldGeometry const& geometry, Vec2I a, Vec2I b) {
+  a = geometry.xwrap(a);
+  b = geometry.xwrap(b);
+  if (a[1] < 0 || b[1] < 0 || static_cast<unsigned>(a[1]) >= geometry.height()
+      || static_cast<unsigned>(b[1]) >= geometry.height())
+    return false;
+  return a[0] / WorldSectorSize != b[0] / WorldSectorSize
+      || a[1] / WorldSectorSize != b[1] / WorldSectorSize;
+}
+
 bool isPreservedTileCollisionOverride(CollisionKind collision) {
   return collision == CollisionKind::None
       || collision == CollisionKind::Platform
@@ -224,13 +234,19 @@ void LiquidWorld::setFlow(Vec2I const& location, CellularLiquidFlowCell<LiquidId
 }
 
 void LiquidWorld::liquidInteraction(Vec2I const& a, LiquidId aLiquid, Vec2I const& b, LiquidId bLiquid) {
-  auto handleInteraction = [this](Vec2I const& target, Maybe<LiquidInteractionResult> interaction) {
+  auto profile = m_worldServer->explorationProfile();
+  bool crosses = profile && crossesLiquidSector(m_worldServer->geometry(), a, b);
+  auto handleInteraction = [this, profile, crosses](Vec2I const& target, Maybe<LiquidInteractionResult> interaction) {
     if (interaction) {
       if (interaction->isLeft()) {
-        m_worldServer->modifyTile(target, PlaceMaterial{TileLayer::Foreground, interaction->left(), 0}, false);
+        bool changed = m_worldServer->modifyTile(target, PlaceMaterial{TileLayer::Foreground, interaction->left(), 0}, false);
+        if (crosses && changed)
+          profile->count("liquid.crossSectorInteractionEffects");
       } else {
         auto liquidLevel = m_worldServer->liquidLevel(target);
         m_worldServer->setLiquid(target, interaction->right(), liquidLevel.level, liquidLevel.level);
+        if (crosses)
+          profile->count("liquid.crossSectorInteractionEffects");
       }
     }
   };
@@ -240,6 +256,8 @@ void LiquidWorld::liquidInteraction(Vec2I const& a, LiquidId aLiquid, Vec2I cons
 }
 
 void LiquidWorld::liquidCollision(Vec2I const& liquidPos, LiquidId liquidId, Vec2I const& blockPos) {
+  auto profile = m_worldServer->explorationProfile();
+  bool crosses = profile && crossesLiquidSector(m_worldServer->geometry(), liquidPos, blockPos);
   auto const& blockTile = m_worldServer->getServerTile(blockPos);
 
   if (auto materialInteraction = m_materialDatabase->liquidMaterialInteraction(liquidId, blockTile.foreground)) {
@@ -247,6 +265,8 @@ void LiquidWorld::liquidCollision(Vec2I const& liquidPos, LiquidId liquidId, Vec
       auto modifyLiquidTile = m_worldServer->modifyServerTile(liquidPos);
       auto modifyBlockTile = m_worldServer->modifyServerTile(blockPos);
       if (modifyLiquidTile && modifyBlockTile) {
+        if (crosses)
+          profile->count("liquid.crossSectorCollisionEffects");
         modifyLiquidTile->liquid.take(materialInteraction->consumeLiquid);
         modifyBlockTile->foreground = materialInteraction->transformTo;
         if (!m_materialDatabase->isMultiColor(materialInteraction->transformTo))
@@ -260,6 +280,8 @@ void LiquidWorld::liquidCollision(Vec2I const& liquidPos, LiquidId liquidId, Vec
       auto modifyLiquidTile = m_worldServer->modifyServerTile(liquidPos);
       auto modifyBlockTile = m_worldServer->modifyServerTile(blockPos);
       if (modifyLiquidTile && modifyBlockTile) {
+        if (crosses)
+          profile->count("liquid.crossSectorCollisionEffects");
         modifyLiquidTile->liquid.take(modInteraction->consumeLiquid);
         modifyBlockTile->foregroundMod = modInteraction->transformTo;
         m_worldServer->activateLiquidLocation(liquidPos);

@@ -28,9 +28,12 @@
 #include "StarUniverseSettings.hpp"
 #include "StarUniverseServer.hpp"
 #include "StarUniverseServerLuaBindings.hpp"
+#include "StarStoryTrace.hpp"
 #include "StarCelestialLuaBindings.hpp"
 
 #include <atomic>
+#include <cmath>
+#include <limits>
 
 namespace Star {
 
@@ -1190,6 +1193,13 @@ void WorldServer::update(float dt) {
       }
     };
     m_entityMap->updateAllEntities([&](EntityPtr const& entity) {
+      Maybe<WorldStorage::Sector> previousSector;
+      if (m_explorationProfile) {
+        auto previousPosition = entity->position();
+        if (std::isfinite(previousPosition[0]) && std::isfinite(previousPosition[1])
+            && std::abs(previousPosition[0]) < 100000000 && std::abs(previousPosition[1]) < 100000000)
+          previousSector = m_worldStorage->sectorForPosition(Vec2I(previousPosition));
+      }
       if (npcDetails && entity->entityType() == EntityType::Npc)
         ++updatedNpcs;
       WorldPerformanceCategory category = WorldPerformanceCategory::OtherEntities;
@@ -1209,6 +1219,43 @@ void WorldServer::update(float dt) {
       double entityStart = performanceSamplingThisTick && m_performanceDetailed ? Time::monotonicTime() : 0;
       ExplorationProfile::EntityScope entityProfile(m_explorationProfile.get(), *entity);
       entity->update(dt, m_currentStep);
+
+      if (m_explorationProfile) {
+        auto position = entity->position();
+        if (std::isfinite(position[0]) && std::isfinite(position[1])
+            && std::abs(position[0]) < 100000000 && std::abs(position[1]) < 100000000) {
+          auto currentSector = m_worldStorage->sectorForPosition(Vec2I(position));
+          if (previousSector && currentSector && *previousSector != *currentSector) {
+            m_explorationProfile->count("entity.sectorTransfers");
+            if (entity->entityType() == EntityType::Monster)
+              m_explorationProfile->count("entity.monster.sectorTransfers");
+            else if (entity->entityType() == EntityType::Vehicle)
+              m_explorationProfile->count("entity.vehicle.sectorTransfers");
+            else if (entity->entityType() == EntityType::Stagehand)
+              m_explorationProfile->count("entity.stagehand.sectorTransfers");
+          }
+          if (m_currentStep % 60 == 0) {
+            auto bounds = entity->metaBoundBox().translated(position);
+            if (bounds.width() > 0 && bounds.height() > 0
+                && std::isfinite(bounds.xMin()) && std::isfinite(bounds.xMax())
+                && std::isfinite(bounds.yMin()) && std::isfinite(bounds.yMax())) {
+              m_explorationProfile->count("entity.footprintSamples");
+              auto previousX = std::nextafter(bounds.xMax(), -std::numeric_limits<float>::infinity());
+              auto previousY = std::nextafter(bounds.yMax(), -std::numeric_limits<float>::infinity());
+              if (std::floor(bounds.xMin() / WorldSectorSize) != std::floor(previousX / WorldSectorSize)
+                  || std::floor(bounds.yMin() / WorldSectorSize) != std::floor(previousY / WorldSectorSize)) {
+                m_explorationProfile->count("entity.multiSectorFootprints");
+                if (entity->entityType() == EntityType::Monster)
+                  m_explorationProfile->count("entity.monster.multiSectorFootprints");
+                else if (entity->entityType() == EntityType::Vehicle)
+                  m_explorationProfile->count("entity.vehicle.multiSectorFootprints");
+                else if (entity->entityType() == EntityType::Stagehand)
+                  m_explorationProfile->count("entity.stagehand.multiSectorFootprints");
+              }
+            }
+          }
+        }
+      }
 
       if (auto tileEntity = as<TileEntity>(entity)) {
         // Only do break checks on objects if all sectors the object touches
@@ -1293,9 +1340,17 @@ void WorldServer::update(float dt) {
 
   if (shouldRunThisStep("liquidUpdate")) {
     TileRevisionScope revisionScope(TileRevisionCause::Liquid, m_tileArray->revisionTrackingEnabled());
+    if (m_explorationProfile) {
+      auto active = m_liquidEngine->activeCells();
+      m_explorationProfile->count("liquid.activeCellsBeforeTotal", active);
+      m_explorationProfile->maximum("liquid.activeCellsBeforeMax", active);
+      m_explorationProfile->count("liquid.updateSamples");
+    }
     m_liquidEngine->setProcessingLimit(m_fidelityConfig.optUInt("liquidEngineBackgroundProcessingLimit"));
     m_liquidEngine->setNoProcessingLimitRegions(clientMonitoringRegions);
     m_liquidEngine->update();
+    if (m_explorationProfile)
+      m_explorationProfile->count("liquid.activeCellsAfterTotal", m_liquidEngine->activeCells());
   }
 
   recordProfileStage(UpdateProfileStage::Liquids);
@@ -2237,6 +2292,18 @@ void WorldServer::init(bool firstTime) {
   m_tileEntityBreakCheckTimer = GameTimer(m_serverConfig.getFloat("tileEntityBreakCheckInterval"));
 
   m_liquidEngine = make_shared<LiquidCellEngine<LiquidId>>(liquidsDatabase->liquidEngineParameters(), make_shared<LiquidWorld>(this));
+  if (m_explorationProfile) {
+    m_liquidEngine->setTransferObserver([this](Vec2I const& source, Vec2I const& destination, bool pressure) {
+      auto from = m_geometry.xwrap(source);
+      auto to = m_geometry.xwrap(destination);
+      if (from[1] < 0 || to[1] < 0 || static_cast<unsigned>(from[1]) >= m_geometry.height()
+          || static_cast<unsigned>(to[1]) >= m_geometry.height())
+        return;
+      if (from[0] / WorldSectorSize != to[0] / WorldSectorSize
+          || from[1] / WorldSectorSize != to[1] / WorldSectorSize)
+        m_explorationProfile->count(pressure ? "liquid.crossSectorPressureTransfers" : "liquid.crossSectorLevelTransfers");
+    });
+  }
   for (auto liquidSettings : liquidsDatabase->allLiquidSettings())
     m_liquidEngine->setLiquidTickDelta(liquidSettings->id, liquidSettings->tickDelta);
 
@@ -3283,6 +3350,8 @@ RpcPromise<Vec2F> WorldServer::findUniqueEntity(String const& uniqueId) {
 }
 
 RpcPromise<Json> WorldServer::sendEntityMessage(Variant<EntityId, String> const& entityId, String const& message, JsonArray const& args) {
+  if (m_explorationProfile && StoryTrace::current())
+    m_explorationProfile->recordStoryHop(StoryTrace::current(), "world.entityMessage", 0);
   EntityPtr entity;
   if (entityId.is<EntityId>())
     entity = m_entityMap->entity(entityId.get<EntityId>());

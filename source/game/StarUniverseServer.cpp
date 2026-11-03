@@ -23,6 +23,7 @@
 #include "StarVersioningDatabase.hpp"
 #include "StarExplorationProfile.hpp"
 #include "StarTrace.hpp"
+#include "StarStoryTrace.hpp"
 
 namespace Star {
 
@@ -351,7 +352,12 @@ void UniverseServer::setPvp(ConnectionId clientId, bool pvp) {
 RpcPromise<Json> UniverseServer::sendWorldMessage(WorldId const& worldId, String const& message, JsonArray const& args) {
   auto pair = RpcPromise<Json>::createPair();
   RecursiveMutexLocker locker(m_mainLock);
-  m_pendingWorldMessages[worldId].push_back({message, args, pair.second});
+  WorldServerThread::Message queued{message, args, pair.second};
+  if (m_storyProfile) {
+    queued.traceId = StoryTrace::currentOrNext();
+    queued.queuedAtMicroseconds = Time::monotonicMicroseconds();
+  }
+  m_pendingWorldMessages[worldId].push_back(std::move(queued));
   return pair.first;
 }
 
@@ -1422,6 +1428,13 @@ void UniverseServer::handleUniverseMessages() {
   locker.unlock();
   
   for (auto& message : messages) {
+    StoryTrace storyTrace(message.traceId);
+    if (m_storyProfile && message.traceId) {
+      RecursiveMutexLocker luaLocker(m_luaLock);
+      m_storyProfile->recordStoryHop(message.traceId, "universe.messageDequeued",
+          message.queuedAtMicroseconds > 0
+              ? (Time::monotonicMicroseconds() - message.queuedAtMicroseconds) / 1000000.0 : 0.0);
+    }
     if (message.keeper.is<pair<Uuid,ConnectionId>>()) {
       auto p = message.keeper.get<pair<Uuid,ConnectionId>>();
       auto uuid = p.first;
@@ -3181,6 +3194,10 @@ void UniverseServer::stopLua() {
 
 void UniverseServer::passMessage(Universe::Message&& message) {
   RecursiveMutexLocker locker(m_messageLock);
+  if (m_storyProfile && !message.traceId) {
+    message.traceId = StoryTrace::currentOrNext();
+    message.queuedAtMicroseconds = Time::monotonicMicroseconds();
+  }
   m_universeMessages.append(std::move(message));
 }
 

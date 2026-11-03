@@ -20,6 +20,9 @@ class ExplorationProfile {
 public:
   // Returns null when disabled. Configuration is read once, at creation.
   static ExplorationProfilePtr create(String component, String context = {});
+  // Returns the optional collector owned by a live server or client world.
+  // Call only from that world's owner thread.
+  static ExplorationProfile* forWorld(World* world);
 
   class Scope {
   public:
@@ -138,6 +141,9 @@ public:
   void setContext(String context);
   void record(char const* stage, double seconds);
   void count(char const* counter, uint64_t amount = 1);
+  void maximum(char const* counter, uint64_t value);
+  // At most 64 process-local story hops per report window, with fixed labels.
+  void recordStoryHop(uint64_t traceId, char const* hop, double queueSeconds);
   // Keep bounded sector coordinates for correlating queue stalls with the route.
   void recordQueuedSector(Vec2I sector, double seconds);
   void recordCompletedSector(Vec2I sector, double seconds);
@@ -205,6 +211,7 @@ private:
   };
 
   void recordEntity(Entity const& entity, double totalSeconds, double luaSeconds, double loggingSeconds);
+  void writeReportFile(String const& category, Json const& report);
   static thread_local EntityScope* s_currentEntityScope;
   static thread_local NpcScope* s_currentNpcScope;
   static ExplorationProfile* npcProfile(World* world);
@@ -218,6 +225,12 @@ private:
   unsigned m_entityDetailLimit = 12;
   bool m_npcDetails = false;
   bool m_regionalDetails = false;
+  bool m_writeReportsToFiles = true;
+  bool m_reportWriteFailureLogged = false;
+  uint64_t m_reportFileMaxBytes = 8 * 1024 * 1024;
+  unsigned m_reportFileBackups = 3;
+  String m_reportDirectory;
+  StringMap<String> m_reportFiles;
   // Fixed caps per reporting window; never retain entity pointers or payloads.
   struct Aggregate {
     uint64_t calls = 0;
@@ -236,6 +249,7 @@ private:
   uint64_t m_npcMaximumUpdatedEntities = 0;
   StringMap<Timing> m_timings;
   StringMap<uint64_t> m_counts;
+  StringMap<uint64_t> m_maxima;
   StringMap<EntityTiming> m_entityTimings;
   List<SlowEntity> m_slowEntities;
   Maybe<SectorWait> m_oldestQueuedSector;
@@ -245,6 +259,7 @@ private:
   List<BaseTileOutcome> m_evictedBaseTiles;
   JsonArray m_generationTaskEvents;
   JsonArray m_regionTurnEvents;
+  JsonArray m_storyHops;
 };
 
 }

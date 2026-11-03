@@ -18,6 +18,8 @@ public:
     String message;
     JsonArray args;
     Variant<pair<Uuid,ConnectionId>,RpcPromiseKeeper<Json>> keeper;
+    uint64_t traceId = 0;
+    int64_t queuedAtMicroseconds = 0;
   };
   
   virtual CelestialDatabasePtr celestialDatabase() = 0;

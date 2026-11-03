@@ -19,6 +19,7 @@
 #include "StarAssets.hpp"
 #include "StarTime.hpp"
 #include "StarStatusController.hpp"
+#include "StarExplorationProfile.hpp"
 
 namespace Star {
 
@@ -123,6 +124,8 @@ ClientEntityMode Monster::clientEntityMode() const {
 }
 
 void Monster::init(World* world, EntityId entityId, EntityMode mode, ConnectionId originConnection) {
+  ExplorationProfile::Scope timing(ExplorationProfile::forWorld(world),
+      mode == EntityMode::Master ? "entity.monster.master.init" : "entity.monster.slave.init");
   Entity::init(world, entityId, mode, originConnection);
 
   m_movementController->init(world);
@@ -165,6 +168,8 @@ void Monster::init(World* world, EntityId entityId, EntityMode mode, ConnectionI
 }
 
 void Monster::uninit() {
+  ExplorationProfile::Scope timing(ExplorationProfile::forWorld(world()),
+      isMaster() ? "entity.monster.master.uninit" : "entity.monster.slave.uninit");
   if (isMaster()) {
     m_scriptComponent.uninit();
     m_scriptComponent.removeCallbacks("monster");
@@ -250,6 +255,8 @@ Maybe<PolyF> Monster::hitPoly() const {
 List<DamageNotification> Monster::applyDamage(DamageRequest const& damage) {
   if (!inWorld())
     return {};
+  ExplorationProfile::Scope timing(ExplorationProfile::forWorld(world()),
+      isMaster() ? "entity.monster.master.damage" : "entity.monster.slave.damage");
 
   auto notifications = m_statusController->applyDamageRequest(damage);
 
@@ -351,6 +358,8 @@ List<DamageSource> Monster::damageSources() const {
 }
 
 bool Monster::shouldDie() {
+  ExplorationProfile::Scope timing(ExplorationProfile::forWorld(world()),
+      isMaster() ? "entity.monster.master.shouldDie" : "entity.monster.slave.shouldDie");
   if (auto res = m_scriptComponent.invoke<bool>("shouldDie"))
     return *res;
   else if (!m_statusController->resourcePositive("health") || m_scriptComponent.error())
@@ -379,6 +388,8 @@ bool Monster::shouldDestroy() const {
 }
 
 void Monster::destroy(RenderCallback* renderCallback) {
+  ExplorationProfile::Scope timing(ExplorationProfile::forWorld(world()),
+      isMaster() ? "entity.monster.master.destroy" : "entity.monster.slave.destroy");
   m_scriptComponent.invoke("die");
 
   if (isMaster() && !m_dropPool.isNull()) {
@@ -525,6 +536,8 @@ void Monster::setPosition(Vec2F const& pos) {
 }
 
 Maybe<ChainableJsonMessageResponse> Monster::receiveMessage(ConnectionId sendingConnection, String const& message, JsonArray const& args) {
+  ExplorationProfile::Scope timing(ExplorationProfile::forWorld(world()),
+      isMaster() ? "entity.monster.master.message" : "entity.monster.slave.message");
   Maybe<ChainableJsonMessageResponse> result = m_scriptComponent.handleMessage(message, world()->connection() == sendingConnection, args);
   if (!result)
     result = m_statusController->receiveMessage(message, world()->connection() == sendingConnection, args);
@@ -829,10 +842,14 @@ bool Monster::aggressive() const {
 }
 
 Maybe<LuaValue> Monster::callScript(String const& func, LuaVariadic<LuaValue> const& args) {
+  ExplorationProfile::Scope timing(ExplorationProfile::forWorld(world()),
+      isMaster() ? "entity.monster.master.callScript" : "entity.monster.slave.callScript");
   return m_scriptComponent.invoke(func, args);
 }
 
 Maybe<LuaValue> Monster::evalScript(String const& code) {
+  ExplorationProfile::Scope timing(ExplorationProfile::forWorld(world()),
+      isMaster() ? "entity.monster.master.evalScript" : "entity.monster.slave.evalScript");
   return m_scriptComponent.eval(code);
 }
 
@@ -853,6 +870,8 @@ List<PhysicsForceRegion> Monster::forceRegions() const {
 }
 
 InteractAction Monster::interact(InteractRequest const& request) {
+  ExplorationProfile::Scope timing(ExplorationProfile::forWorld(world()),
+      isMaster() ? "entity.monster.master.interact" : "entity.monster.slave.interact");
   auto result = m_scriptComponent.invoke<Json>("interact", JsonObject{{"sourceId", request.sourceId}, {"sourcePosition", jsonFromVec2F(request.sourcePosition)}}).value();
 
   if (result.isNull())

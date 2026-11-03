@@ -3,6 +3,7 @@
 #include "StarEntityMap.hpp"
 #include "StarWireEntity.hpp"
 #include "StarLogging.hpp"
+#include "StarExplorationProfile.hpp"
 
 namespace Star {
 
@@ -11,6 +12,8 @@ WireProcessor::WireProcessor(WorldStoragePtr worldStorage) {
 }
 
 void WireProcessor::process() {
+  auto profile = m_worldStorage->explorationProfile();
+  ExplorationProfile::Scope timing(profile, "wiring.process");
   // First, populate all the working entities that are already live
   m_worldStorage->entityMap()->forAllEntities([&](EntityPtr const& entity) {
     if (auto wireEntity = as<WireEntity>(entity.get()))
@@ -34,8 +37,15 @@ void WireProcessor::process() {
       break;
   }
 
-  for (auto const& p : m_workingWireEntities)
-    p.second.wireEntity->evaluate(this);
+  if (profile) {
+    profile->count("wiring.entitiesEvaluatedTotal", m_workingWireEntities.size());
+    profile->maximum("wiring.entitiesEvaluatedMax", m_workingWireEntities.size());
+  }
+  {
+    ExplorationProfile::Scope evaluation(profile, "wiring.evaluate");
+    for (auto const& p : m_workingWireEntities)
+      p.second.wireEntity->evaluate(this);
+  }
 
   m_workingWireEntities.clear();
 }
@@ -62,8 +72,11 @@ void WireProcessor::populateWorking(WireEntity* wireEntity) {
 }
 
 void WireProcessor::loadNetwork(Vec2I tilePosition) {
+  auto profile = m_worldStorage->explorationProfile();
+  ExplorationProfile::Scope timing(profile, "wiring.loadNetwork");
   HashSet<WorldStorage::Sector> networkSectors;
   Maybe<float> highestTtl;
+  size_t newlyLoaded = 0;
 
   // Recursively load a given WireEntity at the given position.  Returns true
   // if that wire entity was found.
@@ -83,6 +96,7 @@ void WireProcessor::loadNetwork(Vec2I tilePosition) {
         highestTtl = ttl;
     } else {
       m_worldStorage->loadSector(*sector);
+      ++newlyLoaded;
       m_worldStorage->entityMap()->forEachEntity(RectF(*m_worldStorage->regionForSector(*sector)), [&](EntityPtr const& entity) {
           if (auto wireEntity = as<WireEntity>(entity.get()))
             populateWorking(wireEntity);
@@ -119,6 +133,13 @@ void WireProcessor::loadNetwork(Vec2I tilePosition) {
   };
 
   doLoad(tilePosition);
+
+  if (profile) {
+    profile->count("wiring.networks");
+    profile->count("wiring.networkSectorsTotal", networkSectors.size());
+    profile->maximum("wiring.networkSectorsMax", networkSectors.size());
+    profile->count("wiring.newlyLoadedSectors", newlyLoaded);
+  }
 
   // Set the sector ttl for the entire network to be equal to the highest
   // entry, so that the entire network either lives or dies together, but

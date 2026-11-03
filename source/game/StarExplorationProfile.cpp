@@ -2,6 +2,7 @@
 #include "StarWorldGenerationTasks.hpp"
 #include "StarWorldRegionCoordinator.hpp"
 #include "StarConfiguration.hpp"
+#include "StarFile.hpp"
 #include "StarJsonExtra.hpp"
 #include "StarLogging.hpp"
 #include "StarMonster.hpp"
@@ -9,12 +10,39 @@
 #include "StarRoot.hpp"
 #include "StarTime.hpp"
 #include "StarWorldServer.hpp"
+#include "StarWorldClient.hpp"
 
 #include <atomic>
 #include <cmath>
+#include <initializer_list>
 #include <thread>
 
 namespace Star {
+
+namespace {
+
+String diagnosticPathPart(String const& value, String const& fallback) {
+  String result;
+  for (auto c : value) {
+    if (String::isAsciiLetter(c) || String::isAsciiNumber(c) || c == '_' || c == '-')
+      result += c;
+    else
+      result += '_';
+    if (result.utf8Size() >= 80)
+      break;
+  }
+  return result.empty() ? fallback : result;
+}
+
+bool hasPrefix(String const& name, std::initializer_list<char const*> prefixes) {
+  for (auto prefix : prefixes) {
+    if (name.beginsWith(prefix))
+      return true;
+  }
+  return false;
+}
+
+}
 
 thread_local ExplorationProfile::EntityScope* ExplorationProfile::s_currentEntityScope = nullptr;
 thread_local ExplorationProfile::NpcScope* ExplorationProfile::s_currentNpcScope = nullptr;
@@ -36,10 +64,26 @@ ExplorationProfilePtr ExplorationProfile::create(String component, String contex
   profile->m_entityDetailLimit = (unsigned)clamp<uint64_t>(config.getUInt("entityDetailLimit", 12), 1, 50);
   profile->m_npcDetails = profile->m_component == "server" && config.getBool("npcDetails", false);
   profile->m_regionalDetails = profile->m_component == "server" && config.getBool("regionalDetails", false);
+  profile->m_writeReportsToFiles = config.getBool("writeReportsToFiles", true);
+  profile->m_reportFileMaxBytes = clamp<uint64_t>(config.getUInt("reportFileMaxBytes", 8 * 1024 * 1024),
+      64 * 1024, 64 * 1024 * 1024);
+  profile->m_reportFileBackups = (unsigned)clamp<uint64_t>(config.getUInt("reportFileBackups", 3), 0, 20);
+  if (profile->m_writeReportsToFiles) {
+    profile->m_reportDirectory = Root::singleton().toStoragePath("logs/exploration");
+    File::makeDirectoryRecursive(profile->m_reportDirectory);
+  }
   profile->m_windowStart = Time::monotonicTime();
-  Logger::info("[ExplorationProfile] enabled component={} instance={} context={}",
-      profile->m_component, profile->m_instance, profile->m_context);
+  Logger::info("[ExplorationProfile] enabled component={} instance={} context={} reportFiles={}",
+      profile->m_component, profile->m_instance, profile->m_context, profile->m_writeReportsToFiles);
   return profile;
+}
+
+ExplorationProfile* ExplorationProfile::forWorld(World* world) {
+  if (auto server = dynamic_cast<WorldServer*>(world))
+    return server->explorationProfile();
+  if (auto client = dynamic_cast<WorldClient*>(world))
+    return client->explorationProfile();
+  return nullptr;
 }
 
 ExplorationProfile::Scope::Scope(ExplorationProfile* profile, char const* stage)
@@ -271,6 +315,22 @@ void ExplorationProfile::count(char const* counter, uint64_t amount) {
   m_counts[counter] += amount;
 }
 
+void ExplorationProfile::maximum(char const* counter, uint64_t value) {
+  auto& current = m_maxima[counter];
+  current = std::max(current, value);
+}
+
+void ExplorationProfile::recordStoryHop(uint64_t traceId, char const* hop, double queueSeconds) {
+  if (!traceId)
+    return;
+  if (m_storyHops.size() >= 64) {
+    count("story.hopsDropped");
+    return;
+  }
+  m_storyHops.append(JsonObject{{"traceId", traceId}, {"hop", hop},
+      {"queueMilliseconds", std::max(0.0, queueSeconds) * 1000.0}});
+}
+
 void ExplorationProfile::recordQueuedSector(Vec2I sector, double seconds) {
   if (!m_oldestQueuedSector || seconds > m_oldestQueuedSector->seconds)
     m_oldestQueuedSector = SectorWait{sector, seconds};
@@ -402,6 +462,30 @@ void ExplorationProfile::recordEntity(Entity const& entity, double totalSeconds,
   }
 }
 
+void ExplorationProfile::writeReportFile(String const& category, Json const& report) {
+  if (!m_writeReportsToFiles)
+    return;
+
+  auto file = m_reportFiles.ptr(category);
+  if (!file) {
+    auto directory = File::relativeTo(m_reportDirectory, diagnosticPathPart(category, "world"));
+    directory = File::relativeTo(directory, diagnosticPathPart(m_component, "component"));
+    File::makeDirectoryRecursive(directory);
+    auto context = diagnosticPathPart(m_context, "session");
+    file = &m_reportFiles[category];
+    *file = File::relativeTo(directory, strf("{}-{}.jsonl", context, m_instance));
+  }
+
+  String line = report.printJson(0, true) + "\n";
+  if (File::isFile(*file) && File::fileSize(*file) + line.utf8Size() > m_reportFileMaxBytes) {
+    File::backupFileInSequence(*file, m_reportFileBackups);
+    File::writeFile(line, *file);
+  } else {
+    auto output = File::open(*file, IOMode::Write | IOMode::Append);
+    output->writeFull(line.utf8Ptr(), line.utf8Size());
+  }
+}
+
 void ExplorationProfile::report(bool final) {
   double now = Time::monotonicTime();
   if (!final && now - m_windowStart < m_interval)
@@ -436,6 +520,12 @@ void ExplorationProfile::report(bool final) {
   for (auto& entry : m_counts) {
     if (entry.second)
       counts.set(entry.first, entry.second);
+    entry.second = 0;
+  }
+  JsonObject maxima;
+  for (auto& entry : m_maxima) {
+    if (entry.second)
+      maxima.set(entry.first, entry.second);
     entry.second = 0;
   }
   JsonObject entityTypes;
@@ -499,6 +589,8 @@ void ExplorationProfile::report(bool final) {
   m_generationTaskEvents = {};
   auto regionTurns = std::move(m_regionTurnEvents);
   m_regionTurnEvents = {};
+  auto storyHops = std::move(m_storyHops);
+  m_storyHops = {};
   static char const* const npcStageNames[] = {
     "update", "scriptDispatch", "movement", "status", "shared", "init", "uninit", "damage",
     "damagedOther", "shouldDestroy", "destroy", "interact", "receiveMessage", "callScript",
@@ -527,25 +619,143 @@ void ExplorationProfile::report(bool final) {
     m_npcPathResults = {};
     m_npcPopulationSamples = m_npcUpdatedEntities = m_npcMaximumUpdatedEntities = 0;
   }
-  if (!stages.empty() || !counts.empty() || !entityTypes.empty() || !slowEntities.empty()
+  if (!stages.empty() || !counts.empty() || !maxima.empty() || !entityTypes.empty() || !slowEntities.empty()
       || !npcStages.empty() || !oldestQueuedSector.isNull() || !slowSectors.empty() || !tilePackets.empty()
-      || !staleBaseTiles.empty() || !evictedBaseTiles.empty() || !generationTasks.empty() || !regionTurns.empty()) {
+      || !staleBaseTiles.empty() || !evictedBaseTiles.empty() || !generationTasks.empty() || !regionTurns.empty()
+      || !storyHops.empty()) {
     Json report = JsonObject{
       {"component", m_component}, {"context", m_context}, {"instance", m_instance},
       {"windowMilliseconds", (now - m_windowStart) * 1000},
       {"slowOperationMilliseconds", m_slowSeconds * 1000}, {"final", final},
-      {"stages", std::move(stages)}, {"counts", std::move(counts)},
+      {"stages", std::move(stages)}, {"counts", std::move(counts)}, {"maxima", std::move(maxima)},
       {"entityTypes", std::move(entityTypes)}, {"slowEntities", std::move(slowEntities)},
       {"oldestQueuedSector", std::move(oldestQueuedSector)}, {"slowSectors", std::move(slowSectors)},
       {"tilePackets", std::move(tilePackets)},
       {"staleBaseTiles", std::move(staleBaseTiles)}, {"evictedBaseTiles", std::move(evictedBaseTiles)},
       {"generationTasks", std::move(generationTasks)},
       {"regionTurns", std::move(regionTurns)},
+      {"storyHops", std::move(storyHops)},
       {"regionalDiagnostics", std::move(regionalDiagnostics)},
       {"npcDetails", m_npcDetails}, {"npcStages", std::move(npcStages)},
       {"percentileMethod", "histogram-upper-bound-8-buckets-per-octave-1us"}
     };
-    Logger::info("[ExplorationProfile] {}", report.printJson(0, true));
+    try {
+      auto object = report.toObject();
+      auto makeCategory = [&](String const& category, JsonObject fields, bool hasData) {
+        if (!hasData)
+          return;
+        fields.set("component", m_component);
+        fields.set("context", m_context);
+        fields.set("instance", m_instance);
+        fields.set("category", category);
+        fields.set("windowMilliseconds", object.get("windowMilliseconds"));
+        fields.set("slowOperationMilliseconds", object.get("slowOperationMilliseconds"));
+        fields.set("final", object.get("final"));
+        writeReportFile(category, Json(std::move(fields)));
+      };
+      auto selectByPrefix = [](Json const& source, std::initializer_list<char const*> prefixes) {
+        JsonObject selected;
+        for (auto const& entry : source.iterateObject()) {
+          if (hasPrefix(entry.first, prefixes))
+            selected.set(entry.first, entry.second);
+        }
+        return selected;
+      };
+      auto selectEntity = [](Json const& source, String const& type) {
+        JsonObject selected;
+        if (auto value = source.toObject().ptr(type))
+          selected.set(type, *value);
+        return selected;
+      };
+      auto selectSlowEntities = [](Json const& source, String const& type) {
+        JsonArray selected;
+        for (auto const& entity : source.iterateArray()) {
+          if (entity.getString("type", "") == type)
+            selected.append(entity);
+        }
+        return selected;
+      };
+      auto entityCategory = [&](String const& category, String const& type, char const* stagePrefix, char const* countPrefix) {
+        JsonObject fields;
+        auto stages = selectByPrefix(object.get("stages"), {stagePrefix});
+        auto counts = selectByPrefix(object.get("counts"), {countPrefix});
+        auto maxima = selectByPrefix(object.get("maxima"), {countPrefix});
+        auto entityTypes = selectEntity(object.get("entityTypes"), type);
+        auto slowEntities = selectSlowEntities(object.get("slowEntities"), type);
+        Json npcStages;
+        if (category == "npcs")
+          npcStages = object.get("npcStages");
+        bool hasData = !stages.empty() || !counts.empty() || !maxima.empty() || !entityTypes.empty() || !slowEntities.empty()
+            || !npcStages.isNull() && !npcStages.toObject().empty();
+        fields.set("stages", std::move(stages));
+        fields.set("counts", std::move(counts));
+        fields.set("maxima", std::move(maxima));
+        fields.set("entityTypes", std::move(entityTypes));
+        fields.set("slowEntities", std::move(slowEntities));
+        if (!npcStages.isNull())
+          fields.set("npcStages", std::move(npcStages));
+        makeCategory(category, std::move(fields), hasData);
+      };
+
+      makeCategory("world", object, true);
+      entityCategory("npcs", "npc", "npc.", "npc.");
+      entityCategory("monsters", "monster", "entity.monster.", "entity.monster.");
+      entityCategory("vehicles", "vehicle", "entity.vehicle.", "entity.vehicle.");
+      entityCategory("stagehands", "stagehand", "entity.stagehand.", "entity.stagehand.");
+
+      JsonObject sectors;
+      sectors.set("counts", selectByPrefix(object.get("counts"), {"generation.", "storage.", "entity.sector", "entity.monster.sector", "entity.vehicle.sector", "entity.stagehand.sector", "entity.multiSector"}));
+      sectors.set("oldestQueuedSector", object.get("oldestQueuedSector"));
+      sectors.set("slowSectors", object.get("slowSectors"));
+      sectors.set("tilePackets", object.get("tilePackets"));
+      sectors.set("regionalDiagnostics", object.get("regionalDiagnostics"));
+      sectors.set("regionTurns", object.get("regionTurns"));
+      bool hasSectors = !sectors.getObject("counts").empty()
+          || !sectors.get("oldestQueuedSector").isNull()
+          || !sectors.getArray("slowSectors").empty()
+          || !sectors.getArray("tilePackets").empty()
+          || !sectors.getArray("regionTurns").empty();
+      makeCategory("sectors", std::move(sectors), hasSectors);
+
+      JsonObject generation;
+      generation.set("stages", selectByPrefix(object.get("stages"), {"generation."}));
+      generation.set("counts", selectByPrefix(object.get("counts"), {"generation."}));
+      generation.set("staleBaseTiles", object.get("staleBaseTiles"));
+      generation.set("evictedBaseTiles", object.get("evictedBaseTiles"));
+      generation.set("generationTasks", object.get("generationTasks"));
+      bool hasGeneration = !generation.getObject("stages").empty() || !generation.getObject("counts").empty()
+          || !generation.getArray("staleBaseTiles").empty() || !generation.getArray("evictedBaseTiles").empty()
+          || !generation.getArray("generationTasks").empty();
+      makeCategory("generation", std::move(generation), hasGeneration);
+
+      JsonObject wiring;
+      wiring.set("stages", selectByPrefix(object.get("stages"), {"wiring."}));
+      wiring.set("counts", selectByPrefix(object.get("counts"), {"wiring."}));
+      wiring.set("maxima", selectByPrefix(object.get("maxima"), {"wiring."}));
+      bool hasWiring = !wiring.getObject("stages").empty() || !wiring.getObject("counts").empty() || !wiring.getObject("maxima").empty();
+      makeCategory("wiring", std::move(wiring), hasWiring);
+
+      JsonObject liquids;
+      liquids.set("stages", selectByPrefix(object.get("stages"), {"liquid."}));
+      liquids.set("counts", selectByPrefix(object.get("counts"), {"liquid."}));
+      liquids.set("maxima", selectByPrefix(object.get("maxima"), {"liquid."}));
+      bool hasLiquids = !liquids.getObject("stages").empty() || !liquids.getObject("counts").empty() || !liquids.getObject("maxima").empty();
+      makeCategory("liquids", std::move(liquids), hasLiquids);
+
+      JsonObject scripts;
+      scripts.set("stages", selectByPrefix(object.get("stages"), {"quest.", "universe.", "script."}));
+      scripts.set("storyHops", object.get("storyHops"));
+      if (m_component == "playerQuests" || m_component == "universeScripts")
+        scripts.set("allStages", object.get("stages"));
+      bool hasScripts = !scripts.getObject("stages").empty() || !scripts.getArray("storyHops").empty()
+          || (scripts.contains("allStages") && !scripts.getObject("allStages").empty());
+      makeCategory("scripts", std::move(scripts), hasScripts);
+    } catch (...) {
+      if (!m_reportWriteFailureLogged) {
+        Logger::warn("[ExplorationProfile] report file write failed component={} instance={}", m_component, m_instance);
+        m_reportWriteFailureLogged = true;
+      }
+    }
   }
   // Exclude this collector's serialization/logging from the next window.
   m_windowStart = Time::monotonicTime();

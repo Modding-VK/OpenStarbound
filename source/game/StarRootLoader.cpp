@@ -52,7 +52,10 @@ Json const BaseDefaultConfiguration = Json::parseJson(R"JSON(
         "enabled" : false,
         "intervalSeconds" : 5,
         "slowOperationMilliseconds" : 50,
-        "entityDetailLimit" : 12
+        "entityDetailLimit" : 12,
+        "writeReportsToFiles" : true,
+        "reportFileMaxBytes" : 8388608,
+        "reportFileBackups" : 3
       },
 )JSON"
 #ifdef STAR_SYSTEM_WINDOWS

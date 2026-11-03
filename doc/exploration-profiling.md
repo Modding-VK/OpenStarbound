@@ -32,14 +32,19 @@ evita crescimento ilimitado.
      "enabled" : true,
      "intervalSeconds" : 5,
      "slowOperationMilliseconds" : 50,
-     "entityDetailLimit" : 12
+     "entityDetailLimit" : 12,
+     "writeReportsToFiles" : true,
+     "reportFileMaxBytes" : 8388608,
+     "reportFileBackups" : 3
    }
    ```
 
-4. Abra o jogo e entre no mundo. O log deve conter linhas com o prefixo
-   `[ExplorationProfile] enabled` e, durante a partida, relatórios com o mesmo
-   prefixo seguidos de JSON. O nível de log precisa permitir mensagens `Info`
-   (padrão). Não é necessário habilitar Lua profiling ou comandos de administrador.
+4. Abra o jogo e entre no mundo. O `starbound.log` deve conter somente a linha
+   `[ExplorationProfile] enabled`; relatórios JSON não são mais despejados nele.
+   Eles são gravados como JSON Lines, separados por categoria, dentro de
+   `storage/logs/exploration/`. O nível de log precisa permitir mensagens
+   `Info` (padrão). Não é necessário habilitar Lua profiling ou comandos de
+   administrador.
 5. Para desativar, feche o jogo, troque `enabled` para `false` e reinicie.
 
 A configuração é lida na criação dos componentes; reinicie o processo para
@@ -49,6 +54,31 @@ cliente também habilita o diagnóstico do servidor local. Em multiplayer remoto
 o servidor precisa de sua própria configuração em `starbound_server.config` e
 do executável instrumentado para fornecer as medições do servidor; a opção do
 cliente não é transmitida pela rede.
+
+## Arquivos de diagnóstico
+
+Cada categoria possui uma pasta própria em `storage/logs/exploration/`, seguida
+do componente que a produziu (`server`, `client`, `playerQuests` ou
+`universeScripts`). Cada arquivo termina em `.jsonl` e contém um relatório JSON
+por linha:
+
+| Pasta | Conteúdo |
+|---|---|
+| `world/` | Relatório completo da janela, para preservar a visão geral. |
+| `npcs/` | Etapas, população, pathfinding e entidades NPC lentas. |
+| `monsters/`, `vehicles/`, `stagehands/` | Callbacks, transferências e entidades lentas de cada tipo. |
+| `sectors/` | Esperas, pacotes, retenção, transições e diagnóstico regional. |
+| `generation/` | Base tiles, invalidações e tarefas de geração. |
+| `wiring/` | Custo, tamanho e setores carregados por redes de fios. |
+| `liquids/` | Células ativas, transferências e efeitos entre setores. |
+| `scripts/` | Hops internos e métricas dos contextos de quest/universo. |
+
+`writeReportsToFiles` é verdadeiro por padrão. `reportFileMaxBytes` limita cada
+arquivo a 8 MiB e `reportFileBackups` preserva três rotações (`.1`, `.2`,
+`.3`) antes de reutilizá-las. Reinicie o processo depois de alterar os valores.
+Defina `writeReportsToFiles` como `false` para interromper a escrita dos
+relatórios sem desligar as medições; essa opção serve apenas para diagnóstico
+temporário, pois os dados coletados não serão preservados.
 
 ## Próxima coleta
 

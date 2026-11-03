@@ -41,3 +41,5 @@ A [auditoria das fronteiras de entidades e setores](entity-sector-story-boundary
 inclui `Stagehand`, monstros e veículos entre os possíveis scripts de um local.
 O estágio `quest.update` inclui os updates de quests; callbacks de conclusão
 ou recompensa disparados fora dele ainda não têm medição própria.
+Os [hops diagnósticos](entity-sector-story-instrumentation.md) correlacionam
+apenas mensagens encaminhadas dentro do mesmo processo; não atravessam a rede.

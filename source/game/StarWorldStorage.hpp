@@ -251,6 +251,7 @@ public:
   WorldGenerationQueueSnapshot generationQueueSnapshot(double overdueSeconds);
   void setPerformanceSamplingEnabled(bool enabled);
   void setExplorationProfile(ExplorationProfilePtr profile);
+  ExplorationProfile* explorationProfile() const { return m_explorationProfile.get(); }
   // Ticks down the TTL on sectors and generation queue entries, stores old
   // sectors, expires old generation queue entries, and unloads any zombie
   // entities.

@@ -9,6 +9,7 @@
 #include "StarWorkerPool.hpp"
 #include "StarNpcActorBridge.hpp"
 #include "StarTime.hpp"
+#include "StarStoryTrace.hpp"
 
 namespace Star {
 
@@ -399,6 +400,13 @@ void WorldServerThread::update(WorldServerFidelity fidelity) {
     messages = std::move(m_messages);
   }
   for (auto& message : messages) {
+    StoryTrace storyTrace(message.traceId);
+    if (auto profile = m_worldServer->explorationProfile()) {
+      if (message.traceId)
+        profile->recordStoryHop(message.traceId, "world.messageDequeued",
+            message.queuedAtMicroseconds > 0
+                ? (Time::monotonicMicroseconds() - message.queuedAtMicroseconds) / 1000000.0 : 0.0);
+    }
     if (auto resp = m_worldServer->receiveMessage(ServerConnectionId, message.message, message.args))
       if (resp->is<RpcPromise<Json>>())
         message.promise.chain(resp->get<RpcPromise<Json>>());

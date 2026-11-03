@@ -5,6 +5,7 @@
 #include "StarEntityLuaBindings.hpp"
 #include "StarBehaviorLuaBindings.hpp"
 #include "StarLuaGameConverters.hpp"
+#include "StarExplorationProfile.hpp"
 
 namespace Star {
 
@@ -35,6 +36,8 @@ ByteArray Stagehand::netStore(NetCompatibilityRules) {
 }
 
 void Stagehand::init(World* world, EntityId entityId, EntityMode mode, ConnectionId originConnection) {
+  ExplorationProfile::Scope timing(ExplorationProfile::forWorld(world),
+      mode == EntityMode::Master ? "entity.stagehand.master.init" : "entity.stagehand.slave.init");
   Entity::init(world, entityId, mode, originConnection);
 
   if (isMaster() && m_scripted) {
@@ -48,6 +51,8 @@ void Stagehand::init(World* world, EntityId entityId, EntityMode mode, Connectio
 }
 
 void Stagehand::uninit() {
+  ExplorationProfile::Scope timing(ExplorationProfile::forWorld(world()),
+      isMaster() ? "entity.stagehand.master.uninit" : "entity.stagehand.slave.uninit");
   Entity::uninit();
 
   if (m_scripted) {
@@ -106,10 +111,14 @@ bool Stagehand::shouldDestroy() const {
 }
 
 Maybe<LuaValue> Stagehand::callScript(String const& func, LuaVariadic<LuaValue> const& args) {
+  ExplorationProfile::Scope timing(ExplorationProfile::forWorld(world()),
+      isMaster() ? "entity.stagehand.master.callScript" : "entity.stagehand.slave.callScript");
   return m_scriptComponent.invoke(func, args);
 }
 
 Maybe<LuaValue> Stagehand::evalScript(String const& code) {
+  ExplorationProfile::Scope timing(ExplorationProfile::forWorld(world()),
+      isMaster() ? "entity.stagehand.master.evalScript" : "entity.stagehand.slave.evalScript");
   return m_scriptComponent.eval(code);
 }
 
@@ -200,6 +209,8 @@ String Stagehand::typeName() const {
 }
 
 Maybe<ChainableJsonMessageResponse> Stagehand::receiveMessage(ConnectionId sendingConnection, String const& message, JsonArray const& args) {
+  ExplorationProfile::Scope timing(ExplorationProfile::forWorld(world()),
+      isMaster() ? "entity.stagehand.master.message" : "entity.stagehand.slave.message");
   return m_scriptComponent.handleMessage(message, sendingConnection == world()->connection(), args);
 }
 

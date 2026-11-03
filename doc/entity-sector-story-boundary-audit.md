@@ -5,6 +5,8 @@ Complementa o [modelo regional](world-region-rework-advanced-concept.md), a
 [fronteira Lua dos NPCs](npc-lua-boundary-audit.md) e o
 [diagnóstico de missões](story-script-profiling.md). Não altera execução ou
 formato de save. Sem compilação ou reprodução em jogo nesta auditoria.
+As [métricas opcionais posteriores](entity-sector-story-instrumentation.md)
+cobrem os pontos encontrados aqui sem transferir a execução.
 
 ## 1. Tipos, autoridade e medição atual
 

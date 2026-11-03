@@ -47,6 +47,7 @@ public:
   WorldClient(PlayerPtr mainPlayer, LuaRootPtr luaRoot, UniverseClient* universe);
   WorldClient(ClientSubWorldId subWorldId, UniverseClient* universe);
   ~WorldClient();
+  ExplorationProfile* explorationProfile() const { return m_explorationProfile.get(); }
 
   ConnectionId connection() const override;
   WorldGeometry geometry() const override;

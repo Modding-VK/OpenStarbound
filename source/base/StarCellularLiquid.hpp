@@ -7,6 +7,7 @@
 #include "StarOrderedSet.hpp"
 #include "StarRandom.hpp"
 #include "StarBlockAllocator.hpp"
+#include <functional>
 
 namespace Star {
 
@@ -79,6 +80,8 @@ public:
   void setLiquidTickDelta(LiquidId liquid, unsigned tickDelta);
 
   void setProcessingLimit(Maybe<unsigned> processingLimit);
+  // Optional owner-thread diagnostic; receives only successful transfers.
+  void setTransferObserver(std::function<void(Vec2I const&, Vec2I const&, bool)> observer);
 
   List<RectI> noProcessingLimitRegions() const;
   void setNoProcessingLimitRegions(List<RectI> noProcessingLimitRegions);
@@ -147,6 +150,7 @@ private:
   BAHashMap<LiquidId, BAOrderedHashSet<Vec2I>> m_activeCells;
   BAHashMap<LiquidId, unsigned> m_liquidTickDeltas;
   Maybe<unsigned> m_processingLimit;
+  std::function<void(Vec2I const&, Vec2I const&, bool)> m_transferObserver;
   List<RectI> m_noProcessingLimitRegions;
   uint64_t m_step;
 
@@ -193,6 +197,12 @@ void LiquidCellEngine<LiquidId>::setLiquidTickDelta(LiquidId liquid, unsigned ti
 template <typename LiquidId>
 void LiquidCellEngine<LiquidId>::setProcessingLimit(Maybe<unsigned> processingLimit) {
   m_processingLimit = processingLimit;
+}
+
+template <typename LiquidId>
+void LiquidCellEngine<LiquidId>::setTransferObserver(
+    std::function<void(Vec2I const&, Vec2I const&, bool)> observer) {
+  m_transferObserver = std::move(observer);
 }
 
 template <typename LiquidId>
@@ -597,6 +607,13 @@ void LiquidCellEngine<LiquidId>::transferPressure(float amount, WorkingCell& sou
     if (amount > m_engineParameters.minimumLivenPressureChange) {
       m_nextActiveCells.add(source.position);
       m_nextActiveCells.add(dest.position);
+      if (m_transferObserver) {
+        try {
+          m_transferObserver(source.position, dest.position, true);
+        } catch (...) {
+          // Profiling must not interrupt the liquid update after mutation.
+        }
+      }
     }
   }
 }
@@ -648,6 +665,13 @@ void LiquidCellEngine<LiquidId>::transferLevel(
     if (amount > m_engineParameters.minimumLivenLevelChange) {
       m_nextActiveCells.add(source.position);
       m_nextActiveCells.add(dest.position);
+      if (m_transferObserver) {
+        try {
+          m_transferObserver(source.position, dest.position, false);
+        } catch (...) {
+          // Profiling must not interrupt the liquid update after mutation.
+        }
+      }
     }
   }
 }

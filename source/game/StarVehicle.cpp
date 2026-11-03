@@ -10,6 +10,7 @@
 #include "StarAssets.hpp"
 #include "StarScriptedAnimatorLuaBindings.hpp"
 #include "StarPlayer.hpp"
+#include "StarExplorationProfile.hpp"
 
 namespace Star {
 
@@ -176,15 +177,21 @@ Maybe<PolyF> Vehicle::hitPoly() const {
 List<DamageNotification> Vehicle::applyDamage(DamageRequest const& damage) {
   if (!inWorld())
     return {};
+  ExplorationProfile::Scope timing(ExplorationProfile::forWorld(world()),
+      isMaster() ? "entity.vehicle.master.damage" : "entity.vehicle.slave.damage");
 
   return m_scriptComponent.invoke<List<DamageNotification>>("applyDamage", damage).value();
 }
 
 List<DamageNotification> Vehicle::selfDamageNotifications() {
+  ExplorationProfile::Scope timing(ExplorationProfile::forWorld(world()),
+      isMaster() ? "entity.vehicle.master.selfDamage" : "entity.vehicle.slave.selfDamage");
   return m_scriptComponent.invoke<List<DamageNotification>>("selfDamageNotifications").value();
 }
 
 void Vehicle::init(World* world, EntityId entityId, EntityMode mode, ConnectionId originConnection) {
+  ExplorationProfile::Scope timing(ExplorationProfile::forWorld(world),
+      mode == EntityMode::Master ? "entity.vehicle.master.init" : "entity.vehicle.slave.init");
   Entity::init(world, entityId, mode, originConnection);
   m_movementController.init(world);
   m_movementController.setIgnorePhysicsEntities({entityId});
@@ -213,6 +220,8 @@ void Vehicle::init(World* world, EntityId entityId, EntityMode mode, ConnectionI
 }
 
 void Vehicle::uninit() {
+  ExplorationProfile::Scope timing(ExplorationProfile::forWorld(world()),
+      isMaster() ? "entity.vehicle.master.uninit" : "entity.vehicle.slave.uninit");
   m_scriptComponent.uninit();
   m_scriptComponent.removeCallbacks("vehicle");
   m_scriptComponent.removeCallbacks("config");
@@ -371,6 +380,12 @@ void Vehicle::destroy(RenderCallback* renderCallback) {
 }
 
 Maybe<ChainableJsonMessageResponse> Vehicle::receiveMessage(ConnectionId connectionId, String const& message, JsonArray const& args) {
+  auto profile = ExplorationProfile::forWorld(world());
+  bool control = profile && (message.equalsIgnoreCase("control_on") || message.equalsIgnoreCase("control_off")
+      || message.equalsIgnoreCase("control_all") || message.equalsIgnoreCase("aim"));
+  ExplorationProfile::Scope timing(profile, control
+      ? (isMaster() ? "entity.vehicle.master.control" : "entity.vehicle.slave.control")
+      : (isMaster() ? "entity.vehicle.master.message" : "entity.vehicle.slave.message"));
   m_aliveMasterConnections[connectionId] = GameTimer(m_slaveControlTimeout);
   if (message.equalsIgnoreCase("control_on")) {
     auto& loungePosition = m_loungePositions.valueAt(args.at(0).toUInt());
@@ -410,6 +425,8 @@ bool Vehicle::isInteractive() const {
 }
 
 InteractAction Vehicle::interact(InteractRequest const& request) {
+  ExplorationProfile::Scope timing(ExplorationProfile::forWorld(world()),
+      isMaster() ? "entity.vehicle.master.interact" : "entity.vehicle.slave.interact");
   auto result = m_scriptComponent.invoke<Json>("onInteraction", JsonObject{
       {"sourceId", request.sourceId},
       {"sourcePosition", jsonFromVec2F(request.sourcePosition)},
@@ -563,10 +580,14 @@ Maybe<PhysicsMovingCollision> Vehicle::movingCollision(size_t positionIndex) con
 }
 
 Maybe<LuaValue> Vehicle::callScript(String const& func, LuaVariadic<LuaValue> const& args) {
+  ExplorationProfile::Scope timing(ExplorationProfile::forWorld(world()),
+      isMaster() ? "entity.vehicle.master.callScript" : "entity.vehicle.slave.callScript");
   return m_scriptComponent.invoke(func, args);
 }
 
 Maybe<LuaValue> Vehicle::evalScript(String const& code) {
+  ExplorationProfile::Scope timing(ExplorationProfile::forWorld(world()),
+      isMaster() ? "entity.vehicle.master.evalScript" : "entity.vehicle.slave.evalScript");
   return m_scriptComponent.eval(code);
 }
 

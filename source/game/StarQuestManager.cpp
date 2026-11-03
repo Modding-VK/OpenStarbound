@@ -11,6 +11,7 @@
 #include "StarUniverseClient.hpp"
 #include "StarExplorationProfile.hpp"
 #include "StarTrace.hpp"
+#include "StarStoryTrace.hpp"
 
 namespace Star {
 
@@ -376,6 +377,9 @@ StringSet QuestManager::interestingObjects() {
 
 Maybe<ChainableJsonMessageResponse> QuestManager::receiveMessage(String const& message, bool localMessage, JsonArray const& args) {
   STAR_TRACE_ZONE("QuestManager receive message");
+  StoryTrace storyTrace(m_storyProfile ? StoryTrace::currentOrNext() : 0);
+  if (m_storyProfile)
+    m_storyProfile->recordStoryHop(StoryTrace::current(), "player.questMessage", 0);
   ExplorationProfile::Scope timing(m_storyProfile.get(), "quest.message");
   starAssert(m_world);
   Maybe<ChainableJsonMessageResponse> result;

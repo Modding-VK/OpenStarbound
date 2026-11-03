@@ -18,6 +18,8 @@ public:
     String message;
     JsonArray args;
     RpcPromiseKeeper<Json> promise;
+    uint64_t traceId = 0;
+    int64_t queuedAtMicroseconds = 0;
   };
 
   typedef function<void(WorldServerThread*, WorldServer*)> WorldServerAction;
