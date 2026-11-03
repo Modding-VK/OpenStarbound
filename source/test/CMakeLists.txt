@@ -103,10 +103,11 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_dependency_test.cpp
   world_generation_tasks_test.cpp
   world_region_coordinator_test.cpp)
-TARGET_LINK_LIBRARIES(world_generation_contract_tests ${STAR_EXT_LIBS})
 IF(STAR_ENABLE_TRACY)
-  TARGET_LINK_LIBRARIES(world_generation_contract_tests Tracy::TracyClient)
+  TARGET_LINK_LIBRARIES(world_generation_contract_tests PRIVATE ${STAR_EXT_LIBS} Tracy::TracyClient)
   TARGET_COMPILE_DEFINITIONS(world_generation_contract_tests PRIVATE STAR_ENABLE_TRACY)
+ELSE()
+  TARGET_LINK_LIBRARIES(world_generation_contract_tests PRIVATE ${STAR_EXT_LIBS})
 ENDIF()
 ADD_TEST(NAME world_generation_contract_tests
   COMMAND $<TARGET_FILE:world_generation_contract_tests>)
