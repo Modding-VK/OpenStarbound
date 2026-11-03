@@ -15,9 +15,9 @@ de progresso das etapas de geração, dependências e finalização dos setores.
 O [recorte de progresso e contratos por etapa](sector-scheduler-progress-plan.md)
 reconstrói os setores presos e define a sequência: identidade de pedido,
 seleção com oportunidade para pedidos antigos e pré-requisitos, validação de
-conflitos e execução pelas threads donas. Identidade independente do HUD e
-comparação observacional de candidatos implementadas; nova política de execução
-e validação em jogo continuam pendentes.
+conflitos e execução pelas threads donas. Identidade independente do HUD,
+comparação observacional e promoção experimental limitada do pedido mais antigo
+estão implementadas; a validação em jogo continua pendente.
 
 As hipóteses de rework discutidas para setores de 64 × 64, dungeons compostas,
 pré-geração e cálculo paralelo de microdungeons estão em

@@ -1,7 +1,8 @@
 # Progresso da geração e contratos para threads por setor
 
-Estado em 03/11/2026: identidade de pedido e comparação observacional de
-candidatos implementadas; política de execução nova ainda não implementada.
+Estado em 03/11/2026: identidade de pedido, comparação observacional e a
+primeira política experimental de justiça implementadas. A política permanece
+desligada por padrão e não altera o modo legado.
 Branch Experimental. Externalização de NPCs
 suspensa conforme o backlog. Este documento complementa a
 [auditoria dos 41 logs](log-audit-2026-11-03-deep.md) e a
@@ -95,8 +96,8 @@ positivo, mais causa explícita quando esse progresso não for possível.
 
 ### C. Execução por threads donas
 
-- Manter a premissa de uma thread por setor carregado. A pool de preparação
-  auxilia os donos, mas não substitui a thread local.
+- Manter a premissa de uma thread por região lógica carregada. A pool de
+  preparação auxilia os donos, mas não substitui a thread local da região.
 - Avançar primeiro operações com leitura imutável e escrita local comprovadas.
   Publicação com efeitos em vizinhos exige o contrato correspondente da tabela.
 - O grafo atual de dependências é observacional e pode ser truncado. Não usar
@@ -123,9 +124,26 @@ positivo, mais causa explícita quando esse progresso não for possível.
 6. Separar ganhos do agendador dos ganhos de paralelismo. Workers ocupados ou
    mais setores preparados não demonstram conclusão mais rápida por si só.
 
-Nenhuma alteração na política de execução foi aplicada nesta investigação.
-Os próximos commits devem separar identidade/observação, seleção experimental
-e execução por donos, permitindo revisão e comparação de cada efeito.
+## Política experimental de justiça
+
+`worldThreading.generationFairnessSchedulerPreview` habilita uma promoção
+limitada do pedido com menor sequência ainda presente na fila. A cada
+`generationFairnessIntervalPasses` passagens (padrão 4; limitado a 1–60), a
+fila é primeiro ordenada pela distância atual ao jogador e então esse único
+pedido antigo é movido para a frente. O orçamento de tempo e de níveis continua
+o mesmo; não há trabalho adicional garantido nem prioridade permanente.
+
+Ao ser selecionado, o setor continua usando `generateSectorToLevel` com alvo
+`Complete`. A rotina existente percorre os pré-requisitos de geração antes de
+avançar a etapa dependente, portanto a oportunidade é herdada por eles dentro
+da chamada autoritativa. Esta versão não insere vizinhos como pedidos de jogador
+nem permite publicar estruturas fora da ordem já existente.
+
+Com profiling ativo, `generation.fairness.promoted` registra promoções e
+`generation.fairness.alreadySelected` registra quando o pedido antigo já era o
+mais próximo. Com `regionalDetails`, o evento limitado de pedido usa
+`fairnessPromoted`. Comparar essa opção desligada e ligada na mesma rota é
+obrigatório antes de adotá-la como padrão.
 
 ## Primeiro recorte implementado
 
@@ -152,4 +170,4 @@ limite separado de 16; contadores de descarte tornam a perda explícita. O
 detalhamento e a varredura adicional são desligados com `regionalDetails`.
 Sem profiling, permanece somente o custo de manter identidade/data por entrada.
 Essa etapa não cria novos workers nem transfere a simulação para as threads
-dos setores.
+das regiões lógicas.

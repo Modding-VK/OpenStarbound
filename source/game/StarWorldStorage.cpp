@@ -959,6 +959,37 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
         });
     }
 
+    // Keep proximity as the normal ordering.  At a bounded interval, give the
+    // oldest still-requested sector one complete-generation opportunity.  The
+    // existing recursive call is responsible for its prerequisites, so they
+    // inherit this attempt without independently changing queue membership.
+    auto threading = Root::singleton().configuration()->get("worldThreading", JsonObject());
+    bool fairnessPreview = threading.getBool("generationFairnessSchedulerPreview", false);
+    unsigned fairnessInterval = min<unsigned>(max<unsigned>(
+        threading.getUInt("generationFairnessIntervalPasses", 4), 1), 60);
+    if (fairnessPreview && !m_generationQueue.empty()
+        && ++m_generationFairnessPasses % fairnessInterval == 0) {
+      Maybe<Sector> oldest;
+      for (auto const& entry : m_generationRequests) {
+        if (!m_generationQueue.contains(entry.first))
+          continue;
+        if (!oldest || entry.second.sequence < m_generationRequests.get(*oldest).sequence)
+          oldest = entry.first;
+      }
+      if (oldest) {
+        auto selected = m_generationQueue.firstKey();
+        if (selected != *oldest) {
+          m_generationQueue.toFront(*oldest);
+          if (m_explorationProfile) {
+            m_explorationProfile->count("generation.fairness.promoted");
+            recordGenerationRequest(*oldest, "fairnessPromoted");
+          }
+        } else if (m_explorationProfile) {
+          m_explorationProfile->count("generation.fairness.alreadySelected");
+        }
+      }
+    }
+
     // Observe an oldest-request opportunity without changing execution order.
     // Identity exists without instrumentation; the extra scan is diagnostic only.
     if (m_explorationProfile && m_explorationProfile->regionalDetailsEnabled() && !m_generationQueue.empty()) {

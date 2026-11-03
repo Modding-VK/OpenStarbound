@@ -427,6 +427,7 @@ private:
   // Sequence is unique within this storage lifetime, not a BaseTiles task ID.
   uint64_t m_generationRequestEpoch = 0;
   uint64_t m_generationRequestSequence = 0;
+  uint64_t m_generationFairnessPasses = 0;
   HashMap<Sector, GenerationRequest> m_generationRequests;
   size_t m_lastOldestQueueDiagnosticBucket = 0;
   Maybe<Sector> m_oldestQueueDiagnosticSector;
