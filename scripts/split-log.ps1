@@ -24,6 +24,7 @@ $resolvedOutput = [System.IO.Path]::GetFullPath($OutputDirectory)
 $limitBytes = [int64]$MaxMiB * 1024 * 1024
 
 $utf8 = [System.Text.UTF8Encoding]::new($false)
+$newlineBytes = $utf8.GetByteCount([System.Environment]::NewLine)
 $reader = [System.IO.StreamReader]::new($resolvedInput, $utf8, $true, 1024 * 1024)
 $writer = $null
 $partNumber = 0
@@ -33,7 +34,7 @@ $lineNumber = [int64]0
 try {
     while ($null -ne ($line = $reader.ReadLine())) {
         $lineNumber++
-        $lineBytes = $utf8.GetByteCount($line) + 1
+        $lineBytes = $utf8.GetByteCount($line) + $newlineBytes
 
         if ($lineBytes -gt $limitBytes) {
             throw "A linha $lineNumber sozinha excede o limite de $MaxMiB MiB; não é seguro dividi-la sem corromper o log."
