@@ -140,6 +140,17 @@ private:
     bool fulfilled;
   };
 
+  // Immutable selection descriptor. It intentionally contains no world,
+  // entity, Lua or facade reference, so a later planning worker can receive a
+  // value snapshot without gaining write access to the live world.
+  struct MicroDungeonPlan {
+    RectI bounds;
+    Vec2I position;
+    uint64_t seed;
+    String dungeonName;
+    Maybe<size_t> queuedPlacement;
+  };
+
   struct PreparedBaseTiles {
     ServerTileSectorArray::ArrayPtr tiles;
     double elapsedSeconds;

@@ -1185,6 +1185,9 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
 void WorldGenerator::generateMicroDungeons(WorldStorage* worldStorage, ServerTileSectorArray::Sector const& sector) {
   STAR_TRACE_ZONE("Microdungeon placements");
   auto facade = make_shared<DungeonGeneratorWorld>(m_worldServer, false);
+  auto profile = m_worldServer->explorationProfile();
+  bool planPreview = Root::singleton().configuration()->get("worldThreading", JsonObject())
+      .getBool("microDungeonPlanPreview", false);
 
   RectI sectorTiles = worldStorage->tileArray()->sectorRegion(sector);
   RectI bounds = sectorTiles.padded(WorldSectorSize - 1);
@@ -1207,6 +1210,7 @@ void WorldGenerator::generateMicroDungeons(WorldStorage* worldStorage, ServerTil
   }
 
   sort(placementQueue);
+  List<MicroDungeonPlan> plans;
   for (auto const& p : placementQueue) {
     auto& placement = p.first;
     auto queued = p.second;
@@ -1216,12 +1220,51 @@ void WorldGenerator::generateMicroDungeons(WorldStorage* worldStorage, ServerTil
     if (placement.item.is<MicroDungeonNames>()) {
       auto seed = m_worldServer->worldTemplate()->seedFor(placement.position[0], placement.position[1]);
       auto const& dungeonName = staticRandomFrom(placement.item.get<MicroDungeonNames>(), seed);
-      Maybe<DungeonId> dungeonId;
       starAssert(!dungeonName.empty());
-      if (auto generateResult = m_microDungeonFactory->generate(bounds, dungeonName, placement.position, seed, m_worldServer->threatLevel(), facade)) {
+      Maybe<size_t> queuedIndex;
+      if (queued) {
+        for (size_t i = 0; i < m_queuedPlacements.size(); ++i) {
+          if (&m_queuedPlacements[i] == queued) {
+            queuedIndex = i;
+            break;
+          }
+        }
+        starAssert(queuedIndex);
+      }
+      plans.append(MicroDungeonPlan{bounds, placement.position, seed, dungeonName, queuedIndex});
+    }
+  }
+
+  if (profile && planPreview) {
+    profile->count("generation.microDungeonPlan.candidates", plans.size());
+    for (auto const& plan : plans) {
+      if (plan.queuedPlacement)
+        profile->count("generation.microDungeonPlan.queuedCandidates");
+    }
+  }
+
+  for (auto const& plan : plans) {
+    QueuedPlacement* queued = plan.queuedPlacement ? &m_queuedPlacements[*plan.queuedPlacement] : nullptr;
+    if (queued && queued->fulfilled)
+      continue;
+    Maybe<DungeonId> dungeonId;
+    if (auto generateResult = m_microDungeonFactory->generate(plan.bounds, plan.dungeonName, plan.position,
+        plan.seed, m_worldServer->threatLevel(), facade)) {
+      if (profile && planPreview) {
+        profile->count("generation.microDungeonPlan.accepted");
+        profile->count("generation.microDungeonPlan.footprintTiles", generateResult->second.size());
+        HashSet<WorldStorage::Sector> footprintSectors;
+        for (auto const& position : generateResult->second) {
+          if (auto affectedSector = worldStorage->sectorForPosition(position))
+            footprintSectors.add(*affectedSector);
+        }
+        profile->record("generation.microDungeonPlan.footprintSectors", footprintSectors.size());
+        if (footprintSectors.size() > 1)
+          profile->count("generation.microDungeonPlan.crossSectorAccepted");
+      }
         if (queued) {
           dungeonId = queued->dungeonId;
-          queued->promise.fulfill(placement.position);
+          queued->promise.fulfill(plan.position);
           queued->fulfilled = true;
         }
         for (auto position : generateResult->second) {
@@ -1232,7 +1275,6 @@ void WorldGenerator::generateMicroDungeons(WorldStorage* worldStorage, ServerTil
         }
       }
     }
-  }
   
   m_queuedPlacements = m_queuedPlacements.filtered([&](QueuedPlacement& p) {
       return !p.fulfilled;

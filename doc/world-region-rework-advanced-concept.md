@@ -112,6 +112,9 @@ O pool `sectorWorkers` já prepara **tiles básicos** em paralelo; a thread do
 mundo valida e instala resultados. Microdungeons, montagem de dungeons
 compostas, inicialização de entidades, Lua, líquidos e efeitos continuam em
 caminhos com estado compartilhado ([world-threading.md](world-threading.md)).
+O [pré-planejamento de microdungeons](microdungeon-planning-preview.md) já
+separa descritores imutáveis da execução, mas o writer ainda acessa o mundo vivo
+e permanece serial.
 Uma fila lenta pode resultar de revisões invalidadas, resultados descartados,
 dependências de vizinhos, montagem de estruturas ou tempo de commit; mais
 threads não eliminam essas causas
