@@ -142,3 +142,30 @@ Esta política não cria cache de provedor, não altera o modelo usado pelo host
 não instala servidores de ferramentas e não modifica automaticamente o
 histórico da conversa. Esses recursos dependem da plataforma que executa o
 agente e devem ser aplicados sem remover controles de segurança.
+
+## Headroom: uso opcional
+
+O projeto [headroom](https://github.com/chopratejas/headroom) foi avaliado como
+uma ferramenta externa de compressão reversível para saídas de ferramentas,
+logs, arquivos e resultados de RAG. A referência consultada em 03/11/2026
+apontava para o commit `2e49e5304b245fdaca0d2640bb1a59cb1ffa63fc`.
+
+Ele pode ser útil em sessões locais muito longas por manter os dados originais
+em um cache local e fornecer recuperação sob demanda. A aplicação recomendada
+para este projeto é somente no ambiente do agente, em modo local e opcional:
+
+- não adicionar Headroom, Python, npm, MCP ou o modelo de compressão às builds
+  do jogo;
+- não instalar nem executar automaticamente a ferramenta em workflows,
+  servidores ou máquinas de jogadores;
+- revisar o commit, licença, dependências e permissões antes de instalar;
+- preservar sem compressão erros ativos, diffs em revisão, instruções de
+  segurança e evidências usadas por uma hipótese;
+- comparar a análise com e sem compressão antes de adotar um resultado como
+  evidência técnica;
+- manter logs brutos fora do prompt, mas recuperáveis localmente, sem enviá-los
+  a serviços externos.
+
+Headroom não foi incorporado ao repositório nem instalado no ambiente. A
+política local acima já cobre seus princípios de mascaramento, recuperação,
+medição e estabilidade de prefixo sem criar uma dependência de runtime.
