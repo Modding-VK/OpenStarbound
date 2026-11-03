@@ -342,7 +342,15 @@ WorldGeometry DungeonGeneratorWorld::getWorldGeometry() const {
   return m_worldServer->geometry();
 }
 
+void DungeonGeneratorWorld::recordMicroDungeonFacade(char const* counter, uint64_t amount) const {
+  if (m_markForActivation)
+    return;
+  if (auto profile = m_worldServer->explorationProfile(); profile && profile->regionalDetailsEnabled())
+    profile->count(counter, amount);
+}
+
 void DungeonGeneratorWorld::markRegion(RectI const& region) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.markRegion");
   if (!m_markForActivation)
     return;
 
@@ -353,6 +361,7 @@ void DungeonGeneratorWorld::markRegion(RectI const& region) {
 }
 
 void DungeonGeneratorWorld::markTerrain(PolyF const& region) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.markTerrain");
   if (!m_markForActivation)
     return;
 
@@ -361,6 +370,7 @@ void DungeonGeneratorWorld::markTerrain(PolyF const& region) {
 }
 
 void DungeonGeneratorWorld::markSpace(PolyF const& region) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.markSpace");
   if (!m_markForActivation)
     return;
 
@@ -369,6 +379,7 @@ void DungeonGeneratorWorld::markSpace(PolyF const& region) {
 }
 
 void DungeonGeneratorWorld::setForegroundMaterial(Vec2I const& position, MaterialId material, MaterialHue hueshift, MaterialColorVariant colorVariant) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.foregroundMaterialWrite");
   if (ServerTile* tile = m_worldServer->modifyServerTile(position)) {
     m_worldServer->modifyLiquid(position, EmptyLiquidId, 0);
     tile->foreground = material;
@@ -382,6 +393,7 @@ void DungeonGeneratorWorld::setForegroundMaterial(Vec2I const& position, Materia
 }
 
 void DungeonGeneratorWorld::setBackgroundMaterial(Vec2I const& position, MaterialId material, MaterialHue hueshift, MaterialColorVariant colorVariant) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.backgroundMaterialWrite");
   if (ServerTile* tile = m_worldServer->modifyServerTile(position)) {
     m_worldServer->modifyLiquid(position, EmptyLiquidId, 0);
     tile->background = material;
@@ -393,6 +405,7 @@ void DungeonGeneratorWorld::setBackgroundMaterial(Vec2I const& position, Materia
 }
 
 void DungeonGeneratorWorld::placeObject(Vec2I const& pos, String const& objectName, Star::Direction direction, Json const& parameters) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.objectPlacement");
   ExplorationProfile::Scope phase(m_worldServer->explorationProfile(), "dungeon.object.signalRegion");
   m_worldServer->signalRegion(RectI::withSize(pos, {1, 1}));
 
@@ -408,6 +421,7 @@ void DungeonGeneratorWorld::placeObject(Vec2I const& pos, String const& objectNa
 }
 
 void DungeonGeneratorWorld::placeVehicle(Vec2F const& pos, String const& vehicleName, Json const& parameters) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.vehiclePlacement");
   m_worldServer->signalRegion(RectI::withSize(Vec2I(pos), {1, 1}));
 
   auto vehicleDatabase = Root::singleton().vehicleDatabase();
@@ -417,11 +431,13 @@ void DungeonGeneratorWorld::placeVehicle(Vec2F const& pos, String const& vehicle
 }
 
 void DungeonGeneratorWorld::placeSurfaceBiomeItems(Vec2I const& pos) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.surfaceBiomeItems");
   List<BiomeItemPlacement> surfaceItems = m_worldServer->worldTemplate()->potentialBiomeItemsAt(pos[0], pos[1]).surfaceBiomeItems;
   placeBiomeItems(pos, surfaceItems);
 }
 
 void DungeonGeneratorWorld::placeBiomeTree(Vec2I const& pos) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.biomeTree");
   if (auto biome = m_worldServer->worldTemplate()->blockBiome(pos[0], pos[1])) {
     m_worldServer->signalRegion(RectI::withSize(pos, {1, 1}));
     auto seed = m_worldServer->worldTemplate()->seedFor(pos[0], pos[1]);
@@ -432,6 +448,7 @@ void DungeonGeneratorWorld::placeBiomeTree(Vec2I const& pos) {
 
 // yay, copy paste coding, kyren WILL kill me
 void DungeonGeneratorWorld::placePlant(PlantPtr const& plant, Vec2I const& position) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.plantPlacement");
   if (!plant)
     return;
 
@@ -549,12 +566,15 @@ void DungeonGeneratorWorld::placeBiomeItems(Vec2I const& pos, List<BiomeItemPlac
 }
 
 void DungeonGeneratorWorld::addDrop(Vec2F const& position, ItemDescriptor const& item) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.dropSpawn");
   m_worldServer->addEntity(ItemDrop::createRandomizedDrop(item, position));
 }
 
 void DungeonGeneratorWorld::spawnNpc(Vec2F const& position, Json const& parameters) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.spawn");
   auto kind = parameters.getString("kind");
   if (kind.equals("npc", String::CaseInsensitive)) {
+    recordMicroDungeonFacade("generation.microDungeonFacade.npcSpawn");
     auto npcDatabase = Root::singleton().npcDatabase();
     uint64_t seed = parameters.getUInt("seed", Random::randu64());
     String species = parameters.getString("species");
@@ -566,6 +586,7 @@ void DungeonGeneratorWorld::spawnNpc(Vec2F const& position, Json const& paramete
     npc->setPosition(position - npc->feetOffset());
     m_worldServer->addEntity(npc);
   } else if (kind.equals("monster", String::CaseInsensitive)) {
+    recordMicroDungeonFacade("generation.microDungeonFacade.monsterSpawn");
     auto monsterDatabase = Root::singleton().monsterDatabase();
     uint64_t seed = parameters.getUInt("seed", Random::randu64());
     String typeName = parameters.getString("typeName");
@@ -580,12 +601,14 @@ void DungeonGeneratorWorld::spawnNpc(Vec2F const& position, Json const& paramete
 }
 
 void DungeonGeneratorWorld::spawnStagehand(Vec2F const& position, Json const& definition) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.stagehandSpawn");
   auto stagehand = Root::singleton().stagehandDatabase()->createStagehand(definition.getString("type"), definition.get("parameters", Json()));
   stagehand->setPosition(position);
   m_worldServer->addEntity(stagehand);
 }
 
 void DungeonGeneratorWorld::setLiquid(Vec2I const& pos, LiquidStore const& liquid) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.liquidWrite");
   ServerTile* tile = m_worldServer->modifyServerTile(pos);
   starAssert(tile);
   if (tile)
@@ -593,10 +616,13 @@ void DungeonGeneratorWorld::setLiquid(Vec2I const& pos, LiquidStore const& liqui
 }
 
 void DungeonGeneratorWorld::setPlayerStart(Vec2F const& startPosition) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.playerStart");
   m_worldServer->setPlayerStart(startPosition);
 }
 
 void DungeonGeneratorWorld::connectWireGroup(List<Vec2I> const& wireGroup) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.wireGroup");
+  recordMicroDungeonFacade("generation.microDungeonFacade.wireEndpoints", wireGroup.size());
   List<WireConnection> outbounds;
   List<WireConnection> inbounds;
 
@@ -638,6 +664,7 @@ void DungeonGeneratorWorld::connectWireGroup(List<Vec2I> const& wireGroup) {
 }
 
 void DungeonGeneratorWorld::setForegroundMod(Vec2I const& position, ModId mod, MaterialHue hueshift) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.foregroundModWrite");
   ServerTile* tile = m_worldServer->modifyServerTile(position);
   if (tile) {
     tile->foregroundMod = mod;
@@ -646,6 +673,7 @@ void DungeonGeneratorWorld::setForegroundMod(Vec2I const& position, ModId mod, M
 }
 
 void DungeonGeneratorWorld::setBackgroundMod(Vec2I const& position, ModId mod, MaterialHue hueshift) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.backgroundModWrite");
   ServerTile* tile = m_worldServer->modifyServerTile(position);
   if (tile) {
     tile->backgroundMod = mod;
@@ -654,34 +682,44 @@ void DungeonGeneratorWorld::setBackgroundMod(Vec2I const& position, ModId mod, M
 }
 
 void DungeonGeneratorWorld::setTileProtection(DungeonId dungeonId, bool isProtected) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.tileProtectionWrite");
   m_worldServer->setTileProtection(dungeonId, isProtected);
 }
 
 bool DungeonGeneratorWorld::checkSolid(Vec2I const& position, TileLayer layer) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.solidRead");
   auto const& tile = m_worldServer->getServerTile(position);
   return tile.material(layer) != EmptyMaterialId && tile.material(layer) != NullMaterialId;
 }
 
 bool DungeonGeneratorWorld::checkOpen(Vec2I const& position, TileLayer layer) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.openRead");
   auto const& tile = m_worldServer->getServerTile(position);
   return tile.material(layer) == EmptyMaterialId || tile.material(layer) == NullMaterialId;
 }
 
 bool DungeonGeneratorWorld::checkOceanLiquid(Vec2I const& position) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.oceanRead");
   auto const& block = m_worldServer->worldTemplate()->blockInfo(position[0], position[1]);
   return block.oceanLiquid != EmptyLiquidId && position[1] < block.oceanLiquidLevel;
 }
 
 DungeonId DungeonGeneratorWorld::getDungeonIdAt(Vec2I const& position) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.dungeonIdRead");
   return m_worldServer->getServerTile(position).dungeonId;
 }
 
 void DungeonGeneratorWorld::setDungeonIdAt(Vec2I const& position, DungeonId dungeonId) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.dungeonIdWrite");
   if (auto tile = m_worldServer->modifyServerTile(position))
     tile->dungeonId = dungeonId;
 }
 
 void DungeonGeneratorWorld::clearTileEntities(RectI const& bounds, Set<Vec2I> const& positions, bool clearAnchoredObjects) {
+  recordMicroDungeonFacade("generation.microDungeonFacade.clearTileEntities");
+  recordMicroDungeonFacade("generation.microDungeonFacade.clearTilePositions", positions.size());
+  if (clearAnchoredObjects)
+    recordMicroDungeonFacade("generation.microDungeonFacade.clearAnchoredObjects");
   auto entities = m_worldServer->entityQuery(RectF(bounds).padded(1), entityTypeFilter<TileEntity>());
   auto geometry = m_worldServer->geometry();
   entities.filter([positions, geometry, clearAnchoredObjects](EntityPtr entity) {

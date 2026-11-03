@@ -84,6 +84,9 @@ public:
   WorldGeometry getWorldGeometry() const override;
 
 private:
+  // Microdungeon-only, fixed-cardinality diagnostics. This never retains
+  // world data or mod payloads and is disabled unless regional details are on.
+  void recordMicroDungeonFacade(char const* counter, uint64_t amount = 1) const;
   void placePlant(PlantPtr const& plant, Vec2I const& position);
   void placeBiomeItems(Vec2I const& pos, List<BiomeItemPlacement>& potentialItems);
 

@@ -35,6 +35,15 @@ métricas. Os contadores são `generation.microDungeonPlan.candidates`,
 `crossSectorAccepted`; `footprintSectors` é uma amostra por dungeon aceita.
 Não são registrados nomes de dungeons, parâmetros de mods ou payloads.
 
+Com `regionalDetails: true`, a facade viva também conta acessos e efeitos de
+microdungeons sob `generation.microDungeonFacade.*`: leituras de material,
+líquido e ID de dungeon; escritas de materiais, mods, líquidos, proteção e IDs;
+criação de objetos, veículos, plantas, drops, NPCs, monstros e stagehands;
+fios, limpeza de entidades e marcações. Os rótulos são fixos e não incluem
+identificadores de mods. A coleta ocorre somente para a facade de
+microdungeons, que é criada sem `markForActivation`; dungeons compostas e
+comandos continuam em suas métricas próprias.
+
 ## Limites
 
 O descritor ainda não é um plano privado completo. `MicroDungeonFactory::generate`
