@@ -8,7 +8,7 @@ configuração disponibilizados pelo GitHub. Não iniciou novas execuções.
 | Execução | Resultado observado | Interpretação |
 | --- | --- | --- |
 | [#23](https://github.com/Modding-VK/OpenStarbound/actions/runs/40247252659) | `skipped`; os oito jobs foram ignorados | Nenhuma condição de seleção de plataforma passou. A API consultada devolveu `inputs: null`, então não é possível afirmar quais opções foram enviadas ou por que ficaram falsas. |
-| [#24, Tracy](https://github.com/Modding-VK/OpenStarbound/actions/runs/40247563736) | Job Windows falhou em `Run CMake with Tracy`, antes de compilar | O código de integração mistura as assinaturas `plain` e `keyword` de `target_link_libraries` para os mesmos executáveis. |
+| [#24, Tracy](https://github.com/Modding-VK/OpenStarbound/actions/runs/40247563736) | Job Windows falhou em `Run CMake with Tracy`, antes de compilar | A configuração Tracy falhou por mistura de assinaturas de `target_link_libraries`; a causa foi corrigida na branch de revisão e ainda requer uma nova execução. |
 | [#25, Windows normal](https://github.com/Modding-VK/OpenStarbound/actions/runs/40249959323) | Build, criação do instalador e upload concluídos; publicação da Release ignorada | O instalador existe como artifact. O job de publicação requer a opção explícita `publish_windows_release: true`, cujo padrão é `false`. |
 
 ## Tracy: falha de configuração
@@ -23,12 +23,13 @@ revisão e a definir `TRACY_ENABLE=ON`; **não chegou à compilação** nem prod
 artifacts. Portanto essa execução não informa se instrumentação, link,
 instalador ou execução em jogo funcionariam depois de corrigida a configuração.
 
-Correção aplicada na branch de revisão: as chamadas dos alvos `starbound` e
-`starbound_server` agora usam a assinatura `PRIVATE`, igual à integração
-Tracy. O link de Tracy continua restrito ao preset diagnóstico. Ainda falta
-uma execução manual de Windows com `tracy: true` para comprovar configuração,
-compilação e instalador diagnóstico; conexão e captura Tracy exigem execução
-local do jogo instrumentado.
+Correção aplicada na branch de revisão: todos os vínculos condicionais do Tracy
+usam a assinatura com escopo. O alvo de testes
+`world_generation_contract_tests` também foi corrigido para não combinar uma
+chamada sem escopo com outra `PRIVATE`. O link de Tracy continua restrito ao
+preset diagnóstico. Ainda falta uma execução manual de Windows com `tracy: true`
+para comprovar configuração, compilação e instalador diagnóstico; conexão e
+captura Tracy exigem execução local do jogo instrumentado.
 O workflow atual deliberadamente não publica Release para Tracy.
 
 ## Instalador e Release da build normal
