@@ -31,6 +31,7 @@ SET (star_frontend_HEADERS
     StarContainerInteractor.hpp
     StarCraftingInterface.hpp
     StarErrorScreen.hpp
+    StarExplorationProfilingMenu.hpp
     StarGraphicsMenu.hpp
     StarInventory.hpp
     StarInterfaceCursor.hpp
@@ -85,6 +86,7 @@ SET (star_frontend_SOURCES
     StarContainerInteractor.cpp
     StarCraftingInterface.cpp
     StarErrorScreen.cpp
+    StarExplorationProfilingMenu.cpp
     StarGraphicsMenu.cpp
     StarInventory.cpp
     StarInterfaceCursor.cpp

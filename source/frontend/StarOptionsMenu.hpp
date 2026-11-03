@@ -13,6 +13,7 @@ STAR_CLASS(LabelWidget);
 STAR_CLASS(VoiceSettingsMenu);
 STAR_CLASS(KeybindingsMenu);
 STAR_CLASS(GraphicsMenu);
+STAR_CLASS(ExplorationProfilingMenu);
 STAR_CLASS(BindingsMenu);
 STAR_CLASS(OptionsMenu);
 
@@ -44,6 +45,7 @@ private:
   void displayVoiceSettings();
   void displayModBindings();
   void displayGraphics();
+  void displayDiagnostics();
 
   SliderBarWidgetPtr m_instrumentSlider;
   SliderBarWidgetPtr m_sfxSlider;
@@ -71,6 +73,7 @@ private:
   BindingsMenuPtr m_modBindingsMenu;
   KeybindingsMenuPtr m_keybindingsMenu;
   GraphicsMenuPtr m_graphicsMenu;
+  ExplorationProfilingMenuPtr m_explorationProfilingMenu;
   PaneManager* m_paneManager;
 };
 

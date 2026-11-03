@@ -55,6 +55,21 @@ o servidor precisa de sua própria configuração em `starbound_server.config` e
 do executável instrumentado para fornecer as medições do servidor; a opção do
 cliente não é transmitida pela rede.
 
+### Painel no menu
+
+O menu principal agora disponibiliza **Options → Diagnostics**. Ele mantém no
+`starbound.config` os mesmos campos de `explorationProfiling`, com caixas para
+habilitar a coleta, detalhes de NPCs, detalhes de setores e escrita de
+relatórios; e controles para intervalo, limiar de lentidão, limite de entidades,
+tamanho de arquivo e rotações. As escolhas são gravadas ao usar **Apply** e
+valem na próxima inicialização. O painel não reinicia perfis que já existem,
+para não introduzir sincronização adicional durante uma sessão.
+
+O painel somente configura as categorias que já existiam. A separação dos
+arquivos em `npcs`, `sectors`, `generation` e demais pastas é fixa enquanto se
+coleta uma janela; filtros individuais por pasta dependem de uma ampliação
+posterior da configuração de instrumentação.
+
 ## Arquivos de diagnóstico
 
 Cada categoria possui uma pasta própria em `storage/logs/exploration/`, seguida
@@ -81,6 +96,34 @@ relatórios sem desligar as medições; essa opção serve apenas para diagnóst
 temporário, pois os dados coletados não serão preservados.
 
 ## Próxima coleta
+
+### Identidade dos pedidos e comparação de seleção
+
+Os relatórios `generation/` (e o relatório completo `world/`) incluem
+`generationRequests` e `generationSelections`. Cada entrada contém
+`requestEpoch`, `requestSequence`, `sector`, `event`, `ageMilliseconds`,
+`generationLevel` e `monotonicMilliseconds`. As identidades pertencem à fila
+de ativação, não às tarefas BaseTiles; só são únicas dentro da execução.
+
+Eventos `admitted`, `completed` e `expired` descrevem entrada e remoção;
+`unloaded` observa descarregamento sem necessariamente encerrar o pedido.
+Renovar interesse preserva a identidade. A identidade e sua idade permanecem
+corretas quando o HUD é desligado. O aviso `[SectorQueue]` inclui os mesmos
+identificadores para distinguir episódios da mesma coordenada.
+
+Com `explorationProfiling.regionalDetails: true`, `selectedHead` e
+`shadowOldest` comparam os candidatos por ordem atual e antiguidade. A fila
+executada permanece a atual; o candidato não garante tentativa ou conclusão.
+`generation.selection.samples` conta passagens comparadas e `oldestDiffers`
+conta divergências. Não confundir esses contadores com setores únicos.
+
+São retidos até 64 eventos de pedidos e 16 eventos de seleção por janela,
+em buffers independentes. `generation.requests.eventsDropped` e
+`generation.selection.eventsDropped` indicam detalhes descartados. Contadores
+por evento continuam sendo acumulados com profiling ativo; ausência de detalhe
+ou fim da sessão sem evento terminal não prova perda de um pedido.
+
+### Cenário de exploração
 
 Para separar as etapas internas dos NPCs, habilitar também `npcDetails: true`
 conforme [npc-profiling.md](npc-profiling.md). Essa extensão adiciona `npcStages`

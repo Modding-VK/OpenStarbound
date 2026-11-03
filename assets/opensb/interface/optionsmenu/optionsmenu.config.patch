@@ -45,6 +45,13 @@
       "base" : "/interface/optionsmenu/tricontrolsbutton.png",
       "hover" : "/interface/optionsmenu/tricontrolsbuttonhover.png"
     },
+    "showDiagnostics" : {
+      "type" : "button",
+      "position" : [87, 80],
+      "caption" : "Diagnostics",
+      "base" : "/interface/optionsmenu/tricontrolsbutton.png",
+      "hover" : "/interface/optionsmenu/tricontrolsbuttonhover.png"
+    },
 
     "volumeLabel" : { "position" : [119, 173] },
     "musicSlider" : { "position" : [62, 126] },
