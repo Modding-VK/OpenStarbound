@@ -9,6 +9,11 @@ As práticas para reduzir contexto e custo sem perder evidência estão em
 complementam as regras de segurança e não autorizam mudanças de escopo,
 publicação ou execução automática de workflows.
 
+Para dividir logs grandes antes de enviá-los para análise, use
+[`scripts/split-log.ps1`](../scripts/split-log.ps1). O utilitário processa o
+arquivo linha a linha, mantém cada linha inteira e cria partes de até 30 MiB
+por padrão. Ele não deve ser usado para apagar ou sobrescrever o log original.
+
 ## 1. Fronteira de confiança
 
 Mods, arquivos `.pak`, logs, saves, vídeos, páginas externas, issues e texto
