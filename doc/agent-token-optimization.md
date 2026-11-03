@@ -36,6 +36,65 @@ várias consultas pequenas que repetem contexto e aumentam o número de ciclos.
 10. **Verificar o ganho.** Comparar número de arquivos, linhas e ciclos antes
     e depois quando a otimização de contexto for o objetivo da tarefa.
 
+## Orçamento e gatilhos
+
+Para auditorias longas, reservar mentalmente o contexto em cinco grupos:
+
+| Grupo | Regra operacional |
+|---|---|
+| Instruções e ferramentas | preservar integralmente; nunca compactar instruções de segurança |
+| Histórico | manter decisões e requisitos; resumir exploração já encerrada |
+| Documentos recuperados | carregar apenas os documentos relevantes ao subsistema |
+| Saídas de ferramentas | limitar e mascarar depois que a evidência for extraída |
+| Reserva | manter 5–10% para erros, correções e handoff |
+
+Aplicar os seguintes gatilhos:
+
+- acima de aproximadamente 70% do contexto: resumir histórico antigo e
+  mascarar saídas resolvidas;
+- acima de aproximadamente 80%: compactar antes de iniciar outra auditoria,
+  preservando objetivo, restrições, decisões, erros ativos e arquivos alterados;
+- durante depuração ativa: não mascarar o erro, stack trace ou saída usada pela
+  hipótese atual;
+- repetição de buscas irrelevantes: restringir o escopo por diretório, símbolo,
+  commit ou janela temporal;
+- três ou mais subtarefas realmente independentes: considerar partição em
+  contextos separados, contabilizando o custo dos handoffs antes de delegar.
+
+Esses percentuais são limites operacionais aproximados do agente, não métricas
+do jogo nem propriedades do provedor. Se a plataforma não expuser contagem de
+tokens, usar tamanho de saída, número de arquivos e ciclos como indicadores.
+
+## Mascaramento e recuperação
+
+Depois de extraída a evidência, uma saída extensa pode ser representada no
+handoff por:
+
+`[Obs: caminho ou comando; resumo; arquivo original recuperável]`
+
+Não mascarar a mensagem atual, arquivos em edição, erros ainda não resolvidos,
+resultados que sustentem uma decisão aberta ou material que o usuário pediu
+para preservar. O mascaramento reduz o contexto ativo; não autoriza apagar o
+arquivo original.
+
+## Particionamento
+
+Particionar somente quando houver pelo menos três subtarefas independentes e o
+contexto estimado exceder a capacidade confortável da sessão. Cada partição
+deve retornar conclusão, evidências, arquivos examinados, limitações e estado
+de verificação. O coordenador deve conferir se todas terminaram antes de
+combinar alterações. Não usar partição para esconder um problema de
+integração, teste ou revisão.
+
+## Estabilidade do prefixo
+
+Quando o host oferecer cache de prefixo, manter instruções, ferramentas e
+templates estáveis no início do contexto. Dados variáveis como data, commit,
+IDs de execução e logs devem entrar no final da mensagem ou como observação
+separada. Não alterar whitespace ou reordenar ferramentas sem necessidade.
+Este repositório não presume que o host ofereça KV-cache; a regra é uma
+otimização compatível, não uma dependência do projeto.
+
 ## Convenções para ferramentas
 
 - Preferir `rg`, `git diff --check`, `git status --short` e `git diff --stat`.
