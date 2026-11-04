@@ -117,6 +117,18 @@ IF(STAR_ENABLE_TRACY)
 ELSE()
   TARGET_LINK_LIBRARIES(world_generation_contract_tests PRIVATE ${STAR_EXT_LIBS})
 ENDIF()
-ADD_TEST(NAME world_generation_contract_tests
-  COMMAND $<TARGET_FILE:world_generation_contract_tests>)
-SET_TESTS_PROPERTIES(world_generation_contract_tests PROPERTIES LABELS "NoAssets")
+# Keep the value-only world-region checks independently diagnosable in CI. A
+# Tracy client issue in one executable must identify its GTest suite and must
+# not consume the entire Actions job timeout.
+FOREACH(world_region_test_suite
+    WorldRegionPartitionTest
+    WorldGenerationDependencyTest
+    WorldGenerationTasksTest
+    WorldRegionCoordinatorTest
+    WorldRegionObservationTest)
+  ADD_TEST(NAME world_generation_contract_${world_region_test_suite}
+    COMMAND $<TARGET_FILE:world_generation_contract_tests>
+      --gtest_filter=${world_region_test_suite}.*)
+  SET_TESTS_PROPERTIES(world_generation_contract_${world_region_test_suite}
+    PROPERTIES LABELS "NoAssets" TIMEOUT 120)
+ENDFOREACH()

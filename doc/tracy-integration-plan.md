@@ -87,6 +87,11 @@ dados pessoais presentes no traço.
    Tracy. O instalador usual não deve ser substituído silenciosamente por essa
    build.
 
+Os contratos puros de regiões são registrados no CTest por suíte GTest, com
+timeout individual de 120 segundos. Isso preserva a validação de partição,
+dependências, tarefas, coordenador e observações, além de identificar a suíte
+que bloquear em uma build diagnóstica antes de atingir o limite do job.
+
 ## 2. Primeiras zonas e correlação
 
 Zonas C++ iniciais: tick e espera do `WorldServerThread`; atualização,
