@@ -286,7 +286,7 @@ private:
       thread = std::thread([this] {
         try {
 #ifdef STAR_ENABLE_TRACY
-          auto threadName = std::string("World region ") + std::to_string(region[0]) + ":" + std::to_string(region[1]);
+          auto threadName = std::string("World region ") + std::to_string(this->region[0]) + ":" + std::to_string(this->region[1]);
           tracy::SetThreadName(threadName.c_str());
 #endif
           std::unique_lock<std::mutex> lock(mutex);
