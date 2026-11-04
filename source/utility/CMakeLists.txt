@@ -9,22 +9,22 @@ INCLUDE_DIRECTORIES (
 ADD_EXECUTABLE (asset_packer
   $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base>
   asset_packer.cpp)
-TARGET_LINK_LIBRARIES (asset_packer ${STAR_EXT_LIBS})
+TARGET_LINK_LIBRARIES (asset_packer PRIVATE ${STAR_EXT_LIBS})
 
 ADD_EXECUTABLE (asset_unpacker
   $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base>
   asset_unpacker.cpp)
-TARGET_LINK_LIBRARIES (asset_unpacker ${STAR_EXT_LIBS})
+TARGET_LINK_LIBRARIES (asset_unpacker PRIVATE ${STAR_EXT_LIBS})
 
 ADD_EXECUTABLE (btree_repacker
   $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base>
   btree_repacker.cpp)
-TARGET_LINK_LIBRARIES (btree_repacker ${STAR_EXT_LIBS})
+TARGET_LINK_LIBRARIES (btree_repacker PRIVATE ${STAR_EXT_LIBS})
 
 ADD_EXECUTABLE (dump_versioned_json
   $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base> $<TARGET_OBJECTS:star_game>
   dump_versioned_json.cpp)
-TARGET_LINK_LIBRARIES (dump_versioned_json ${STAR_EXT_LIBS})
+TARGET_LINK_LIBRARIES (dump_versioned_json PRIVATE ${STAR_EXT_LIBS})
 
 #ADD_EXECUTABLE (game_repl
 #  $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base> $<TARGET_OBJECTS:star_game>
@@ -34,7 +34,7 @@ TARGET_LINK_LIBRARIES (dump_versioned_json ${STAR_EXT_LIBS})
 ADD_EXECUTABLE (make_versioned_json
   $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base> $<TARGET_OBJECTS:star_game>
   make_versioned_json.cpp)
-TARGET_LINK_LIBRARIES (make_versioned_json ${STAR_EXT_LIBS})
+TARGET_LINK_LIBRARIES (make_versioned_json PRIVATE ${STAR_EXT_LIBS})
 
 #ADD_EXECUTABLE (planet_mapgen
 #  $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base> $<TARGET_OBJECTS:star_game>
@@ -60,13 +60,24 @@ TARGET_LINK_LIBRARIES (make_versioned_json ${STAR_EXT_LIBS})
 ADD_EXECUTABLE (world_benchmark EXCLUDE_FROM_ALL
   $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base> $<TARGET_OBJECTS:star_game>
   world_benchmark.cpp)
-TARGET_LINK_LIBRARIES (world_benchmark ${STAR_EXT_LIBS})
+TARGET_LINK_LIBRARIES (world_benchmark PRIVATE ${STAR_EXT_LIBS})
 
 # This benchmark is opt-in because it is a developer tool and requires game assets at runtime.
 ADD_EXECUTABLE (planet_generation_benchmark EXCLUDE_FROM_ALL
   $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base> $<TARGET_OBJECTS:star_game>
   planet_generation_benchmark.cpp)
-TARGET_LINK_LIBRARIES (planet_generation_benchmark ${STAR_EXT_LIBS})
+TARGET_LINK_LIBRARIES (planet_generation_benchmark PRIVATE ${STAR_EXT_LIBS})
+
+# Object-library contents do not propagate link requirements to their final
+# executables. These tools include instrumented star_core/star_game objects,
+# so every diagnostic executable must link the Tracy client explicitly.
+IF(STAR_ENABLE_TRACY)
+  FOREACH(star_tracy_utility
+      asset_packer asset_unpacker btree_repacker dump_versioned_json
+      make_versioned_json world_benchmark planet_generation_benchmark)
+    TARGET_LINK_LIBRARIES(${star_tracy_utility} PRIVATE Tracy::TracyClient)
+  ENDFOREACH()
+ENDIF()
 
 #ADD_EXECUTABLE (generation_benchmark
 #  $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base> $<TARGET_OBJECTS:star_game>

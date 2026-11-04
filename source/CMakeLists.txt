@@ -153,7 +153,8 @@ if(STAR_ENABLE_TRACY)
   set(TRACY_STATIC ON CACHE BOOL "Link Tracy statically" FORCE)
   FetchContent_Declare(star_tracy
     URL https://github.com/wolfpld/tracy/archive/b8c2e25c3d02009059e09f623072921677dd6bb4.tar.gz
-    URL_HASH SHA256=f425f5006cf83159fb0b05e1540e865593e340460e295459a23790785d4a7410)
+    URL_HASH SHA256=f425f5006cf83159fb0b05e1540e865593e340460e295459a23790785d4a7410
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
   FetchContent_MakeAvailable(star_tracy)
 endif()
 

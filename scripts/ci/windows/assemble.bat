@@ -20,6 +20,12 @@ for /f "delims=" %%f in (scripts\ci\windows\files_client.txt) do (
     xcopy "%%f" "%client%\win\" /Y
 )
 
+set "vcpkg_build_dir=build\windows-release"
+if "%STAR_DIAGNOSTIC_TRACY%"=="1" set "vcpkg_build_dir=build\windows-tracy"
+if exist "%vcpkg_build_dir%\vcpkg_installed\x64-windows-mixed-md-clang\bin\SDL3.pdb" (
+    xcopy "%vcpkg_build_dir%\vcpkg_installed\x64-windows-mixed-md-clang\bin\SDL3.pdb" "%client%\win\" /Y
+)
+
 .\dist\asset_packer.exe -c scripts\packing.config -s assets\opensb %server%\assets\opensb.pak
 
 for /f "delims=" %%f in (scripts\ci\windows\files_server.txt) do (

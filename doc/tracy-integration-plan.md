@@ -39,15 +39,17 @@ A licença oficial é BSD de três cláusulas; o workflow copia o arquivo
 `LICENSE` da distribuição fixada para cada pacote diagnóstico.
 
 No Windows, o preset `windows-tracy-ci` preserva `RelWithDebInfo` e
-usa um diretório de build separado. Em `Build` > `Run workflow`,
-selecionar a branch de revisão, manter `windows` ligado e marcar `tracy`.
-Os artefatos se chamam `OpenStarbound-Windows-Tracy-Client` e
+usa um diretório de build separado. O workflow manual **Build Tracy
+Diagnostics** é exclusivo para Windows e sempre usa esse preset; ele não
+compartilha seletores com a build normal nem publica Releases. Os artefatos se
+chamam `OpenStarbound-Windows-Tracy-Client` e
 `OpenStarbound-Windows-Tracy-Server`; contêm PDBs do jogo, a licença
-e `win/tracy-build.txt` com commit, preset e revisão. Esta opção
-gera também `OpenStarbound-Windows-Tracy-Installer.exe`, com nome, AppId e
+e `win/tracy-build.txt` com commit, preset e revisão. O workflow gera também
+`OpenStarbound-Windows-Tracy-Installer.exe`, com nome, AppId e
 diretório padrão próprios (`OpenStarbound Tracy`). Inclui símbolos, licença e
-`tracy-build.txt`; não publica release. O instalador normal permanece separado. As execuções são manuais; com `tracy` desmarcado,
-usam `windows-release-ci` com Tracy desligado.
+`tracy-build.txt`; os artefatos expiram em 14 dias. O instalador normal
+permanece separado e a build normal usa `windows-release-ci` com Tracy
+desligado.
 
 No computador local, usar o visualizador Tracy da mesma revisão oficial.
 Com o cliente instrumentado aberto, conectar a `localhost` antes do
@@ -75,15 +77,15 @@ dados pessoais presentes no traço.
    somente nos pontos que precisarem de contexto.
 5. Propagar includes e definições às bibliotecas `OBJECT` instrumentadas
    (`star_core`, `star_game` e, para o cliente, `star_rendering` e
-   `star_frontend`). Vincular `Tracy::TracyClient` nos executáveis `starbound`
-   e `starbound_server`. Não basta vinculá-lo apenas ao executável: os arquivos
-   compilados nas bibliotecas `OBJECT` também precisam enxergar seus headers e
-   definições.
+   `star_frontend`). Vincular `Tracy::TracyClient` em todo executável que
+   incorpora esses objetos: cliente, servidor, testes, utilitários, benchmarks
+   e ferramentas opcionais. As bibliotecas `OBJECT` não propagam dependências
+   de link quando seus arquivos são consumidos via `$<TARGET_OBJECTS:...>`.
 6. Criar uma configuração diagnóstica Windows separada da distribuição normal.
-   O workflow é executado somente sob solicitação e mantém Tracy desligado por
-   padrão. A opção manual de diagnóstico deve produzir executável com símbolos e indicar
-   claramente o commit, as opções usadas e a versão do Tracy. O instalador
-   usual não deve ser substituído silenciosamente por essa build.
+   O workflow é executado somente sob solicitação, produz executáveis com
+   símbolos e indica claramente o commit, as opções usadas e a versão do
+   Tracy. O instalador usual não deve ser substituído silenciosamente por essa
+   build.
 
 ## 2. Primeiras zonas e correlação
 

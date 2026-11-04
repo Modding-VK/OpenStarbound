@@ -1,0 +1,133 @@
+name: Build Tracy Diagnostics
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: tracy-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build_windows_tracy:
+    name: Build OpenStarbound Windows x64 with Tracy
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          submodules: recursive
+
+      - name: Install CMake and Ninja
+        uses: lukka/get-cmake@da37b03df250c343a90268c30948f7814f31d88e # v10
+        with:
+          cmakeVersion: 3.29.2
+
+      - name: Setup LLVM
+        uses: ZhongRuoyu/setup-llvm@eea6238baf53d41c1615923680d7a738da584318 # v0
+        with:
+          llvm-version: 22
+
+      - name: sccache
+        uses: hendrikmuhs/ccache-action@5ebbd400eff9e74630f759d94ddd7b6c26299639 # v1.2
+        with:
+          variant: sccache
+          key: ${{ github.job }}-${{ runner.os }}-tracy
+          max-size: 2000M
+
+      - name: vcpkg
+        uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
+        with:
+          vcpkgJsonGlob: '**/source/vcpkg.json'
+          vcpkgConfigurationJsonGlob: '**/source/vcpkg-configuration.json'
+
+      - name: Configure, build, and test with Tracy
+        uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10
+        env:
+          LLVMInstallDir: ${{ env.LLVM_PATH }}
+          llvmX64: ${{ env.LLVM_PATH }}
+        with:
+          cmakeListsTxtPath: '${{ github.workspace }}/source/CMakeLists.txt'
+          configurePreset: windows-tracy-ci
+          buildPreset: windows-tracy-ci
+          testPreset: windows-tracy-ci
+
+      - name: Run post-build task
+        working-directory: ${{ github.workspace }}
+        run: scripts\ci\windows\post_build.bat
+        shell: cmd
+
+      - name: Assemble diagnostic files
+        working-directory: ${{ github.workspace }}
+        run: scripts\ci\windows\assemble.bat --skip-archives
+        shell: cmd
+        env:
+          STAR_DIAGNOSTIC_TRACY: '1'
+
+      - name: Label Tracy distributions
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: |
+          $buildInfo = @(
+            "commit=$env:GITHUB_SHA",
+            "preset=windows-tracy-ci",
+            "STAR_ENABLE_TRACY=ON",
+            "tracy_revision=b8c2e25c3d02009059e09f623072921677dd6bb4"
+          )
+          $buildInfo | Set-Content client_distribution/win/tracy-build.txt
+          $buildInfo | Set-Content server_distribution/win/tracy-build.txt
+          $tracyLicense = 'build/windows-tracy/_deps/star_tracy-src/LICENSE'
+          if (!(Test-Path $tracyLicense)) { throw 'Tracy license missing from pinned source' }
+          Copy-Item $tracyLicense client_distribution/win/Tracy-LICENSE.txt
+          Copy-Item $tracyLicense server_distribution/win/Tracy-LICENSE.txt
+          $buildInfo | Set-Content windows/win/tracy-build.txt
+          Copy-Item $tracyLicense windows/win/Tracy-LICENSE.txt
+
+      - name: Install Inno Setup
+        shell: cmd
+        run: |
+          set "ISCC_PATH=%programfiles%\Inno Setup 7\ISCC.exe"
+          if exist "%ISCC_PATH%" exit /b 0
+          curl --fail --show-error --location --proto "=https" --proto-redir "=https" --output "%tmp%\innosetup.exe" "https://github.com/jrsoftware/issrc/releases/download/is-7_0_2/innosetup-7.0.2-x64.exe"
+          if errorlevel 1 exit /b 1
+          certutil -hashfile "%tmp%\innosetup.exe" SHA256 | findstr /i /c:"5ad54ca3def786f8f4212552e54cc6d8d61329e2d24a1cfee0571d42c2684ff1" > nul
+          if errorlevel 1 exit /b 1
+          "%tmp%\innosetup.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-
+          if not exist "%ISCC_PATH%" exit /b 1
+
+      - name: Create Tracy installer
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: |
+          & 'C:\Program Files\Inno Setup 7\iscc.exe' /Oinstaller /DTracyBuild scripts\inno\setup.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload Tracy client
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
+        with:
+          name: OpenStarbound-Windows-Tracy-Client
+          path: client_distribution/
+          compression-level: 1
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Upload Tracy server
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
+        with:
+          name: OpenStarbound-Windows-Tracy-Server
+          path: server_distribution/
+          compression-level: 1
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Upload Tracy installer
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
+        with:
+          name: OpenStarbound-Windows-Tracy-Installer
+          path: installer/OpenStarbound-Windows-Tracy-Installer.exe
+          compression-level: 0
+          retention-days: 14
+          if-no-files-found: error
