@@ -92,6 +92,13 @@ timeout individual de 120 segundos. Isso preserva a validação de partição,
 dependências, tarefas, coordenador e observações, além de identificar a suíte
 que bloquear em uma build diagnóstica antes de atingir o limite do job.
 
+No Windows, Tracy e o suporte de exceções do OpenStarbound podem solicitar o
+mesmo manipulador de símbolos `DbgHelp`. Uma segunda chamada a `SymInitialize`
+retorna `ERROR_INVALID_PARAMETER` quando esse manipulador já pertence ao
+processo. A inicialização da engine aceita esse retorno documentado e preserva
+o restante dos erros como fatais; o lock existente continua protegendo as
+operações de captura de stack da engine.
+
 ## 2. Primeiras zonas e correlação
 
 Zonas C++ iniciais: tick e espera do `WorldServerThread`; atualização,

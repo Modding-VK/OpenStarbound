@@ -13,8 +13,15 @@ struct WindowsSymInitializer {
   WindowsSymInitializer() {
     DWORD options = SymGetOptions();
     SymSetOptions(options | SYMOPT_LOAD_LINES);
-    if (!SymInitialize(GetCurrentProcess(), NULL, TRUE))
-      fatalError("SymInitialize failed", false);
+    if (!SymInitialize(GetCurrentProcess(), NULL, TRUE)) {
+      // Tracy can initialize the process-wide DbgHelp symbol handler before
+      // OpenStarbound's exception support. DbgHelp reports that established
+      // handler as ERROR_INVALID_PARAMETER on a repeated SymInitialize call.
+      // It remains usable for stack capture, so only unrelated failures are
+      // fatal.
+      if (GetLastError() != ERROR_INVALID_PARAMETER)
+        fatalError("SymInitialize failed", false);
+    }
   }
 };
 static WindowsSymInitializer g_windowsSymInitializer;
