@@ -19,6 +19,11 @@ entidades, Lua ou promises; o segundo somente devolve descritores ordenados e
 tempo de execução. O produtor e a fila assíncrona serão ligados no recorte
 seguinte, após o snapshot incluir o halo de tiles e sua revisão.
 
+O planejador foi declarado estático: ele só recebe `MicroDungeonPlanSnapshot`
+e não captura `WorldGenerator`, `WorldServer` ou estado da thread do mundo.
+Isso permite que o próximo recorte o execute em um `MicroDungeonPlan` worker
+sem criar referência pendente durante unload.
+
 O contrato `WorldMutationBatch` também foi introduzido para a publicação
 futura. Ele guarda a identidade da tarefa, revisões esperadas por setor e uma
 lista ordenada de alterações de tile. Nenhum worker pode aplicar esse batch

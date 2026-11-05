@@ -1262,7 +1262,7 @@ void WorldGenerator::generateMicroDungeons(WorldStorage* worldStorage, ServerTil
   });
 }
 
-List<WorldGenerator::MicroDungeonPlan> WorldGenerator::planMicroDungeons(MicroDungeonPlanSnapshot const& snapshot) const {
+List<WorldGenerator::MicroDungeonPlan> WorldGenerator::planMicroDungeons(MicroDungeonPlanSnapshot const& snapshot) {
   STAR_TRACE_ZONE("Microdungeon plan candidates");
   starAssert(snapshot.templateSource);
   RectI bounds = snapshot.sectorTiles.padded(WorldSectorSize - 1);
