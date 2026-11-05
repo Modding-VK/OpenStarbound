@@ -1228,54 +1228,17 @@ void WorldGenerator::generateMicroDungeons(WorldStorage* worldStorage, ServerTil
       .getBool("microDungeonPlanPreview", false);
   ExplorationProfile::Scope phase(profile, "generation.microDungeonPlan.collect");
 
-  RectI sectorTiles = worldStorage->tileArray()->sectorRegion(sector);
-  RectI bounds = sectorTiles.padded(WorldSectorSize - 1);
-
-  List<pair<BiomeItemPlacement, QueuedPlacement*>> placementQueue;
-  for (int x = sectorTiles.xMin(); x < sectorTiles.xMax(); ++x) {
-    for (int y = sectorTiles.yMin(); y < sectorTiles.yMax(); ++y) {
-      auto potential = m_worldServer->worldTemplate()->potentialBiomeItemsAt(x, y);
-      for (auto const& placement : m_worldServer->worldTemplate()->validBiomeItems(x, y, potential))
-        placementQueue.append({placement, {}});
-
-      for (auto& p : m_queuedPlacements) {
-        WorldTemplate::PotentialBiomeItems queuedItems;
-        m_worldServer->worldTemplate()->addPotentialBiomeItems(x, y, queuedItems, p.distributions, BiomePlacementArea::Surface);
-        m_worldServer->worldTemplate()->addPotentialBiomeItems(x, y, queuedItems, p.distributions, BiomePlacementArea::Underground);
-        for (auto placement : m_worldServer->worldTemplate()->validBiomeItems(x, y, queuedItems))
-          placementQueue.append({std::move(placement), &p});
-      }
-    }
+  auto templateSource = m_worldServer->worldTemplate();
+  MicroDungeonPlanSnapshot snapshot{templateSource, templateSource->generationRevision(), sector,
+      worldStorage->tileArray()->sectorRegion(sector), {}};
+  for (size_t i = 0; i < m_queuedPlacements.size(); ++i) {
+    auto const& placement = m_queuedPlacements[i];
+    if (!placement.fulfilled)
+      snapshot.queuedPlacements.append(QueuedMicroDungeonPlacementSnapshot{placement.distributions, i});
   }
-
-  phase.next("generation.microDungeonPlan.sort");
-  sort(placementQueue);
 
   phase.next("generation.microDungeonPlan.describe");
-  List<MicroDungeonPlan> plans;
-  for (auto const& p : placementQueue) {
-    auto& placement = p.first;
-    auto queued = p.second;
-    if (queued && queued->fulfilled)
-      continue;
-
-    if (placement.item.is<MicroDungeonNames>()) {
-      auto seed = m_worldServer->worldTemplate()->seedFor(placement.position[0], placement.position[1]);
-      auto const& dungeonName = staticRandomFrom(placement.item.get<MicroDungeonNames>(), seed);
-      starAssert(!dungeonName.empty());
-      Maybe<size_t> queuedIndex;
-      if (queued) {
-        for (size_t i = 0; i < m_queuedPlacements.size(); ++i) {
-          if (&m_queuedPlacements[i] == queued) {
-            queuedIndex = i;
-            break;
-          }
-        }
-        starAssert(queuedIndex);
-      }
-      plans.append(MicroDungeonPlan{bounds, placement.position, seed, dungeonName, queuedIndex});
-    }
-  }
+  auto plans = planMicroDungeons(snapshot);
 
   if (profile && planPreview) {
     profile->count("generation.microDungeonPlan.candidates", plans.size());
@@ -1297,6 +1260,39 @@ void WorldGenerator::generateMicroDungeons(WorldStorage* worldStorage, ServerTil
   m_queuedPlacements = m_queuedPlacements.filtered([&](QueuedPlacement& p) {
     return !p.fulfilled;
   });
+}
+
+List<WorldGenerator::MicroDungeonPlan> WorldGenerator::planMicroDungeons(MicroDungeonPlanSnapshot const& snapshot) const {
+  STAR_TRACE_ZONE("Microdungeon plan candidates");
+  starAssert(snapshot.templateSource);
+  RectI bounds = snapshot.sectorTiles.padded(WorldSectorSize - 1);
+  List<pair<BiomeItemPlacement, Maybe<size_t>>> candidates;
+  for (int x = snapshot.sectorTiles.xMin(); x < snapshot.sectorTiles.xMax(); ++x) {
+    for (int y = snapshot.sectorTiles.yMin(); y < snapshot.sectorTiles.yMax(); ++y) {
+      auto potential = snapshot.templateSource->potentialBiomeItemsAt(x, y);
+      for (auto const& placement : snapshot.templateSource->validBiomeItems(x, y, potential))
+        candidates.append({placement, {}});
+      for (auto const& queued : snapshot.queuedPlacements) {
+        WorldTemplate::PotentialBiomeItems queuedItems;
+        snapshot.templateSource->addPotentialBiomeItems(x, y, queuedItems, queued.distributions, BiomePlacementArea::Surface);
+        snapshot.templateSource->addPotentialBiomeItems(x, y, queuedItems, queued.distributions, BiomePlacementArea::Underground);
+        for (auto placement : snapshot.templateSource->validBiomeItems(x, y, queuedItems))
+          candidates.append({std::move(placement), queued.queuedPlacement});
+      }
+    }
+  }
+  sort(candidates);
+  List<MicroDungeonPlan> plans;
+  for (auto const& candidate : candidates) {
+    auto const& placement = candidate.first;
+    if (!placement.item.is<MicroDungeonNames>())
+      continue;
+    auto seed = snapshot.templateSource->seedFor(placement.position[0], placement.position[1]);
+    auto const& dungeonName = staticRandomFrom(placement.item.get<MicroDungeonNames>(), seed);
+    starAssert(!dungeonName.empty());
+    plans.append(MicroDungeonPlan{bounds, placement.position, seed, dungeonName, candidate.second});
+  }
+  return plans;
 }
 
 void WorldGenerator::applyMicroDungeonPlan(WorldStorage* worldStorage, MicroDungeonPlan const& plan,
