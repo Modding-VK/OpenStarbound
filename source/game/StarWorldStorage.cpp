@@ -966,6 +966,7 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     auto threading = Root::singleton().configuration()->get("worldThreading", JsonObject());
     bool fairnessPreview = threading.getBool("generationFairnessSchedulerPreview", false);
     bool dependencyPreview = threading.getBool("generationDependencySchedulerPreview", false);
+    bool visibleCompletionPreview = threading.getBool("generationVisibleCompletionPreview", false);
     unsigned fairnessInterval = min<unsigned>(max<unsigned>(
         threading.getUInt("generationFairnessIntervalPasses", 4), 1), 60);
     unsigned fairnessReserveMilliseconds = min<unsigned>(
@@ -1101,8 +1102,20 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     // have no neighbor-generation prerequisites; routing them through
     // generateSectorToLevel would also load entities in prefetched sectors.
     auto readySectors = m_generatorFacade->readyBaseTileSectors(this);
-    if (sectorOrdering)
+    if (visibleCompletionPreview) {
+      // A ready result for an activated sector unblocks its next generation
+      // stage. Keep those results ahead of background prefetch results, while
+      // retaining the normal distance order within each class.
+      std::stable_sort(readySectors.begin(), readySectors.end(), [&](Sector const& a, Sector const& b) {
+        bool aVisible = m_generationQueue.contains(a);
+        bool bVisible = m_generationQueue.contains(b);
+        if (aVisible != bVisible)
+          return aVisible;
+        return sectorOrdering ? sectorOrdering(a, b) : false;
+      });
+    } else if (sectorOrdering) {
       std::sort(readySectors.begin(), readySectors.end(), sectorOrdering);
+    }
     // A promoted request used to be able to remain unattempted when commits
     // of already prepared BaseTiles consumed the complete generation budget.
     // Reserve only the tail of a promoted pass: the normal path keeps its
@@ -1114,6 +1127,7 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       if (m_explorationProfile)
         m_explorationProfile->count("generation.fairness.reservePasses");
     }
+    Maybe<Sector> visibleReadySector;
     for (auto const& sector : readySectors) {
       if (sectorGenerationLevelLimit && *sectorGenerationLevelLimit == 0)
         break;
@@ -1143,8 +1157,26 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       }
       if (m_explorationProfile)
         m_explorationProfile->count("generation.baseTiles.readyResultsCommitted");
+      if (visibleCompletionPreview && m_generationQueue.contains(sector)) {
+        if (!visibleReadySector)
+          visibleReadySector = sector;
+        if (m_explorationProfile)
+          m_explorationProfile->count("generation.visibleCompletion.readyResults");
+      }
       ++readyCommittedThisPass;
       ++levelsAdvancedThisPass;
+    }
+
+    // A committed BaseTiles result satisfies the first prerequisite of its
+    // activated sector. Promote the closest such sector for one normal
+    // complete-generation attempt. Fairness reservations take precedence so
+    // an old request cannot lose the budget it was explicitly granted.
+    if (visibleReadySector && !fairnessReservedSector) {
+      m_generationQueue.toFront(*visibleReadySector);
+      if (m_explorationProfile) {
+        m_explorationProfile->count("generation.visibleCompletion.promoted");
+        recordGenerationRequest(*visibleReadySector, "baseTilesSatisfied");
+      }
     }
 
     bool schedulingOnly = false;

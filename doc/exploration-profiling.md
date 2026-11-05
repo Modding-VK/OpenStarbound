@@ -80,6 +80,7 @@ por linha:
 | Pasta | Conteúdo |
 |---|---|
 | `world/` | Relatório completo da janela, para preservar a visão geral. |
+| `storage/` | Leitura, descompressão, desserialização, instalação, callbacks e sincronização dos setores persistidos. |
 | `npcs/` | Etapas, população, pathfinding e entidades NPC lentas. |
 | `monsters/`, `vehicles/`, `stagehands/` | Callbacks, transferências e entidades lentas de cada tipo. |
 | `sectors/` | Esperas, pacotes, retenção, transições e diagnóstico regional. |

@@ -725,6 +725,15 @@ void ExplorationProfile::report(bool final) {
       };
 
       makeCategory("world", object, true);
+
+      JsonObject storage;
+      storage.set("stages", selectByPrefix(object.get("stages"), {"storage."}));
+      storage.set("counts", selectByPrefix(object.get("counts"), {"storage."}));
+      storage.set("maxima", selectByPrefix(object.get("maxima"), {"storage."}));
+      bool hasStorage = !storage.get("stages").toObject().empty()
+          || !storage.get("counts").toObject().empty() || !storage.get("maxima").toObject().empty();
+      makeCategory("storage", std::move(storage), hasStorage);
+
       entityCategory("npcs", "npc", "npc.", "npc.");
       entityCategory("monsters", "monster", "entity.monster.", "entity.monster.");
       entityCategory("vehicles", "vehicle", "entity.vehicle.", "entity.vehicle.");

@@ -172,6 +172,29 @@ truncado nunca autoriza promoção de dependência; ele é contado em
 Essa política nunca adiciona interesse, carrega um vizinho somente para o
 agendador, ou altera a ordem de publicação de estruturas, entidades e tiles.
 
+## Conclusão prioritária de setores visíveis
+
+`worldThreading.generationVisibleCompletionPreview` permanece desligado por
+padrão. Quando ativado, resultados `BaseTiles` prontos de setores com um pedido
+de ativação são instalados antes de resultados de prefetch. Após a instalação,
+o setor visível mais próximo recebe uma promoção única para a tentativa normal
+de `Complete`; isto representa a notificação de que seu primeiro pré-requisito
+foi satisfeito. Uma reserva de justiça tem precedência e impede essa promoção
+na mesma passagem.
+
+O preview não altera dependências, não inicia entidades distantes e não publica
+microdungeons fora do caminho autoritativo. `generation.visibleCompletion.readyResults`
+e `.promoted`, mais o evento `baseTilesSatisfied`, permitem verificar se a
+prioridade reduziu a espera sem deslocar a fome para pedidos antigos.
+
+Configuração de teste:
+
+```json
+"worldThreading" : {
+  "generationVisibleCompletionPreview" : true
+}
+```
+
 ## Primeiro recorte implementado
 
 `WorldStorage` mantém uma sequência por entrada e um epoch por instância de
