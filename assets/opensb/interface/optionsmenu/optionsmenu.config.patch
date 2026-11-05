@@ -1,8 +1,5 @@
 {
   "paneLayout" : {
-    "showVoicePlayers" : {
-      "visible" : false
-    },
     "showDiagnostics" : {
       "type" : "button",
       "position" : [153, 205],
