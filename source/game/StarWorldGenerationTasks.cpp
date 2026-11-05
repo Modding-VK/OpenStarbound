@@ -13,6 +13,10 @@ bool WorldGenerationTaskIdentity::operator!=(WorldGenerationTaskIdentity const& 
   return !(*this == rhs);
 }
 
+bool WorldMutationBatch::empty() const {
+  return tileMutations.empty();
+}
+
 WorldGenerationTask::WorldGenerationTask(WorldGenerationTaskIdentity identity, size_t reservedBytes)
   : identity(std::move(identity)), reservedBytes(reservedBytes) {}
 

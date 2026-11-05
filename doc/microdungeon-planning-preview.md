@@ -19,6 +19,12 @@ entidades, Lua ou promises; o segundo somente devolve descritores ordenados e
 tempo de execução. O produtor e a fila assíncrona serão ligados no recorte
 seguinte, após o snapshot incluir o halo de tiles e sua revisão.
 
+O contrato `WorldMutationBatch` também foi introduzido para a publicação
+futura. Ele guarda a identidade da tarefa, revisões esperadas por setor e uma
+lista ordenada de alterações de tile. Nenhum worker pode aplicar esse batch
+diretamente: a região dona deverá validar revisões, reservar o footprint e
+aplicar as operações em ordem antes de confirmar a tarefa.
+
 ## O que muda
 
 `WorldGenerator::generateMicroDungeons` agora transforma a fila ordenada de

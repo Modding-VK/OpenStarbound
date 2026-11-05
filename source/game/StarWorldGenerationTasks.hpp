@@ -29,6 +29,19 @@ enum class WorldGenerationTaskOutcome : uint8_t {
   Failed
 };
 
+// A worker never mutates WorldServer directly. It returns a batch whose
+// operations are validated and applied by the owning logical region.
+enum class WorldTileMutationKind : uint8_t {
+  ForegroundMaterial,
+  BackgroundMaterial,
+  ForegroundMod,
+  BackgroundMod,
+  DungeonId,
+  Liquid,
+  TileProtection,
+  CollisionDirty
+};
+
 struct WorldGenerationTaskIdentity {
   uint64_t worldEpoch;
   uint64_t sequence;
@@ -38,6 +51,22 @@ struct WorldGenerationTaskIdentity {
 
   bool operator==(WorldGenerationTaskIdentity const& rhs) const;
   bool operator!=(WorldGenerationTaskIdentity const& rhs) const;
+};
+
+struct WorldTileMutation {
+  Vec2I position;
+  WorldTileMutationKind kind;
+  uint64_t value = 0;
+  uint64_t auxiliaryValue = 0;
+  uint64_t sequence = 0;
+};
+
+struct WorldMutationBatch {
+  WorldGenerationTaskIdentity identity;
+  HashMap<Vec2U, uint64_t> expectedSectorRevisions;
+  List<WorldTileMutation> tileMutations;
+
+  bool empty() const;
 };
 
 // A worker owns only this handle. Invalidation revokes permission to commit;
