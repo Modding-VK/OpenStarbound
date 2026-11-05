@@ -44,6 +44,20 @@ identificadores de mods. A coleta ocorre somente para a facade de
 microdungeons, que é criada sem `markForActivation`; dungeons compostas e
 comandos continuam em suas métricas próprias.
 
+As fases autoritativas do gerador são separadas em `logs/exploration/dungeons/`
+quando a gravação de relatórios está ativa. O arquivo reúne rótulos
+`dungeon.*`, incluindo `definitionLoad`, `generate`, `canPlace`, `placePart`,
+`flush` e a publicação de objetos e entidades. Ele ajuda a identificar o
+recorte que poderá virar um comando privado, sem registrar nome de dungeon ou
+dados de mods.
+
+No relatório `generation/`, as etapas fixas
+`generation.microDungeonPlan.collect`, `.sort`, `.describe`, `.apply` e
+`.cleanup` delimitam o custo da varredura dos tiles, ordenação, construção dos
+descritores, chamada ao mundo vivo e remoção de pedidos cumpridos. `.apply`
+continua serial e contém as métricas `dungeon.*`; as demais etapas não
+publicam alterações no mundo.
+
 ## Limites
 
 O descritor ainda não é um plano privado completo. `MicroDungeonFactory::generate`

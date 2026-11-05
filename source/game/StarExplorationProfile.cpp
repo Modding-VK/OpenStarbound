@@ -793,6 +793,17 @@ void ExplorationProfile::report(bool final) {
           || !generation.get("generationSelections").toArray().empty();
       makeCategory("generation", std::move(generation), hasGeneration);
 
+      // Dungeon generation is authoritative and serial. Keep its fixed-label
+      // phases isolated so profiling can distinguish planning, validation,
+      // painting and entity publication without retaining asset/mod details.
+      JsonObject dungeons;
+      dungeons.set("stages", selectByPrefix(object.get("stages"), {"dungeon."}));
+      dungeons.set("counts", selectByPrefix(object.get("counts"), {"dungeon."}));
+      dungeons.set("maxima", selectByPrefix(object.get("maxima"), {"dungeon."}));
+      bool hasDungeons = !dungeons.get("stages").toObject().empty()
+          || !dungeons.get("counts").toObject().empty() || !dungeons.get("maxima").toObject().empty();
+      makeCategory("dungeons", std::move(dungeons), hasDungeons);
+
       JsonObject wiring;
       wiring.set("stages", selectByPrefix(object.get("stages"), {"wiring."}));
       wiring.set("counts", selectByPrefix(object.get("counts"), {"wiring."}));

@@ -86,6 +86,7 @@ por linha:
 | `monsters/`, `vehicles/` | Callbacks, transferências e entidades lentas de cada tipo. |
 | `sectors/` | Esperas, pacotes, retenção, transições e diagnóstico regional. |
 | `generation/` | Base tiles, invalidações e tarefas de geração. |
+| `dungeons/` | Montagem de dungeons e microdungeons: seleção, validação, pintura, flush e publicação de entidades. |
 | `wiring/` | Custo, tamanho e setores carregados por redes de fios. |
 | `liquids/` | Células ativas, transferências e efeitos entre setores. |
 | `scripts/` | Hops internos e métricas dos contextos de quest/universo. |
@@ -321,6 +322,12 @@ visita a uma dungeon já salva não refaz essa montagem. `.generate` inclui
 suas subetapas; não some os tempos entre si. Dentro de `.flush`, as etapas
 `.markRegions`, `.tiles`, `.objects`, `.entities` e `.wiresAndLiquids`
 mostram onde a aplicação da estrutura consome tempo.
+
+As mesmas medidas são escritas em `dungeons/` quando os relatórios estão
+ativos. A categoria contém apenas rótulos fixos, tempos, contagens e máximos;
+ela não inclui nome da dungeon, seed, nome de mod ou parâmetros. Ela permite
+correlacionar uma janela lenta da thread do mundo com planejamento, validação,
+pintura ou publicação antes de mover qualquer fase para workers.
 
 ### Cliente e desenho
 

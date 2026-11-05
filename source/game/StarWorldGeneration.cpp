@@ -1226,6 +1226,7 @@ void WorldGenerator::generateMicroDungeons(WorldStorage* worldStorage, ServerTil
   auto profile = m_worldServer->explorationProfile();
   bool planPreview = Root::singleton().configuration()->get("worldThreading", JsonObject())
       .getBool("microDungeonPlanPreview", false);
+  ExplorationProfile::Scope phase(profile, "generation.microDungeonPlan.collect");
 
   RectI sectorTiles = worldStorage->tileArray()->sectorRegion(sector);
   RectI bounds = sectorTiles.padded(WorldSectorSize - 1);
@@ -1247,7 +1248,10 @@ void WorldGenerator::generateMicroDungeons(WorldStorage* worldStorage, ServerTil
     }
   }
 
+  phase.next("generation.microDungeonPlan.sort");
   sort(placementQueue);
+
+  phase.next("generation.microDungeonPlan.describe");
   List<MicroDungeonPlan> plans;
   for (auto const& p : placementQueue) {
     auto& placement = p.first;
@@ -1281,10 +1285,15 @@ void WorldGenerator::generateMicroDungeons(WorldStorage* worldStorage, ServerTil
     }
   }
 
+  // The factory below is the live-world boundary. Keep it explicit in the
+  // profile: selection above is value-only, while this phase can write tiles,
+  // create entities and fulfil placement promises.
+  phase.next("generation.microDungeonPlan.apply");
   for (auto const& plan : plans) {
     applyMicroDungeonPlan(worldStorage, plan, facade, profile, planPreview);
   }
 
+  phase.next("generation.microDungeonPlan.cleanup");
   m_queuedPlacements = m_queuedPlacements.filtered([&](QueuedPlacement& p) {
     return !p.fulfilled;
   });
