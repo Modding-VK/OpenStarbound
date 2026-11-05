@@ -8,15 +8,25 @@
 
 Após a auditoria, o patch do Options recuperou os widgets completos do
 OpenStarbound para voz, atalhos, instrumento e rotação de cabeça. O botão
-Diagnostics foi colocado em uma linha própria, em `[87, 74]`, entre a linha de
-atalhos `[*, 95]` e a linha de rotação de cabeça `[*, 51]`. Cada controle
+Diagnostics inicialmente foi colocado em `[87, 74]`, entre a linha de atalhos
+`[*, 95]` e a linha de rotação de cabeça `[*, 51]`. A captura da build mostrou
+que essa posição atravessava os rótulos e checkboxes de multiplayer do ativo
+vanilla. O layout foi então reorganizado: a faixa superior agora tem **Voice**
+à esquerda e **Tools** à direita. `showVoiceSettings` ocupa `[30, 185]` e
+`showDiagnostics` ocupa `[133, 185]`, cada um com imagem de `71 × 14` pixels.
+O botão desativado `TODO: Players` foi removido com `null` no patch JSON; ele
+não tinha função. As colunas não se cruzam horizontalmente e recuperam a faixa
+das opções de multiplayer. Cada controle
 obrigatório buscado por `OptionsMenu.cpp` agora é validado antes do uso. Se um
 mod remover ou alterar o tipo de um deles, a exceção informa seu nome.
 
 As descrições abaixo registram o estado defeituoso anterior à correção, para
-preservar a cadeia de evidências. A disposição final ainda depende da escala
-de interface e dos patches dos mods da instalação; a confirmação visual exige
-abrir o menu na próxima build.
+preservar a cadeia de evidências. A construção final ainda parte do
+`optionsmenu.config` vanilla e usa apenas patches para as mudanças necessárias.
+Isso mantém os campos exigidos pelo jogo e evita reconstruir manualmente o
+arquivo base ausente deste repositório. A disposição final depende também dos
+patches dos mods da instalação; a confirmação visual exige abrir o menu na
+próxima build.
 
 ## Objetivo
 

@@ -5,9 +5,15 @@
     },
     "voiceLabel" : {
       "type" : "label",
-      "position" : [119, 202],
+      "position" : [65, 202],
       "hAnchor" : "mid",
       "value" : "VOICE"
+    },
+    "toolsLabel" : {
+      "type" : "label",
+      "position" : [168, 202],
+      "hAnchor" : "mid",
+      "value" : "TOOLS"
     },
     "showVoiceSettings" : {
       "type" : "button",
@@ -16,11 +22,11 @@
       "base" : "/interface/optionsmenu/duocontrolsbutton.png",
       "hover" : "/interface/optionsmenu/duocontrolsbuttonhover.png"
     },
-    "showVoicePlayers" : {
+    "showVoicePlayers" : null,
+    "showDiagnostics" : {
       "type" : "button",
-      "disabled" : true,
       "position" : [133, 185],
-      "caption" : "^#a0a000,font=iosevka-semiboldoblique;TODO^#aa7;:^reset; Players",
+      "caption" : "Diagnostics",
       "base" : "/interface/optionsmenu/duocontrolsbutton.png",
       "hover" : "/interface/optionsmenu/duocontrolsbuttonhover.png"
     },
@@ -42,13 +48,6 @@
       "type" : "button",
       "position" : [21, 95],
       "caption" : "Graphics",
-      "base" : "/interface/optionsmenu/tricontrolsbutton.png",
-      "hover" : "/interface/optionsmenu/tricontrolsbuttonhover.png"
-    },
-    "showDiagnostics" : {
-      "type" : "button",
-      "position" : [87, 74],
-      "caption" : "Diagnostics",
       "base" : "/interface/optionsmenu/tricontrolsbutton.png",
       "hover" : "/interface/optionsmenu/tricontrolsbuttonhover.png"
     },
