@@ -17,6 +17,30 @@ bool WorldMutationBatch::empty() const {
   return tileMutations.empty();
 }
 
+bool WorldMutationBatch::matches(WorldGenerationTaskIdentity const& task,
+    HashMap<Vec2U, uint64_t> const& currentSectorRevisions) const {
+  if (identity != task)
+    return false;
+  for (auto const& expected : expectedSectorRevisions) {
+    auto current = currentSectorRevisions.ptr(expected.first);
+    if (!current || *current != expected.second)
+      return false;
+  }
+  return ordered();
+}
+
+bool WorldMutationBatch::ordered() const {
+  uint64_t previous = 0;
+  bool first = true;
+  for (auto const& mutation : tileMutations) {
+    if (!first && mutation.sequence <= previous)
+      return false;
+    previous = mutation.sequence;
+    first = false;
+  }
+  return true;
+}
+
 WorldGenerationTask::WorldGenerationTask(WorldGenerationTaskIdentity identity, size_t reservedBytes)
   : identity(std::move(identity)), reservedBytes(reservedBytes) {}
 

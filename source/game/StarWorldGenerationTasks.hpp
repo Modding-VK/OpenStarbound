@@ -67,6 +67,9 @@ struct WorldMutationBatch {
   List<WorldTileMutation> tileMutations;
 
   bool empty() const;
+  bool matches(WorldGenerationTaskIdentity const& task,
+      HashMap<Vec2U, uint64_t> const& currentSectorRevisions) const;
+  bool ordered() const;
 };
 
 // A worker owns only this handle. Invalidation revokes permission to commit;

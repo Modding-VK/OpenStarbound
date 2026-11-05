@@ -25,6 +25,11 @@ lista ordenada de alterações de tile. Nenhum worker pode aplicar esse batch
 diretamente: a região dona deverá validar revisões, reservar o footprint e
 aplicar as operações em ordem antes de confirmar a tarefa.
 
+`WorldMutationBatch::matches` já realiza a parte pura dessa validação: exige
+identidade idêntica, revisão atual para cada setor do footprint e sequência
+estritamente crescente. O adaptador da região fornecerá as revisões atuais e
+somente então executará as mutações no mundo vivo.
+
 ## O que muda
 
 `WorldGenerator::generateMicroDungeons` agora transforma a fila ordenada de
