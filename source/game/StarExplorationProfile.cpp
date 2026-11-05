@@ -691,10 +691,10 @@ void ExplorationProfile::report(bool final) {
         reportCategory = category;
         try {
           writeReportFile(category, Json(std::move(fields)));
-        } catch (std::exception const&) {
+        } catch (std::exception const& exception) {
           if (!m_reportWriteFailureCategories.contains(category)) {
-            Logger::warn("[ExplorationProfile] report file write failed component={} instance={} category={} failure=standardException",
-                m_component, m_instance, category);
+            Logger::warn("[ExplorationProfile] report file write failed component={} instance={} category={} failure=standardException detail={}",
+                m_component, m_instance, category, exception.what());
             m_reportWriteFailureCategories[category] = true;
           }
         } catch (...) {
@@ -826,10 +826,10 @@ void ExplorationProfile::report(bool final) {
       bool hasScripts = !scripts.get("stages").toObject().empty() || !scripts.get("storyHops").toArray().empty()
           || (scripts.contains("allStages") && !scripts.get("allStages").toObject().empty());
       makeCategory("scripts", std::move(scripts), hasScripts);
-    } catch (std::exception const&) {
+    } catch (std::exception const& exception) {
       if (!m_reportWriteFailureLogged) {
-        Logger::warn("[ExplorationProfile] report file write failed component={} instance={} category={} failure=standardException",
-            m_component, m_instance, reportCategory);
+        Logger::warn("[ExplorationProfile] report file write failed component={} instance={} category={} failure=standardException detail={}",
+            m_component, m_instance, reportCategory, exception.what());
         m_reportWriteFailureLogged = true;
       }
     } catch (...) {

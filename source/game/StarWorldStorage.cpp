@@ -967,7 +967,13 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     bool fairnessPreview = threading.getBool("generationFairnessSchedulerPreview", false);
     bool dependencyPreview = threading.getBool("generationDependencySchedulerPreview", false);
     bool visibleCompletionPreview = threading.getBool("generationVisibleCompletionPreview", false);
-    bool persistentPriorityPreview = threading.getBool("generationPersistentPriorityPreview", false);
+    // Fairness already grants an old request a bounded reserved attempt. Keep
+    // that grant across the next pass by default when fairness is explicitly
+    // enabled; otherwise a preceding ready-result commit can consume the
+    // deadline and leave the same request repeatedly reported as notSelected.
+    // The explicit key remains available to disable persistence for an A/B
+    // comparison while keeping the fairness promotion itself enabled.
+    bool persistentPriorityPreview = threading.getBool("generationPersistentPriorityPreview", fairnessPreview);
     unsigned fairnessInterval = min<unsigned>(max<unsigned>(
         threading.getUInt("generationFairnessIntervalPasses", 4), 1), 60);
     unsigned fairnessReserveMilliseconds = min<unsigned>(

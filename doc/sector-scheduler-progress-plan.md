@@ -8,6 +8,24 @@ suspensa conforme o backlog. Este documento complementa a
 [auditoria dos 41 logs](log-audit-2026-11-03-deep.md) e a
 [auditoria de dungeons](dungeon-access-audit.md).
 
+## Evidência Tracy de 05/11/2026
+
+A captura `Tracy3` da build `5c4047d9` confirmou que o atraso de setores não
+decorre de falha na infraestrutura de regiões: `spawnFailed`, `runtimeFailed`
+e `dispatchRejected` ficaram em zero, enquanto a espera p95 das mailboxes ficou
+entre 10 e 13 us. Foram observados pedidos com 10 a 16,4 s de idade marcados
+principalmente como `notSelected`, e alguns bloqueados em `generation.baseTiles`.
+
+O custo da fila de geração foi p95 19,60 ms, p99 54,99 ms e máximo 154,96 ms.
+Microdungeons tiveram p95 16,65 ms, p99 59,38 ms e máximo 154,61 ms. Esses
+valores justificam habilitar o recorte de prioridade persistente no próximo
+teste: ele preserva uma promoção que perdeu sua tentativa por deadline, sem
+alterar as dependências, a ordem de publicação ou o orçamento existente.
+
+O mesmo Tracy identificou um pico separado de 638,8 ms durante uma transição de
+mundo, composto por 101 atualizações de NPCs. Esse resultado pertence ao
+backlog de NPCs e não muda a prioridade atual de threading por setores.
+
 ## Casos reconstruídos
 
 | Evidência | Estado observado | Conclusão permitida |
@@ -196,12 +214,15 @@ Configuração de teste:
 }
 ```
 
-`worldThreading.generationPersistentPriorityPreview` é um segundo recorte,
-desligado por padrão. Quando um pedido promovido perde a tentativa porque uma
-etapa anterior alcançou o deadline, ele preserva `(setor, sequência)` até a
-próxima passagem. Reentrada do mesmo setor recebe outra sequência e descarta o
-marcador antigo. A prioridade é removida logo após a primeira tentativa real;
-ela não vira prioridade permanente. `generation.persistentPriority.stored`,
+`worldThreading.generationPersistentPriorityPreview` é o segundo recorte.
+Quando `generationFairnessSchedulerPreview` está ativo, ele passa a acompanhar
+a política de justiça por padrão; o campo explícito ainda pode ser definido
+como `false` para uma comparação A/B. Quando um pedido promovido perde a
+tentativa porque uma etapa anterior alcançou o deadline, ele preserva
+`(setor, sequência)` até a próxima passagem. Reentrada do mesmo setor recebe
+outra sequência e descarta o marcador antigo. A prioridade é removida logo
+após a primeira tentativa real; ela não vira prioridade permanente.
+`generation.persistentPriority.stored`,
 `.resumed`, `.attempted` e `.dropped` verificam esse contrato.
 
 ## Primeiro recorte implementado
