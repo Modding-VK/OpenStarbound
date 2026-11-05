@@ -154,6 +154,28 @@ private:
     Maybe<size_t> queuedPlacement;
   };
 
+  // Copy-only input for the future MicroDungeonPlan producer.  It deliberately
+  // excludes WorldServer, entities, Lua state and promises: a worker may only
+  // derive deterministic candidates from this snapshot.
+  struct QueuedMicroDungeonPlacementSnapshot {
+    List<BiomeItemDistribution> distributions;
+    size_t queuedPlacement;
+  };
+
+  struct MicroDungeonPlanSnapshot {
+    WorldTemplatePtr templateSource;
+    uint64_t templateRevision;
+    Sector sector;
+    RectI sectorTiles;
+    List<QueuedMicroDungeonPlacementSnapshot> queuedPlacements;
+  };
+
+  struct PreparedMicroDungeonPlan {
+    List<MicroDungeonPlan> plans;
+    double elapsedSeconds;
+    double completedAt;
+  };
+
   struct PreparedBaseTiles {
     ServerTileSectorArray::ArrayPtr tiles;
     double elapsedSeconds;

@@ -13,6 +13,12 @@ receber somente um snapshot de template, tiles acolchoados e colocações
 pendentes copiadas. A aplicação de tiles, entidades, fios, líquidos e promises
 continuará na região dona após validar revisão e footprint.
 
+O código agora declara `MicroDungeonPlanSnapshot` e
+`PreparedMicroDungeonPlan`. O primeiro não aceita referências ao `WorldServer`,
+entidades, Lua ou promises; o segundo somente devolve descritores ordenados e
+tempo de execução. O produtor e a fila assíncrona serão ligados no recorte
+seguinte, após o snapshot incluir o halo de tiles e sua revisão.
+
 ## O que muda
 
 `WorldGenerator::generateMicroDungeons` agora transforma a fila ordenada de
