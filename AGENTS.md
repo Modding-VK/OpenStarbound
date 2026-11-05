@@ -47,3 +47,33 @@ reading, batch independent tool calls, bound command output, preserve evidence
 in `doc/`, and avoid repeating unchanged logs or file contents. Never shorten
 context by removing security instructions, user requirements, or technical
 limitations.
+
+## Execution and Continuation Policy
+
+When the user asks to continue, resume, proceed, or keep working on an
+existing implementation:
+
+1. Inspect the current project state and relevant changes.
+2. Recover the implementation status from the conversation and project
+   documentation.
+3. Identify the next incomplete and actionable implementation step.
+4. Read the relevant source files before making changes.
+5. Execute the implementation instead of merely describing what should be
+   done.
+6. Run appropriate tests and validations.
+7. Report actual changes and test results.
+
+### Important rules
+
+- Never treat an acknowledgment or implementation plan as task completion.
+- Do not respond only with statements such as "I'll continue", "I'll
+  proceed", or "I'll work on that".
+- Do not ask for confirmation when the next implementation step is clear and
+  authorized.
+- Do not unnecessarily repeat previous analysis.
+- Preserve existing architectural decisions and implementation conventions.
+- If blocked, investigate the actual blocker and explain it precisely.
+- Never claim that files were modified or tests passed unless this was
+  verified.
+
+**Default behavior: Execute, validate, and report.**
