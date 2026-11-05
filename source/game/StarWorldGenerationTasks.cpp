@@ -61,7 +61,7 @@ shared_ptr<WorldGenerationTask> WorldGenerationTasks::reserve(Vec2U const& secto
     WorldGenerationTaskStage stage, size_t bytes) {
   auto region = m_partition.regionForSector(sector);
   Key key{sector, stage};
-  if (!region || stage != WorldGenerationTaskStage::BaseTiles || m_tasks.contains(key)
+  if (!region || m_tasks.contains(key)
       || m_tasks.size() >= m_maxTasks || bytes > m_maxBytes - m_reservedBytes
       || m_sequence == std::numeric_limits<uint64_t>::max())
     return {};

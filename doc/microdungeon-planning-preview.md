@@ -3,6 +3,16 @@
 Estado: primeira fundação implementada na branch `Experimental`; não executa
 microdungeons em paralelo e não altera a ordem de publicação.
 
+## Próximo recorte multithread
+
+`WorldGenerationTasks` já reserva uma identidade por mundo, região, setor e
+etapa para `MicroDungeonPlan` e `CaveLiquidPlan`. A reserva impede que dois
+workers recebam a mesma etapa do mesmo setor e permite revogar o resultado no
+unload. Ela ainda não autoriza acesso ao mundo vivo: o próximo produtor deverá
+receber somente um snapshot de template, tiles acolchoados e colocações
+pendentes copiadas. A aplicação de tiles, entidades, fios, líquidos e promises
+continuará na região dona após validar revisão e footprint.
+
 ## O que muda
 
 `WorldGenerator::generateMicroDungeons` agora transforma a fila ordenada de

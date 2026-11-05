@@ -8,7 +8,11 @@
 namespace Star {
 
 enum class WorldGenerationTaskStage : uint8_t {
-  BaseTiles
+  BaseTiles,
+  // These stages reserve identity, memory and a region owner before their
+  // producers are introduced. They do not authorize live-world writes.
+  MicroDungeonPlan,
+  CaveLiquidPlan
 };
 
 enum class WorldGenerationTaskState : uint8_t {
