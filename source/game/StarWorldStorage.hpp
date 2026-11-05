@@ -428,6 +428,11 @@ private:
   uint64_t m_generationRequestEpoch = 0;
   uint64_t m_generationRequestSequence = 0;
   uint64_t m_generationFairnessPasses = 0;
+  struct PersistentGenerationPriority {
+    Sector sector;
+    uint64_t sequence;
+  };
+  Maybe<PersistentGenerationPriority> m_generationPersistentPriority;
   HashMap<Sector, GenerationRequest> m_generationRequests;
   size_t m_lastOldestQueueDiagnosticBucket = 0;
   Maybe<Sector> m_oldestQueueDiagnosticSector;

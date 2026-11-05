@@ -967,13 +967,33 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     bool fairnessPreview = threading.getBool("generationFairnessSchedulerPreview", false);
     bool dependencyPreview = threading.getBool("generationDependencySchedulerPreview", false);
     bool visibleCompletionPreview = threading.getBool("generationVisibleCompletionPreview", false);
+    bool persistentPriorityPreview = threading.getBool("generationPersistentPriorityPreview", false);
     unsigned fairnessInterval = min<unsigned>(max<unsigned>(
         threading.getUInt("generationFairnessIntervalPasses", 4), 1), 60);
     unsigned fairnessReserveMilliseconds = min<unsigned>(
         threading.getUInt("generationFairnessReserveMilliseconds", 2), 8);
     Maybe<WorldGenerationDependencyNode> dependencyPriority;
     Maybe<Sector> fairnessReservedSector;
-    if ((fairnessPreview || dependencyPreview) && !m_generationQueue.empty()
+    // A priority that missed its reserved attempt because a preceding stage
+    // consumed the deadline must survive to the next pass. The stored sequence
+    // makes a later re-entry of the same coordinates a different request.
+    if (persistentPriorityPreview && m_generationPersistentPriority) {
+      auto const& priority = *m_generationPersistentPriority;
+      auto request = m_generationRequests.ptr(priority.sector);
+      if (m_generationQueue.contains(priority.sector) && request && request->sequence == priority.sequence) {
+        m_generationQueue.toFront(priority.sector);
+        fairnessReservedSector = priority.sector;
+        if (m_explorationProfile) {
+          m_explorationProfile->count("generation.persistentPriority.resumed");
+          recordGenerationRequest(priority.sector, "persistentPriorityResumed");
+        }
+      } else {
+        m_generationPersistentPriority.reset();
+        if (m_explorationProfile)
+          m_explorationProfile->count("generation.persistentPriority.dropped");
+      }
+    }
+    if ((fairnessPreview || dependencyPreview) && !fairnessReservedSector && !m_generationQueue.empty()
         && ++m_generationFairnessPasses % fairnessInterval == 0) {
       Maybe<Sector> oldest;
       for (auto const& entry : m_generationRequests) {
@@ -1037,6 +1057,16 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
           } else {
             fairnessReservedSector = *oldest;
           }
+        }
+      }
+    }
+
+    if (persistentPriorityPreview && fairnessReservedSector && !m_generationPersistentPriority) {
+      if (auto request = m_generationRequests.ptr(*fairnessReservedSector)) {
+        m_generationPersistentPriority = PersistentGenerationPriority{*fairnessReservedSector, request->sequence};
+        if (m_explorationProfile) {
+          m_explorationProfile->count("generation.persistentPriority.stored");
+          recordGenerationRequest(*fairnessReservedSector, "persistentPriorityStored");
         }
       }
     }
@@ -1211,6 +1241,12 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
         dependencyPriorityAttempted = true;
       if (fairnessReservedTarget) {
         fairnessReservedAttempted = true;
+        if (persistentPriorityPreview && m_generationPersistentPriority
+            && m_generationPersistentPriority->sector == sector) {
+          m_generationPersistentPriority.reset();
+          if (m_explorationProfile)
+            m_explorationProfile->count("generation.persistentPriority.attempted");
+        }
         if (m_explorationProfile) {
           m_explorationProfile->count("generation.fairness.reservedAttempted");
           if (p.second)

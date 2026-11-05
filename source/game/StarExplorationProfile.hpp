@@ -229,6 +229,7 @@ private:
   bool m_regionalDetails = false;
   bool m_writeReportsToFiles = true;
   bool m_reportWriteFailureLogged = false;
+  StringMap<bool> m_reportWriteFailureCategories;
   uint64_t m_reportFileMaxBytes = 8 * 1024 * 1024;
   unsigned m_reportFileBackups = 3;
   String m_reportDirectory;

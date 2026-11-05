@@ -191,9 +191,18 @@ Configuração de teste:
 
 ```json
 "worldThreading" : {
-  "generationVisibleCompletionPreview" : true
+  "generationVisibleCompletionPreview" : true,
+  "generationPersistentPriorityPreview" : true
 }
 ```
+
+`worldThreading.generationPersistentPriorityPreview` é um segundo recorte,
+desligado por padrão. Quando um pedido promovido perde a tentativa porque uma
+etapa anterior alcançou o deadline, ele preserva `(setor, sequência)` até a
+próxima passagem. Reentrada do mesmo setor recebe outra sequência e descarta o
+marcador antigo. A prioridade é removida logo após a primeira tentativa real;
+ela não vira prioridade permanente. `generation.persistentPriority.stored`,
+`.resumed`, `.attempted` e `.dropped` verificam esse contrato.
 
 ## Primeiro recorte implementado
 

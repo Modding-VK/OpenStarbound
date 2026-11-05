@@ -430,6 +430,18 @@ void ExplorationProfile::recordEntity(Entity const& entity, double totalSeconds,
   timing.luaSeconds += luaSeconds;
   timing.loggingSeconds += loggingSeconds;
 
+  // Keep the high-cost built-in coordinator label distinct without retaining
+  // arbitrary mod script names. This is diagnostics only and is intentionally
+  // a subset of the stagehand aggregate above.
+  String name = entity.name();
+  if (type == "stagehand" && name == "coordinator") {
+    record("entity.stagehand.coordinator", totalSeconds);
+    record("entity.stagehand.coordinator.lua", luaSeconds);
+    count("entity.stagehand.coordinator.updates");
+    if (totalSeconds >= m_slowSeconds)
+      count("entity.stagehand.coordinator.slowUpdates");
+  }
+
   if (m_regionalDetails) {
     auto position = entity.position();
     if (std::isfinite(position[0]) && std::isfinite(position[1])
@@ -452,7 +464,6 @@ void ExplorationProfile::recordEntity(Entity const& entity, double totalSeconds,
   if (totalSeconds < m_slowSeconds)
     return;
 
-  String name = entity.name();
   String kind = name;
   if (auto npc = dynamic_cast<Npc const*>(&entity))
     kind = npc->npcType();
@@ -678,7 +689,21 @@ void ExplorationProfile::report(bool final) {
         fields.set("slowOperationMilliseconds", object.get("slowOperationMilliseconds"));
         fields.set("final", object.get("final"));
         reportCategory = category;
-        writeReportFile(category, Json(std::move(fields)));
+        try {
+          writeReportFile(category, Json(std::move(fields)));
+        } catch (std::exception const&) {
+          if (!m_reportWriteFailureCategories.contains(category)) {
+            Logger::warn("[ExplorationProfile] report file write failed component={} instance={} category={} failure=standardException",
+                m_component, m_instance, category);
+            m_reportWriteFailureCategories[category] = true;
+          }
+        } catch (...) {
+          if (!m_reportWriteFailureCategories.contains(category)) {
+            Logger::warn("[ExplorationProfile] report file write failed component={} instance={} category={} failure=unknownException",
+                m_component, m_instance, category);
+            m_reportWriteFailureCategories[category] = true;
+          }
+        }
       };
       auto selectByPrefix = [](Json const& source, std::initializer_list<char const*> prefixes) {
         JsonObject selected;

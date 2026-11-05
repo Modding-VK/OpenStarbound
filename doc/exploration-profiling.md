@@ -81,8 +81,9 @@ por linha:
 |---|---|
 | `world/` | Relatório completo da janela, para preservar a visão geral. |
 | `storage/` | Leitura, descompressão, desserialização, instalação, callbacks e sincronização dos setores persistidos. |
+| `stagehands/` | Etapas de stagehands, incluindo o subtotal fixo `entity.stagehand.coordinator` quando existir. |
 | `npcs/` | Etapas, população, pathfinding e entidades NPC lentas. |
-| `monsters/`, `vehicles/`, `stagehands/` | Callbacks, transferências e entidades lentas de cada tipo. |
+| `monsters/`, `vehicles/` | Callbacks, transferências e entidades lentas de cada tipo. |
 | `sectors/` | Esperas, pacotes, retenção, transições e diagnóstico regional. |
 | `generation/` | Base tiles, invalidações e tarefas de geração. |
 | `wiring/` | Custo, tamanho e setores carregados por redes de fios. |
@@ -95,6 +96,10 @@ arquivo a 8 MiB e `reportFileBackups` preserva três rotações (`.1`, `.2`,
 Defina `writeReportsToFiles` como `false` para interromper a escrita dos
 relatórios sem desligar as medições; essa opção serve apenas para diagnóstico
 temporário, pois os dados coletados não serão preservados.
+
+Uma falha de escrita é isolada por categoria. O coletor continua tentando essa
+categoria nas janelas seguintes e ainda grava as demais; a primeira falha de
+cada categoria é registrada sem expor caminhos locais ou texto da exceção.
 
 ## Próxima coleta
 
