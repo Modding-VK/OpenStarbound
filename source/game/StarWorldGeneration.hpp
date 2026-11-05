@@ -193,6 +193,17 @@ private:
     Maybe<WorkerPoolPromise<PreparedBaseTiles>> promise;
   };
 
+  // The owning region keeps this record until the producer has returned and
+  // its template and sector revisions have been revalidated.
+  struct PendingMicroDungeonPlan {
+    shared_ptr<WorldGenerationTask> task;
+    uint64_t sourceTileRevision;
+    WorldTemplate const* sourceTemplate;
+    uint64_t sourceTemplateRevision;
+    double scheduledAt;
+    Maybe<WorkerPoolPromise<PreparedMicroDungeonPlan>> promise;
+  };
+
   void prepareTiles(WorldStorage* worldStorage, Sector const& sector);
   void retireBaseTileTask(shared_ptr<WorldGenerationTask> const& task, WorldGenerationTaskOutcome outcome);
   SectorGenerationResult prepareTilesAsync(WorldStorage* worldStorage, Sector const& sector, bool allowAsync);
@@ -220,6 +231,7 @@ private:
   MicroDungeonFactoryPtr m_microDungeonFactory;
   List<QueuedPlacement> m_queuedPlacements;
   HashMap<Sector, PendingBaseTiles> m_pendingBaseTiles;
+  HashMap<Sector, PendingMicroDungeonPlan> m_pendingMicroDungeonPlans;
   unique_ptr<WorldGenerationTasks> m_generationTasks;
   double m_lastPoolProfileTime = 0;
   WorldTemplatePtr m_baseTileTemplateSource;
