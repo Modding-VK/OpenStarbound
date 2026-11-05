@@ -133,6 +133,17 @@ fila é primeiro ordenada pela distância atual ao jogador e então esse único
 pedido antigo é movido para a frente. O orçamento de tempo e de níveis continua
 o mesmo; não há trabalho adicional garantido nem prioridade permanente.
 
+Quando há uma promoção, `generationFairnessReserveMilliseconds` reserva os
+últimos 2 ms do orçamento (ajustável de 0 a 8 ms) para a primeira tentativa da
+fila promovida. A drenagem de `BaseTiles` já preparados para antes desse limite.
+Assim, uma sequência de commits prontos não pode consumir integralmente os
+12 ms usuais antes de consultar o pedido antigo. A tentativa continua limitada
+pelo deadline original e uma etapa não interrompível ainda pode ultrapassá-lo;
+o parâmetro não transforma microdungeons em trabalho paralelo. Com profiling,
+`generation.fairness.reservePasses`, `.readyCommitDeferred`,
+`.reservedAttempted` e `.reservedAdvanced` verificam se a reserva de fato
+concedeu a oportunidade esperada.
+
 Ao ser selecionado, o setor continua usando `generateSectorToLevel` com alvo
 `Complete`. A rotina existente percorre os pré-requisitos de geração antes de
 avançar a etapa dependente, portanto a oportunidade é herdada por eles dentro

@@ -968,7 +968,10 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     bool dependencyPreview = threading.getBool("generationDependencySchedulerPreview", false);
     unsigned fairnessInterval = min<unsigned>(max<unsigned>(
         threading.getUInt("generationFairnessIntervalPasses", 4), 1), 60);
+    unsigned fairnessReserveMilliseconds = min<unsigned>(
+        threading.getUInt("generationFairnessReserveMilliseconds", 2), 8);
     Maybe<WorldGenerationDependencyNode> dependencyPriority;
+    Maybe<Sector> fairnessReservedSector;
     if ((fairnessPreview || dependencyPreview) && !m_generationQueue.empty()
         && ++m_generationFairnessPasses % fairnessInterval == 0) {
       Maybe<Sector> oldest;
@@ -1009,6 +1012,7 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
           if (dependencyPriority) {
             auto prioritySector = Sector(dependencyPriority->sector[0], dependencyPriority->sector[1]);
             m_generationQueue.toFront(prioritySector);
+            fairnessReservedSector = prioritySector;
             if (m_explorationProfile) {
               m_explorationProfile->count("generation.dependencyScheduler.promoted");
               recordGenerationRequest(prioritySector, "dependencyPromoted");
@@ -1021,12 +1025,16 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
           auto selected = m_generationQueue.firstKey();
           if (selected != *oldest) {
             m_generationQueue.toFront(*oldest);
+            fairnessReservedSector = *oldest;
             if (m_explorationProfile) {
               m_explorationProfile->count("generation.fairness.promoted");
               recordGenerationRequest(*oldest, "fairnessPromoted");
             }
           } else if (m_explorationProfile) {
             m_explorationProfile->count("generation.fairness.alreadySelected");
+            fairnessReservedSector = *oldest;
+          } else {
+            fairnessReservedSector = *oldest;
           }
         }
       }
@@ -1095,10 +1103,25 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     auto readySectors = m_generatorFacade->readyBaseTileSectors(this);
     if (sectorOrdering)
       std::sort(readySectors.begin(), readySectors.end(), sectorOrdering);
+    // A promoted request used to be able to remain unattempted when commits
+    // of already prepared BaseTiles consumed the complete generation budget.
+    // Reserve only the tail of a promoted pass: the normal path keeps its
+    // existing deadline and this remains bounded by generationDeadline.
+    double readyResultDeadline = generationDeadline;
+    if (fairnessReservedSector && fairnessReserveMilliseconds > 0) {
+      readyResultDeadline = max(Time::monotonicTime(),
+          generationDeadline - fairnessReserveMilliseconds / 1000.0);
+      if (m_explorationProfile)
+        m_explorationProfile->count("generation.fairness.reservePasses");
+    }
     for (auto const& sector : readySectors) {
-      if ((sectorGenerationLevelLimit && *sectorGenerationLevelLimit == 0)
-          || Time::monotonicTime() >= generationDeadline)
+      if (sectorGenerationLevelLimit && *sectorGenerationLevelLimit == 0)
         break;
+      if (Time::monotonicTime() >= readyResultDeadline) {
+        if (fairnessReservedSector && readyResultDeadline < generationDeadline && m_explorationProfile)
+          m_explorationProfile->count("generation.fairness.readyCommitDeferred");
+        break;
+      }
       auto metadata = m_sectorMetadata.ptr(sector);
       if (!metadata || metadata->loadLevel < SectorLoadLevel::Tiles
           || metadata->generationLevel >= SectorGenerationLevel::BaseTiles)
@@ -1127,6 +1150,7 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     bool schedulingOnly = false;
     size_t visitedSectors = 0;
     bool dependencyPriorityAttempted = false;
+    bool fairnessReservedAttempted = false;
     while (!m_generationQueue.empty()) {
       if ((sectorGenerationLevelLimit && *sectorGenerationLevelLimit == 0) || Time::monotonicTime() >= generationDeadline)
         break;
@@ -1134,6 +1158,8 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       auto sector = m_generationQueue.firstKey();
       bool dependencyTarget = !schedulingOnly && dependencyPriority && !dependencyPriorityAttempted
           && sector == Sector(dependencyPriority->sector[0], dependencyPriority->sector[1]);
+      bool fairnessReservedTarget = !schedulingOnly && fairnessReservedSector && !fairnessReservedAttempted
+          && sector == *fairnessReservedSector;
       auto targetLevel = schedulingOnly ? SectorGenerationLevel::BaseTiles
           : dependencyTarget ? static_cast<SectorGenerationLevel>(dependencyPriority->level)
                              : SectorGenerationLevel::Complete;
@@ -1151,6 +1177,14 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
           sectorGenerationLevelLimit.value(NPos), true, generationDeadline);
       if (dependencyTarget)
         dependencyPriorityAttempted = true;
+      if (fairnessReservedTarget) {
+        fairnessReservedAttempted = true;
+        if (m_explorationProfile) {
+          m_explorationProfile->count("generation.fairness.reservedAttempted");
+          if (p.second)
+            m_explorationProfile->count("generation.fairness.reservedAdvanced");
+        }
+      }
       if (m_traceOldestQueueAttempt && p.second)
         ++m_oldestQueueAdvances;
       m_traceOldestQueueAttempt = false;

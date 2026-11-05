@@ -664,6 +664,7 @@ void ExplorationProfile::report(bool final) {
       {"npcDetails", m_npcDetails}, {"npcStages", std::move(npcStages)},
       {"percentileMethod", "histogram-upper-bound-8-buckets-per-octave-1us"}
     };
+    String reportCategory = "prepare";
     try {
       auto object = report.toObject();
       auto makeCategory = [&](String const& category, JsonObject fields, bool hasData) {
@@ -676,6 +677,7 @@ void ExplorationProfile::report(bool final) {
         fields.set("windowMilliseconds", object.get("windowMilliseconds"));
         fields.set("slowOperationMilliseconds", object.get("slowOperationMilliseconds"));
         fields.set("final", object.get("final"));
+        reportCategory = category;
         writeReportFile(category, Json(std::move(fields)));
       };
       auto selectByPrefix = [](Json const& source, std::initializer_list<char const*> prefixes) {
@@ -779,9 +781,16 @@ void ExplorationProfile::report(bool final) {
       bool hasScripts = !scripts.get("stages").toObject().empty() || !scripts.get("storyHops").toArray().empty()
           || (scripts.contains("allStages") && !scripts.get("allStages").toObject().empty());
       makeCategory("scripts", std::move(scripts), hasScripts);
+    } catch (std::exception const&) {
+      if (!m_reportWriteFailureLogged) {
+        Logger::warn("[ExplorationProfile] report file write failed component={} instance={} category={} failure=standardException",
+            m_component, m_instance, reportCategory);
+        m_reportWriteFailureLogged = true;
+      }
     } catch (...) {
       if (!m_reportWriteFailureLogged) {
-        Logger::warn("[ExplorationProfile] report file write failed component={} instance={}", m_component, m_instance);
+        Logger::warn("[ExplorationProfile] report file write failed component={} instance={} category={} failure=unknownException",
+            m_component, m_instance, reportCategory);
         m_reportWriteFailureLogged = true;
       }
     }
