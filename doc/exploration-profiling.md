@@ -102,6 +102,10 @@ Uma falha de escrita é isolada por categoria. O coletor continua tentando essa
 categoria nas janelas seguintes e ainda grava as demais; a primeira falha de
 cada categoria é registrada sem expor caminhos locais ou texto da exceção.
 
+A janela **Diagnostics** é construída somente quando seu botão é selecionado
+no menu Options. Abrir Options não carrega os controles ou a configuração da
+janela de diagnóstico e não inicia coleta alguma.
+
 ## Próxima coleta
 
 ### Identidade dos pedidos e comparação de seleção

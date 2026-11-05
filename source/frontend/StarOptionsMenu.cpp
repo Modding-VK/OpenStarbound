@@ -100,7 +100,6 @@ OptionsMenu::OptionsMenu(PaneManager* manager, UniverseClientPtr client)
   m_modBindingsMenu = make_shared<BindingsMenu>(assets->json(config.getString("bindingsPanePath", "/interface/opensb/bindings/bindings.config")));
   m_keybindingsMenu = make_shared<KeybindingsMenu>();
   m_graphicsMenu = make_shared<GraphicsMenu>(manager,client);
-  m_explorationProfilingMenu = make_shared<ExplorationProfilingMenu>();
 
   initConfig();
 }
@@ -224,6 +223,11 @@ void OptionsMenu::displayGraphics() {
 }
 
 void OptionsMenu::displayDiagnostics() {
+  // Diagnostics are optional and can allocate several controls. Construct
+  // them only when requested so the regular Options pane stays independent
+  // from diagnostic UI assets and configuration.
+  if (!m_explorationProfilingMenu)
+    m_explorationProfilingMenu = make_shared<ExplorationProfilingMenu>();
   m_paneManager->displayPane(PaneLayer::ModalWindow, m_explorationProfilingMenu);
 }
 
