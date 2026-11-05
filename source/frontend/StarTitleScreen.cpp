@@ -23,7 +23,7 @@
 namespace Star {
 
 TitleScreen::TitleScreen(PlayerStoragePtr playerStorage, MixerPtr mixer, UniverseClientPtr client)
-  : m_playerStorage(playerStorage), m_skipMultiPlayerConnection(false), m_mixer(mixer) {
+  : m_playerStorage(playerStorage), m_client(std::move(client)), m_skipMultiPlayerConnection(false), m_mixer(mixer) {
   m_titleState = TitleState::Quit;
 
   auto assets = Root::singleton().assets();
@@ -53,8 +53,6 @@ TitleScreen::TitleScreen(PlayerStoragePtr playerStorage, MixerPtr mixer, Univers
   initCharCreationMenu();
   Logger::info("[TitleScreen] initializing multiplayer menus");
   initMultiPlayerMenu();
-  Logger::info("[TitleScreen] initializing options menu");
-  initOptionsMenu(client);
   Logger::info("[TitleScreen] initializing mods menu");
   initModsMenu();
 
@@ -464,11 +462,15 @@ void TitleScreen::initMultiPlayerMenu() {
 }
 
 void TitleScreen::initOptionsMenu(UniverseClientPtr client) {
-  auto optionsMenu = make_shared<OptionsMenu>(&m_paneManager,client);
-  optionsMenu->setAnchor(PaneAnchor::Center);
-  optionsMenu->lockPosition();
+  if (m_optionsMenu)
+    return;
 
-  m_paneManager.registerPane("optionsMenu", PaneLayer::Hud, optionsMenu, [this](PanePtr const&) {
+  Logger::info("[TitleScreen] creating options menu on demand");
+  m_optionsMenu = make_shared<OptionsMenu>(&m_paneManager, client);
+  m_optionsMenu->setAnchor(PaneAnchor::Center);
+  m_optionsMenu->lockPosition();
+
+  m_paneManager.registerPane("optionsMenu", PaneLayer::Hud, m_optionsMenu, [this](PanePtr const&) {
       back();
     });
 }
@@ -501,6 +503,7 @@ void TitleScreen::switchState(TitleState titleState) {
     m_paneManager.displayRegisteredPane("backMenu");
 
     if (titleState == TitleState::Options) {
+      initOptionsMenu(m_client);
       m_paneManager.displayRegisteredPane("optionsMenu");
     } if (titleState == TitleState::Mods) {
       m_paneManager.displayRegisteredPane("modsMenu");

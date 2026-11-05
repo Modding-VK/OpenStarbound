@@ -74,9 +74,11 @@ OptionsMenu::OptionsMenu(PaneManager* manager, UniverseClientPtr client)
       displayDiagnostics();
     });
 
+  Logger::info("[OptionsMenu] loading layout");
   Json config = assets->json("/interface/optionsmenu/optionsmenu.config");
 
   reader.construct(config.get("paneLayout"), this);
+  Logger::info("[OptionsMenu] layout constructed");
 
   m_instrumentSlider = fetchChild<SliderBarWidget>("instrumentSlider");
   m_sfxSlider = fetchChild<SliderBarWidget>("sfxSlider");
@@ -91,17 +93,24 @@ OptionsMenu::OptionsMenu(PaneManager* manager, UniverseClientPtr client)
   m_sfxLabel = fetchChild<LabelWidget>("sfxValueLabel");
   m_musicLabel = fetchChild<LabelWidget>("musicValueLabel");
   m_p2pJoinableLabel = fetchChild<LabelWidget>("clientP2PJoinableLabel");
+  Logger::info("[OptionsMenu] controls resolved");
 
   m_instrumentSlider->setRange(m_sfxRange, assets->json("/interface/optionsmenu/optionsmenu.config:sfxDelta").toInt());
   m_sfxSlider->setRange(m_sfxRange, assets->json("/interface/optionsmenu/optionsmenu.config:sfxDelta").toInt());
   m_musicSlider->setRange(m_musicRange, assets->json("/interface/optionsmenu/optionsmenu.config:musicDelta").toInt());
+  Logger::info("[OptionsMenu] sliders configured");
 
+  Logger::info("[OptionsMenu] creating voice settings");
   m_voiceSettingsMenu = make_shared<VoiceSettingsMenu>(assets->json(config.getString("voiceSettingsPanePath", "/interface/opensb/voicechat/voicechat.config")));
+  Logger::info("[OptionsMenu] creating mod bindings");
   m_modBindingsMenu = make_shared<BindingsMenu>(assets->json(config.getString("bindingsPanePath", "/interface/opensb/bindings/bindings.config")));
+  Logger::info("[OptionsMenu] creating keybindings");
   m_keybindingsMenu = make_shared<KeybindingsMenu>();
+  Logger::info("[OptionsMenu] creating graphics menu");
   m_graphicsMenu = make_shared<GraphicsMenu>(manager,client);
 
   initConfig();
+  Logger::info("[OptionsMenu] ready");
 }
 
 void OptionsMenu::show() {

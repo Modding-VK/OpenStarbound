@@ -126,6 +126,8 @@ private:
 
   PlayerPtr m_mainAppPlayer;
   PlayerStoragePtr m_playerStorage;
+  UniverseClientPtr m_client;
+  OptionsMenuPtr m_optionsMenu;
 
   bool m_skipMultiPlayerConnection;
   String m_connectionAddress;
