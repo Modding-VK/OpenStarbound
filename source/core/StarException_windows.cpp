@@ -11,17 +11,17 @@ namespace Star {
 
 struct WindowsSymInitializer {
   WindowsSymInitializer() {
+#ifdef STAR_ENABLE_TRACY
+    // Tracy owns the process-wide DbgHelp session in diagnostic builds. A
+    // second initializer during static startup can only make that shared
+    // state less reliable. Tracy initializes it before any on-demand capture.
+    return;
+#else
     DWORD options = SymGetOptions();
     SymSetOptions(options | SYMOPT_LOAD_LINES);
-    if (!SymInitialize(GetCurrentProcess(), NULL, TRUE)) {
-      // Tracy can initialize the process-wide DbgHelp symbol handler before
-      // OpenStarbound's exception support. DbgHelp reports that established
-      // handler as ERROR_INVALID_PARAMETER on a repeated SymInitialize call.
-      // It remains usable for stack capture, so only unrelated failures are
-      // fatal.
-      if (GetLastError() != ERROR_INVALID_PARAMETER)
-        fatalError("SymInitialize failed", false);
-    }
+    if (!SymInitialize(GetCurrentProcess(), NULL, TRUE))
+      fatalError("SymInitialize failed", false);
+#endif
   }
 };
 static WindowsSymInitializer g_windowsSymInitializer;

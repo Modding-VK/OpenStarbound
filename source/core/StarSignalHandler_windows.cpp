@@ -104,12 +104,21 @@ struct SignalHandlerImpl {
 #endif
   }
 
+  static void handleStackOverflow(PEXCEPTION_POINTERS ExceptionInfo) {
+    // The faulting thread has no stack left for String formatting, symbol
+    // resolution or the regular fatal-error trampoline. Preserve the original
+    // exception context in one dump and let Windows finish handling it.
+    static volatile LONG dumpWritten = 0;
+    if (InterlockedCompareExchange(&dumpWritten, 1, 0) == 0)
+      writeMiniDump(ExceptionInfo);
+  }
+
   static LONG CALLBACK vectoredExceptionHandler(PEXCEPTION_POINTERS ExceptionInfo) {
     LONG result = EXCEPTION_CONTINUE_SEARCH;
 
     if (ExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_STACK_OVERFLOW) {
-      handleFatalError("Stack overflow detected", ExceptionInfo);
-      result = EXCEPTION_CONTINUE_EXECUTION;
+      handleStackOverflow(ExceptionInfo);
+      return EXCEPTION_CONTINUE_SEARCH;
     }
     if (ExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION) {
       handleFatalError("Access violation detected", ExceptionInfo);

@@ -38,19 +38,28 @@ TitleScreen::TitleScreen(PlayerStoragePtr playerStorage, MixerPtr mixer, Univers
   if (auto name = m_celestialDatabase->name(randomWorld))
     Logger::info("Title world is {} @ CelestialWorld:{}", Text::stripEscapeCodes(*name), randomWorld);
 
+  Logger::info("[TitleScreen] creating sky backdrop");
   SkyParameters skyParameters(randomWorld, m_celestialDatabase);
   m_skyBackdrop = make_shared<Sky>(skyParameters, true);
 
+  Logger::info("[TitleScreen] loading music description");
   m_musicTrack = make_shared<AmbientNoisesDescription>(assets->json("/interface/windowconfig/title.config:music").toObject(), "/");
 
+  Logger::info("[TitleScreen] initializing main menu");
   initMainMenu();
+  Logger::info("[TitleScreen] initializing character selection");
   initCharSelectionMenu();
+  Logger::info("[TitleScreen] initializing character creation");
   initCharCreationMenu();
+  Logger::info("[TitleScreen] initializing multiplayer menus");
   initMultiPlayerMenu();
+  Logger::info("[TitleScreen] initializing options menu");
   initOptionsMenu(client);
+  Logger::info("[TitleScreen] initializing mods menu");
   initModsMenu();
 
   resetState();
+  Logger::info("[TitleScreen] ready");
 }
 
 void TitleScreen::renderInit(RendererPtr renderer) {
