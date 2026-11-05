@@ -27,12 +27,21 @@ impedia o jogo de chegar ao menu principal. A alteração em `3f7301aa` adia a
 criação do Options até o clique em **Options**. Ela preserva a função do menu e
 isola a falha da inicialização geral do jogo.
 
-O minidump ainda não identifica uma causa de primeiro nível para o *stack
+Uma revisão posterior do código encontrou uma regressão mais concreta: o patch
+atual removeu também as definições de `instrumentSlider`,
+`instrumentValueLabel` e `headRotationCheckbox` presentes no patch original,
+enquanto `OptionsMenu.cpp` continua a buscá-las e desreferenciá-las sem
+verificação. O `fetchChild` retorna ponteiro vazio se a chave faltar. Na
+ausência de outro mod que forneça essas chaves, `m_instrumentSlider->setRange`
+é a primeira desreferência inválida. Esse é um defeito do layout atual mesmo
+que não seja possível confirmar, sem o JSON resolvido da instalação, que ele
+tenha sido a primeira exceção da execução observada.
+
+O minidump ainda não identifica com segurança a primeira falha para o *stack
 overflow*. O log da build `8f3cb274` delimita o ponto: a última mensagem é
 `[TitleScreen] initializing options menu`. Essa build ainda não continha as
 marcas internas de `OptionsMenu` nem o carregamento sob demanda introduzidos em
-`3f7301aa`. Portanto, é incorreto atribuir o crash somente ao botão de
-diagnósticos ou a um mod específico.
+`3f7301aa`.
 
 ## Como o OpenStarbound original constrói o Options
 
@@ -108,15 +117,16 @@ Consequências verificadas:
 
 O upstream já usa esse mecanismo para voz, atalhos e rotação de cabeça. O patch
 original contém vários widgets próprios completos e ajustes parciais de widgets
-vanilla. A nossa versão atual conserva apenas o widget adicional de diagnósticos,
-eliminando as alterações de geometria que estavam causando sobreposição visual.
+vanilla. A nossa versão atual conserva apenas o widget adicional de diagnósticos.
+Ao eliminar as alterações de geometria que causavam sobreposição visual, a
+alteração eliminou também definições exigidas pelo código C++.
 
 ## Diferenças efetivas da nossa árvore
 
 | Área | Upstream | Experimental | Efeito |
 | --- | --- | --- | --- |
 | Callback | Não existe `showDiagnostics` | Registrado antes do layout | Permite o botão novo sem alterar callbacks existentes. |
-| Layout | Patch de voz/atalhos/gráficos | Apenas `showDiagnostics` completo | Reduz conflitos de geometria e de entradas parciais. |
+| Layout | Patch de voz/atalhos/gráficos, instrumento e rotação de cabeça | Apenas `showDiagnostics` completo | Remove controles exigidos por `OptionsMenu.cpp`. |
 | Painel de diagnósticos | Não existe | Criado somente no clique | Não carrega recursos de diagnósticos na abertura do Options. |
 | Criação do Options | Durante `TitleScreen` | No primeiro acesso a **Options** | O menu principal deixa de depender de toda a cadeia do Options. |
 | Observabilidade | Sem marcos desse fluxo | Marcas `[TitleScreen]` e `[OptionsMenu]` | A próxima falha poderá ser localizada por etapa. |
@@ -141,10 +151,40 @@ rotina de erro, mas a build não trazia logs internos suficientes para separar:
 - busca dos controles obrigatórios;
 - construção dos quatro submenus.
 
+A leitura dos endereços presentes na pilha do dump mostra mais de cem
+ocorrências de endereços associados a `StarException::captureStack` e ao código
+de exceções. Isso é compatível com repetição durante o tratamento de uma falha,
+mas não identifica sozinho qual instrução provocou a primeira exceção. O
+tratador Windows em `StarSignalHandler_windows.cpp` redireciona uma violação de
+acesso para `sehTrampoline`, que executa captura de pilha e formatação. Assim,
+um *stack overflow* no dump não demonstra necessariamente recursão no layout.
+
 `3f7301aa` resolve essa lacuna: o menu principal deve abrir mesmo se o Options
 estiver comprometido; ao abrir Options, o log passa a informar `loading layout`,
 `layout constructed`, `controls resolved`, `sliders configured` e cada submenu
 criado.
+
+## Regressões e limites identificados no código
+
+O patch original cria `instrumentSlider`, `instrumentValueLabel` e
+`headRotationCheckbox`. O patch atual não os contém. O projeto não inclui o
+`optionsmenu.config` vanilla, que vem do `packed.pak` do jogo, por isso a
+existência desses widgets no ativo final depende também dos assets da instalação.
+O desenho original do OpenStarbound os acrescenta explicitamente, evidência de
+que não se deve presumir que o vanilla os forneça.
+
+`Widget::fetchChild` devolve `{}` quando não encontra o nome. O construtor de
+Options não valida o resultado antes de chamar `m_instrumentSlider->setRange`.
+Mais tarde, `syncGuiToConf` também usa `m_instrumentLabel` e
+`m_headRotationButton` sem verificar. Isso cria dois pontos adicionais de
+falha. Os botões de voz, atalhos e gráficos também deixaram de ser definidos no
+patch; seus submenus continuam a ser construídos, mas ficam inacessíveis pelo
+layout normal se outro asset não fornecer os botões.
+
+Há ainda um segundo caminho de criação do Options em
+`StarMainInterface.cpp`: ele permanece imediato quando a interface de jogo é
+construída. O adiamento em `TitleScreen` protege a abertura do menu principal,
+mas não resolve a regressão do layout nem protege a entrada no mundo.
 
 ## Hipóteses e limites
 
@@ -157,20 +197,28 @@ o crash ocorreu antes do menu principal.
 
 O *stack overflow* difere de um `WidgetParserException` normal. Um JSON de
 widget incompleto normalmente produz a exceção legível mostrada anteriormente.
-Isso torna uma recursão durante a construção de algum painel, a resolução de um
-asset ou um caminho acionado por mod uma hipótese ainda aberta.
+A ausência dos widgets obrigatórios tende a produzir violação de acesso; o
+tratamento dessa violação pode ter obscurecido a falha inicial. A relação causal
+exata entre o patch reduzido e o dump ainda precisa da configuração final dos
+assets ou de uma pilha simbolizada da mesma build.
 
 ## Próximo teste e decisões
 
-1. Usar a build que contenha `3f7301aa`. Confirmar que o menu principal abre.
-2. Abrir **Options** uma vez e enviar o `starbound.log` resultante se houver
+1. Restaurar no patch as definições completas dos controles obrigatórios do
+   OpenStarbound, acomodando seus botões no layout com espaço para Diagnostics.
+2. Validar `fetchChild` antes de qualquer desreferência para produzir erro com
+   nome do controle, em vez de violação de acesso.
+3. Considerar o caminho de `StarMainInterface` ao avaliar a inicialização.
+4. Usar uma build posterior a essas correções. Confirmar menu principal, Options
+   e entrada no mundo.
+5. Abrir **Options** uma vez e enviar o `starbound.log` resultante se houver
    falha. A última marca `[OptionsMenu]` identifica a etapa responsável.
-3. Se a falha ocorrer após `controls resolved`, adiar também a criação de voz,
+6. Se a falha ocorrer após `controls resolved`, adiar também a criação de voz,
    bindings, keybindings e gráficos até o botão correspondente. Isso mantém o
    comportamento, mas impede que um submenu não usado bloqueie o Options.
-4. Se ocorrer antes de `layout constructed`, registrar de forma segura a origem
+7. Se ocorrer antes de `layout constructed`, registrar de forma segura a origem
    e a forma do ativo resolvido, sem despejar configurações inteiras no log.
-5. Reproduzir com o mesmo executável e sem patches de interface de terceiros
+8. Reproduzir com o mesmo executável e sem patches de interface de terceiros
    apenas como teste de isolamento. O resultado separa um defeito do núcleo de
    uma combinação de assets, sem culpar um mod por suposição.
 
