@@ -15,6 +15,16 @@
 
 namespace Star {
 
+namespace {
+template <typename WidgetType>
+shared_ptr<WidgetType> requiredOptionWidget(OptionsMenu* pane, String const& name) {
+  auto widget = pane->fetchChild<WidgetType>(name);
+  if (!widget)
+    throw WidgetParserException::format("Options menu requires widget '{}' with the expected type", name);
+  return widget;
+}
+}
+
 OptionsMenu::OptionsMenu(PaneManager* manager, UniverseClientPtr client)
   : m_sfxRange(0, 100), m_musicRange(0, 100), m_paneManager(manager) {
   auto root = Root::singletonPtr();
@@ -80,19 +90,19 @@ OptionsMenu::OptionsMenu(PaneManager* manager, UniverseClientPtr client)
   reader.construct(config.get("paneLayout"), this);
   Logger::info("[OptionsMenu] layout constructed");
 
-  m_instrumentSlider = fetchChild<SliderBarWidget>("instrumentSlider");
-  m_sfxSlider = fetchChild<SliderBarWidget>("sfxSlider");
-  m_musicSlider = fetchChild<SliderBarWidget>("musicSlider");
-  m_tutorialMessagesButton = fetchChild<ButtonWidget>("tutorialMessagesCheckbox");
-  m_clientIPJoinableButton = fetchChild<ButtonWidget>("clientIPJoinableCheckbox");
-  m_clientP2PJoinableButton = fetchChild<ButtonWidget>("clientP2PJoinableCheckbox");
-  m_allowAssetsMismatchButton = fetchChild<ButtonWidget>("allowAssetsMismatchCheckbox");
-  m_headRotationButton = fetchChild<ButtonWidget>("headRotationCheckbox");
+  m_instrumentSlider = requiredOptionWidget<SliderBarWidget>(this, "instrumentSlider");
+  m_sfxSlider = requiredOptionWidget<SliderBarWidget>(this, "sfxSlider");
+  m_musicSlider = requiredOptionWidget<SliderBarWidget>(this, "musicSlider");
+  m_tutorialMessagesButton = requiredOptionWidget<ButtonWidget>(this, "tutorialMessagesCheckbox");
+  m_clientIPJoinableButton = requiredOptionWidget<ButtonWidget>(this, "clientIPJoinableCheckbox");
+  m_clientP2PJoinableButton = requiredOptionWidget<ButtonWidget>(this, "clientP2PJoinableCheckbox");
+  m_allowAssetsMismatchButton = requiredOptionWidget<ButtonWidget>(this, "allowAssetsMismatchCheckbox");
+  m_headRotationButton = requiredOptionWidget<ButtonWidget>(this, "headRotationCheckbox");
 
-  m_instrumentLabel = fetchChild<LabelWidget>("instrumentValueLabel");
-  m_sfxLabel = fetchChild<LabelWidget>("sfxValueLabel");
-  m_musicLabel = fetchChild<LabelWidget>("musicValueLabel");
-  m_p2pJoinableLabel = fetchChild<LabelWidget>("clientP2PJoinableLabel");
+  m_instrumentLabel = requiredOptionWidget<LabelWidget>(this, "instrumentValueLabel");
+  m_sfxLabel = requiredOptionWidget<LabelWidget>(this, "sfxValueLabel");
+  m_musicLabel = requiredOptionWidget<LabelWidget>(this, "musicValueLabel");
+  m_p2pJoinableLabel = requiredOptionWidget<LabelWidget>(this, "clientP2PJoinableLabel");
   Logger::info("[OptionsMenu] controls resolved");
 
   m_instrumentSlider->setRange(m_sfxRange, assets->json("/interface/optionsmenu/optionsmenu.config:sfxDelta").toInt());

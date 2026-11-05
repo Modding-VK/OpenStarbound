@@ -4,6 +4,20 @@
 **Referência comparada:** `upstream/main` em `73d6b5147005dcc42b85358b9efd84b90174f16c`  
 **Árvore avaliada:** `Experimental` em `3f7301aa`
 
+## Correção posterior
+
+Após a auditoria, o patch do Options recuperou os widgets completos do
+OpenStarbound para voz, atalhos, instrumento e rotação de cabeça. O botão
+Diagnostics foi colocado em uma linha própria, em `[87, 74]`, entre a linha de
+atalhos `[*, 95]` e a linha de rotação de cabeça `[*, 51]`. Cada controle
+obrigatório buscado por `OptionsMenu.cpp` agora é validado antes do uso. Se um
+mod remover ou alterar o tipo de um deles, a exceção informa seu nome.
+
+As descrições abaixo registram o estado defeituoso anterior à correção, para
+preservar a cadeia de evidências. A disposição final ainda depende da escala
+de interface e dos patches dos mods da instalação; a confirmação visual exige
+abrir o menu na próxima build.
+
 ## Objetivo
 
 Entender por que a inicialização do jogo alcançava a criação de `OptionsMenu` e
