@@ -177,6 +177,34 @@ TEST(WorldGenerationTasksTest, EachDeclaredStageCanReserveTheSameSector) {
   EXPECT_NE(microDungeon->identity.sequence, caveLiquid->identity.sequence);
 }
 
+TEST(WorldGenerationTasksTest, MutationBatchRequiresMatchingRevisionsAndOrder) {
+  WorldGenerationTasks tasks(1, partition(), 1, 1024);
+  auto task = tasks.reserve({0, 0}, WorldGenerationTaskStage::MicroDungeonPlan, 1);
+  ASSERT_TRUE(task);
+
+  WorldMutationBatch batch{
+      task->identity,
+      {{{0, 0}, 4}, {{1, 0}, 9}},
+      {{{0, 0}, WorldTileMutationKind::ForegroundMaterial, 1, 0, 1},
+          {{1, 0}, WorldTileMutationKind::DungeonId, 2, 0, 2}}};
+  HashMap<Vec2U, uint64_t> revisions{{{0, 0}, 4}, {{1, 0}, 9}};
+
+  EXPECT_FALSE(batch.empty());
+  EXPECT_TRUE(batch.ordered());
+  EXPECT_TRUE(batch.matches(task->identity, revisions));
+
+  revisions[{1, 0}] = 10;
+  EXPECT_FALSE(batch.matches(task->identity, revisions));
+  revisions[{1, 0}] = 9;
+  auto foreignIdentity = task->identity;
+  ++foreignIdentity.worldEpoch;
+  EXPECT_FALSE(batch.matches(foreignIdentity, revisions));
+
+  batch.tileMutations[1].sequence = 1;
+  EXPECT_FALSE(batch.ordered());
+  EXPECT_FALSE(batch.matches(task->identity, revisions));
+}
+
 TEST(WorldGenerationTasksTest, RegistryDestructionRevokesSurvivingHandle) {
   shared_ptr<WorldGenerationTask> surviving;
   {
