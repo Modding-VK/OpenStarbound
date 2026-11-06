@@ -141,4 +141,6 @@ etapa acima.
 - [ ] Comparar tiles, dungeons, entidades, líquidos, colisão, iluminação e saves.
 - [ ] Medir p50/p95/p99, bytes, retries, descartes e trabalho útil por etapa.
 - [ ] Correlacionar Tracy e JSONL; medir profiling ligado e desligado.
-- [ ] Corrigir `storage` quando o próximo log expuser `detail=`.
+- [ ] Confirmar em Windows a escrita da categoria `storage` após a proteção
+  contra seções opcionais ausentes no relatório (`BadVariantType` observado em
+  2026-11-06).

@@ -705,13 +705,23 @@ void ExplorationProfile::report(bool final) {
           }
         }
       };
-      auto selectByPrefix = [](Json const& source, std::initializer_list<char const*> prefixes) {
+      // Category extraction must tolerate an omitted optional report section.
+      // In particular, a short profiling window can have storage counters
+      // without timings or maxima.  Keep the category schema object-shaped
+      // instead of iterating a null Json value and losing the whole report.
+      auto selectByPrefix = [](JsonObject const& source, std::initializer_list<char const*> prefixes) {
         JsonObject selected;
-        for (auto const& entry : source.iterateObject()) {
+        for (auto const& entry : source) {
           if (hasPrefix(entry.first, prefixes))
             selected.set(entry.first, entry.second);
         }
         return selected;
+      };
+      auto objectField = [&](char const* name) {
+        if (auto value = object.ptr(name))
+          if (value->isType(Json::Type::Object))
+            return value->toObject();
+        return JsonObject();
       };
       auto selectEntity = [](Json const& source, String const& type) {
         JsonObject selected;
@@ -729,9 +739,9 @@ void ExplorationProfile::report(bool final) {
       };
       auto entityCategory = [&](String const& category, String const& type, char const* stagePrefix, char const* countPrefix) {
         JsonObject fields;
-        auto stages = selectByPrefix(object.get("stages"), {stagePrefix});
-        auto counts = selectByPrefix(object.get("counts"), {countPrefix});
-        auto maxima = selectByPrefix(object.get("maxima"), {countPrefix});
+        auto stages = selectByPrefix(objectField("stages"), {stagePrefix});
+        auto counts = selectByPrefix(objectField("counts"), {countPrefix});
+        auto maxima = selectByPrefix(objectField("maxima"), {countPrefix});
         auto entityTypes = selectEntity(object.get("entityTypes"), type);
         auto slowEntities = selectSlowEntities(object.get("slowEntities"), type);
         Json npcStages;
@@ -752,9 +762,9 @@ void ExplorationProfile::report(bool final) {
       makeCategory("world", object, true);
 
       JsonObject storage;
-      storage.set("stages", selectByPrefix(object.get("stages"), {"storage."}));
-      storage.set("counts", selectByPrefix(object.get("counts"), {"storage."}));
-      storage.set("maxima", selectByPrefix(object.get("maxima"), {"storage."}));
+      storage.set("stages", selectByPrefix(objectField("stages"), {"storage."}));
+      storage.set("counts", selectByPrefix(objectField("counts"), {"storage."}));
+      storage.set("maxima", selectByPrefix(objectField("maxima"), {"storage."}));
       bool hasStorage = !storage.get("stages").toObject().empty()
           || !storage.get("counts").toObject().empty() || !storage.get("maxima").toObject().empty();
       makeCategory("storage", std::move(storage), hasStorage);
@@ -765,7 +775,7 @@ void ExplorationProfile::report(bool final) {
       entityCategory("stagehands", "stagehand", "entity.stagehand.", "entity.stagehand.");
 
       JsonObject sectors;
-      sectors.set("counts", selectByPrefix(object.get("counts"), {"generation.", "storage.", "entity.sector", "entity.monster.sector", "entity.vehicle.sector", "entity.stagehand.sector", "entity.multiSector"}));
+      sectors.set("counts", selectByPrefix(objectField("counts"), {"generation.", "storage.", "entity.sector", "entity.monster.sector", "entity.vehicle.sector", "entity.stagehand.sector", "entity.multiSector"}));
       sectors.set("oldestQueuedSector", object.get("oldestQueuedSector"));
       sectors.set("slowSectors", object.get("slowSectors"));
       sectors.set("tilePackets", object.get("tilePackets"));
@@ -779,8 +789,8 @@ void ExplorationProfile::report(bool final) {
       makeCategory("sectors", std::move(sectors), hasSectors);
 
       JsonObject generation;
-      generation.set("stages", selectByPrefix(object.get("stages"), {"generation."}));
-      generation.set("counts", selectByPrefix(object.get("counts"), {"generation."}));
+      generation.set("stages", selectByPrefix(objectField("stages"), {"generation."}));
+      generation.set("counts", selectByPrefix(objectField("counts"), {"generation."}));
       generation.set("staleBaseTiles", object.get("staleBaseTiles"));
       generation.set("evictedBaseTiles", object.get("evictedBaseTiles"));
       generation.set("generationTasks", object.get("generationTasks"));
@@ -797,29 +807,29 @@ void ExplorationProfile::report(bool final) {
       // phases isolated so profiling can distinguish planning, validation,
       // painting and entity publication without retaining asset/mod details.
       JsonObject dungeons;
-      dungeons.set("stages", selectByPrefix(object.get("stages"), {"dungeon."}));
-      dungeons.set("counts", selectByPrefix(object.get("counts"), {"dungeon."}));
-      dungeons.set("maxima", selectByPrefix(object.get("maxima"), {"dungeon."}));
+      dungeons.set("stages", selectByPrefix(objectField("stages"), {"dungeon."}));
+      dungeons.set("counts", selectByPrefix(objectField("counts"), {"dungeon."}));
+      dungeons.set("maxima", selectByPrefix(objectField("maxima"), {"dungeon."}));
       bool hasDungeons = !dungeons.get("stages").toObject().empty()
           || !dungeons.get("counts").toObject().empty() || !dungeons.get("maxima").toObject().empty();
       makeCategory("dungeons", std::move(dungeons), hasDungeons);
 
       JsonObject wiring;
-      wiring.set("stages", selectByPrefix(object.get("stages"), {"wiring."}));
-      wiring.set("counts", selectByPrefix(object.get("counts"), {"wiring."}));
-      wiring.set("maxima", selectByPrefix(object.get("maxima"), {"wiring."}));
+      wiring.set("stages", selectByPrefix(objectField("stages"), {"wiring."}));
+      wiring.set("counts", selectByPrefix(objectField("counts"), {"wiring."}));
+      wiring.set("maxima", selectByPrefix(objectField("maxima"), {"wiring."}));
       bool hasWiring = !wiring.get("stages").toObject().empty() || !wiring.get("counts").toObject().empty() || !wiring.get("maxima").toObject().empty();
       makeCategory("wiring", std::move(wiring), hasWiring);
 
       JsonObject liquids;
-      liquids.set("stages", selectByPrefix(object.get("stages"), {"liquid."}));
-      liquids.set("counts", selectByPrefix(object.get("counts"), {"liquid."}));
-      liquids.set("maxima", selectByPrefix(object.get("maxima"), {"liquid."}));
+      liquids.set("stages", selectByPrefix(objectField("stages"), {"liquid."}));
+      liquids.set("counts", selectByPrefix(objectField("counts"), {"liquid."}));
+      liquids.set("maxima", selectByPrefix(objectField("maxima"), {"liquid."}));
       bool hasLiquids = !liquids.get("stages").toObject().empty() || !liquids.get("counts").toObject().empty() || !liquids.get("maxima").toObject().empty();
       makeCategory("liquids", std::move(liquids), hasLiquids);
 
       JsonObject scripts;
-      scripts.set("stages", selectByPrefix(object.get("stages"), {"quest.", "universe.", "script."}));
+      scripts.set("stages", selectByPrefix(objectField("stages"), {"quest.", "universe.", "script."}));
       scripts.set("storyHops", object.get("storyHops"));
       if (m_component == "playerQuests" || m_component == "universeScripts")
         scripts.set("allStages", object.get("stages"));
