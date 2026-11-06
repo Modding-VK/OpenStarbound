@@ -39,6 +39,15 @@ assets da rota de referência não tiver passado. Em particular:
 | `WorldMutationBatch` | Contrato e validação pura criados; sem operações vivas |
 | Escrita paralela | Não implementada |
 
+## Escopo de plataformas nesta fase
+
+A estabilização e a validação corrente cobrem Windows, Linux GCC/ARM e macOS.
+Linux Clang fica explicitamente adiado até o encerramento do projeto: seu preset
+de teste e o job correspondente não são critério de bloqueio nesta fase e não
+devem receber trabalho de compatibilidade isolado. Essa suspensão não reduz a
+exigência de compatibilidade funcional ou de mods nas plataformas que seguem
+no escopo.
+
 ## Microdungeons
 
 - [x] Conectar `PendingMicroDungeonPlan` ao pool de workers, desligado por padrão.
