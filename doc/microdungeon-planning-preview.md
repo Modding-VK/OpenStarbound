@@ -67,6 +67,24 @@ métricas. Os contadores são `generation.microDungeonPlan.candidates`,
 `crossSectorAccepted`; `footprintSectors` é uma amostra por dungeon aceita.
 Não são registrados nomes de dungeons, parâmetros de mods ou payloads.
 
+### Preview assíncrono de planejamento
+
+O produtor pode ser habilitado somente para comparações controladas:
+
+```json
+"worldThreading" : {
+  "microDungeonPlanningWorkerPreview" : true
+}
+```
+
+Ele permanece desligado por padrão. O worker recebe cópias do halo 3×3, store
+do template, revisões e colocações pendentes; devolve apenas descritores. A
+thread dona revalida todas as revisões do halo antes de chamar a aplicação
+legada. `pendingDepthSamples`, `pendingDepthTotal`, `scheduled`, `pendingPolls`,
+`pendingAge`, `snapshotBytes`, `queueDelay`, `staleResults`, `retry`,
+`resultsApplied` e `unloadedResultsDiscarded` permitem comparar fila, memória
+e descartes sem incluir dados de mods nos relatórios.
+
 Com `regionalDetails: true`, a facade viva também conta acessos e efeitos de
 microdungeons sob `generation.microDungeonFacade.*`: leituras de material,
 líquido e ID de dungeon; escritas de materiais, mods, líquidos, proteção e IDs;
