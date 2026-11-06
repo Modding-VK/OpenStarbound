@@ -17,6 +17,7 @@ confirmar promises ou publicar efeitos de rede e persistência.
 | Componente | Estado |
 | --- | --- |
 | BaseTiles em pool | Implementado, com identidade e validação de revisão |
+| Admissão de tarefas | Estágios declarados validados; chaves por `(setor, etapa)` podem coexistir |
 | Regiões lógicas em sombra | Implementado para observação e métricas |
 | Planejador de microdungeon por snapshot | Extraído, ainda síncrono |
 | `MicroDungeonPlan` task | Tipo e pendência criados; produtor não conectado |
@@ -38,6 +39,32 @@ confirmar promises ou publicar efeitos de rede e persistência.
 
 **Saída:** mesma seed, assets e mods geram resultados equivalentes com um ou
 vários workers; resultados obsoletos nunca publicam.
+
+### Recorte vertical seguinte — somente planejamento assíncrono
+
+Este é o próximo item implementável, mas permanece **desligado por padrão**
+até passar a validação comparativa. O worker receberá um snapshot que possui
+os próprios dados; `WorldTemplatePtr`, `WorldServer`, `WorldStorage`, fachada
+de dungeon, entidades e promises não podem ser lidos pelo produtor.
+
+1. A thread dona captura `templateStore`, revisão/identidade do template, o
+   setor solicitado, o halo de 3×3 setores e a revisão de cada setor do halo.
+   As colocações pendentes são copiadas com seu índice estável.
+2. O worker reconstrói seu `WorldTemplate` privado a partir do store e retorna
+   somente descritores ordenados. Ele não instancia `DungeonGeneratorWorld` e
+   não produz `WorldMutationBatch` neste recorte.
+3. No retorno, a região dona exige tarefa válida, mesma encarnação do mundo,
+   mesma identidade/revisão do template e todas as revisões do halo. Falha,
+   unload ou divergência descartam o resultado e aposentam a reserva.
+4. Apenas depois dessa revalidação, a thread dona chama o caminho legado de
+   aplicação, na mesma ordem de hoje. Promises e entidades continuam nesse
+   caminho autoritativo.
+
+Critérios de aceitação: sequência idêntica de planos para a mesma seed, assets
+e mods com 0, 1 e N workers; nenhum acesso do worker a tile vivo; e contagem
+equilibrada de `reserved`, `committed`, `stale`, `cancelled` e `failed` após
+unload/reload. A captura precisa informar bytes do halo, profundidade da fila e
+tempo de fila/execução, sem nomes de dungeons ou payloads de mods.
 
 ## Líquidos e finalização
 
@@ -64,6 +91,24 @@ vários workers; resultados obsoletos nunca publicam.
 - [ ] Preservar checkpoint, rede, saves e reload sem duplicação.
 - [ ] Definir API opt-in e fallback legado para mods, objetos e containers.
 - [ ] Auditar monstros, veículos e stagehands antes de migrá-los.
+
+## Ordem de execução atual
+
+1. **Estabilização:** manter os contratos puros, a checagem de etapas e a
+   integração com `main`; não ampliar o número de escritores do mundo.
+2. **BaseTiles:** repetir o teste com mundos reais e assets licenciados antes
+   de mudar limite, política de descarte ou validação de revisão.
+3. **Microdungeons:** executar somente o recorte vertical de planejamento
+   descrito acima; batches de mutação e a fachada gravadora vêm depois da
+   equivalência do planejador.
+4. **Agendador:** converter a observação atual em grafo executivo somente
+   depois de existir uma fronteira completa e versionada; prioridade nunca
+   cria interesse nem autoriza publicação.
+5. **Persistência e runtime regional:** introduzir leitura privada e instalação
+   validada antes de mailboxes, handoff ou atualização concorrente de entidades.
+
+A externalização de NPCs permanece suspensa e não é pré-requisito de nenhuma
+etapa acima.
 
 ## Validação obrigatória
 
