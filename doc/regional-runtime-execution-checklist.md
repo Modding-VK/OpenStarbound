@@ -12,6 +12,21 @@ Workers recebem snapshots imutáveis e retornam planos ou batches. Somente a
 thread dona da região pode validar revisões, criar entidades, alterar tiles,
 confirmar promises ou publicar efeitos de rede e persistência.
 
+## Compatibilidade com mods — requisito de bloqueio
+
+Compatibilidade não é uma otimização posterior. Uma etapa não pode ser ligada
+por padrão nem declarada equivalente enquanto a comparação com os mods e
+assets da rota de referência não tiver passado. Em particular:
+
+- workers não chamam Lua, callbacks, APIs de mods, promises, bancos de
+  entidades ou fachadas do mundo vivo;
+- a ordem observável de geração, criação de entidades, promises, rede e saves
+  permanece na thread dona até existir um contrato explícito para cada efeito;
+- qualquer API nova é opt-in, preserva fallback legado e registra somente
+  métricas de cardinalidade fixa, nunca nomes ou payloads de mods;
+- testes de equivalência sempre incluem mundo salvo e novo, reload,
+  multiplayer e um conjunto de mods representativo.
+
 ## Estado atual
 
 | Componente | Estado |
