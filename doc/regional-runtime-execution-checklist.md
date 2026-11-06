@@ -35,16 +35,16 @@ assets da rota de referência não tiver passado. Em particular:
 | Admissão de tarefas | Estágios declarados validados; chaves por `(setor, etapa)` podem coexistir |
 | Regiões lógicas em sombra | Implementado para observação e métricas |
 | Planejador de microdungeon por snapshot | Extraído, ainda síncrono |
-| `MicroDungeonPlan` task | Tipo e pendência criados; produtor não conectado |
+| `MicroDungeonPlan` task | Planejador em worker opt-in; publicação ainda serial |
 | `WorldMutationBatch` | Contrato e validação pura criados; sem operações vivas |
 | Escrita paralela | Não implementada |
 
 ## Microdungeons
 
-- [ ] Conectar `PendingMicroDungeonPlan` ao pool de workers.
-- [ ] Capturar template, setor, halo e revisões no snapshot.
-- [ ] Revalidar identidade, template e revisões no retorno.
-- [ ] Registrar agendamento, fila, execução, descarte, retry e bytes retidos.
+- [x] Conectar `PendingMicroDungeonPlan` ao pool de workers, desligado por padrão.
+- [x] Capturar template, setor, halo, cópias de tiles e revisões no snapshot.
+- [x] Revalidar identidade, template e revisões no retorno.
+- [x] Registrar agendamento, fila, execução, descarte, retry e bytes retidos.
 - [ ] Criar operações reais de tile em `WorldMutationBatch`.
 - [ ] Aplicar batches somente pela região dona, inicialmente em preview.
 - [ ] Calcular footprint completo de microdungeons compostas.

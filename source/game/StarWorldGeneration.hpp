@@ -170,12 +170,14 @@ private:
     RectI sectorTiles;
     RectI tileHalo;
     HashMap<Sector, uint64_t> sectorRevisions;
+    List<pair<Sector, ServerTileSectorArray::ArrayPtr>> haloTiles;
     List<QueuedMicroDungeonPlacementSnapshot> queuedPlacements;
   };
 
   struct PreparedMicroDungeonPlan {
     List<MicroDungeonPlan> plans;
     double elapsedSeconds;
+    double queueSeconds;
     double completedAt;
   };
 
@@ -200,7 +202,7 @@ private:
   // its template and sector revisions have been revalidated.
   struct PendingMicroDungeonPlan {
     shared_ptr<WorldGenerationTask> task;
-    uint64_t sourceTileRevision;
+    HashMap<Sector, uint64_t> sourceSectorRevisions;
     WorldTemplate const* sourceTemplate;
     uint64_t sourceTemplateRevision;
     double scheduledAt;
@@ -210,7 +212,7 @@ private:
   void prepareTiles(WorldStorage* worldStorage, Sector const& sector);
   void retireBaseTileTask(shared_ptr<WorldGenerationTask> const& task, WorldGenerationTaskOutcome outcome);
   SectorGenerationResult prepareTilesAsync(WorldStorage* worldStorage, Sector const& sector, bool allowAsync);
-  void generateMicroDungeons(WorldStorage* worldStorage, Sector const& sector);
+  SectorGenerationResult generateMicroDungeons(WorldStorage* worldStorage, Sector const& sector, bool allowAsync);
   static List<MicroDungeonPlan> planMicroDungeons(WorldTemplatePtr const& templateSource,
       MicroDungeonPlanSnapshot const& snapshot);
   void applyMicroDungeonPlan(WorldStorage* worldStorage, MicroDungeonPlan const& plan,

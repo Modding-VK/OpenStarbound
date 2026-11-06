@@ -851,7 +851,7 @@ SectorGenerationResult WorldGenerator::generateSectorLevel(WorldStorage* worldSt
   } else if (generationLevel == SectorGenerationLevel::MicroDungeons) {
     STAR_TRACE_ZONE("Generate microdungeons");
     if (!worldStorage->floatingDungeonWorld())
-      generateMicroDungeons(worldStorage, sector);
+      return generateMicroDungeons(worldStorage, sector, allowAsync);
   } else if (generationLevel == SectorGenerationLevel::CaveLiquid) {
     STAR_TRACE_ZONE("Generate cave liquid");
     if (!worldStorage->floatingDungeonWorld())
@@ -879,6 +879,13 @@ void WorldGenerator::sectorLoadLevelChanged(WorldStorage* worldStorage, Sector c
         profile->recordGenerationTask(pending->task->identity, "invalidated", pending->task->reservedBytes);
       }
       worldStorage->tileArray()->takeRevisionTracking(sector);
+    }
+    if (auto pending = m_pendingMicroDungeonPlans.ptr(sector)) {
+      pending->task->invalidate();
+      if (auto profile = m_worldServer->explorationProfile()) {
+        profile->count("generation.microDungeonPlan.pendingInvalidatedOnUnload");
+        profile->recordGenerationTask(pending->task->identity, "invalidated", pending->task->reservedBytes);
+      }
     }
   }
 
@@ -1159,7 +1166,7 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
   if (!m_generationTasks) {
     m_generationTasks = make_unique<WorldGenerationTasks>(m_worldServer->instanceEpoch(),
         WorldRegionPartition(WorldGeometry(tileArray->size())), pendingLimit,
-        pendingLimit * sizeof(ServerTileSectorArray::Array));
+        pendingLimit * 9 * sizeof(ServerTileSectorArray::Array));
   }
   auto task = m_generationTasks->reserve(Vec2U(sector), WorldGenerationTaskStage::BaseTiles,
       sizeof(ServerTileSectorArray::Array));
@@ -1220,12 +1227,128 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
   return {false, {}};
 }
 
-void WorldGenerator::generateMicroDungeons(WorldStorage* worldStorage, ServerTileSectorArray::Sector const& sector) {
+SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* worldStorage,
+    ServerTileSectorArray::Sector const& sector, bool allowAsync) {
   STAR_TRACE_ZONE("Microdungeon placements");
-  auto facade = make_shared<DungeonGeneratorWorld>(m_worldServer, false);
   auto profile = m_worldServer->explorationProfile();
-  bool planPreview = Root::singleton().configuration()->get("worldThreading", JsonObject())
-      .getBool("microDungeonPlanPreview", false);
+  auto threading = Root::singleton().configuration()->get("worldThreading", JsonObject());
+  bool planPreview = threading.getBool("microDungeonPlanPreview", false);
+  bool workerPreview = threading.getBool("microDungeonPlanningWorkerPreview", false);
+  double now = Time::monotonicTime();
+  if (profile && workerPreview && allowAsync) {
+    profile->count("generation.microDungeonPlan.pendingDepthSamples");
+    profile->count("generation.microDungeonPlan.pendingDepthTotal", m_pendingMicroDungeonPlans.size());
+  }
+
+  if (auto pending = m_pendingMicroDungeonPlans.ptr(sector)) {
+    if (allowAsync && !pending->promise->done()) {
+      if (profile) {
+        profile->count("generation.microDungeonPlan.pendingPolls");
+        profile->record("generation.microDungeonPlan.pendingAge", now - pending->scheduledAt);
+      }
+      return {false, {}};
+    }
+    PreparedMicroDungeonPlan result;
+    try {
+      result = std::move(pending->promise->get());
+    } catch (...) {
+      retireBaseTileTask(pending->task, WorldGenerationTaskOutcome::Failed);
+      m_pendingMicroDungeonPlans.remove(sector);
+      throw;
+    }
+    bool current = m_generationTasks->contains(pending->task) && pending->task->valid()
+        && pending->task->identity.worldEpoch == m_worldServer->instanceEpoch()
+        && m_worldServer->worldTemplate().get() == pending->sourceTemplate
+        && m_worldServer->worldTemplate()->generationRevision() == pending->sourceTemplateRevision;
+    for (auto const& revision : pending->sourceSectorRevisions)
+      current = current && worldStorage->tileArray()->sectorRevision(revision.first) == revision.second;
+    if (!current) {
+      retireBaseTileTask(pending->task, pending->task->valid()
+          ? WorldGenerationTaskOutcome::Stale : WorldGenerationTaskOutcome::Cancelled);
+      m_pendingMicroDungeonPlans.remove(sector);
+      if (profile) {
+        profile->count("generation.microDungeonPlan.staleResults");
+        profile->count("generation.microDungeonPlan.retry");
+      }
+      return allowAsync ? generateMicroDungeons(worldStorage, sector, true) : SectorGenerationResult{false, {}};
+    }
+    auto facade = make_shared<DungeonGeneratorWorld>(m_worldServer, false);
+    for (auto const& plan : result.plans)
+      applyMicroDungeonPlan(worldStorage, plan, facade, profile, planPreview);
+    m_queuedPlacements = m_queuedPlacements.filtered([&](QueuedPlacement& p) { return !p.fulfilled; });
+    retireBaseTileTask(pending->task, WorldGenerationTaskOutcome::Committed);
+    m_pendingMicroDungeonPlans.remove(sector);
+    if (profile) {
+      profile->count("generation.microDungeonPlan.resultsApplied");
+      profile->record("generation.microDungeonPlan.queueDelay", result.queueSeconds);
+    }
+    return {true, result.elapsedSeconds};
+  }
+
+  auto& workerPool = worldSectorWorkerPool();
+  if (workerPreview && allowAsync && workerPool.getWorkerCount() > 0) {
+    size_t pendingLimit = workerPool.getWorkerCount() * 2;
+    if (m_pendingMicroDungeonPlans.size() >= pendingLimit)
+      return {false, {}};
+    auto tileArray = worldStorage->tileArray();
+    auto templateSource = m_worldServer->worldTemplate();
+    auto templateRevision = templateSource->generationRevision();
+    if (m_microDungeonTemplateSource != templateSource || m_microDungeonTemplateRevision != templateRevision) {
+      m_microDungeonTemplateSource = templateSource;
+      m_microDungeonTemplateRevision = templateRevision;
+      m_microDungeonTemplateStore = templateSource->store();
+    }
+    RectI sectorTiles = tileArray->sectorRegion(sector);
+    MicroDungeonPlanSnapshot snapshot{m_microDungeonTemplateStore, templateRevision, sector,
+        sectorTiles, sectorTiles.padded(WorldSectorSize - 1), {}, {}, {}};
+    for (auto const& haloSector : tileArray->validSectorsFor(snapshot.tileHalo)) {
+      snapshot.sectorRevisions[haloSector] = tileArray->sectorRevision(haloSector);
+      snapshot.haloTiles.append({haloSector, tileArray->copySector(haloSector)});
+    }
+    for (size_t i = 0; i < m_queuedPlacements.size(); ++i)
+      if (!m_queuedPlacements[i].fulfilled)
+        snapshot.queuedPlacements.append({m_queuedPlacements[i].distributions, i});
+    if (!m_generationTasks)
+      m_generationTasks = make_unique<WorldGenerationTasks>(m_worldServer->instanceEpoch(),
+          WorldRegionPartition(WorldGeometry(tileArray->size())), pendingLimit, pendingLimit * 9 * sizeof(ServerTileSectorArray::Array));
+    size_t bytes = snapshot.haloTiles.size() * sizeof(ServerTileSectorArray::Array);
+    auto task = m_generationTasks->reserve(Vec2U(sector), WorldGenerationTaskStage::MicroDungeonPlan, bytes);
+    if (!task)
+      return {false, {}};
+    auto revisions = snapshot.sectorRevisions;
+    auto templateStore = snapshot.templateStore;
+    auto snapshotHolder = make_shared<MicroDungeonPlanSnapshot>(std::move(snapshot));
+    Maybe<WorkerPoolPromise<PreparedMicroDungeonPlan>> promise;
+    try {
+      promise = workerPool.addProducer<PreparedMicroDungeonPlan>([task, templateSource, templateRevision, templateStore, snapshotHolder, now]() mutable {
+        if (!task->start())
+          throw StarException("Generation task started more than once");
+        try {
+          double started = Time::monotonicTime();
+          List<MicroDungeonPlan> plans;
+          if (task->valid())
+            plans = planMicroDungeons(workerWorldTemplate(templateSource, templateRevision, templateStore), *snapshotHolder);
+          double completed = Time::monotonicTime();
+          if (!task->ready())
+            throw StarException("Generation task completed in an invalid state");
+          return PreparedMicroDungeonPlan{std::move(plans), completed - started, started - now, completed};
+        } catch (...) { task->fail(); throw; }
+      });
+    } catch (...) {
+      task->fail();
+      retireBaseTileTask(task, WorldGenerationTaskOutcome::Failed);
+      throw;
+    }
+    m_pendingMicroDungeonPlans[sector] = PendingMicroDungeonPlan{task, std::move(revisions), templateSource.get(), templateRevision, now, std::move(promise)};
+    if (profile) {
+      profile->count("generation.microDungeonPlan.scheduled");
+      profile->count("generation.microDungeonPlan.snapshotBytes", bytes);
+      profile->recordGenerationTask(task->identity, "reserved", bytes);
+    }
+    return {false, {}};
+  }
+
+  auto facade = make_shared<DungeonGeneratorWorld>(m_worldServer, false);
   ExplorationProfile::Scope phase(profile, "generation.microDungeonPlan.collect");
 
   auto templateSource = m_worldServer->worldTemplate();
@@ -1238,7 +1361,7 @@ void WorldGenerator::generateMicroDungeons(WorldStorage* worldStorage, ServerTil
   auto tileArray = worldStorage->tileArray();
   RectI sectorTiles = tileArray->sectorRegion(sector);
   MicroDungeonPlanSnapshot snapshot{m_microDungeonTemplateStore, templateRevision, sector,
-      sectorTiles, sectorTiles.padded(WorldSectorSize - 1), {}, {}};
+      sectorTiles, sectorTiles.padded(WorldSectorSize - 1), {}, {}, {}};
   // Planning does not inspect tiles yet, but the captured halo and revisions
   // establish the revalidation footprint required before moving it to a
   // worker. The worker will receive copied tiles only when a private dungeon
@@ -1274,6 +1397,7 @@ void WorldGenerator::generateMicroDungeons(WorldStorage* worldStorage, ServerTil
   m_queuedPlacements = m_queuedPlacements.filtered([&](QueuedPlacement& p) {
     return !p.fulfilled;
   });
+  return {true, {}};
 }
 
 List<WorldGenerator::MicroDungeonPlan> WorldGenerator::planMicroDungeons(WorldTemplatePtr const& templateSource,
