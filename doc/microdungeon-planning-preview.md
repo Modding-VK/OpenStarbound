@@ -85,6 +85,29 @@ legada. `pendingDepthSamples`, `pendingDepthTotal`, `scheduled`, `pendingPolls`,
 `resultsApplied` e `unloadedResultsDiscarded` permitem comparar fila, memória
 e descartes sem incluir dados de mods nos relatórios.
 
+### Ativação inicial com workers
+
+O caminho normal de `generateRegion` sempre exigiu que cada setor estivesse
+completo antes de retornar, e por isso usava geração serial. Para exercitar os
+snapshots também na entrada de um planeta novo, o preview abaixo mantém esse
+contrato: a thread dona aguarda o resultado, mas `BaseTiles` e, quando também
+habilitado, o planejamento de microdungeon usam a pool privada. Tiles,
+entidades, promises e demais efeitos continuam publicados apenas pela thread
+dona.
+
+```json
+"worldThreading" : {
+  "initialRegionAsyncPreview" : true
+}
+```
+
+O preview é desligado por padrão e não torna a entrada do mundo não bloqueante.
+Ele existe para validar o cálculo em worker sem alterar o instante observável
+em que um setor passa a estar ativo. Os relatórios registram
+`generation.initialRegionAsync.activations`, `.waitTurns` e `.wait`; a presença
+de `generation.baseTiles.worker` e `generation.microDungeonPlan.scheduled`
+confirma o trabalho delegado.
+
 Com `regionalDetails: true`, a facade viva também conta acessos e efeitos de
 microdungeons sob `generation.microDungeonFacade.*`: leituras de material,
 líquido e ID de dungeon; escritas de materiais, mods, líquidos, proteção e IDs;

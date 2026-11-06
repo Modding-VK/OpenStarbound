@@ -13,6 +13,7 @@
 #include "StarAssets.hpp"
 #include "StarMaterialDatabase.hpp"
 #include "StarLiquidsDatabase.hpp"
+#include "StarThread.hpp"
 #include "StarTime.hpp"
 
 #include <algorithm>
@@ -710,7 +711,30 @@ void WorldStorage::loadSector(Sector sector) {
 
 void WorldStorage::activateSector(Sector sector) {
   try {
-    generateSectorToLevel(sector, SectorGenerationLevel::Complete, NPos, false, highest<double>());
+    auto threading = Root::singleton().configuration()->get("worldThreading", JsonObject());
+    bool initialRegionAsyncPreview = threading.getBool("initialRegionAsyncPreview", false);
+    if (!initialRegionAsyncPreview) {
+      generateSectorToLevel(sector, SectorGenerationLevel::Complete, NPos, false, highest<double>());
+    } else {
+      // Callers of activateSector require a fully generated sector on return.
+      // The preview therefore waits on the owner thread while BaseTiles and
+      // the opt-in microdungeon planner calculate from private snapshots in
+      // the pool.  Publication still occurs only through generateSectorToLevel.
+      double startedAt = Time::monotonicTime();
+      size_t waitTurns = 0;
+      while (true) {
+        auto result = generateSectorToLevel(sector, SectorGenerationLevel::Complete, NPos, true, highest<double>());
+        if (result.first)
+          break;
+        ++waitTurns;
+        Thread::yield();
+      }
+      if (m_explorationProfile) {
+        m_explorationProfile->count("generation.initialRegionAsync.activations");
+        m_explorationProfile->count("generation.initialRegionAsync.waitTurns", waitTurns);
+        m_explorationProfile->record("generation.initialRegionAsync.wait", Time::monotonicTime() - startedAt);
+      }
+    }
     setSectorTimeToLive(sector, randomizedSectorTTL());
   } catch (std::exception const& e) {
     m_db.rollback();

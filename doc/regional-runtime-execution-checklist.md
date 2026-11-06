@@ -36,6 +36,7 @@ assets da rota de referência não tiver passado. Em particular:
 | Regiões lógicas em sombra | Implementado para observação e métricas |
 | Planejador de microdungeon por snapshot | Extraído, ainda síncrono |
 | `MicroDungeonPlan` task | Planejador em worker opt-in; publicação ainda serial |
+| Ativação inicial com workers | Preview opt-in; aguarda conclusão e preserva contrato síncrono |
 | `WorldMutationBatch` | Contrato e validação pura criados; sem operações vivas |
 | Escrita paralela | Não implementada |
 

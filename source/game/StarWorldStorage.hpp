@@ -208,7 +208,8 @@ public:
   // generation.
   void loadSector(Sector sector);
   // Fully load, reset the TTL, and if necessary, fully generate the given
-  // sector.
+  // sector. `initialRegionAsyncPreview` may use private worker calculations,
+  // but this method still returns only after owner-thread publication.
   void activateSector(Sector sector);
   // Queue the given sector for activation, if it is not already active.  If
   // the sector is loaded at all, also resets the TTL.
