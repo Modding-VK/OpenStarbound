@@ -193,6 +193,10 @@ TEST(WorldGenerationTasksTest, MutationBatchRequiresMatchingRevisionsAndOrder) {
   EXPECT_TRUE(batch.ordered());
   EXPECT_TRUE(batch.matches(task->identity, revisions));
 
+  auto missingFootprint = batch;
+  missingFootprint.expectedSectorRevisions.clear();
+  EXPECT_FALSE(missingFootprint.matches(task->identity, revisions));
+
   revisions[{1, 0}] = 10;
   EXPECT_FALSE(batch.matches(task->identity, revisions));
   revisions[{1, 0}] = 9;

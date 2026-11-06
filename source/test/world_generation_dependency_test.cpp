@@ -98,3 +98,18 @@ TEST(WorldGenerationDependencyTest, DuplicateNeighborsDoNotDuplicatePrerequisite
   EXPECT_EQ(plan.nodes.size(), 3u);
   EXPECT_EQ(plan.edges.size(), 2u);
 }
+
+TEST(WorldGenerationDependencyTest, FrontierOrderingDoesNotDependOnNeighborEnumeration) {
+  auto plan = WorldGenerationDependencyGraph::build({4, 7}, 2, [](Vec2U const&) {
+      // This deliberately differs from spatial order and repeats a neighbor.
+      return List<Vec2U>{{5, 7}, {4, 8}, {3, 7}, {4, 6}, {5, 7}};
+    });
+
+  auto analysis = WorldGenerationDependencyGraph::analyze(plan, noGeneration);
+  ASSERT_EQ(analysis.frontier.size(), 5u);
+  EXPECT_EQ(analysis.frontier[0], (WorldGenerationDependencyNode{{3, 7}, 1}));
+  EXPECT_EQ(analysis.frontier[1], (WorldGenerationDependencyNode{{4, 6}, 1}));
+  EXPECT_EQ(analysis.frontier[2], (WorldGenerationDependencyNode{{4, 7}, 1}));
+  EXPECT_EQ(analysis.frontier[3], (WorldGenerationDependencyNode{{4, 8}, 1}));
+  EXPECT_EQ(analysis.frontier[4], (WorldGenerationDependencyNode{{5, 7}, 1}));
+}

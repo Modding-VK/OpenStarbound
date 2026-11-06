@@ -35,6 +35,10 @@ bool WorldMutationBatch::matches(WorldGenerationTaskIdentity const& task,
     HashMap<Vec2U, uint64_t> const& currentSectorRevisions) const {
   if (identity != task)
     return false;
+  // A non-empty write set without a versioned footprint cannot be revalidated
+  // by the owner. Treat it as stale rather than authorizing a blind commit.
+  if (!tileMutations.empty() && expectedSectorRevisions.empty())
+    return false;
   for (auto const& expected : expectedSectorRevisions) {
     auto current = currentSectorRevisions.ptr(expected.first);
     if (!current || *current != expected.second)
