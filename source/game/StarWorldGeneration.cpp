@@ -1229,9 +1229,15 @@ void WorldGenerator::generateMicroDungeons(WorldStorage* worldStorage, ServerTil
   ExplorationProfile::Scope phase(profile, "generation.microDungeonPlan.collect");
 
   auto templateSource = m_worldServer->worldTemplate();
+  auto templateRevision = templateSource->generationRevision();
+  if (m_microDungeonTemplateSource != templateSource || m_microDungeonTemplateRevision != templateRevision) {
+    m_microDungeonTemplateSource = templateSource;
+    m_microDungeonTemplateRevision = templateRevision;
+    m_microDungeonTemplateStore = templateSource->store();
+  }
   auto tileArray = worldStorage->tileArray();
   RectI sectorTiles = tileArray->sectorRegion(sector);
-  MicroDungeonPlanSnapshot snapshot{templateSource->store(), templateSource->generationRevision(), sector,
+  MicroDungeonPlanSnapshot snapshot{m_microDungeonTemplateStore, templateRevision, sector,
       sectorTiles, sectorTiles.padded(WorldSectorSize - 1), {}, {}};
   // Planning does not inspect tiles yet, but the captured halo and revisions
   // establish the revalidation footprint required before moving it to a

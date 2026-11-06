@@ -241,6 +241,9 @@ private:
   WorldTemplatePtr m_baseTileTemplateSource;
   uint64_t m_baseTileTemplateRevision = 0;
   Json m_baseTileTemplateStore;
+  WorldTemplatePtr m_microDungeonTemplateSource;
+  uint64_t m_microDungeonTemplateRevision = 0;
+  Json m_microDungeonTemplateStore;
 };
 
 }
