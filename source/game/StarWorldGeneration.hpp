@@ -154,19 +154,22 @@ private:
     Maybe<size_t> queuedPlacement;
   };
 
-  // Copy-only input for the future MicroDungeonPlan producer.  It deliberately
-  // excludes WorldServer, entities, Lua state and promises: a worker may only
-  // derive deterministic candidates from this snapshot.
+  // Copy-only input for the future MicroDungeonPlan producer. It deliberately
+  // excludes WorldServer, a live WorldTemplate, entities, Lua state and
+  // promises: a worker receives only this data and its own WorldTemplate
+  // reconstructed from templateStore.
   struct QueuedMicroDungeonPlacementSnapshot {
     List<BiomeItemDistribution> distributions;
     size_t queuedPlacement;
   };
 
   struct MicroDungeonPlanSnapshot {
-    WorldTemplatePtr templateSource;
+    Json templateStore;
     uint64_t templateRevision;
     Sector sector;
     RectI sectorTiles;
+    RectI tileHalo;
+    HashMap<Sector, uint64_t> sectorRevisions;
     List<QueuedMicroDungeonPlacementSnapshot> queuedPlacements;
   };
 
@@ -208,7 +211,8 @@ private:
   void retireBaseTileTask(shared_ptr<WorldGenerationTask> const& task, WorldGenerationTaskOutcome outcome);
   SectorGenerationResult prepareTilesAsync(WorldStorage* worldStorage, Sector const& sector, bool allowAsync);
   void generateMicroDungeons(WorldStorage* worldStorage, Sector const& sector);
-  static List<MicroDungeonPlan> planMicroDungeons(MicroDungeonPlanSnapshot const& snapshot);
+  static List<MicroDungeonPlan> planMicroDungeons(WorldTemplatePtr const& templateSource,
+      MicroDungeonPlanSnapshot const& snapshot);
   void applyMicroDungeonPlan(WorldStorage* worldStorage, MicroDungeonPlan const& plan,
       DungeonGeneratorWorldPtr const& facade, ExplorationProfile* profile, bool planPreview);
   void generateCaveLiquid(WorldStorage* worldStorage, Sector const& sector);

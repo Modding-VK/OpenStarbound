@@ -1229,8 +1229,16 @@ void WorldGenerator::generateMicroDungeons(WorldStorage* worldStorage, ServerTil
   ExplorationProfile::Scope phase(profile, "generation.microDungeonPlan.collect");
 
   auto templateSource = m_worldServer->worldTemplate();
-  MicroDungeonPlanSnapshot snapshot{templateSource, templateSource->generationRevision(), sector,
-      worldStorage->tileArray()->sectorRegion(sector), {}};
+  auto tileArray = worldStorage->tileArray();
+  RectI sectorTiles = tileArray->sectorRegion(sector);
+  MicroDungeonPlanSnapshot snapshot{templateSource->store(), templateSource->generationRevision(), sector,
+      sectorTiles, sectorTiles.padded(WorldSectorSize - 1), {}, {}};
+  // Planning does not inspect tiles yet, but the captured halo and revisions
+  // establish the revalidation footprint required before moving it to a
+  // worker. The worker will receive copied tiles only when a private dungeon
+  // writer can consume them without touching the live world.
+  for (auto const& haloSector : tileArray->validSectorsFor(snapshot.tileHalo))
+    snapshot.sectorRevisions[haloSector] = tileArray->sectorRevision(haloSector);
   for (size_t i = 0; i < m_queuedPlacements.size(); ++i) {
     auto const& placement = m_queuedPlacements[i];
     if (!placement.fulfilled)
@@ -1238,7 +1246,7 @@ void WorldGenerator::generateMicroDungeons(WorldStorage* worldStorage, ServerTil
   }
 
   phase.next("generation.microDungeonPlan.describe");
-  auto plans = planMicroDungeons(snapshot);
+  auto plans = planMicroDungeons(templateSource, snapshot);
 
   if (profile && planPreview) {
     profile->count("generation.microDungeonPlan.candidates", plans.size());
@@ -1262,21 +1270,22 @@ void WorldGenerator::generateMicroDungeons(WorldStorage* worldStorage, ServerTil
   });
 }
 
-List<WorldGenerator::MicroDungeonPlan> WorldGenerator::planMicroDungeons(MicroDungeonPlanSnapshot const& snapshot) {
+List<WorldGenerator::MicroDungeonPlan> WorldGenerator::planMicroDungeons(WorldTemplatePtr const& templateSource,
+    MicroDungeonPlanSnapshot const& snapshot) {
   STAR_TRACE_ZONE("Microdungeon plan candidates");
-  starAssert(snapshot.templateSource);
+  starAssert(templateSource);
   RectI bounds = snapshot.sectorTiles.padded(WorldSectorSize - 1);
   List<pair<BiomeItemPlacement, Maybe<size_t>>> candidates;
   for (int x = snapshot.sectorTiles.xMin(); x < snapshot.sectorTiles.xMax(); ++x) {
     for (int y = snapshot.sectorTiles.yMin(); y < snapshot.sectorTiles.yMax(); ++y) {
-      auto potential = snapshot.templateSource->potentialBiomeItemsAt(x, y);
-      for (auto const& placement : snapshot.templateSource->validBiomeItems(x, y, potential))
+      auto potential = templateSource->potentialBiomeItemsAt(x, y);
+      for (auto const& placement : templateSource->validBiomeItems(x, y, potential))
         candidates.append({placement, {}});
       for (auto const& queued : snapshot.queuedPlacements) {
         WorldTemplate::PotentialBiomeItems queuedItems;
-        snapshot.templateSource->addPotentialBiomeItems(x, y, queuedItems, queued.distributions, BiomePlacementArea::Surface);
-        snapshot.templateSource->addPotentialBiomeItems(x, y, queuedItems, queued.distributions, BiomePlacementArea::Underground);
-        for (auto placement : snapshot.templateSource->validBiomeItems(x, y, queuedItems))
+        templateSource->addPotentialBiomeItems(x, y, queuedItems, queued.distributions, BiomePlacementArea::Surface);
+        templateSource->addPotentialBiomeItems(x, y, queuedItems, queued.distributions, BiomePlacementArea::Underground);
+        for (auto placement : templateSource->validBiomeItems(x, y, queuedItems))
           candidates.append({std::move(placement), queued.queuedPlacement});
       }
     }
@@ -1287,7 +1296,7 @@ List<WorldGenerator::MicroDungeonPlan> WorldGenerator::planMicroDungeons(MicroDu
     auto const& placement = candidate.first;
     if (!placement.item.is<MicroDungeonNames>())
       continue;
-    auto seed = snapshot.templateSource->seedFor(placement.position[0], placement.position[1]);
+    auto seed = templateSource->seedFor(placement.position[0], placement.position[1]);
     auto const& dungeonName = staticRandomFrom(placement.item.get<MicroDungeonNames>(), seed);
     starAssert(!dungeonName.empty());
     plans.append(MicroDungeonPlan{bounds, placement.position, seed, dungeonName, candidate.second});
