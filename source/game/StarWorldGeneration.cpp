@@ -911,6 +911,18 @@ List<WorldGenerator::Sector> WorldGenerator::readyBaseTileSectors(WorldStorage* 
     ready.append(entry.first);
     return false;
   });
+  eraseWhere(m_pendingMicroDungeonPlans, [&](auto& entry) {
+    if (!entry.second.promise->done() || entry.second.task->valid())
+      return false;
+    try {
+      entry.second.promise->get();
+    } catch (...) {}
+    retireBaseTileTask(entry.second.task, entry.second.task->state() == WorldGenerationTaskState::Failed
+        ? WorldGenerationTaskOutcome::Failed : WorldGenerationTaskOutcome::Cancelled);
+    if (auto profile = m_worldServer->explorationProfile())
+      profile->count("generation.microDungeonPlan.unloadedResultsDiscarded");
+    return true;
+  });
   return ready;
 }
 
@@ -1166,7 +1178,7 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
   if (!m_generationTasks) {
     m_generationTasks = make_unique<WorldGenerationTasks>(m_worldServer->instanceEpoch(),
         WorldRegionPartition(WorldGeometry(tileArray->size())), pendingLimit,
-        pendingLimit * 9 * sizeof(ServerTileSectorArray::Array));
+        pendingLimit * 9 * WorldSectorSize * WorldSectorSize * sizeof(ServerTile));
   }
   auto task = m_generationTasks->reserve(Vec2U(sector), WorldGenerationTaskStage::BaseTiles,
       sizeof(ServerTileSectorArray::Array));
@@ -1301,17 +1313,22 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
     RectI sectorTiles = tileArray->sectorRegion(sector);
     MicroDungeonPlanSnapshot snapshot{m_microDungeonTemplateStore, templateRevision, sector,
         sectorTiles, sectorTiles.padded(WorldSectorSize - 1), {}, {}, {}};
+    size_t bytes = 0;
     for (auto const& haloSector : tileArray->validSectorsFor(snapshot.tileHalo)) {
       snapshot.sectorRevisions[haloSector] = tileArray->sectorRevision(haloSector);
-      snapshot.haloTiles.append({haloSector, tileArray->copySector(haloSector)});
+      auto tiles = tileArray->copySector(haloSector);
+      if (!tiles)
+        return {false, {}};
+      bytes += sizeof(*tiles);
+      snapshot.haloTiles.append({haloSector, std::move(tiles)});
     }
     for (size_t i = 0; i < m_queuedPlacements.size(); ++i)
       if (!m_queuedPlacements[i].fulfilled)
         snapshot.queuedPlacements.append({m_queuedPlacements[i].distributions, i});
     if (!m_generationTasks)
       m_generationTasks = make_unique<WorldGenerationTasks>(m_worldServer->instanceEpoch(),
-          WorldRegionPartition(WorldGeometry(tileArray->size())), pendingLimit, pendingLimit * 9 * sizeof(ServerTileSectorArray::Array));
-    size_t bytes = snapshot.haloTiles.size() * sizeof(ServerTileSectorArray::Array);
+          WorldRegionPartition(WorldGeometry(tileArray->size())), pendingLimit,
+          pendingLimit * 9 * WorldSectorSize * WorldSectorSize * sizeof(ServerTile));
     auto task = m_generationTasks->reserve(Vec2U(sector), WorldGenerationTaskStage::MicroDungeonPlan, bytes);
     if (!task)
       return {false, {}};
