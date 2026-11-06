@@ -3,6 +3,20 @@
 #include <limits>
 
 namespace Star {
+namespace {
+
+bool validTaskStage(WorldGenerationTaskStage stage) {
+  switch (stage) {
+    case WorldGenerationTaskStage::BaseTiles:
+    case WorldGenerationTaskStage::MicroDungeonPlan:
+    case WorldGenerationTaskStage::CaveLiquidPlan:
+      return true;
+    default:
+      return false;
+  }
+}
+
+}
 
 bool WorldGenerationTaskIdentity::operator==(WorldGenerationTaskIdentity const& rhs) const {
   return worldEpoch == rhs.worldEpoch && sequence == rhs.sequence
@@ -89,7 +103,7 @@ shared_ptr<WorldGenerationTask> WorldGenerationTasks::reserve(Vec2U const& secto
     WorldGenerationTaskStage stage, size_t bytes) {
   auto region = m_partition.regionForSector(sector);
   Key key{sector, stage};
-  if (!region || m_tasks.contains(key)
+  if (!region || !validTaskStage(stage) || m_tasks.contains(key)
       || m_tasks.size() >= m_maxTasks || bytes > m_maxBytes - m_reservedBytes
       || m_sequence == std::numeric_limits<uint64_t>::max())
     return {};

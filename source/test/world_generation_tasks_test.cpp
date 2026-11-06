@@ -163,6 +163,20 @@ TEST(WorldGenerationTasksTest, InvalidSectorAndStageDoNotReserve) {
   EXPECT_EQ(first->identity.sequence, 1u);
 }
 
+TEST(WorldGenerationTasksTest, EachDeclaredStageCanReserveTheSameSector) {
+  WorldGenerationTasks tasks(1, partition(), 3, 1024);
+  auto baseTiles = tasks.reserve({0, 0}, WorldGenerationTaskStage::BaseTiles, 1);
+  auto microDungeon = tasks.reserve({0, 0}, WorldGenerationTaskStage::MicroDungeonPlan, 1);
+  auto caveLiquid = tasks.reserve({0, 0}, WorldGenerationTaskStage::CaveLiquidPlan, 1);
+
+  ASSERT_TRUE(baseTiles);
+  ASSERT_TRUE(microDungeon);
+  ASSERT_TRUE(caveLiquid);
+  EXPECT_EQ(tasks.size(), 3u);
+  EXPECT_NE(baseTiles->identity.sequence, microDungeon->identity.sequence);
+  EXPECT_NE(microDungeon->identity.sequence, caveLiquid->identity.sequence);
+}
+
 TEST(WorldGenerationTasksTest, RegistryDestructionRevokesSurvivingHandle) {
   shared_ptr<WorldGenerationTask> surviving;
   {
