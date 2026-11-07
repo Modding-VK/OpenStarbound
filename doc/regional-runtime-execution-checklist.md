@@ -191,6 +191,9 @@ do uso de CPU do sistema.
   performance; utilização de CPU isolada não basta.
 - [ ] Construir grafo executivo de BaseTiles, MicroDungeons, CaveLiquid e Finalize.
 - [ ] Propagar prioridade visível aos pré requisitos.
+- [x] Preview limitado de preparação BaseTiles para a cadeia de pré-requisitos
+  de uma raiz visível, sem tornar vizinhos pedidos ativos nem mover etapas
+  posteriores para workers. Requer validação de espera de setor no céu.
 - [ ] Orçar bytes, tarefas pendentes e regiões globalmente.
 - [ ] Separar admissão, execução e commit em filas distintas.
 - [ ] Fazer a admissão alimentar preparação independente até os limites de

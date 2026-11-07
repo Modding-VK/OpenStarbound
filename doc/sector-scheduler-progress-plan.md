@@ -185,6 +185,22 @@ admissões e prazo do próprio alimentador. A validação deve demonstrar
 mais workers ocupados e menor espera da fila sem diferença de mundo, mod, save
 ou multiplayer.
 
+### Preview de preparação da cadeia visível
+
+`worldThreading.generationDependencyPreparationPreview` requer o alimentador
+anterior e permanece desligado por padrão. Para até
+`generationDependencyPreparationRootLimit` raízes visíveis (padrão 1, máximo
+4), ele constrói uma descrição limitada da cadeia até `Complete` e acrescenta
+à frente do alimentador somente os nós `BaseTiles` sem pré-requisito pendente.
+Esses vizinhos não são promovidos a pedidos visíveis: não ganham TTL, entidades,
+Lua, callbacks, commit ou prioridade persistente. O mesmo prazo do alimentador,
+limite de candidatos e `WorldGenerationTasks` limita a preparação privada.
+
+Planos truncados não autorizam trabalho adicional. Os contadores
+`generation.preparationFeeder.dependency*` distinguem raízes, planos, fronteira
+e truncamento. O objetivo é atacar a espera antes de um setor novo no céu ficar
+pronto, não apenas reordenar o resultado já calculado.
+
 O prefetch de setores usa a mesma interpretação: em `adaptive` ou
 `aggressive`, `sectorWorkers: 0` habilita prefetch quando o padding da fidelidade
 estiver configurado. Antes dessa correção, a pool automática podia existir e o
@@ -203,7 +219,9 @@ Exemplo de teste:
   "generationBudgetUpdateTargetMilliseconds" : 16,
   "generationPreparationFeederPreview" : true,
   "generationPreparationFeederMilliseconds" : 2,
-  "generationPreparationFeederCandidateLimit" : 32
+  "generationPreparationFeederCandidateLimit" : 32,
+  "generationDependencyPreparationPreview" : true,
+  "generationDependencyPreparationRootLimit" : 1
 }
 ```
 

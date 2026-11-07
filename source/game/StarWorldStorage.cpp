@@ -1021,6 +1021,16 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
         threading.getUInt("generationPreparationFeederMilliseconds", 2), 8);
     unsigned preparationFeederCandidateLimit = clamp<unsigned>(
         threading.getUInt("generationPreparationFeederCandidateLimit", 32), 1, 128);
+    // A Complete request recursively depends on earlier stages in neighboring
+    // sectors. Those sectors are deliberately not made visible requests: doing
+    // so would change their lifetime and entity-loading semantics. This opt-in
+    // feeder instead uses the value-only dependency graph to expose only their
+    // private BaseTiles preparation, bounded by the same feeder deadline and
+    // task reservations as normal visible candidates.
+    bool dependencyPreparationPreview = preparationFeederPreview
+        && threading.getBool("generationDependencyPreparationPreview", false);
+    unsigned dependencyPreparationRootLimit = clamp<unsigned>(
+        threading.getUInt("generationDependencyPreparationRootLimit", 1), 1, 4);
     // Fairness already grants an old request a bounded reserved attempt. Keep
     // that grant across the next pass by default when fairness is explicitly
     // enabled; otherwise a preceding ready-result commit can consume the
@@ -1314,8 +1324,60 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     if (preparationFeederPreview && !m_generationQueue.empty() && preparationFeederMilliseconds > 0) {
       ExplorationProfile::Scope timing(m_explorationProfile.get(), "generation.preparationFeeder");
       List<Sector> candidates;
+      auto appendCandidate = [&](Sector const& sector) {
+        if (candidates.size() >= preparationFeederCandidateLimit
+            || std::find(candidates.begin(), candidates.end(), sector) != candidates.end())
+          return;
+        candidates.append(sector);
+      };
+      if (dependencyPreparationPreview) {
+        static constexpr size_t DependencyPreparationMaxNodes = 512;
+        size_t roots = 0;
+        for (auto const& entry : m_generationQueue) {
+          if (roots++ >= dependencyPreparationRootLimit || candidates.size() >= preparationFeederCandidateLimit)
+            break;
+          // Preserve the activated root ahead of its support ring. This also
+          // makes the preview useful for a sector whose neighbors were already
+          // prepared before the graph observation.
+          appendCandidate(entry.first);
+          if (m_explorationProfile)
+            m_explorationProfile->count("generation.preparationFeeder.dependencyRoots");
+          auto plan = WorldGenerationDependencyGraph::build(Vec2U(entry.first),
+              static_cast<uint8_t>(SectorGenerationLevel::Complete),
+              [this](Vec2U const& observed) {
+                List<Vec2U> result;
+                for (auto const& neighbor : adjacentSectors(Sector(observed[0], observed[1])))
+                  result.append(Vec2U(neighbor));
+                return result;
+              }, DependencyPreparationMaxNodes);
+          if (plan.truncated) {
+            // A partial graph must never authorize extra preparation: it may
+            // omit an earlier dependency and would make observed priority
+            // misleading. The ordinary visible feeder remains the fallback.
+            if (m_explorationProfile)
+              m_explorationProfile->count("generation.preparationFeeder.dependencyPlanTruncated");
+            continue;
+          }
+          auto analysis = WorldGenerationDependencyGraph::analyze(plan, [this](Vec2U const& observed) {
+              if (auto metadata = m_sectorMetadata.ptr(Sector(observed[0], observed[1])))
+                return static_cast<uint8_t>(metadata->generationLevel);
+              return uint8_t(0);
+            });
+          if (m_explorationProfile) {
+            m_explorationProfile->count("generation.preparationFeeder.dependencyPlans");
+            m_explorationProfile->count("generation.preparationFeeder.dependencyFrontier", analysis.frontier.size());
+          }
+          // Frontier nodes have all earlier graph prerequisites satisfied. Only
+          // BaseTiles is worker-safe in this preview; later stages retain the
+          // current owner-thread contract and will be attempted normally.
+          for (auto const& node : analysis.frontier) {
+            if (node.level == static_cast<uint8_t>(SectorGenerationLevel::BaseTiles))
+              appendCandidate(Sector(node.sector[0], node.sector[1]));
+          }
+        }
+      }
       for (auto const& entry : m_generationQueue) {
-        candidates.append(entry.first);
+        appendCandidate(entry.first);
         if (candidates.size() >= preparationFeederCandidateLimit)
           break;
       }
@@ -1329,8 +1391,8 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
             m_explorationProfile->count("generation.preparationFeeder.deadlineReached");
           break;
         }
-        if (!m_generationQueue.contains(sector))
-          continue;
+        // Dependency candidates intentionally need not be queue members: they
+        // inherit priority for private BaseTiles work only, not activation.
         if (m_explorationProfile)
           m_explorationProfile->count("generation.preparationFeeder.candidatesExamined");
         auto metadata = m_sectorMetadata.ptr(sector);
