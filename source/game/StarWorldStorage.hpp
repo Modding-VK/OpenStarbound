@@ -251,6 +251,9 @@ public:
   void setGenerationProfilingEnabled(bool enabled);
   Json generationProfilingData() const;
   WorldGenerationQueueSnapshot generationQueueSnapshot(double overdueSeconds);
+  // Owner-thread-only snapshot for the performance policy.  Unlike
+  // generationQueueSnapshot, this does not reset performance-window counters.
+  size_t generationQueueSize() const { return m_generationQueue.size(); }
   void setPerformanceSamplingEnabled(bool enabled);
   void setExplorationProfile(ExplorationProfilePtr profile);
   ExplorationProfile* explorationProfile() const { return m_explorationProfile.get(); }

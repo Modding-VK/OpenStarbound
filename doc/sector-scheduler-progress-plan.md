@@ -106,6 +106,42 @@ assets, mods, rota e save com o caminho legado, inclusive unload/reload e
 multiplayer. O modo legado permanece disponível como fallback até a equivalência
 ser demonstrada.
 
+### Primeiro recorte configurável
+
+O primeiro recorte implementado mantém o padrão `legacy` inalterado e aceita
+`worldThreading.performanceMode` com os valores `legacy`, `adaptive` e
+`aggressive`. Em `adaptive` ou `aggressive`, `sectorWorkers: 0` seleciona uma
+pool inicial a partir de `std::thread::hardware_concurrency()`, menos
+`reservedSystemWorkers` (padrão 1). `maxSectorWorkers` limita somente essa
+seleção automática; uma quantidade explícita em `sectorWorkers` continua útil
+para A/B e é limitada a 32 no processo.
+
+`adaptive` aumenta o orçamento de entrega de 12 ms em passos de 2 ms a cada
+`generationBudgetBacklogStep` setores na fila (padrão 8), até
+`generationBudgetMaximumMilliseconds` (padrão 24 ms). `aggressive` usa o teto
+de orçamento enquanto a fila estiver não vazia (padrão 36 ms). Ambos preservam
+o caminho de publicação proprietário e o limite absoluto de 50 ms por
+passagem. Os contadores `generation.performancePolicy.*` registram passagens,
+fila e orçamento efetivo.
+
+Esse primeiro recorte adapta orçamento apenas ao backlog e dimensiona workers
+na criação da pool; ele ainda não redimensiona threads durante a execução nem
+reage diretamente ao tempo do frame. Esses dois sinais permanecem itens de
+evolução, e os modos continuam opt-in até a comparação de equivalência.
+
+Exemplo de teste:
+
+```json
+"worldThreading" : {
+  "performanceMode" : "adaptive",
+  "sectorWorkers" : 0,
+  "reservedSystemWorkers" : 1,
+  "maxSectorWorkers" : 0,
+  "generationBudgetBacklogStep" : 8,
+  "generationBudgetMaximumMilliseconds" : 24
+}
+```
+
 ## Contratos por etapa
 
 | Etapa | Leituras e escritas atuais | Contrato necessário no runtime por setor |

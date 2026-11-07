@@ -1371,7 +1371,33 @@ void WorldServer::update(float dt) {
   recordProfileStage(UpdateProfileStage::WorldStorageTick);
 
   if (auto delta = shouldRunThisStep("worldStorageGenerate")) {
-    double generationTimeLimit = m_fidelityConfig.optUInt("worldStorageGenerationTimeLimit").value(12) / 1000.0;
+    unsigned baseGenerationMilliseconds = m_fidelityConfig.optUInt("worldStorageGenerationTimeLimit").value(12);
+    auto threadingConfig = Root::singleton().configuration()->get("worldThreading", JsonObject());
+    auto performanceMode = threadingConfig.getString("performanceMode", "legacy");
+    size_t queuedSectors = m_worldStorage->generationQueueSize();
+    unsigned generationMilliseconds = baseGenerationMilliseconds;
+    if (queuedSectors != 0 && (performanceMode == "adaptive" || performanceMode == "aggressive")) {
+      unsigned maximumMilliseconds = threadingConfig.getUInt("generationBudgetMaximumMilliseconds",
+          performanceMode == "aggressive" ? 36 : 24);
+      maximumMilliseconds = clamp<unsigned>(maximumMilliseconds, baseGenerationMilliseconds, 50);
+      if (performanceMode == "aggressive") {
+        generationMilliseconds = maximumMilliseconds;
+      } else {
+        unsigned backlogStep = clamp<unsigned>(threadingConfig.getUInt("generationBudgetBacklogStep", 8), 1, 256);
+        unsigned extraMilliseconds = static_cast<unsigned>((queuedSectors + backlogStep - 1) / backlogStep) * 2;
+        generationMilliseconds = min(maximumMilliseconds, baseGenerationMilliseconds + extraMilliseconds);
+      }
+      if (m_explorationProfile) {
+        m_explorationProfile->count("generation.performancePolicy.activePasses");
+        m_explorationProfile->count("generation.performancePolicy.queueDepth", queuedSectors);
+        m_explorationProfile->count("generation.performancePolicy.budgetMilliseconds", generationMilliseconds);
+        if (performanceMode == "aggressive")
+          m_explorationProfile->count("generation.performancePolicy.aggressivePasses");
+        else
+          m_explorationProfile->count("generation.performancePolicy.adaptivePasses");
+      }
+    }
+    double generationTimeLimit = generationMilliseconds / 1000.0;
     m_worldStorage->generateQueue(m_fidelityConfig.optUInt("worldStorageGenerationLevelLimit"), generationTimeLimit, [this](WorldStorage::Sector a, WorldStorage::Sector b) {
         auto distanceToClosestPlayer = [this](WorldStorage::Sector sector) {
           Vec2F sectorCenter = RectF(*m_worldStorage->regionForSector(sector)).center();

@@ -29,6 +29,8 @@
 #include "StarTime.hpp"
 #include "StarTrace.hpp"
 
+#include <thread>
+
 namespace Star {
 
 static int const PlantAdjustmentLimit = 2;
@@ -128,7 +130,21 @@ WorldTemplatePtr workerWorldTemplate(WorldTemplatePtr const& sourceTemplate,
 WorkerPool& worldSectorWorkerPool() {
   static WorkerPool pool = [] {
     auto threadingConfig = Root::singleton().configuration()->get("worldThreading", JsonObject());
-    unsigned sectorWorkers = clamp<unsigned>(threadingConfig.getUInt("sectorWorkers", 0), 0, 8);
+    unsigned sectorWorkers = threadingConfig.getUInt("sectorWorkers", 0);
+    auto performanceMode = threadingConfig.getString("performanceMode", "legacy");
+    if (sectorWorkers == 0 && (performanceMode == "adaptive" || performanceMode == "aggressive")) {
+      unsigned hardwareWorkers = max(1u, std::thread::hardware_concurrency());
+      unsigned reservedWorkers = min<unsigned>(threadingConfig.getUInt("reservedSystemWorkers", 1), hardwareWorkers - 1);
+      unsigned automaticWorkers = max(1u, hardwareWorkers - reservedWorkers);
+      unsigned maximumWorkers = threadingConfig.getUInt("maxSectorWorkers", 0);
+      if (maximumWorkers != 0)
+        automaticWorkers = min(automaticWorkers, maximumWorkers);
+      sectorWorkers = automaticWorkers;
+    }
+    // The pool retains snapshots and results while work is in flight.  Keep a
+    // hard process-local ceiling even in aggressive mode; an explicit worker
+    // count remains useful for repeatable A/B tests.
+    sectorWorkers = clamp<unsigned>(sectorWorkers, 0, 32);
     return WorkerPool("WorldSectorGeneration", sectorWorkers);
   }();
   return pool;
