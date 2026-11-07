@@ -29,6 +29,11 @@ assets da rota de referência não tiver passado. Em particular:
 
 ## Estado atual
 
+A auditoria consolidada mais recente está em
+[performance-audit-2026-11-07.md](performance-audit-2026-11-07.md). Ela é o
+ponto de retomada para evidência, correção do crash, limites conhecidos e
+sequência de implementação.
+
 | Componente | Estado |
 | --- | --- |
 | BaseTiles em pool | Implementado, com identidade e validação de revisão |
