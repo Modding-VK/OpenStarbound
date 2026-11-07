@@ -10,13 +10,16 @@ observar o preview de decode privado de tiles salvos.
 | --- | ---: | --- |
 | `tracy11.z01` | 33.554.432 bytes | `e476d221db1b6510e8f5d550ec01cc5e98b1991388fce6ac401feabf215229e4` |
 | `tracy11.zip` | 26.956.804 bytes | `af6a737532959b9f03839bc088599b4936ae49fc64b72ee3bb6f371ea0f67d29` |
+| `tracy11.tracy` reconstruído | 60.502.048 bytes | `90c48aae39c6364135f44e7db90b9a4b459b5086d6a8e3518e14f0c0448a3700` |
 | `starbound.log` | 82.962 bytes | `5cf90e192024d3e01c401626e6288b2ede7d9a97fe1e4d4b8574adfe6fe35a9e` |
 | `exploration.zip` | 17.609.305 bytes | `3a51159695c99fc7bcb1755b5698bbdaa5bc3e73267194df3eb36aa0b49a82cc` |
 
-`exploration.zip` passou no teste de integridade. O Tracy é multipart; as
-partes chegaram com nomes/caminhos independentes e não puderam ser validadas
-nem abertas pelo leitor ZIP disponível sem reconstrução externa. Nenhuma
-conclusão de zonas Tracy é feita neste relatório.
+`exploration.zip` passou no teste de integridade. O Tracy multipart foi
+reconstruído com êxito a partir de `.z01` seguido de `.zip`; a extração contém
+um trace válido de 60.502.048 bytes. Este ambiente não possui o
+visualizador/parser Tracy, portanto nenhuma conclusão de zonas é feita ainda.
+O trace reconstruído deve ser aberto no Tracy Profiler para complementar os
+dados JSONL deste relatório.
 
 ## Cenário e término
 
