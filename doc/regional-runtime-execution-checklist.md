@@ -193,7 +193,11 @@ do uso de CPU do sistema.
 - [ ] Propagar prioridade visível aos pré requisitos.
 - [x] Preview limitado de preparação BaseTiles para a cadeia de pré-requisitos
   de uma raiz visível, sem tornar vizinhos pedidos ativos nem mover etapas
-  posteriores para workers. Requer validação de espera de setor no céu.
+  posteriores para workers. Tracy 14 confirmou planos e admissões sem crash,
+  mas não reduziu a cauda de espera; ver
+  [runtime-validation-2026-11-07-tracy14-dependency-preparation.md](runtime-validation-2026-11-07-tracy14-dependency-preparation.md).
+- [ ] Tornar a seleção de pedidos visíveis sensível a idade/risco de expiração,
+  mantendo distância, reserva de justiça e ordem autoritativa de commit.
 - [ ] Orçar bytes, tarefas pendentes e regiões globalmente.
 - [ ] Separar admissão, execução e commit em filas distintas.
 - [ ] Fazer a admissão alimentar preparação independente até os limites de
