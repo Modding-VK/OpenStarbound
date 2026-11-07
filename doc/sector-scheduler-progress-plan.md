@@ -101,6 +101,15 @@ idade e esgotou repetidamente seu orçamento de geração. Portanto, o próximo
 gargalo a tratar não é a admissão na pool, mas a entrega serial de resultados
 e a seleção dos pré-requisitos que permitem concluir um setor.
 
+Uma coleta posterior com seleção automática de 11 workers confirmou o mesmo
+limite por outro ângulo: havia fila média de 41,9 setores e espera máxima de
+75,6 s, embora as amostras de BaseTiles mostrassem apenas 0,22 worker ativo em
+média. O orçamento adaptativo chegou a 24 ms e quase não recuou por pressão do
+update. Essa coleta não mede porcentagem contínua de CPU do sistema, mas mostra
+que a capacidade da pool não está sendo mantida ocupada pela cadeia serial
+atual. A prioridade passa a ser separar admissão, preparação, resultados
+prontos e commit, e não apenas aumentar workers ou orçamento.
+
 O modelo pretendido é:
 
 1. A pool dimensiona a preparação privada conforme a CPU disponível, sem

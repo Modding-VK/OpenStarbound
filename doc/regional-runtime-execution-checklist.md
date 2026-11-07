@@ -123,6 +123,41 @@ Este item fica fora do recorte atual de scheduler até haver uma medição isola
 
 ## Agendamento e memória
 
+### Remodelagem da WorldThread — coordenadora serial, preparação paralela
+
+A `WorldThread` continua sendo a dona serial do mundo. O objetivo não é criar
+escritores concorrentes de tiles, entidades, Lua, rede ou persistência; é
+retirar dela cálculo privado, espera de IO e admissão serial desnecessária para
+que coordene publicação determinística. A referência arquitetural é a separação
+usual entre preparação paralela de chunks e integração autoritativa serial, sem
+assumir compatibilidade de APIs ou comportamento de outro motor.
+
+O modelo alvo possui quatro filas distintas:
+
+1. **Interesse:** ativações de jogador, geração inicial e prefetch, com razão
+   e prioridade explícitas.
+2. **Preparação:** snapshots elegíveis para BaseTiles, planejamento de
+   microdungeons, leitura privada e futuras etapas puras; limitada por workers,
+   bytes e memória.
+3. **Resultados prontos:** resultados privados revalidados, ordenados por
+   visibilidade, idade e cadeia mínima de pré-requisitos.
+4. **Commit:** publicação pela `WorldThread`, que valida encarnação/revisões e
+   aplica tiles, entidades, promises, rede e persistência na ordem observável.
+
+Uma dependência de vizinho ou microdungeon pode atrasar o commit de um setor,
+mas não deve impedir a preparação de setores independentes até a capacidade
+configurada. Prioridade nunca cria interesse por si só, nem permite a um worker
+executar Lua, tocar estado vivo ou publicar resultado.
+
+O profiling de 07/11/2026 com política `adaptive` confirma a necessidade desta
+separação: a pool automática selecionou 11 workers, mas as amostras de
+BaseTiles registraram somente 0,22 worker ativo em média, com fila autoritativa
+média de 41,9 setores e espera máxima de 75,6 s. O orçamento atingiu 24 ms e
+raramente recuou por pressão do update. Portanto, aumentar somente o número de
+threads ou o orçamento não basta: admissão, dependências e entrega serial são
+o próximo gargalo mensurável. As amostras de pool não são uma medição contínua
+do uso de CPU do sistema.
+
 - [x] Implementar preview de orçamento adaptativo para entrega de setores por
   backlog, com `legacy` como fallback e teto configurável.
 - [x] Dimensionar a pool de preparação na criação pela capacidade de CPU, com
@@ -141,6 +176,10 @@ Este item fica fora do recorte atual de scheduler até haver uma medição isola
 - [ ] Propagar prioridade visível aos pré requisitos.
 - [ ] Orçar bytes, tarefas pendentes e regiões globalmente.
 - [ ] Separar admissão, execução e commit em filas distintas.
+- [ ] Fazer a admissão alimentar preparação independente até os limites de
+  workers/bytes/memória, sem esperar o commit de uma cadeia bloqueada.
+- [ ] Introduzir fila de resultados prontos com revalidação e ordenação estável
+  antes do commit; medir atraso resultado-pronto→commit e trabalho útil perdido.
 - [ ] Reter resultados úteis sob pressão de memória sem livelock.
 - [ ] Agregar dependências com cardinalidade limitada e contadores de perda.
 
@@ -148,7 +187,14 @@ Este item fica fora do recorte atual de scheduler até haver uma medição isola
 
 - [ ] Implementar mailboxes autoritativas entre regiões e handoff de entidades.
 - [ ] Introduzir update local por região com barreira inicial medida.
-- [ ] Preparar leitura de setores salvos em workers e instalação validada.
+- [ ] Preparar leitura de setores salvos em workers e instalação validada:
+  capturar bytes imutáveis ou ler um handle privado seguro, desserializar fora
+  da `WorldThread`, revalidar encarnação/revisões e instalar somente pela dona.
+- [ ] Separar leitura, descompressão e preparação privada de IO da instalação
+  viva; banco, tiles vivos, entidades, callbacks, saves e rede permanecem na
+  thread dona até existir contrato específico.
+- [ ] Definir cancelamento/drain para IO e preparação pendentes em unload,
+  troca de mundo e encerramento, sem publicar resultado obsoleto.
 - [ ] Preservar checkpoint, rede, saves e reload sem duplicação.
 - [ ] Definir API opt-in e fallback legado para mods, objetos e containers.
 - [ ] Auditar monstros, veículos e stagehands antes de migrá-los.
