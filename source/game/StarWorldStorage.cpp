@@ -1708,12 +1708,7 @@ ByteArray WorldStorage::tileSectorKey(Sector const& sector) {
   return ds.takeData();
 }
 
-WorldStorage::TileSectorStore WorldStorage::readTileSector(ByteArray const& data, ExplorationProfile* profile) {
-  auto& root = Root::singleton();
-  auto matDatabase = root.materialDatabase();
-  auto liqDatabase = root.liquidsDatabase();
-  auto storageConfig = root.assets()->json("/worldstorage.config");
-
+WorldStorage::TileSectorStore WorldStorage::deserializeTileSector(ByteArray const& data, ExplorationProfile* profile) {
   ExplorationProfile::Scope timing(profile, "storage.tiles.decompress");
   DataStreamBuffer ds(uncompressData(data));
   timing.next("storage.tiles.deserialize");
@@ -1726,7 +1721,23 @@ WorldStorage::TileSectorStore WorldStorage::readTileSector(ByteArray const& data
     for (size_t x = 0; x < WorldSectorSize; ++x) {
       ServerTile tile;
       tile.read(ds, store.tileSerializationVersion);
+      (*store.tiles)(x, y) = tile;
+    }
+  }
 
+  return store;
+}
+
+WorldStorage::TileSectorStore WorldStorage::readTileSector(ByteArray const& data, ExplorationProfile* profile) {
+  auto& root = Root::singleton();
+  auto matDatabase = root.materialDatabase();
+  auto liqDatabase = root.liquidsDatabase();
+  auto storageConfig = root.assets()->json("/worldstorage.config");
+  auto store = deserializeTileSector(data, profile);
+  ExplorationProfile::Scope timing(profile, "storage.tiles.normalize");
+  for (size_t y = 0; y < WorldSectorSize; ++y) {
+    for (size_t x = 0; x < WorldSectorSize; ++x) {
+      auto& tile = (*store.tiles)(x, y);
       if (!matDatabase->isValidMaterialId(tile.foreground))
         tile.foreground = storageConfig.getUInt("replacementMaterialId");
       if (!matDatabase->isValidMaterialId(tile.background))
@@ -1742,11 +1753,8 @@ WorldStorage::TileSectorStore WorldStorage::readTileSector(ByteArray const& data
         else
           tile.liquid.liquid = replacementLiquid;
       }
-
-      (*store.tiles)(x, y) = tile;
     }
   }
-
   return store;
 }
 

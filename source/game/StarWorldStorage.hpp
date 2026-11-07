@@ -342,6 +342,9 @@ private:
   static ByteArray writeEntitySector(EntitySectorStore const& store);
 
   static ByteArray tileSectorKey(Sector const& sector);
+  // Pure compressed-byte decoding. It deliberately performs no Root, asset,
+  // database or live-world access so a later snapshot task can own it.
+  static TileSectorStore deserializeTileSector(ByteArray const& data, ExplorationProfile* profile = nullptr);
   static TileSectorStore readTileSector(ByteArray const& data, ExplorationProfile* profile = nullptr);
   static ByteArray writeTileSector(TileSectorStore const& store);
 

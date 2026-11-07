@@ -51,7 +51,7 @@ Aceitação: mesma seed, assets, mods e save produzem tiles, nível de geração
 
 ## Sequência implementável
 
-1. Extrair desserialização de tile pura, sem `Root`, e criar snapshot/ticket unit-testável para bytes compactados e setor ausente.
+1. A desserialização pura de tiles foi extraída depois desta auditoria como `deserializeTileSector`: ela não acessa `Root`, assets, banco ou mundo vivo. Falta criar snapshot/ticket e cobertura unitária para bytes compactados e setor ausente.
 2. A primeira fase da fila para BaseTiles foi implementada após esta auditoria: a dona enfileira promises concluídas com ticket e `readyAt`, preserva a reserva e mede espera até o commit normal. A fila ainda não aceita IO privado nem microdungeons.
 3. Trocar desserialização serial de tiles por tarefa de snapshot em worker, mantendo B-tree, normalização e instalação na dona.
 4. Validar Windows em mundo novo/salvo, mods, unload/reload, prefetch, cancelamento e dois jogadores.
