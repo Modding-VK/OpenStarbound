@@ -48,6 +48,33 @@ in `doc/`, and avoid repeating unchanged logs or file contents. Never shorten
 context by removing security instructions, user requirements, or technical
 limitations.
 
+## Performance Evidence and Continuity Policy
+
+After a material runtime test, profiling/log/Tracy analysis, crash
+investigation, or performance decision, create or update a versioned report in
+`doc/` before treating the work as handed off. The report is the canonical
+continuation point for a later agent or conversation. It must state:
+
+1. the objective, branch, relevant commits/build and test scenario;
+2. configuration observed or its explicit absence;
+3. source artifacts with original name, collection date, byte size and hash;
+4. measured results, evidence boundaries and limitations;
+5. root cause or decision, when established, plus compatibility implications;
+6. validations actually run, unvalidated risks and the exact next actionable
+   steps.
+
+Raw logs, saves, videos and Tracy captures remain outside Git by default. Do
+not commit them merely for continuity: record a privacy-safe manifest and
+cryptographic hashes instead. Add raw data only through an explicit repository
+artifact/retention decision that reviews size, licensing and sensitive content.
+
+Keep `doc/regional-runtime-execution-checklist.md` linked to the current
+canonical report whenever it concerns the regional runtime. Update the active
+backlog with decisions and next steps, but do not replace the audit report with
+an undocumented summary in chat. Reports must distinguish observation from
+hypothesis and never claim builds, Actions runs or runtime regressions that
+were not performed.
+
 ## Execution and Continuation Policy
 
 When the user asks to continue, resume, proceed, or keep working on an
