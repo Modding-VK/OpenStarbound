@@ -58,6 +58,39 @@ O cliente não anuncia sua presença na rede local. Guardar a captura com
 o commit e as condições do cenário, sem publicar caminhos locais ou
 dados pessoais presentes no traço.
 
+### Exportação headless de capturas
+
+O visualizador gráfico não é requisito para uma auditoria reprodutível. Para
+capturas recebidas por agentes, usar o `tracy-csvexport` oficial da **mesma
+revisão** fixada acima (`0.11.2`, `b8c2e25c3d02009059e09f623072921677dd6bb4`).
+O exportador gera CSV agregado por zona e eventos individuais com `-u`.
+
+O ambiente de análise deve manter checkout e build fora da árvore do jogo.
+Exemplo de preparação em Linux:
+
+```bash
+git clone https://github.com/wolfpld/tracy.git /workspace/tools/tracy
+git -C /workspace/tools/tracy checkout --detach b8c2e25c3d02009059e09f623072921677dd6bb4
+cmake -S /workspace/tools/tracy/csvexport -B /workspace/tools/tracy-csvexport-build \
+  -DNO_ISA_EXTENSIONS=ON -DNO_FILESELECTOR=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build /workspace/tools/tracy-csvexport-build --parallel 2
+```
+
+Para ZIP multipart, preservar a ordem `.z01`, `.z02`, …, `.zip` sob o mesmo
+nome-base. Se o leitor não suportar multipart, reconstruir em diretório
+temporário antes da exportação e registrar hash/tamanho do `.tracy` resultante.
+Nunca versionar capturas ou CSVs brutos por padrão.
+
+```bash
+tracy-csvexport -f "WorldStorage generate queue" capture.tracy > aggregate.csv
+tracy-csvexport -u -f "WorldStorage generate queue" capture.tracy > events.csv
+```
+
+Registrar no relatório a revisão da ferramenta, hash da captura, filtros,
+zonas ausentes e limitações de correlação. Cruzar o relógio relativo do CSV
+somente com logs e JSONL da mesma sessão; não inferir uso global de CPU apenas
+de uma zona Tracy.
+
 1. Acrescentar `STAR_ENABLE_TRACY` em `source/CMakeLists.txt`, padrão `OFF`. Na
    configuração normal, não baixar Tracy, compilar seu cliente ou acrescentar
    definições e bibliotecas ao executável.
