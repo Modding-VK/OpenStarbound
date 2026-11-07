@@ -215,6 +215,10 @@ do uso de CPU do sistema.
 - [x] Impedir admissão de BaseTiles enquanto o decode privado ainda não tiver
   instalado o array de tiles; defesa repetida no preparador. Ver
   [runtime-crash-base-tiles-2026-11-07.md](runtime-crash-base-tiles-2026-11-07.md).
+- [x] Validar em Windows a rota que antes falhava: 1.203 decodes agendados,
+  1.031 instalados e 156 cancelados em unload, sem novo crash. A equivalência
+  de save/mods/unload/reload e dois jogadores continua pendente; detalhes em
+  [runtime-validation-2026-11-07-tracy11.md](runtime-validation-2026-11-07-tracy11.md).
 - [ ] Validar o preview em Windows com mundo novo/salvo, mods, unload/reload,
   prefetch, cancelamento e dois jogadores antes de ampliar IO assíncrono.
 - [ ] Preservar checkpoint, rede, saves e reload sem duplicação.
