@@ -61,6 +61,51 @@ etapas superiores. Isso não exclui dependências legítimas ou orçamento curto
 O limite deve continuar existindo; simplesmente remover `schedulingOnly`
 mudaria a ordem de efeitos de estruturas sem estabelecer sua independência.
 
+## Diretriz performance-first e entrega por CPU
+
+O objetivo primário do agendador é maximizar a **velocidade de entrega de
+setores completos** para a capacidade de CPU disponível na máquina do jogador.
+Baixa utilização de CPU não é uma meta do runtime. A política deve usar a
+capacidade disponível de forma agressiva quando há backlog, desde que isso não
+reduza o throughput por contenção nem viole os contratos de publicação.
+
+O teste de 07/11/2026 torna esta prioridade mensurável: quatro workers
+executaram BaseTiles e microdungeons com atrasos máximos de fila de poucos
+milissegundos, enquanto a fila autoritativa atingiu dezenas de segundos de
+idade e esgotou repetidamente seu orçamento de geração. Portanto, o próximo
+gargalo a tratar não é a admissão na pool, mas a entrega serial de resultados
+e a seleção dos pré-requisitos que permitem concluir um setor.
+
+O modelo pretendido é:
+
+1. A pool dimensiona a preparação privada conforme a CPU disponível, sem
+   saturar a thread dona do mundo. Uma configuração explícita continua
+   permitindo comparação e diagnóstico; a política futura deve considerar
+   núcleos físicos/lógicos, pressão de memória e carga da thread dona.
+2. O orçamento atual de geração por passagem passa a ser uma base, não um teto
+   imutável. Com backlog ou pedidos visíveis antigos, um preview de orçamento
+   adaptativo poderá conceder bursts limitados; quando o update do mundo ou o
+   frame estiverem pressionados, ele retorna ao orçamento base.
+3. Resultados privados já calculados, a cadeia mínima de pré-requisitos do
+   setor visível e pedidos antigos recebem prioridade de entrega antes de
+   prefetch distante. O aumento de orçamento não autoriza mudar a ordem de
+   publicação de efeitos observáveis.
+4. Workers continuam sem escrever no mundo vivo. A thread dona valida
+   revisões, confirma tiles, entidades, promises, rede e persistência. Maior
+   uso de CPU é obtido preparando mais trabalho independente e entregando-o
+   mais rapidamente, não executando Lua ou mutações concorrentes.
+
+As métricas de aceitação são setores completos por segundo, profundidade e
+idade p50/p95/p99 da fila, tempo entre resultado pronto e commit, backlog de
+pré-requisitos, tempo do update da thread dona e uso de memória. Utilização de
+CPU isolada não é métrica de sucesso: oversubscription que atrase a thread dona
+ou reduza setores concluídos é regressão.
+
+Antes de tornar qualquer política agressiva padrão, comparar a mesma seed,
+assets, mods, rota e save com o caminho legado, inclusive unload/reload e
+multiplayer. O modo legado permanece disponível como fallback até a equivalência
+ser demonstrada.
+
 ## Contratos por etapa
 
 | Etapa | Leituras e escritas atuais | Contrato necessário no runtime por setor |

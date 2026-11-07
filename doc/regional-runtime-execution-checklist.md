@@ -37,6 +37,7 @@ assets da rota de referência não tiver passado. Em particular:
 | Planejador de microdungeon por snapshot | Extraído, ainda síncrono |
 | `MicroDungeonPlan` task | Planejador em worker opt-in; publicação ainda serial |
 | Ativação inicial com workers | Preview opt-in; aguarda conclusão e preserva contrato síncrono |
+| Entrega orientada à CPU | Diretriz performance-first documentada; orçamento adaptativo e dimensionamento automático ainda não implementados |
 | `WorldMutationBatch` | Contrato e validação pura criados; sem operações vivas |
 | Escrita paralela | Não implementada |
 
@@ -101,6 +102,18 @@ tempo de fila/execução, sem nomes de dungeons ou payloads de mods.
 
 ## Agendamento e memória
 
+- [ ] Implementar preview de orçamento adaptativo para entrega de setores:
+  orçamento base conservador, bursts limitados quando houver backlog/idade
+  alta e recuo quando o update da thread dona estiver pressionado.
+- [ ] Dimensionar a pool de preparação pela capacidade de CPU e memória, com
+  reserva explícita para a thread dona; medir throughput para evitar
+  oversubscription.
+- [ ] Priorizar commits prontos e a cadeia mínima de pré-requisitos de setores
+  visíveis antes de prefetch distante, preservando ordem determinística de
+  publicação.
+- [ ] Medir setores completos por segundo, idade/profundidade p50/p95/p99 da
+  fila, atraso de commit e tempo do update como critérios primários de
+  performance; utilização de CPU isolada não basta.
 - [ ] Construir grafo executivo de BaseTiles, MicroDungeons, CaveLiquid e Finalize.
 - [ ] Propagar prioridade visível aos pré requisitos.
 - [ ] Orçar bytes, tarefas pendentes e regiões globalmente.
