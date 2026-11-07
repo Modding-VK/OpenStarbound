@@ -52,7 +52,7 @@ Aceitação: mesma seed, assets, mods e save produzem tiles, nível de geração
 ## Sequência implementável
 
 1. Extrair desserialização de tile pura, sem `Root`, e criar snapshot/ticket unit-testável para bytes compactados e setor ausente.
-2. Criar fila explícita para BaseTiles já existentes, sem IO em worker; preservar ordem de commit e medir atrasos.
+2. A primeira fase da fila para BaseTiles foi implementada após esta auditoria: a dona enfileira promises concluídas com ticket e `readyAt`, preserva a reserva e mede espera até o commit normal. A fila ainda não aceita IO privado nem microdungeons.
 3. Trocar desserialização serial de tiles por tarefa de snapshot em worker, mantendo B-tree, normalização e instalação na dona.
 4. Validar Windows em mundo novo/salvo, mods, unload/reload, prefetch, cancelamento e dois jogadores.
 5. Só depois auditar handle de leitura dedicado ou normalização pelos bancos de material/líquido fora da dona.

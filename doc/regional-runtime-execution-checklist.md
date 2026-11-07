@@ -192,6 +192,9 @@ do uso de CPU do sistema.
   existentes de tarefas/bytes; resultados continuam aguardando commit da dona.
 - [ ] Introduzir fila de resultados prontos com revalidação e ordenação estável
   antes do commit; medir atraso resultado-pronto→commit e trabalho útil perdido.
+- [x] Materializar a primeira fila de resultados prontos para BaseTiles:
+  promises concluídas recebem ticket/timestamp, preservam a reserva até commit
+  e registram enfileiramento, pendência, commit, stale e cancelamento.
 - [x] Auditar a fronteira de snapshot de tiles salvos e o contrato da fila de
   resultados prontos; primeiro recorte exclui banco, entidades e callbacks de
   worker.

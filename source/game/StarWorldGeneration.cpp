@@ -913,20 +913,38 @@ void WorldGenerator::sectorLoadLevelChanged(WorldStorage* worldStorage, Sector c
 
 List<WorldGenerator::Sector> WorldGenerator::readyBaseTileSectors(WorldStorage* worldStorage) {
   List<Sector> ready;
-  eraseWhere(m_pendingBaseTiles, [&](auto const& entry) {
+  double now = Time::monotonicTime();
+  eraseWhere(m_pendingBaseTiles, [&](auto& entry) {
     if (!entry.second.promise->done())
       return false;
     if (!entry.second.sourceTiles) {
       worldStorage->tileArray()->takeRevisionTracking(entry.first);
       retireBaseTileTask(entry.second.task, entry.second.task->state() == WorldGenerationTaskState::Failed
           ? WorldGenerationTaskOutcome::Failed : WorldGenerationTaskOutcome::Cancelled);
-      if (auto profile = m_worldServer->explorationProfile())
+      bool wasReady = m_readyBaseTiles.remove(entry.first);
+      if (auto profile = m_worldServer->explorationProfile()) {
         profile->count("generation.baseTiles.unloadedResultsDiscarded");
+        if (wasReady)
+          profile->count("generation.readyResults.cancelled");
+      }
       return true;
     }
-    ready.append(entry.first);
+    if (!m_readyBaseTiles.contains(entry.first)) {
+      m_readyBaseTiles[entry.first] = ReadyBaseTiles{entry.second.task, now};
+      if (auto profile = m_worldServer->explorationProfile()) {
+        profile->count("generation.readyResults.enqueued");
+        profile->count("generation.readyResults.bytes", entry.second.task->reservedBytes);
+        profile->recordGenerationTask(entry.second.task->identity, "ready", entry.second.task->reservedBytes);
+      }
+    }
     return false;
   });
+  for (auto const& entry : m_readyBaseTiles)
+    ready.append(entry.first);
+  if (auto profile = m_worldServer->explorationProfile()) {
+    profile->count("generation.readyResults.pendingSamples");
+    profile->count("generation.readyResults.pendingTotal", m_readyBaseTiles.size());
+  }
   eraseWhere(m_pendingMicroDungeonPlans, [&](auto& entry) {
     if (!entry.second.promise->done() || entry.second.task->valid())
       return false;
@@ -1097,6 +1115,11 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
   }
   auto pending = m_pendingBaseTiles.ptr(sector);
   if (pending) {
+    Maybe<double> readyAt;
+    if (auto ready = m_readyBaseTiles.ptr(sector)) {
+      if (ready->task == pending->task)
+        readyAt = ready->readyAt;
+    }
     if (allowAsync && !pending->promise->done()) {
       if (profile) {
         profile->count("generation.baseTiles.pendingPolls");
@@ -1110,6 +1133,7 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
       result = std::move(pending->promise->get());
     } catch (...) {
       retireBaseTileTask(pending->task, WorldGenerationTaskOutcome::Failed);
+      m_readyBaseTiles.remove(sector);
       m_pendingBaseTiles.remove(sector);
       throw;
     }
@@ -1144,9 +1168,13 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
     if (!snapshotStillCurrent) {
       retireBaseTileTask(pending->task, pending->task->valid()
           ? WorldGenerationTaskOutcome::Stale : WorldGenerationTaskOutcome::Cancelled);
+      m_readyBaseTiles.remove(sector);
       m_pendingBaseTiles.remove(sector);
-      if (profile)
+      if (profile) {
         profile->count("generation.baseTiles.staleResults");
+        if (readyAt)
+          profile->count("generation.readyResults.stale");
+      }
       if (!allowAsync) {
         prepareTiles(worldStorage, sector);
         return {true, {}};
@@ -1160,9 +1188,15 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
       for (int y = collisionRegion.yMin(); y < collisionRegion.yMax(); ++y)
         tileArray->modifyCollisionCache({x, y}, [](bool& dirty, auto&) { dirty = true; });
     }
-    if (profile)
+    if (profile) {
       profile->count("generation.baseTiles.resultsApplied");
+      if (readyAt) {
+        profile->count("generation.readyResults.committed");
+        profile->record("generation.readyResults.commitDelay", Time::monotonicTime() - *readyAt);
+      }
+    }
     retireBaseTileTask(pending->task, WorldGenerationTaskOutcome::Committed);
+    m_readyBaseTiles.remove(sector);
     m_pendingBaseTiles.remove(sector);
     return {true, result.elapsedSeconds};
   }

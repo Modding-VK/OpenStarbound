@@ -199,6 +199,14 @@ private:
     Maybe<WorkerPoolPromise<PreparedBaseTiles>> promise;
   };
 
+  // Owner-thread queue entry. The completed payload remains in the promise
+  // until the normal commit path consumes it; this record makes the ready
+  // state, identity and wait time explicit without giving workers world access.
+  struct ReadyBaseTiles {
+    shared_ptr<WorldGenerationTask> task;
+    double readyAt;
+  };
+
   // The owning region keeps this record until the producer has returned and
   // its template and sector revisions have been revalidated.
   struct PendingMicroDungeonPlan {
@@ -238,6 +246,7 @@ private:
   MicroDungeonFactoryPtr m_microDungeonFactory;
   List<QueuedPlacement> m_queuedPlacements;
   HashMap<Sector, PendingBaseTiles> m_pendingBaseTiles;
+  HashMap<Sector, ReadyBaseTiles> m_readyBaseTiles;
   HashMap<Sector, PendingMicroDungeonPlan> m_pendingMicroDungeonPlans;
   unique_ptr<WorldGenerationTasks> m_generationTasks;
   double m_lastPoolProfileTime = 0;
