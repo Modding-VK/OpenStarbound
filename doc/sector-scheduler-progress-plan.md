@@ -185,6 +185,11 @@ admissões e prazo do próprio alimentador. A validação deve demonstrar
 mais workers ocupados e menor espera da fila sem diferença de mundo, mod, save
 ou multiplayer.
 
+O prefetch de setores usa a mesma interpretação: em `adaptive` ou
+`aggressive`, `sectorWorkers: 0` habilita prefetch quando o padding da fidelidade
+estiver configurado. Antes dessa correção, a pool automática podia existir e o
+prefetch permanecer desligado por testar apenas o valor explícito zero.
+
 Exemplo de teste:
 
 ```json

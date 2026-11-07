@@ -1454,8 +1454,14 @@ void WorldServer::update(float dt) {
   unsigned prefetchPad = min<unsigned>(m_fidelityConfig.optUInt("worldStoragePrefetchPad").value(0), 32);
   Vec2I activeRegionPad = jsonToVec2I(m_serverConfig.get("playerActiveRegionPad"));
   Vec2I prefetchRegionPad = activeRegionPad + Vec2I(prefetchPad, prefetchPad);
-  bool prefetchEnabled = prefetchPad > 0 && Root::singleton().configuration()
-      ->get("worldThreading", JsonObject()).getUInt("sectorWorkers", 0) > 0;
+  auto threading = Root::singleton().configuration()->get("worldThreading", JsonObject());
+  auto performanceMode = threading.getString("performanceMode", "legacy");
+  // `sectorWorkers: 0` means automatic workers in adaptive/aggressive mode,
+  // not a disabled pool. Keep prefetch aligned with the same policy used by
+  // worldSectorWorkerPool so it can prepare sectors before visible interest.
+  bool workersEnabled = threading.getUInt("sectorWorkers", 0) > 0
+      || performanceMode == "adaptive" || performanceMode == "aggressive";
+  bool prefetchEnabled = prefetchPad > 0 && workersEnabled;
   for (auto const& pair : m_clientInfo) {
     for (auto const& monitoredRegion : pair.second->monitoringRegions(m_entityMap)) {
       signalRegion(monitoredRegion.padded(activeRegionPad));
