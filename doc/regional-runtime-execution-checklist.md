@@ -34,6 +34,10 @@ A auditoria consolidada mais recente está em
 ponto de retomada para evidência, correção do crash, limites conhecidos e
 sequência de implementação.
 
+A fronteira de IO de setores e a fila explícita de resultados prontos foram
+auditadas em
+[sector-io-ready-queue-audit-2026-11-07.md](sector-io-ready-queue-audit-2026-11-07.md).
+
 | Componente | Estado |
 | --- | --- |
 | BaseTiles em pool | Implementado, com identidade e validação de revisão |
@@ -188,6 +192,9 @@ do uso de CPU do sistema.
   existentes de tarefas/bytes; resultados continuam aguardando commit da dona.
 - [ ] Introduzir fila de resultados prontos com revalidação e ordenação estável
   antes do commit; medir atraso resultado-pronto→commit e trabalho útil perdido.
+- [x] Auditar a fronteira de snapshot de tiles salvos e o contrato da fila de
+  resultados prontos; primeiro recorte exclui banco, entidades e callbacks de
+  worker.
 - [ ] Reter resultados úteis sob pressão de memória sem livelock.
 - [ ] Agregar dependências com cardinalidade limitada e contadores de perda.
 
