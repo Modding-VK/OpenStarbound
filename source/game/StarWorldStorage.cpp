@@ -1003,6 +1003,11 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     bool fairnessPreview = threading.getBool("generationFairnessSchedulerPreview", false);
     bool dependencyPreview = threading.getBool("generationDependencySchedulerPreview", false);
     bool visibleCompletionPreview = threading.getBool("generationVisibleCompletionPreview", false);
+    // Ready worker results are owner-thread commits. Keep the legacy ordering
+    // unless this preview is enabled, then reuse the authoritative activation
+    // queue order (which already includes fairness/dependency promotion)
+    // instead of rediscovering priority from worker completion order.
+    bool readyResultSchedulerPreview = threading.getBool("generationReadyResultSchedulerPreview", false);
     auto performanceMode = threading.getString("performanceMode", "legacy");
     bool workerPreparationEnabled = threading.getUInt("sectorWorkers", 0) > 0
         || performanceMode == "adaptive" || performanceMode == "aggressive";
@@ -1199,7 +1204,24 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     // have no neighbor-generation prerequisites; routing them through
     // generateSectorToLevel would also load entities in prefetched sectors.
     auto readySectors = m_generatorFacade->readyBaseTileSectors(this);
-    if (visibleCompletionPreview) {
+    if (readyResultSchedulerPreview) {
+      HashMap<Sector, size_t> queueRanks;
+      size_t rank = 0;
+      for (auto const& entry : m_generationQueue)
+        queueRanks[entry.first] = rank++;
+      // A visible request is committed in the same order the owner will use
+      // for its next generation attempt. Background prefetch has no request
+      // identity, so coordinates provide a stable deterministic tie-break.
+      std::sort(readySectors.begin(), readySectors.end(), [&](Sector const& a, Sector const& b) {
+        auto aRank = queueRanks.ptr(a);
+        auto bRank = queueRanks.ptr(b);
+        if (bool(aRank) != bool(bRank))
+          return bool(aRank);
+        if (aRank && *aRank != *bRank)
+          return *aRank < *bRank;
+        return a < b;
+      });
+    } else if (visibleCompletionPreview) {
       // A ready result for an activated sector unblocks its next generation
       // stage. Keep those results ahead of background prefetch results, while
       // retaining the normal distance order within each class.
@@ -1237,6 +1259,14 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       if (!metadata || metadata->loadLevel < SectorLoadLevel::Tiles
           || metadata->generationLevel >= SectorGenerationLevel::BaseTiles)
         continue;
+      bool readyVisible = m_generationQueue.contains(sector);
+      if (m_explorationProfile) {
+        m_explorationProfile->count(readyVisible
+            ? "generation.readyResults.selectedVisible"
+            : "generation.readyResults.selectedPrefetch");
+        if (readyResultSchedulerPreview && readyVisible)
+          m_explorationProfile->count("generation.readyResults.selectedByQueuePriority");
+      }
       ExplorationProfile::Scope timing(m_explorationProfile.get(), "generation.baseTiles");
       auto result = m_generatorFacade->generateSectorLevel(this, sector, SectorGenerationLevel::BaseTiles, true);
       timing.stop();
@@ -1254,7 +1284,7 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       }
       if (m_explorationProfile)
         m_explorationProfile->count("generation.baseTiles.readyResultsCommitted");
-      if (visibleCompletionPreview && m_generationQueue.contains(sector)) {
+      if ((visibleCompletionPreview || readyResultSchedulerPreview) && readyVisible) {
         if (!visibleReadySector)
           visibleReadySector = sector;
         if (m_explorationProfile)

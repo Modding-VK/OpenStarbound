@@ -378,6 +378,25 @@ Configuração de teste:
 }
 ```
 
+`worldThreading.generationReadyResultSchedulerPreview` é o recorte seguinte
+da entrega. Quando ativo, resultados BaseTiles prontos de pedidos visíveis são
+commitados pela posição atual da fila autoritativa, não pela ordem de término
+do worker nem por nova ordenação geométrica. Portanto, uma promoção persistente
+de justiça ou de dependência já aplicada à fila é preservada no commit. Resultados
+de prefetch ficam depois dos visíveis e usam coordenadas como desempate estável.
+Permanece desligado por padrão.
+
+As métricas `generation.readyResults.selectedVisible`,
+`.selectedPrefetch` e `.selectedByQueuePriority` verificam a seleção; os
+contadores existentes de atraso até commit verificam se ela reduziu trabalho
+pronto retido sem alterar equivalência de mundo/mods/saves.
+
+```json
+"worldThreading" : {
+  "generationReadyResultSchedulerPreview" : true
+}
+```
+
 `worldThreading.generationPersistentPriorityPreview` é o segundo recorte.
 Quando `generationFairnessSchedulerPreview` está ativo, ele passa a acompanhar
 a política de justiça por padrão; o campo explícito ainda pode ser definido

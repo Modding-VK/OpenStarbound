@@ -175,9 +175,10 @@ do uso de CPU do sistema.
   antes da geração; o burst recua ao orçamento base sob pressão.
 - [ ] Acrescentar pressão de memória e redimensionar a pool em execução somente
   após contrato de drain seguro das tarefas pendentes.
-- [ ] Priorizar commits prontos e a cadeia mínima de pré-requisitos de setores
-  visíveis antes de prefetch distante, preservando ordem determinística de
-  publicação.
+- [x] Preview de seleção de commits BaseTiles prontos pela ordem autoritativa
+  de pedidos visíveis; promoções de justiça/dependência já existentes são
+  preservadas e prefetch usa desempate estável. Ainda requer validação Windows
+  antes de adoção por padrão.
 - [ ] Medir setores completos por segundo, idade/profundidade p50/p95/p99 da
   fila, atraso de commit e tempo do update como critérios primários de
   performance; utilização de CPU isolada não basta.
@@ -190,8 +191,8 @@ do uso de CPU do sistema.
 - [x] Adicionar preview limitado de admissão independente de BaseTiles da fila
   visível, com carregamento somente de tiles, orçamento de tempo e os limites
   existentes de tarefas/bytes; resultados continuam aguardando commit da dona.
-- [ ] Introduzir fila de resultados prontos com revalidação e ordenação estável
-  antes do commit; medir atraso resultado-pronto→commit e trabalho útil perdido.
+- [x] Introduzir seleção estável de resultados prontos BaseTiles antes do
+  commit; medir atraso resultado-pronto→commit e trabalho útil perdido.
 - [x] Materializar a primeira fila de resultados prontos para BaseTiles:
   promises concluídas recebem ticket/timestamp, preservam a reserva até commit
   e registram enfileiramento, pendência, commit, stale e cancelamento.
