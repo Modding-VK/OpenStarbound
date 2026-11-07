@@ -100,6 +100,26 @@ tempo de fila/execução, sem nomes de dungeons ou payloads de mods.
 - [ ] Separar preparação de `Finalize` da criação de objetos, plantas e colisão.
 - [ ] Publicar entidades e colisão pela região dona.
 
+### Backlog — oceanos tóxicos e clima pesado
+
+Observação de campo em 07/11/2026: planetas tóxicos com grandes corpos de
+líquido e planetas sob clima intenso apresentam carregamento e update lentos.
+Este item fica fora do recorte atual de scheduler até haver uma medição isolada.
+
+- [ ] Comparar planeta tóxico novo e planeta de referência equivalente: tempo
+  de `CaveLiquid`, células ativas, transferências entre setores, pressão e
+  tempo total de `liquids`.
+- [ ] Separar no profiling de clima o custo de domínios, janelas visíveis,
+  projéteis do servidor e partículas do cliente.
+- [ ] Avaliar orçamento adaptativo e processamento fatiado para líquidos
+  distantes, preservando prioridade nas regiões visíveis e a equivalência de
+  simulação.
+- [ ] Projetar `CaveLiquidPlan` sobre snapshot/halo antes de qualquer cálculo
+  paralelo; o motor de líquidos vivo permanece na thread dona até existir
+  validação de revisões e publicação ordenada.
+- [ ] Avaliar coalescimento/orçamento de clima e partículas apenas após o
+  profiling separar custo de servidor, renderização e scripts/mods.
+
 ## Agendamento e memória
 
 - [x] Implementar preview de orçamento adaptativo para entrega de setores por
