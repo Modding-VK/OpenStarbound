@@ -127,7 +127,7 @@ WorldTemplatePtr workerWorldTemplate(WorldTemplatePtr const& sourceTemplate,
   return cachedWorkerTemplate;
 }
 
-WorkerPool& worldSectorWorkerPool() {
+WorkerPool& sectorGenerationWorkerPool() {
   static WorkerPool pool = [] {
     auto threadingConfig = Root::singleton().configuration()->get("worldThreading", JsonObject());
     unsigned sectorWorkers = threadingConfig.getUInt("sectorWorkers", 0);
@@ -182,6 +182,10 @@ JsonObject revisionReasonJson(ServerTileSectorArray::RevisionCounts const& count
   return reasons;
 }
 
+}
+
+WorkerPool& worldSectorWorkerPool() {
+  return sectorGenerationWorkerPool();
 }
 
 LiquidWorld::LiquidWorld(WorldServer* world) {

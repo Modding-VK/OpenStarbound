@@ -13,6 +13,7 @@
 namespace Star {
 
 STAR_CLASS(WorldServer);
+WorkerPool& worldSectorWorkerPool();
 STAR_CLASS(WorldTemplate);
 STAR_CLASS(FallingBlocksWorld);
 STAR_CLASS(DungeonGeneratorWorld);

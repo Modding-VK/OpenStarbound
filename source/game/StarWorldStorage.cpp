@@ -1,4 +1,5 @@
 #include "StarWorldStorage.hpp"
+#include "StarWorldGeneration.hpp"
 #include "StarWorldGenerationDependency.hpp"
 #include "StarTrace.hpp"
 #include "StarFile.hpp"
@@ -1592,6 +1593,11 @@ void WorldStorage::unloadAll(bool force) {
     for (auto& sector : sectors)
       unloadSectorToLevel(sector, SectorLoadLevel::None, force);
 
+    // Workers retain only snapshots, so dropping every owner-side promise is
+    // sufficient to make teardown results unpublishable.
+    for (auto const& sector : m_pendingSavedTileDecodes.keys())
+      cancelSavedTileDecode(sector, "unloadAll");
+
   } catch (std::exception const& e) {
     m_db.rollback();
     m_db.close();
@@ -1729,11 +1735,16 @@ WorldStorage::TileSectorStore WorldStorage::deserializeTileSector(ByteArray cons
 }
 
 WorldStorage::TileSectorStore WorldStorage::readTileSector(ByteArray const& data, ExplorationProfile* profile) {
+  auto store = deserializeTileSector(data, profile);
+  normalizeTileSector(store, profile);
+  return store;
+}
+
+void WorldStorage::normalizeTileSector(TileSectorStore& store, ExplorationProfile* profile) {
   auto& root = Root::singleton();
   auto matDatabase = root.materialDatabase();
   auto liqDatabase = root.liquidsDatabase();
   auto storageConfig = root.assets()->json("/worldstorage.config");
-  auto store = deserializeTileSector(data, profile);
   ExplorationProfile::Scope timing(profile, "storage.tiles.normalize");
   for (size_t y = 0; y < WorldSectorSize; ++y) {
     for (size_t x = 0; x < WorldSectorSize; ++x) {
@@ -1755,7 +1766,6 @@ WorldStorage::TileSectorStore WorldStorage::readTileSector(ByteArray const& data
       }
     }
   }
-  return store;
 }
 
 ByteArray WorldStorage::writeTileSector(TileSectorStore const& store) {
@@ -2011,6 +2021,19 @@ void WorldStorage::loadSectorToLevel(Sector const& sector, SectorLoadLevel targe
 
     if (currentLoad == SectorLoadLevel::Tiles) {
       ExplorationProfile::Scope total(m_explorationProfile.get(), "storage.tiles.total");
+      // A full load may immediately proceed to entities and callbacks. Keep
+      // that legacy contract synchronous; only background Tiles-only callers
+      // may defer immutable-byte decoding to the sector worker pool.
+      bool decodePreview = targetLoadLevel == SectorLoadLevel::Tiles
+          && Root::singleton().configuration()->get("worldThreading", JsonObject())
+              .getBool("savedTileDecodeAsyncPreview", false)
+          && worldSectorWorkerPool().getWorkerCount() > 0;
+      if (decodePreview) {
+        if (applySavedTileDecode(sector))
+          continue;
+        if (m_pendingSavedTileDecodes.contains(sector))
+          return;
+      }
       ExplorationProfile::Scope timing(m_explorationProfile.get(), "storage.tiles.read");
       auto res = m_db.find(tileSectorKey(sector));
       timing.stop();
@@ -2018,6 +2041,30 @@ void WorldStorage::loadSectorToLevel(Sector const& sector, SectorLoadLevel targe
         if (m_explorationProfile) {
           m_explorationProfile->count("tileSectorsFromStorage");
           m_explorationProfile->count("tileBytesFromStorage", res->size());
+        }
+        if (decodePreview) {
+          auto& workerPool = worldSectorWorkerPool();
+          size_t pendingLimit = max<size_t>(1, workerPool.getWorkerCount() * 2);
+          auto threading = Root::singleton().configuration()->get("worldThreading", JsonObject());
+          pendingLimit = threading.getUInt("savedTileDecodePendingLimit", pendingLimit);
+          if (pendingLimit != 0 && m_pendingSavedTileDecodes.size() < pendingLimit) {
+            auto snapshot = make_shared<SavedTileSectorSnapshot>();
+            snapshot->sector = sector;
+            snapshot->storageEpoch = m_savedTileDecodeEpoch;
+            snapshot->ticket = ++m_nextSavedTileDecodeTicket;
+            snapshot->bytes = std::move(*res);
+            auto promise = workerPool.addProducer<shared_ptr<TileSectorStore>>([snapshot]() {
+              return make_shared<TileSectorStore>(deserializeTileSector(snapshot->bytes));
+            });
+            m_pendingSavedTileDecodes.insert(sector, {snapshot, std::move(promise)});
+            if (m_explorationProfile) {
+              m_explorationProfile->count("storage.tiles.async.scheduled");
+              m_explorationProfile->count("storage.tiles.async.snapshotBytes", snapshot->bytes.size());
+            }
+            return;
+          }
+          if (m_explorationProfile)
+            m_explorationProfile->count("storage.tiles.async.pendingLimit");
         }
         TileSectorStore sectorStore = readTileSector(*res, m_explorationProfile.get());
         timing.next("storage.tiles.install");
@@ -2092,10 +2139,65 @@ void WorldStorage::loadSectorToLevel(Sector const& sector, SectorLoadLevel targe
   }
 }
 
+bool WorldStorage::applySavedTileDecode(Sector const& sector) {
+  auto pending = m_pendingSavedTileDecodes.ptr(sector);
+  if (!pending)
+    return false;
+  if (!pending->promise.poll())
+    return false;
+
+  // Copy the completed value before releasing the owner-side promise. The
+  // worker owns no live-world pointer, so cancellation can safely just drop
+  // this record while the worker finishes its private calculation.
+  auto snapshot = pending->snapshot;
+  auto store = pending->promise.get();
+  m_pendingSavedTileDecodes.remove(sector);
+  auto metadata = m_sectorMetadata.ptr(sector);
+  bool valid = snapshot && snapshot->storageEpoch == m_savedTileDecodeEpoch
+      && snapshot->sector == sector && metadata
+      && metadata->loadLevel == SectorLoadLevel::None
+      && !m_tileArray->sectorLoaded(sector);
+  if (!valid) {
+    if (m_explorationProfile)
+      m_explorationProfile->count("storage.tiles.async.stale");
+    return false;
+  }
+
+  ExplorationProfile::Scope timing(m_explorationProfile.get(), "storage.tiles.async.install");
+  normalizeTileSector(*store, m_explorationProfile.get());
+  m_tileArray->loadSector(sector, std::move(store->tiles));
+  markTileSectorSynced(sector);
+  metadata->generationLevel = store->generationLevel;
+  metadata->loadLevel = SectorLoadLevel::Tiles;
+  if (m_sectorThreads)
+    m_sectorThreads->loaded(sector, m_tileArray->size());
+  if (m_regionObservation)
+    m_regionObservation->changed(Vec2U(sector));
+  m_generatorFacade->sectorLoadLevelChanged(this, sector, SectorLoadLevel::Tiles);
+  if (m_explorationProfile) {
+    m_explorationProfile->count("storage.tiles.async.resultsApplied");
+    m_explorationProfile->count("storage.tiles.async.ticketAccepted");
+  }
+  return true;
+}
+
+void WorldStorage::cancelSavedTileDecode(Sector const& sector, char const* reason) {
+  if (!m_pendingSavedTileDecodes.remove(sector))
+    return;
+  if (m_explorationProfile) {
+    m_explorationProfile->count("storage.tiles.async.cancelled");
+    m_explorationProfile->count(String(reason) == "unload"
+        ? "storage.tiles.async.cancelledUnload" : "storage.tiles.async.cancelledUnloadAll");
+  }
+}
+
 bool WorldStorage::unloadSectorToLevel(Sector const& sector, SectorLoadLevel targetLoadLevel, bool force) {
   ExplorationProfile::Scope timing(m_explorationProfile.get(), "storage.unloadAttempt");
   if (!m_tileArray->sectorValid(sector) || targetLoadLevel == SectorLoadLevel::Loaded)
     return true;
+
+  if (targetLoadLevel == SectorLoadLevel::None)
+    cancelSavedTileDecode(sector, "unload");
 
   auto& metadata = m_sectorMetadata[sector];
   bool entitiesOverlap = false;

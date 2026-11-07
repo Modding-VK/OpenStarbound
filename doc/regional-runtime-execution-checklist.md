@@ -205,14 +205,15 @@ do uso de CPU do sistema.
 
 - [ ] Implementar mailboxes autoritativas entre regiões e handoff de entidades.
 - [ ] Introduzir update local por região com barreira inicial medida.
-- [ ] Preparar leitura de setores salvos em workers e instalação validada:
-  capturar bytes imutáveis ou ler um handle privado seguro, desserializar fora
-  da `WorldThread`, revalidar encarnação/revisões e instalar somente pela dona.
-- [ ] Separar leitura, descompressão e preparação privada de IO da instalação
-  viva; banco, tiles vivos, entidades, callbacks, saves e rede permanecem na
-  thread dona até existir contrato específico.
-- [ ] Definir cancelamento/drain para IO e preparação pendentes em unload,
-  troca de mundo e encerramento, sem publicar resultado obsoleto.
+- [x] Preview de decode de tiles salvos: a dona captura bytes imutáveis do
+  B-tree com encarnação/ticket, worker apenas descomprime/desserializa e a dona
+  revalida e instala. Limitado a carregamentos `Tiles` de prefetch/preparação.
+- [x] Separar decode privado da instalação viva nesse recorte; banco, tiles
+  vivos, entidades, callbacks, saves e rede continuam na thread dona.
+- [x] Descartar promessa proprietária de decode pendente em unload e
+  `unloadAll`; worker tardio não retém ponteiro para o mundo nem pode publicar.
+- [ ] Validar o preview em Windows com mundo novo/salvo, mods, unload/reload,
+  prefetch, cancelamento e dois jogadores antes de ampliar IO assíncrono.
 - [ ] Preservar checkpoint, rede, saves e reload sem duplicação.
 - [ ] Definir API opt-in e fallback legado para mods, objetos e containers.
 - [ ] Auditar monstros, veículos e stagehands antes de migrá-los.

@@ -207,6 +207,24 @@ Exemplo de teste:
 }
 ```
 
+### Preview de decode privado de tiles salvos
+
+`worldThreading.savedTileDecodeAsyncPreview` permanece desligado por padrão.
+Quando ativo e a pool setorial possui workers, o prefetch e o alimentador de
+BaseTiles podem capturar o `ByteArray` já lido pela thread dona e deslocar
+somente descompressão/desserialização para a pool. O resultado preserva ticket
+e encarnação do storage; normalização por materiais/líquidos, instalação,
+callbacks e entidades continuam na dona. Cargas completas permanecem síncronas.
+`savedTileDecodePendingLimit` limita snapshots simultâneos; o padrão é duas
+vezes a quantidade de workers. Unload e teardown descartam a promessa dona.
+
+```json
+"worldThreading" : {
+  "savedTileDecodeAsyncPreview" : true,
+  "savedTileDecodePendingLimit" : 16
+}
+```
+
 ## Contratos por etapa
 
 | Etapa | Leituras e escritas atuais | Contrato necessário no runtime por setor |

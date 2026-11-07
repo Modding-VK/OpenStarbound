@@ -51,9 +51,9 @@ Aceitação: mesma seed, assets, mods e save produzem tiles, nível de geração
 
 ## Sequência implementável
 
-1. A desserialização pura de tiles foi extraída depois desta auditoria como `deserializeTileSector`: ela não acessa `Root`, assets, banco ou mundo vivo. Falta criar snapshot/ticket e cobertura unitária para bytes compactados e setor ausente.
+1. A desserialização pura de tiles foi extraída como `deserializeTileSector` e o primeiro snapshot/ticket foi implementado no preview `savedTileDecodeAsyncPreview`. A dona lê o `ByteArray` do B-tree, associa setor, encarnação do storage e ticket, e submete somente esse valor à pool setorial. O worker descomprime/desserializa; a dona revalida setor/ticket/nível, normaliza IDs e instala. O preview é deliberadamente limitado a chamadas `Tiles` de prefetch/preparação: cargas completas continuam síncronas para preservar entidades e callbacks. Ainda falta cobertura unitária para bytes compactados, setor ausente e ticket obsoleto.
 2. A primeira fase da fila para BaseTiles foi implementada após esta auditoria: a dona enfileira promises concluídas com ticket e `readyAt`, preserva a reserva e mede espera até o commit normal. A fila ainda não aceita IO privado nem microdungeons.
-3. Trocar desserialização serial de tiles por tarefa de snapshot em worker, mantendo B-tree, normalização e instalação na dona.
+3. O resultado pendente é removido na descarga do setor e em `unloadAll`; um worker que terminar depois só possui o snapshot e não pode publicar. Validar esse drain no Windows antes de ampliar o escopo.
 4. Validar Windows em mundo novo/salvo, mods, unload/reload, prefetch, cancelamento e dois jogadores.
 5. Só depois auditar handle de leitura dedicado ou normalização pelos bancos de material/líquido fora da dona.
 

@@ -11,6 +11,7 @@
 #include "StarBiomePlacement.hpp"
 #include "StarExplorationProfile.hpp"
 #include "StarWorldRegionCoordinator.hpp"
+#include "StarWorkerPool.hpp"
 
 namespace Star {
 
@@ -345,6 +346,7 @@ private:
   // Pure compressed-byte decoding. It deliberately performs no Root, asset,
   // database or live-world access so a later snapshot task can own it.
   static TileSectorStore deserializeTileSector(ByteArray const& data, ExplorationProfile* profile = nullptr);
+  static void normalizeTileSector(TileSectorStore& store, ExplorationProfile* profile = nullptr);
   static TileSectorStore readTileSector(ByteArray const& data, ExplorationProfile* profile = nullptr);
   static ByteArray writeTileSector(TileSectorStore const& store);
 
@@ -377,6 +379,8 @@ private:
   // Bring the sector up to the given load level, and all surrounding sectors
   // as appropriate.  If the load level is brought up, also resets the TTL.
   void loadSectorToLevel(Sector const& sector, SectorLoadLevel targetLoadLevel);
+  bool applySavedTileDecode(Sector const& sector);
+  void cancelSavedTileDecode(Sector const& sector, char const* reason);
 
   // Store and unload the given sector to the given level, given the state of
   // the surrounding sectors.  If force is true, will always unload to the
@@ -424,6 +428,20 @@ private:
   std::array<GenerationProfileTiming, GenerationProfileStageCount> m_generationProfile{};
 
   StableHashMap<Sector, SectorMetadata> m_sectorMetadata;
+  struct SavedTileSectorSnapshot {
+    Sector sector;
+    uint64_t storageEpoch;
+    uint64_t ticket;
+    ByteArray bytes;
+  };
+  struct PendingSavedTileDecode {
+    shared_ptr<SavedTileSectorSnapshot> snapshot;
+    WorkerPoolPromise<shared_ptr<TileSectorStore>> promise;
+  };
+  // Workers retain only an immutable snapshot; the owner holds the promise.
+  StableHashMap<Sector, PendingSavedTileDecode> m_pendingSavedTileDecodes;
+  uint64_t m_savedTileDecodeEpoch = 0;
+  uint64_t m_nextSavedTileDecodeTicket = 0;
   unique_ptr<WorldSectorThreads> m_sectorThreads;
   // Tile data exposes mutation revisions through TileSectorArray. Entity state
   // remains fully synchronized because scripts can mutate entities without
