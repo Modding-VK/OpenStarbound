@@ -121,13 +121,17 @@ para A/B e é limitada a 32 no processo.
 `generationBudgetMaximumMilliseconds` (padrão 24 ms). `aggressive` usa o teto
 de orçamento enquanto a fila estiver não vazia (padrão 36 ms). Ambos preservam
 o caminho de publicação proprietário e o limite absoluto de 50 ms por
-passagem. Os contadores `generation.performancePolicy.*` registram passagens,
-fila e orçamento efetivo.
+passagem. Em `adaptive`, se o update da thread dona já consumiu
+`generationBudgetUpdateTargetMilliseconds` antes da geração (padrão 16 ms), o
+burst recua ao orçamento base naquela passagem. O modo `aggressive` ignora esse
+recuo por ser uma escolha explícita de throughput. Os contadores
+`generation.performancePolicy.*` registram passagens, fila, orçamento efetivo,
+tempo já gasto no update e recuos por pressão.
 
-Esse primeiro recorte adapta orçamento apenas ao backlog e dimensiona workers
-na criação da pool; ele ainda não redimensiona threads durante a execução nem
-reage diretamente ao tempo do frame. Esses dois sinais permanecem itens de
-evolução, e os modos continuam opt-in até a comparação de equivalência.
+Esse primeiro recorte dimensiona workers na criação da pool; ele ainda não
+redimensiona threads durante a execução nem mede pressão de memória. Esses
+sinais permanecem itens de evolução, e os modos continuam opt-in até a
+comparação de equivalência.
 
 Exemplo de teste:
 
@@ -138,7 +142,8 @@ Exemplo de teste:
   "reservedSystemWorkers" : 1,
   "maxSectorWorkers" : 0,
   "generationBudgetBacklogStep" : 8,
-  "generationBudgetMaximumMilliseconds" : 24
+  "generationBudgetMaximumMilliseconds" : 24,
+  "generationBudgetUpdateTargetMilliseconds" : 16
 }
 ```
 

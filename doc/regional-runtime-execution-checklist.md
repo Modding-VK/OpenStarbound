@@ -37,7 +37,7 @@ assets da rota de referência não tiver passado. Em particular:
 | Planejador de microdungeon por snapshot | Extraído, ainda síncrono |
 | `MicroDungeonPlan` task | Planejador em worker opt-in; publicação ainda serial |
 | Ativação inicial com workers | Preview opt-in; aguarda conclusão e preserva contrato síncrono |
-| Entrega orientada à CPU | Preview `legacy`/`adaptive`/`aggressive`: pool automática inicial e orçamento por backlog; sem redimensionamento em execução ainda |
+| Entrega orientada à CPU | Preview `legacy`/`adaptive`/`aggressive`: pool automática inicial, orçamento por backlog e recuo adaptativo sob pressão do update; sem redimensionamento em execução ainda |
 | `WorldMutationBatch` | Contrato e validação pura criados; sem operações vivas |
 | Escrita paralela | Não implementada |
 
@@ -106,9 +106,10 @@ tempo de fila/execução, sem nomes de dungeons ou payloads de mods.
   backlog, com `legacy` como fallback e teto configurável.
 - [x] Dimensionar a pool de preparação na criação pela capacidade de CPU, com
   reserva explícita e teto configurável para a thread dona.
-- [ ] Acrescentar ao orçamento adaptativo os sinais de tempo do update/frame e
-  pressão de memória; redimensionar a pool em execução somente após contrato
-  de drain seguro das tarefas pendentes.
+- [x] Acrescentar ao orçamento adaptativo um sinal de tempo já gasto no update
+  antes da geração; o burst recua ao orçamento base sob pressão.
+- [ ] Acrescentar pressão de memória e redimensionar a pool em execução somente
+  após contrato de drain seguro das tarefas pendentes.
 - [ ] Priorizar commits prontos e a cadeia mínima de pré-requisitos de setores
   visíveis antes de prefetch distante, preservando ordem determinística de
   publicação.

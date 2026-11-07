@@ -1074,6 +1074,7 @@ void WorldServer::publishPerformanceSnapshot() {
 
 void WorldServer::update(float dt) {
   STAR_TRACE_ZONE("WorldServer update");
+  double updateStartedAt = Time::monotonicTime();
   bool wasPerformanceOverlayActive = performanceOverlayActive();
   bool performanceEnabled = WorldPerformanceOverlay::enabled();
   if (performanceEnabled) {
@@ -1376,6 +1377,9 @@ void WorldServer::update(float dt) {
     auto performanceMode = threadingConfig.getString("performanceMode", "legacy");
     size_t queuedSectors = m_worldStorage->generationQueueSize();
     unsigned generationMilliseconds = baseGenerationMilliseconds;
+    bool updatePressureLimited = false;
+    unsigned elapsedBeforeGenerationMilliseconds = static_cast<unsigned>(min<double>(
+        (Time::monotonicTime() - updateStartedAt) * 1000.0, highest<unsigned>()));
     if (queuedSectors != 0 && (performanceMode == "adaptive" || performanceMode == "aggressive")) {
       unsigned maximumMilliseconds = threadingConfig.getUInt("generationBudgetMaximumMilliseconds",
           performanceMode == "aggressive" ? 36 : 24);
@@ -1386,6 +1390,15 @@ void WorldServer::update(float dt) {
         unsigned backlogStep = clamp<unsigned>(threadingConfig.getUInt("generationBudgetBacklogStep", 8), 1, 256);
         unsigned extraMilliseconds = static_cast<unsigned>((queuedSectors + backlogStep - 1) / backlogStep) * 2;
         generationMilliseconds = min(maximumMilliseconds, baseGenerationMilliseconds + extraMilliseconds);
+        // Keep the base generation opportunity, but suppress the optional
+        // burst once the owner update is already under pressure. Aggressive
+        // mode deliberately retains its burst as an explicit user choice.
+        unsigned updateTargetMilliseconds = clamp<unsigned>(
+            threadingConfig.getUInt("generationBudgetUpdateTargetMilliseconds", 16), 1, 100);
+        if (elapsedBeforeGenerationMilliseconds >= updateTargetMilliseconds) {
+          generationMilliseconds = baseGenerationMilliseconds;
+          updatePressureLimited = true;
+        }
       }
       if (m_explorationProfile) {
         m_explorationProfile->count("generation.performancePolicy.activePasses");
@@ -1395,6 +1408,10 @@ void WorldServer::update(float dt) {
           m_explorationProfile->count("generation.performancePolicy.aggressivePasses");
         else
           m_explorationProfile->count("generation.performancePolicy.adaptivePasses");
+        m_explorationProfile->count("generation.performancePolicy.updateElapsedMilliseconds",
+            elapsedBeforeGenerationMilliseconds);
+        if (updatePressureLimited)
+          m_explorationProfile->count("generation.performancePolicy.updatePressureLimitedPasses");
       }
     }
     double generationTimeLimit = generationMilliseconds / 1000.0;
