@@ -118,6 +118,11 @@ struct WorldGeneratorFacade {
   // neighbor dependencies. Must not schedule jobs or load/activate sectors.
   virtual List<Sector> readyBaseTileSectors(WorldStorage*) { return {}; }
 
+  // Admit a private BaseTiles task without polling, draining or applying an
+  // existing result. The world owner has already loaded Tiles and remains
+  // responsible for later validation and publication.
+  virtual bool admitBaseTilesPreparation(WorldStorage*, Sector const&) { return false; }
+
   // Perform terraforming operations (biome reapplication) on the given sector
   virtual void terraformSector(WorldStorage* storage, Sector const& sector) = 0;
 

@@ -167,6 +167,24 @@ redimensiona threads durante a execução nem mede pressão de memória. Esses
 sinais permanecem itens de evolução, e os modos continuam opt-in até a
 comparação de equivalência.
 
+### Preview de alimentador de preparação independente
+
+`worldThreading.generationPreparationFeederPreview` permanece desligado por
+padrão. Quando há workers habilitados, ele reserva até
+`generationPreparationFeederMilliseconds` (padrão 2, limitado a 8) de cada
+passagem para examinar uma cópia ordenada de até
+`generationPreparationFeederCandidateLimit` setores (padrão 32, limitado a
+128). Para setores abaixo de `BaseTiles`, carrega somente `Tiles` e solicita a
+etapa privada de BaseTiles. Não drena resultados, não carrega entidades, não
+executa microdungeons/Lua nem altera a ordem de commit.
+
+`WorldGenerationTasks` continua limitando tarefas e bytes; portanto o preview
+não cria reserva fora do contrato existente. Os contadores
+`generation.preparationFeeder.*` registram passagens, candidatos, tentativas,
+admissões e prazo do próprio alimentador. A validação deve demonstrar
+mais workers ocupados e menor espera da fila sem diferença de mundo, mod, save
+ou multiplayer.
+
 Exemplo de teste:
 
 ```json
@@ -177,7 +195,10 @@ Exemplo de teste:
   "maxSectorWorkers" : 0,
   "generationBudgetBacklogStep" : 8,
   "generationBudgetMaximumMilliseconds" : 24,
-  "generationBudgetUpdateTargetMilliseconds" : 16
+  "generationBudgetUpdateTargetMilliseconds" : 16,
+  "generationPreparationFeederPreview" : true,
+  "generationPreparationFeederMilliseconds" : 2,
+  "generationPreparationFeederCandidateLimit" : 32
 }
 ```
 

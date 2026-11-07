@@ -183,6 +183,9 @@ do uso de CPU do sistema.
 - [ ] Separar admissão, execução e commit em filas distintas.
 - [ ] Fazer a admissão alimentar preparação independente até os limites de
   workers/bytes/memória, sem esperar o commit de uma cadeia bloqueada.
+- [x] Adicionar preview limitado de admissão independente de BaseTiles da fila
+  visível, com carregamento somente de tiles, orçamento de tempo e os limites
+  existentes de tarefas/bytes; resultados continuam aguardando commit da dona.
 - [ ] Introduzir fila de resultados prontos com revalidação e ordenação estável
   antes do commit; medir atraso resultado-pronto→commit e trabalho útil perdido.
 - [ ] Reter resultados úteis sob pressão de memória sem livelock.

@@ -73,7 +73,7 @@ IO paralelo ainda não existe. O recorte permitido é bytes imutáveis, descompr
 
 1. Construir no Windows e repetir a rota do crash com `regionalDetails: true`; confirmar ausência de `MapException`/retorno à nave e registrar os novos contadores de invariável.
 2. Executar rota nova comparável com a mesma configuração e preservar novo `exploration.zip`, log e configuração completa.
-3. Implementar alimentador limitado de preparação independente: preencher a pool com BaseTiles elegíveis sem esperar commit de cadeia bloqueada, sob orçamento de bytes e sem alterar commits, Lua, entidades ou ordem visível.
+3. O primeiro recorte do alimentador foi implementado depois desta coleta: o preview `generationPreparationFeederPreview` admite BaseTiles elegíveis sem esperar commit de cadeia bloqueada, sob orçamento de tempo, tarefas e bytes. Ele continua desligado por padrão; validar ocupação, equivalência e regressão Windows antes de qualquer adoção.
 4. Criar fila explícita de resultados prontos e medir atrasos e descartes antes de alterar prioridade de commit.
 5. Após equivalência de mundos/mods/saves, avançar IO privado e `CaveLiquidPlan` sobre snapshot/halo.
 

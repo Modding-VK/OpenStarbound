@@ -1002,6 +1002,19 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     bool fairnessPreview = threading.getBool("generationFairnessSchedulerPreview", false);
     bool dependencyPreview = threading.getBool("generationDependencySchedulerPreview", false);
     bool visibleCompletionPreview = threading.getBool("generationVisibleCompletionPreview", false);
+    auto performanceMode = threading.getString("performanceMode", "legacy");
+    bool workerPreparationEnabled = threading.getUInt("sectorWorkers", 0) > 0
+        || performanceMode == "adaptive" || performanceMode == "aggressive";
+    // This preview admits only the private BaseTiles stage. It deliberately
+    // does not commit a worker result or run a higher stage, so a blocked
+    // Complete request cannot leave available worker capacity idle merely
+    // because its neighbors are not ready yet.
+    bool preparationFeederPreview = workerPreparationEnabled
+        && threading.getBool("generationPreparationFeederPreview", false);
+    unsigned preparationFeederMilliseconds = min<unsigned>(
+        threading.getUInt("generationPreparationFeederMilliseconds", 2), 8);
+    unsigned preparationFeederCandidateLimit = clamp<unsigned>(
+        threading.getUInt("generationPreparationFeederCandidateLimit", 32), 1, 128);
     // Fairness already grants an old request a bounded reserved attempt. Keep
     // that grant across the next pass by default when fairness is explicitly
     // enabled; otherwise a preceding ready-result commit can consume the
@@ -1259,6 +1272,49 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       if (m_explorationProfile) {
         m_explorationProfile->count("generation.visibleCompletion.promoted");
         recordGenerationRequest(*visibleReadySector, "baseTilesSatisfied");
+      }
+    }
+
+    // The regular queue traversal couples admission with attempts to advance
+    // Complete and its neighbor prerequisites. Take a bounded snapshot of the
+    // current order and admit independent BaseTiles separately. Loading only
+    // to Tiles preserves the no-entity contract used by background prefetch;
+    // the worker reservation remains the authority for task and byte limits.
+    if (preparationFeederPreview && !m_generationQueue.empty() && preparationFeederMilliseconds > 0) {
+      ExplorationProfile::Scope timing(m_explorationProfile.get(), "generation.preparationFeeder");
+      List<Sector> candidates;
+      for (auto const& entry : m_generationQueue) {
+        candidates.append(entry.first);
+        if (candidates.size() >= preparationFeederCandidateLimit)
+          break;
+      }
+      double feederDeadline = min(generationDeadline,
+          Time::monotonicTime() + preparationFeederMilliseconds / 1000.0);
+      if (m_explorationProfile)
+        m_explorationProfile->count("generation.preparationFeeder.passes");
+      for (auto const& sector : candidates) {
+        if (Time::monotonicTime() >= feederDeadline) {
+          if (m_explorationProfile)
+            m_explorationProfile->count("generation.preparationFeeder.deadlineReached");
+          break;
+        }
+        if (!m_generationQueue.contains(sector))
+          continue;
+        if (m_explorationProfile)
+          m_explorationProfile->count("generation.preparationFeeder.candidatesExamined");
+        auto metadata = m_sectorMetadata.ptr(sector);
+        if (metadata && metadata->generationLevel >= SectorGenerationLevel::BaseTiles)
+          continue;
+        loadSectorToLevel(sector, SectorLoadLevel::Tiles);
+        metadata = m_sectorMetadata.ptr(sector);
+        if (!metadata || metadata->generationLevel >= SectorGenerationLevel::BaseTiles)
+          continue;
+        if (m_explorationProfile)
+          m_explorationProfile->count("generation.preparationFeeder.baseTilesAttempted");
+        if (m_generatorFacade->admitBaseTilesPreparation(this, sector)) {
+          if (m_explorationProfile)
+            m_explorationProfile->count("generation.preparationFeeder.baseTilesAdmitted");
+        }
       }
     }
 

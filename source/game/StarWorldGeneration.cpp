@@ -942,6 +942,16 @@ List<WorldGenerator::Sector> WorldGenerator::readyBaseTileSectors(WorldStorage* 
   return ready;
 }
 
+bool WorldGenerator::admitBaseTilesPreparation(WorldStorage* worldStorage, Sector const& sector) {
+  // The feeder must only add new private work. Polling an existing promise can
+  // apply its result, which remains exclusively the normal owner-thread drain
+  // path in WorldStorage::generateQueue.
+  if (m_pendingBaseTiles.contains(sector) || worldSectorWorkerPool().getWorkerCount() == 0)
+    return false;
+  prepareTilesAsync(worldStorage, sector, true);
+  return m_pendingBaseTiles.contains(sector);
+}
+
 void WorldGenerator::retireBaseTileTask(shared_ptr<WorldGenerationTask> const& task, WorldGenerationTaskOutcome outcome) {
   if (!m_generationTasks || !m_generationTasks->retire(task, outcome))
     throw StarException("Invalid generation task retirement");
