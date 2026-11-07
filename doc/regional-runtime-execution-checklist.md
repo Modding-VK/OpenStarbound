@@ -181,6 +181,11 @@ do uso de CPU do sistema.
   antes de adoção por padrão. A rota Tracy 12 confirmou 108 seleções visíveis
   por prioridade sem crash, mas não é A/B controlado; ver
   [runtime-validation-2026-11-07-tracy12.md](runtime-validation-2026-11-07-tracy12.md).
+- [x] Executar A/B adicional do preview em mundo lunar: a variante ativa
+  confirmou 333 seleções visíveis pela prioridade, sem crash. Durações e rota
+  ainda não são equivalentes; a espera máxima de setor continua próxima de 16
+  s nas duas variantes. Ver
+  [runtime-validation-2026-11-07-ready-scheduler-ab-moon.md](runtime-validation-2026-11-07-ready-scheduler-ab-moon.md).
 - [ ] Medir setores completos por segundo, idade/profundidade p50/p95/p99 da
   fila, atraso de commit e tempo do update como critérios primários de
   performance; utilização de CPU isolada não basta.
