@@ -212,6 +212,9 @@ do uso de CPU do sistema.
   vivos, entidades, callbacks, saves e rede continuam na thread dona.
 - [x] Descartar promessa proprietária de decode pendente em unload e
   `unloadAll`; worker tardio não retém ponteiro para o mundo nem pode publicar.
+- [x] Impedir admissão de BaseTiles enquanto o decode privado ainda não tiver
+  instalado o array de tiles; defesa repetida no preparador. Ver
+  [runtime-crash-base-tiles-2026-11-07.md](runtime-crash-base-tiles-2026-11-07.md).
 - [ ] Validar o preview em Windows com mundo novo/salvo, mods, unload/reload,
   prefetch, cancelamento e dois jogadores antes de ampliar IO assíncrono.
 - [ ] Preservar checkpoint, rede, saves e reload sem duplicação.

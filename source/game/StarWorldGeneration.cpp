@@ -968,8 +968,16 @@ bool WorldGenerator::admitBaseTilesPreparation(WorldStorage* worldStorage, Secto
   // The feeder must only add new private work. Polling an existing promise can
   // apply its result, which remains exclusively the normal owner-thread drain
   // path in WorldStorage::generateQueue.
-  if (m_pendingBaseTiles.contains(sector) || worldSectorWorkerPool().getWorkerCount() == 0)
+  auto tileArray = worldStorage->tileArray();
+  bool tilesInstalled = worldStorage->sectorLoadLevel(sector) >= SectorLoadLevel::Tiles
+      && static_cast<ServerTileSectorArray const&>(*tileArray).sectorArray(sector);
+  if (m_pendingBaseTiles.contains(sector) || worldSectorWorkerPool().getWorkerCount() == 0 || !tilesInstalled) {
+    if (!tilesInstalled) {
+      if (auto profile = m_worldServer->explorationProfile())
+        profile->count("generation.baseTiles.tilesUnavailable");
+    }
     return false;
+  }
   prepareTilesAsync(worldStorage, sector, true);
   return m_pendingBaseTiles.contains(sector);
 }
@@ -1205,6 +1213,14 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
     return {true, result.elapsedSeconds};
   }
 
+  auto tileArray = worldStorage->tileArray();
+  if (worldStorage->sectorLoadLevel(sector) < SectorLoadLevel::Tiles
+      || !static_cast<ServerTileSectorArray const&>(*tileArray).sectorArray(sector)) {
+    if (profile)
+      profile->count("generation.baseTiles.tilesUnavailable");
+    return {false, {}};
+  }
+
   auto& workerPool = worldSectorWorkerPool();
   if (!allowAsync || workerPool.getWorkerCount() == 0) {
     prepareTiles(worldStorage, sector);
@@ -1221,7 +1237,6 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
     return {false, {}};
   }
 
-  auto tileArray = worldStorage->tileArray();
   auto sourceTiles = static_cast<ServerTileSectorArray const&>(*tileArray).sectorArray(sector);
   auto sourceTileRevision = tileArray->sectorRevision(sector);
   auto tiles = tileArray->copySector(sector);

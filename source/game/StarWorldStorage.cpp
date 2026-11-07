@@ -1308,7 +1308,8 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
           continue;
         loadSectorToLevel(sector, SectorLoadLevel::Tiles);
         metadata = m_sectorMetadata.ptr(sector);
-        if (!metadata || metadata->generationLevel >= SectorGenerationLevel::BaseTiles)
+        if (!metadata || metadata->loadLevel < SectorLoadLevel::Tiles
+            || metadata->generationLevel >= SectorGenerationLevel::BaseTiles)
           continue;
         if (m_explorationProfile)
           m_explorationProfile->count("generation.preparationFeeder.baseTilesAttempted");
@@ -1443,7 +1444,8 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       }
       loadSectorToLevel(sector, SectorLoadLevel::Tiles);
       auto& metadata = m_sectorMetadata[sector];
-      if (metadata.generationLevel < SectorGenerationLevel::BaseTiles) {
+      if (metadata.loadLevel >= SectorLoadLevel::Tiles
+          && metadata.generationLevel < SectorGenerationLevel::BaseTiles) {
         auto result = m_generatorFacade->generateSectorLevel(this, sector, SectorGenerationLevel::BaseTiles, true);
         if (result.complete) {
           metadata.generationLevel = SectorGenerationLevel::BaseTiles;
