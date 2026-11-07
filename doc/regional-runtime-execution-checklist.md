@@ -178,7 +178,9 @@ do uso de CPU do sistema.
 - [x] Preview de seleção de commits BaseTiles prontos pela ordem autoritativa
   de pedidos visíveis; promoções de justiça/dependência já existentes são
   preservadas e prefetch usa desempate estável. Ainda requer validação Windows
-  antes de adoção por padrão.
+  antes de adoção por padrão. A rota Tracy 12 confirmou 108 seleções visíveis
+  por prioridade sem crash, mas não é A/B controlado; ver
+  [runtime-validation-2026-11-07-tracy12.md](runtime-validation-2026-11-07-tracy12.md).
 - [ ] Medir setores completos por segundo, idade/profundidade p50/p95/p99 da
   fila, atraso de commit e tempo do update como critérios primários de
   performance; utilização de CPU isolada não basta.
