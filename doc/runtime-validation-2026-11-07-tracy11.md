@@ -16,10 +16,36 @@ observar o preview de decode privado de tiles salvos.
 
 `exploration.zip` passou no teste de integridade. O Tracy multipart foi
 reconstruído com êxito a partir de `.z01` seguido de `.zip`; a extração contém
-um trace válido de 60.502.048 bytes. Este ambiente não possui o
-visualizador/parser Tracy, portanto nenhuma conclusão de zonas é feita ainda.
-O trace reconstruído deve ser aberto no Tracy Profiler para complementar os
-dados JSONL deste relatório.
+um trace válido de 60.502.048 bytes. A exportação headless oficial é suficiente
+para a análise abaixo; o Tracy Profiler gráfico continua opcional para inspeção
+visual de uma janela temporal específica.
+
+## Exportação oficial Tracy (atualização posterior)
+
+Após a reconstrução, o trace foi lido pelo `tracy-csvexport` oficial 0.11.2,
+compilado de `wolfpld/tracy@b8c2e25c3d02009059e09f623072921677dd6bb4`.
+Foram exportados eventos individuais (`-u`) e calculados percentis por zona
+com correspondência exata de nome. O CSV bruto permanece fora do Git.
+
+| Zona | Eventos | p50 | p95 | p99 | Máximo |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `WorldServerThread update` | 13.769 | 12,648 ms | 43,377 ms | 75,525 ms | 441,008 ms |
+| `WorldServer entities` | 13.681 | 8,987 ms | 32,580 ms | 62,853 ms | 434,482 ms |
+| `WorldStorage generate queue` | 3.005 | 1,094 ms | 19,232 ms | 44,423 ms | 170,677 ms |
+| `Base tiles worker` | 852 | 1,829 ms | 6,182 ms | 8,672 ms | 115,745 ms |
+| `Generate microdungeons` | 1.489 | 0,577 ms | 1,127 ms | 26,171 ms | 170,420 ms |
+| `Generate cave liquid` | 609 | 2,739 ms | 4,342 ms | 5,916 ms | 6,627 ms |
+
+`WorldServer entities` é o maior contribuinte observado na thread dona e
+explica grande parte da cauda de `WorldServerThread update`. Isso não autoriza
+externalizar NPCs: o backlog dessa externalização continua suspenso. O dado
+orienta primeiro uma decomposição de perfil de entidades e o avanço de
+preparação/commit setorial sem executar estado vivo fora da dona.
+
+`Base tiles worker` é curto no p95 e ocorreu somente 852 vezes; junto das
+amostras de pool ociosa, isso confirma que elevar workers não é a próxima
+alavanca. A cauda de microdungeons e a fila serial justificam priorizar
+pré-requisitos visíveis, resultados prontos e sua espera até commit.
 
 ## Cenário e término
 
@@ -81,7 +107,10 @@ do sistema nesses dados.
    worker do tempo de espera de owner.
 3. Evoluir a seleção de commits prontos e a cadeia mínima visível antes de
    aumentar mais workers: há capacidade de BaseTiles ociosa com backlog alto.
-4. Comparar explicitamente `savedTileDecodePendingLimit` em 16, 22 e 32 apenas
+4. Adicionar recortes Tracy/JSONL para componentes de entidades (NPC, objetos,
+   stagehands e scripts) e comparar suas caudas com `WorldServer entities`, sem
+   mover sua execução para workers.
+5. Comparar explicitamente `savedTileDecodePendingLimit` em 16, 22 e 32 apenas
    após a rota de equivalência; o contador de limite mostra que o teto merece
    experimento, não elevação automática.
 
