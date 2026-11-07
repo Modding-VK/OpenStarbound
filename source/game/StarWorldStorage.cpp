@@ -753,9 +753,18 @@ void WorldStorage::queueSectorActivation(Sector sector) {
   }
 
   auto p = m_generationQueue.insert(sector, m_generationQueueTimeToLive);
-  if (p.second) {
+  if (p.second || !m_generationRequests.ptr(sector)) {
     m_generationRequests[sector] = GenerationRequest{++m_generationRequestSequence, Time::monotonicTime()};
-    recordGenerationRequest(sector, "admitted");
+    if (p.second) {
+      recordGenerationRequest(sector, "admitted");
+    } else {
+      // A queued sector must always have an identity.  Do not manufacture one
+      // while merely observing the queue: a renewed activation is the safe
+      // lifecycle boundary for recovering an orphaned entry.
+      if (m_explorationProfile)
+        m_explorationProfile->count("generation.requests.identityRecovered");
+      recordGenerationRequest(sector, "identityRecovered");
+    }
   }
   if (m_performanceSamplingEnabled)
     m_performancePeakQueuedSectors = max(m_performancePeakQueuedSectors, m_generationQueue.size());
@@ -924,12 +933,14 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       m_explorationProfile->count("generation.queueDepthTotal", m_generationQueue.size());
       double now = Time::monotonicTime();
       double oldestQueuedAt = now;
+      uint64_t oldestSequence = 0;
       Maybe<Sector> oldestSector;
       for (auto const& entry : m_generationRequests) {
         if (!m_generationQueue.contains(entry.first))
           continue;
-        if (!oldestSector || entry.second.sequence < m_generationRequests.get(*oldestSector).sequence) {
+        if (!oldestSector || entry.second.sequence < oldestSequence) {
           oldestQueuedAt = entry.second.queuedAt;
+          oldestSequence = entry.second.sequence;
           oldestSector = entry.first;
         }
       }
@@ -937,7 +948,7 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       if (oldestSector) {
         m_explorationProfile->recordQueuedSector(Vec2I((int)(*oldestSector)[0], (int)(*oldestSector)[1]),
             now - oldestQueuedAt);
-        auto sequence = m_generationRequests.get(*oldestSector).sequence;
+        auto sequence = oldestSequence;
         if (!m_oldestQueueDiagnosticSector || *m_oldestQueueDiagnosticSector != *oldestSector
             || m_oldestQueueDiagnosticSequence != sequence) {
           m_oldestQueueDiagnosticSector = *oldestSector;
@@ -1026,11 +1037,14 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     if ((fairnessPreview || dependencyPreview) && !fairnessReservedSector && !m_generationQueue.empty()
         && ++m_generationFairnessPasses % fairnessInterval == 0) {
       Maybe<Sector> oldest;
+      uint64_t oldestSequence = 0;
       for (auto const& entry : m_generationRequests) {
         if (!m_generationQueue.contains(entry.first))
           continue;
-        if (!oldest || entry.second.sequence < m_generationRequests.get(*oldest).sequence)
+        if (!oldest || entry.second.sequence < oldestSequence) {
           oldest = entry.first;
+          oldestSequence = entry.second.sequence;
+        }
       }
       if (oldest) {
         if (dependencyPreview) {
@@ -1105,16 +1119,25 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     // Identity exists without instrumentation; the extra scan is diagnostic only.
     if (m_explorationProfile && m_explorationProfile->regionalDetailsEnabled() && !m_generationQueue.empty()) {
       auto selected = m_generationQueue.firstKey();
-      auto oldest = selected;
+      Maybe<Sector> oldest;
+      uint64_t oldestSequence = 0;
       for (auto const& entry : m_generationRequests) {
-        if (entry.second.sequence < m_generationRequests.get(oldest).sequence)
+        if (!m_generationQueue.contains(entry.first))
+          continue;
+        if (!oldest || entry.second.sequence < oldestSequence) {
           oldest = entry.first;
+          oldestSequence = entry.second.sequence;
+        }
       }
       m_explorationProfile->count("generation.selection.samples");
-      if (oldest != selected)
+      if (!m_generationRequests.ptr(selected))
+        m_explorationProfile->count("generation.selection.headWithoutIdentity");
+      else
+        recordGenerationRequest(selected, "selectedHead");
+      if (oldest && *oldest != selected)
         m_explorationProfile->count("generation.selection.oldestDiffers");
-      recordGenerationRequest(selected, "selectedHead");
-      recordGenerationRequest(oldest, "shadowOldest");
+      if (oldest)
+        recordGenerationRequest(*oldest, "shadowOldest");
     }
 
     // This is a bounded shadow of the recursive prerequisite rule below.  It
@@ -1288,7 +1311,17 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       m_traceOldestQueueAttempt = false;
       if (!schedulingOnly && targetLevel == SectorGenerationLevel::Complete && p.first) {
         ++completedThisPass;
-        m_generationQueue.removeFirst();
+        // generateSectorToLevel can reach code that reprioritizes the queue.
+        // Remove the sector actually processed, never whichever entry happens
+        // to be first when it returns; otherwise the request map and queue can
+        // describe different lifecycles.
+        if (m_generationQueue.contains(sector)) {
+          if (m_generationQueue.firstKey() != sector && m_explorationProfile)
+            m_explorationProfile->count("generation.requests.completionHeadChanged");
+          m_generationQueue.remove(sector);
+        } else if (m_explorationProfile) {
+          m_explorationProfile->count("generation.requests.completionMissingFromQueue");
+        }
         if (auto request = m_generationRequests.ptr(sector)) {
           double wait = Time::monotonicTime() - request->queuedAt;
           if (m_explorationProfile) {
@@ -1303,6 +1336,8 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
           }
           recordGenerationRequest(sector, "completed");
           m_generationRequests.remove(sector);
+        } else if (m_explorationProfile) {
+          m_explorationProfile->count("generation.requests.completedWithoutIdentity");
         }
       } else if (dependencyTarget) {
         // A dependency stage was given one bounded chance. Keep its activation

@@ -61,6 +61,31 @@ etapas superiores. Isso não exclui dependências legítimas ou orçamento curto
 O limite deve continuar existindo; simplesmente remover `schedulingOnly`
 mudaria a ordem de efeitos de estruturas sem estabelecer sua independência.
 
+### Integridade da fila e identidade (correção de 07/11/2026)
+
+Cada entrada da fila de ativação precisa ter uma `GenerationRequest` da mesma
+chave. Um crash reproduzível em mundo real revelou que a observação regional
+tratava essa relação como garantida e chamava `Map::get()` para a cabeça da
+fila. Uma entrada sem identidade convertia telemetria em `MapException`,
+encerrando o `WorldServer` e devolvendo o jogador à nave.
+
+A conclusão agora remove explicitamente o setor que acabou de ser gerado, em
+vez de remover a cabeça que a fila possuir após a chamada de geração. Isso
+preserva a identidade mesmo se a ordem mudar durante aquela chamada. A coleta
+observacional também só percorre identidades que ainda estão na fila, não usa
+`get()` para inferir a sequência e registra `headWithoutIdentity` em vez de
+lançar. Uma nova ativação de uma entrada órfã recria sua identidade com uma
+nova sequência, registrada como `identityRecovered`; a observação nunca
+altera a fila para esconder a divergência.
+
+Com profiling, os contadores de cardinalidade fixa são:
+`generation.selection.headWithoutIdentity`,
+`generation.requests.completionHeadChanged`,
+`generation.requests.completionMissingFromQueue`,
+`generation.requests.completedWithoutIdentity` e
+`generation.requests.identityRecovered`. Eles são diagnóstico de invariável,
+não sinal para alterar prioridade ou publicar trabalho adicional.
+
 ## Diretriz performance-first e entrega por CPU
 
 O objetivo primário do agendador é maximizar a **velocidade de entrega de

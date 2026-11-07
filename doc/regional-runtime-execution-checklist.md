@@ -38,6 +38,7 @@ assets da rota de referência não tiver passado. Em particular:
 | `MicroDungeonPlan` task | Planejador em worker opt-in; publicação ainda serial |
 | Ativação inicial com workers | Preview opt-in; aguarda conclusão e preserva contrato síncrono |
 | Entrega orientada à CPU | Preview `legacy`/`adaptive`/`aggressive`: pool automática inicial, orçamento por backlog e recuo adaptativo sob pressão do update; sem redimensionamento em execução ainda |
+| Integridade da fila de geração | Conclusão remove o setor processado por chave; observação regional tolera e mede entradas sem identidade, sem interromper o mundo |
 | `WorldMutationBatch` | Contrato e validação pura criados; sem operações vivas |
 | Escrita paralela | Não implementada |
 
