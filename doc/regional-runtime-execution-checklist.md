@@ -346,4 +346,7 @@ etapa acima.
 - [x] Corrigir o preview para que plano pronto sem MicroDungeon não seja
   adiado: registrar `skippedEmptyPlans` e aplicar na mesma passagem. Revalidar
   expirações e espera de setor com o preview habilitado antes de qualquer
-  decisão de adoção.
+  decisão de adoção. Tracy 27 confirmou 814 bypasses e redução de 760 para 40
+  passagens, mas o primeiro miss ainda causa 140,102 ms na WorldThread; manter
+  o preview desligado fora de testes; ver
+  [runtime-validation-2026-11-08-tracy27-empty-prewarm-fix.md](runtime-validation-2026-11-08-tracy27-empty-prewarm-fix.md).
