@@ -360,4 +360,7 @@ etapa acima.
 - [x] Particionar reader TMX em JSON do mapa, `TMXMap`, tilesets, camadas/
   descompressão e grupos de objetos, com contagens fixas. A próxima coleta deve
   decidir entre cache de mapas e outra otimização serial de baixo risco; não
-  mover assets para workers nesta fase.
+  mover assets para workers nesta fase. Tracy 29 não acionou factory, portanto
+  não é evidência para essa decisão; repetir uma rota com MicroDungeon TMX
+  nova; ver
+  [runtime-validation-2026-11-08-tracy29-tmx-inconclusive.md](runtime-validation-2026-11-08-tracy29-tmx-inconclusive.md).
