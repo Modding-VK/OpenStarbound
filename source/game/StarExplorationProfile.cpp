@@ -72,7 +72,8 @@ ExplorationProfilePtr ExplorationProfile::create(String component, String contex
     profile->m_reportDirectory = Root::singleton().toStoragePath("logs/exploration");
     File::makeDirectoryRecursive(profile->m_reportDirectory);
   }
-  profile->m_windowStart = Time::monotonicTime();
+  profile->m_sessionStart = Time::monotonicTime();
+  profile->m_windowStart = profile->m_sessionStart;
   Logger::info("[ExplorationProfile] enabled component={} instance={} context={} reportFiles={}",
       profile->m_component, profile->m_instance, profile->m_context, profile->m_writeReportsToFiles);
   return profile;
@@ -504,6 +505,13 @@ void ExplorationProfile::writeReportFile(String const& category, Json const& rep
     auto context = diagnosticPathPart(m_context, "session");
     file = &m_reportFiles[category];
     *file = File::relativeTo(directory, strf("{}-{}.jsonl", context, m_instance));
+    // Instance numbering is process-local and restarts at one on the next
+    // launch. Never append that next launch to a matching old JSONL: preserve
+    // it through the configured rotation and make the primary file the current
+    // diagnostic session. This keeps each uploaded primary report analyzable
+    // without reconstructing boundaries from monotonic timestamps.
+    if (File::isFile(*file))
+      File::backupFileInSequence(*file, m_reportFileBackups);
   }
 
   String line = report.printJson(0, true) + "\n";
@@ -659,6 +667,7 @@ void ExplorationProfile::report(bool final) {
       || !storyHops.empty() || !generationRequests.empty() || !generationSelections.empty()) {
     Json report = JsonObject{
       {"component", m_component}, {"context", m_context}, {"instance", m_instance},
+      {"sessionStartedMonotonicMilliseconds", m_sessionStart * 1000},
       {"windowMilliseconds", (now - m_windowStart) * 1000},
       {"slowOperationMilliseconds", m_slowSeconds * 1000}, {"final", final},
       {"stages", std::move(stages)}, {"counts", std::move(counts)}, {"maxima", std::move(maxima)},

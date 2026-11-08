@@ -223,6 +223,7 @@ private:
   uint64_t m_instance = 0;
   double m_interval = 5;
   double m_slowSeconds = 0.05;
+  double m_sessionStart = 0;
   double m_windowStart = 0;
   unsigned m_entityDetailLimit = 12;
   bool m_npcDetails = false;

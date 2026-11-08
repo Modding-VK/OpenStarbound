@@ -44,6 +44,12 @@ de mods diferentes.
 4. Registrar hashes, build/commit e nomes originais no próximo relatório;
    artefatos brutos não entram no Git por padrão.
 
+O escritor de exploração inicia um JSONL primário novo para cada lançamento
+quando encontraria o mesmo `context-instance`; a sessão anterior é rotacionada
+conforme `reportFileBackups`. Usar o arquivo primário sem sufixo numérico na
+coleta atual; backups são históricos e não devem ser somados à run nova. Cada
+linha também identifica `sessionStartedMonotonicMilliseconds`.
+
 ## Métricas e decisão
 
 | Métrica | Fonte | Resultado desejado |

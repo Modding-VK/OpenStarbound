@@ -210,6 +210,9 @@ do uso de CPU do sistema.
 - [x] Documentar protocolo A/B e critérios que condicionam prioridade futura
   de microdungeons/vizinhos; ver
   [regional-runtime-expiry-risk-validation-protocol.md](regional-runtime-expiry-risk-validation-protocol.md).
+- [x] Separar relatórios de exploração entre lançamentos: arquivo primário
+  existente é rotacionado antes da primeira escrita da nova sessão e cada
+  relatório registra o início monotônico da sessão.
 - [ ] Orçar bytes, tarefas pendentes e regiões globalmente.
 - [ ] Separar admissão, execução e commit em filas distintas.
 - [ ] Fazer a admissão alimentar preparação independente até os limites de
