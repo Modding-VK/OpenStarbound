@@ -29,10 +29,15 @@ assets da rota de referência não tiver passado. Em particular:
 
 ## Estado atual
 
-A auditoria consolidada mais recente está em
-[performance-audit-2026-11-07.md](performance-audit-2026-11-07.md). Ela é o
-ponto de retomada para evidência, correção do crash, limites conhecidos e
-sequência de implementação.
+A auditoria atual da arquitetura e a sequência proposta para acelerar setores
+padrão estão em
+[sector-generation-architecture-audit-2026-11-08.md](sector-generation-architecture-audit-2026-11-08.md).
+Ela identifica orçamento ocioso, espera entre etapas, cópia de halo não usado
+no planejador e necessidade de IDs estáveis para colocações pendentes. O grafo
+executivo e o planejador menor são propostas, ainda não implementadas.
+
+A [auditoria de 07/11](performance-audit-2026-11-07.md) permanece como
+referência para o crash anterior e seus limites conhecidos.
 
 A fronteira de IO de setores e a fila explícita de resultados prontos foram
 auditadas em

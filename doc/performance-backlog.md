@@ -1,5 +1,30 @@
 # Backlog de desempenho da exploração
 
+## Prioridade de implementação — 08/11/2026
+
+A [auditoria completa do pipeline de setores](sector-generation-architecture-audit-2026-11-08.md)
+passa a orientar o rework. Priorizar entrega de setores padrão: na run 29,
+houve orçamento médio de 27,982 ms para passagens que usaram só 1,935 ms,
+e BaseTiles pronto aguardou em média 66,660 ms até commit. A frente TMX trata
+outliers de estruturas e não deve bloquear esta prioridade.
+
+Sequência proposta, ainda sem implementação do novo executor:
+
+1. IDs estáveis para colocações pendentes, benchmark de streaming e cobertura
+   da interação entre continuação e o encerramento antecipado do último preview.
+2. Planejamento de candidatos por template/revisão sem cópias do halo que a
+   seleção atual não lê; depois compartilhar cálculo privado com BaseTiles.
+3. Grafo persistente de dependências, primeiro em sombra, antecipando preparação
+   e deduplicando auxiliares entre pedidos; manter ordem autoritativa de efeitos.
+4. Mailbox de conclusões e entrega por tarefas elegíveis dentro do orçamento,
+   com limites de memória/justiça e prioridade correta no wrap do planeta.
+5. Integrar IO/decode salvo e prefetch previsto; extrair kernels puros de
+   CaveLiquid e Finalize depois de seus contratos de validação.
+
+Mods e saves seguem como critérios de bloqueio. NPC externo permanece suspenso
+e Linux Clang continua adiado. Nenhum ganho multiplicativo é alegado sem A/B
+reprodutível; não ativar prewarm como padrão.
+
 ## Prioridade vigente — 03/11/2026
 
 Por decisão do usuário, trabalhar primeiro no threading por setores, conforme

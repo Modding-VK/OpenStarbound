@@ -1,5 +1,21 @@
 # Progresso da geração e contratos para threads por setor
 
+## Direção atual — 08/11/2026
+
+A [auditoria da arquitetura de geração](sector-generation-architecture-audit-2026-11-08.md)
+reconstrói o pipeline completo e propõe o próximo rework: grafo executivo
+persistente, candidatos de MicroDungeons sem snapshots de tiles não usados e
+preparação desacoplada da publicação. A run 29 demonstra espera relevante
+entre trabalho pronto e commit, com orçamento sobrando.
+
+O preview `7ca7ed2a` ainda não foi validado por essa run e conserva um
+encerramento do loop quando é criada uma continuação de cadeia. Revisar essa
+interação antes de ampliar tentativas. IDs de colocações pendentes também
+precisam ser estáveis antes de admitir mais planos simultâneos. Detalhes,
+limites de equivalência e sequência de implementação estão na auditoria.
+
+O restante deste documento preserva os recortes implementados e sua evolução.
+
 Estado em 03/11/2026: identidade de pedido, comparação observacional e a
 primeira política experimental de justiça implementadas. A política permanece
 desligada por padrão e não altera o modo legado.
