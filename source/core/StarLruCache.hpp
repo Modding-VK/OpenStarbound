@@ -126,14 +126,14 @@ void LruCacheBase<OrderedMapType>::removeWhere(function<bool(Key const&, Value&)
 template <typename OrderedMapType>
 template <typename Producer>
 auto LruCacheBase<OrderedMapType>::get(Key const& key, Producer producer) -> Value & {
-  while (m_map.size() > m_maxSize - 1)
-    m_map.removeFirst();
-
   auto i = m_map.find(key);
-  if (i == m_map.end())
+  if (i == m_map.end()) {
+    while (m_map.size() > m_maxSize - 1)
+      m_map.removeFirst();
     i = m_map.insert({key, producer(key)}).first;
-  else
+  } else {
     i = m_map.toBack(i);
+  }
 
   return i->second;
 }

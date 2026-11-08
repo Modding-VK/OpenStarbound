@@ -24,7 +24,11 @@ struct DungeonDefinitionLoadTiming {
   double cacheLookupSeconds = 0;
   double pathResolveSeconds = 0;
   double readAndBuildSeconds = 0;
+  size_t cacheEntries = 0;
+  size_t cacheCapacity = 0;
+  bool cacheHit = false;
   bool cacheMiss = false;
+  bool cacheEvicted = false;
 };
 
 class DungeonGeneratorWorldFacade {

@@ -569,7 +569,14 @@ Quando `definitionMilliseconds` domina, o mesmo registro separa
 `definitionReadAndBuildMilliseconds`, além de `definitionCacheMiss`. A última
 fase cobre a leitura do asset e a construção da definição; paths e nomes nunca
 são emitidos. Essa divisão só existe para factories já retidas como lentas e
-não altera a cache, a escolha aleatória ou o contrato serial de geração.
+não altera a escolha aleatória ou o contrato serial de geração.
+
+O recorte global da mesma cache conta hits, misses e evicções de factories de
+MicroDungeon e registra máxima ocupação/capacidade. A LRU só pode evictar ao
+inserir um miss: uma consulta hit não pode remover uma entrada não relacionada.
+Não há estimativa de bytes até que exista uma contagem honesta da memória
+transitiva de uma definição; a ocupação é deliberadamente uma medida de
+cardinalidade, não uma alegação de uso de memória.
 
 `worldThreading.generationPersistentPriorityPreview` é o segundo recorte.
 Quando `generationFairnessSchedulerPreview` está ativo, ele passa a acompanhar

@@ -329,3 +329,7 @@ etapa acima.
   misses de cache e custo dominante de leitura/construção; o próximo recorte é
   taxa global de hits/misses/evicções e ocupação antes de alterar capacidade;
   ver [runtime-validation-2026-11-08-tracy24-definition-cache.md](runtime-validation-2026-11-08-tracy24-definition-cache.md).
+- [x] Contar hits, misses, evicções, ocupação e capacidade da cache de
+  definições de MicroDungeon, com cardinalidade fixa. Corrigir a LRU para
+  evictar somente ao inserir um miss, nunca antes de confirmar um hit. Não
+  estimar bytes sem modelo de memória transitiva verificável.

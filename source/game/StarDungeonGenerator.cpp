@@ -1413,10 +1413,19 @@ DungeonDefinitions::DungeonDefinitions() : m_paths(), m_cacheMutex(), m_definiti
 DungeonDefinitionConstPtr DungeonDefinitions::get(String const& name, DungeonDefinitionLoadTiming* timing) const {
   double lookupStarted = timing ? Time::monotonicTime() : 0.0;
   MutexLocker locker(m_cacheMutex);
+  if (timing) {
+    timing->cacheCapacity = m_definitionCache.maxSize();
+    if (auto cached = m_definitionCache.ptr(name)) {
+      timing->cacheHit = true;
+      timing->cacheEntries = m_definitionCache.currentSize();
+      timing->cacheLookupSeconds = Time::monotonicTime() - lookupStarted;
+      return *cached;
+    }
+    timing->cacheMiss = true;
+    timing->cacheEvicted = m_definitionCache.currentSize() >= timing->cacheCapacity;
+  }
   auto definition = m_definitionCache.get(name,
       [this, timing](String const& name) -> DungeonDefinitionPtr {
-        if (timing)
-          timing->cacheMiss = true;
         double pathStarted = timing ? Time::monotonicTime() : 0.0;
         auto path = m_paths.maybe(name);
         if (timing)
@@ -1430,8 +1439,10 @@ DungeonDefinitionConstPtr DungeonDefinitions::get(String const& name, DungeonDef
         }
         throw DungeonException::format("Unknown dungeon: '{}'", name);
       });
-  if (timing)
+  if (timing) {
+    timing->cacheEntries = m_definitionCache.currentSize();
     timing->cacheLookupSeconds = Time::monotonicTime() - lookupStarted;
+  }
   return definition;
 }
 

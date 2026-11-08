@@ -47,7 +47,11 @@ Maybe<pair<List<RectI>, Set<Vec2I>>> MicroDungeonFactory::generate(RectI const& 
     timing->definitionCacheLookupSeconds = definitionTiming.cacheLookupSeconds;
     timing->definitionPathResolveSeconds = definitionTiming.pathResolveSeconds;
     timing->definitionReadAndBuildSeconds = definitionTiming.readAndBuildSeconds;
+    timing->definitionCacheEntries = definitionTiming.cacheEntries;
+    timing->definitionCacheCapacity = definitionTiming.cacheCapacity;
+    timing->definitionCacheHit = definitionTiming.cacheHit;
     timing->definitionCacheMiss = definitionTiming.cacheMiss;
+    timing->definitionCacheEvicted = definitionTiming.cacheEvicted;
   }
 
   try {

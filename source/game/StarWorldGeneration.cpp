@@ -1648,6 +1648,15 @@ void WorldGenerator::applyMicroDungeonPlan(WorldStorage* worldStorage, MicroDung
   factoryTiming.stop();
   double factorySeconds = profile ? Time::monotonicTime() - factoryStarted : 0.0;
   if (profile) {
+    if (profile->regionalDetailsEnabled()) {
+      profile->count(factoryDetails.definitionCacheHit
+          ? "generation.microDungeonDefinitionCache.hits"
+          : "generation.microDungeonDefinitionCache.misses");
+      if (factoryDetails.definitionCacheEvicted)
+        profile->count("generation.microDungeonDefinitionCache.evictions");
+      profile->maximum("generation.microDungeonDefinitionCache.entries", factoryDetails.definitionCacheEntries);
+      profile->maximum("generation.microDungeonDefinitionCache.capacity", factoryDetails.definitionCacheCapacity);
+    }
     Vec2I sector(-1, -1);
     if (auto planSector = worldStorage->sectorForPosition(plan.position))
       sector = Vec2I((int)(*planSector)[0], (int)(*planSector)[1]);
