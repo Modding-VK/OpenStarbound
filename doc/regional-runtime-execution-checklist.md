@@ -325,4 +325,7 @@ etapa acima.
 - [x] Para factories lentas dominadas por `definition`, separar busca na cache,
   resolução interna e leitura/construção da definição, sem registrar nome ou
   path do asset. Tracy 23 identificou esta necessidade; a coleta seguinte deve
-  decidir se há miss de cache ou custo recorrente de lookup.
+  decidir se há miss de cache ou custo recorrente de lookup. Tracy 24 confirmou
+  misses de cache e custo dominante de leitura/construção; o próximo recorte é
+  taxa global de hits/misses/evicções e ocupação antes de alterar capacidade;
+  ver [runtime-validation-2026-11-08-tracy24-definition-cache.md](runtime-validation-2026-11-08-tracy24-definition-cache.md).
