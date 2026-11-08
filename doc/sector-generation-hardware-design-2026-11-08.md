@@ -3,11 +3,14 @@
 Data: 08/11/2026. Branch: `Experimental`. Base examinada:
 `8f1cb2af`, com runtime em `7ca7ed2a`.
 
-Estado: **proposta revisada; componentes novos ainda não implementados**.
+Estado: **arquitetura adotada como programa principal em 08/11/2026**.
+O [roadmap de execução](sector-runtime/roadmap.md) registra o progresso de H0
+e as entregas ainda pendentes; adotar o plano não torna seus componentes
+automaticamente implementados.
 Diretriz do usuário: usar a folga de CPU, RAM e GPU para elevar substancialmente
 a entrega de setores. Este documento atualiza a arquitetura e a sequência
 propostas na [auditoria do pipeline](sector-generation-architecture-audit-2026-11-08.md).
-A auditoria permanece como evidência do código atual.
+A auditoria permanece como evidência da base examinada.
 
 Detalhamento operacional: a [coleção do runtime de setores](sector-runtime/README.md)
 distribui contratos, propósitos e melhorias esperadas entre módulos ligados ao

@@ -1,12 +1,24 @@
 # Programa de geração e runtime de setores
 
-Atualização: 08/11/2026. Branch: `Experimental`. Referência de implementação:
-`7ca7ed2a`; documentação de arquitetura de partida: `8d3b0ade`.
+Atualização: 08/11/2026. Branch: `Experimental`. Runtime de partida:
+`7ca7ed2a`; primeiro recorte de H0: `d72b7239`;
+documentação de arquitetura de partida: `8d3b0ade`.
 
-Este é o índice central do trabalho para elevar a entrega de setores,
+Este é o **programa principal de desenvolvimento**, adotado pelo usuário em
+08/11/2026, para elevar a entrega de setores,
 aproveitar CPU/RAM/GPU e evoluir a WorldThread para coordenação regional.
 Organiza propósito, contratos, entregas, melhorias esperadas e aceitação.
 Nenhum componente futuro é considerado implementado apenas por estar aqui.
+
+## Execução vigente
+
+O [roadmap H0–H5/R1–R2](roadmap.md) governa a sequência de implementação;
+planos anteriores permanecem como apoio e histórico. A frente ativa é H0,
+começando por identidade estável e validação acelerada antes de ampliar
+admissão e concorrência. O primeiro recorte de DAG-01 troca índices de
+colocações por IDs monotônicos e possui
+[relatório próprio](../sector-runtime-h0-placement-identities-2026-11-08.md).
+Isso não implementa o executor, a nova WorldThread ou compute GPU.
 
 ## Objetivo e decisões vigentes
 
@@ -87,7 +99,9 @@ A [auditoria de 08/11](../sector-generation-architecture-audit-2026-11-08.md)
 é a base do diagnóstico e conserva o manifesto dos artefatos analisados. O
 [desenho de hardware](../sector-generation-hardware-design-2026-11-08.md)
 é a síntese da arquitetura. Esta coleção detalha sua implementação e passa a
-ser a entrada de navegação para continuidade.
+ser a referência principal para implementação e continuidade. Em caso de
+prioridades históricas divergentes, seguir o roadmap desta coleção e
+registrar explicitamente qualquer alteração de direção.
 
 O [plano regional anterior](../world-region-rework-advanced-concept.md)
 conserva decisões e investigações históricas. Sua definição vigente de uma
@@ -107,11 +121,12 @@ de `starbound.config`. Build normal e diagnóstica continuam distintas;
 Actions são manuais. Os módulos descrevem melhorias esperadas, sem alegar um
 fator de aceleração medido para a nova arquitetura.
 
-## Verificação desta organização documental
+## Verificação da organização documental original (`aa743068`)
 
 A entrega cria 13 módulos, com 49 contratos de trabalho, e integra oito
 documentos de entrada existentes. Foram conferidos 221 links locais,
 alcançabilidade de todos os módulos a partir deste índice, unicidade dos IDs
 e referência de todos os contratos no roadmap. A verificação de whitespace
 também passou. Não houve alteração de código, build, benchmark de runtime
-ou execução de Actions nesta atividade.
+ou execução de Actions naquela atividade. Validações posteriores constam no
+relatório do item ativo, não nesta contagem histórica.

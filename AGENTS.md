@@ -48,6 +48,29 @@ in `doc/`, and avoid repeating unchanged logs or file contents. Never shorten
 context by removing security instructions, user requirements, or technical
 limitations.
 
+## Primary Development Program — Experimental
+
+The user adopted [`doc/sector-runtime/README.md`](doc/sector-runtime/README.md)
+as the primary development program on 08/11/2026. Its
+[`roadmap`](doc/sector-runtime/roadmap.md) is the canonical implementation
+sequence (H0–H5 and R1–R2); consult the active item and its latest report before
+continuing. Older plans and backlog entries supply evidence and history, not
+competing implementation priorities. Record any deliberate change of priority
+in the roadmap and link it from the operational checklist.
+
+Prioritize substantially faster delivery of ordinary sectors, making useful
+use of available CPU, RAM and optional GPU without assuming a CPU model or
+core count. Start with H0 invariants and reproducible streaming validation;
+do not equate a larger budget or higher utilization with measured throughput.
+Keep existing runtime, implemented changes and proposed architecture distinct.
+
+Preserve mod/save/multiplayer compatibility and a complete CPU fallback.
+The regional simulation target remains one dedicated thread per logical 2×2
+region of 32×32 physical sectors, distinct from preparation workers. NPC
+externalization remains suspended and Linux Clang deferred until project end.
+Adoption of this program does not authorize parallel live-world writes,
+automatic Actions, a release or merging into `main`.
+
 ## Performance Evidence and Continuity Policy
 
 After a material runtime test, profiling/log/Tracy analysis, crash

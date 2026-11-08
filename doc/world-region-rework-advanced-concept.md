@@ -2,12 +2,14 @@
 
 Detalhamento vigente: [programa do runtime de setores](sector-runtime/README.md),
 [threads regionais](sector-runtime/regional-threads.md) e
-[roadmap](sector-runtime/roadmap.md). A unidade dona é a região lógica 2×2,
+[roadmap principal](sector-runtime/roadmap.md), adotado em 08/11/2026.
+Este documento é apoio conceitual/histórico, não outra sequência de execução.
+A unidade dona é a região lógica 2×2,
 conforme a decisão abaixo. As referências antigas a threads setoriais são
 normalizadas para essa unidade; preparação em pools não substitui a thread
 dedicada da simulação. O código atual ainda não executa simulação regional.
 
-Prioridade confirmada em 03/11/2026: implementar primeiro o threading por
+Prioridade histórica de 03/11/2026: implementar primeiro o threading por
 setores. A frente separada de externalização de NPCs fica suspensa até retomada
 explícita. Os contratos de acesso e transferência de entidades necessários à
 correção dos setores permanecem no escopo deste plano. Os itens futuros de

@@ -6,7 +6,9 @@ Os contratos executáveis propostos estão organizados no
 [programa de setores](sector-runtime/README.md), especialmente
 [grafo/escalonamento](sector-runtime/dependency-scheduler.md) e
 [WorldThread](sector-runtime/worldthread.md). O
-[roadmap](sector-runtime/roadmap.md) centraliza dependências e aceitação.
+[roadmap](sector-runtime/roadmap.md) é o plano principal de execução,
+adotado em 08/11/2026; centraliza dependências, estado e aceitação. A sequência
+histórica deste documento não concorre com essa prioridade.
 
 A revisão [orientada ao hardware](sector-generation-hardware-design-2026-11-08.md)
 define o desenho vigente: grafo comum para backends CPU/GPU, controle global
@@ -22,8 +24,9 @@ entre trabalho pronto e commit, com orçamento sobrando.
 
 O preview `7ca7ed2a` ainda não foi validado por essa run e conserva um
 encerramento do loop quando é criada uma continuação de cadeia. Revisar essa
-interação antes de ampliar tentativas. IDs de colocações pendentes também
-precisam ser estáveis antes de admitir mais planos simultâneos. Detalhes,
+interação antes de ampliar tentativas. IDs de colocações pendentes já recebem
+o [primeiro recorte de H0](sector-runtime-h0-placement-identities-2026-11-08.md),
+validado sem assets, ainda sem ampliação de planos simultâneos. Detalhes,
 limites de equivalência e sequência de implementação estão na auditoria.
 
 O restante deste documento preserva os recortes implementados e sua evolução.

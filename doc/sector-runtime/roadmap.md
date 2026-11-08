@@ -4,8 +4,11 @@
 
 ## Estado e regra de progresso
 
-Todos os itens novos abaixo estão **pendentes**, salvo quando um relatório
-posterior informar implementação, commit e validação. Os fundamentos atuais
+Este é o **plano principal de execução**, adotado em 08/11/2026. H0 é a frente
+ativa; listas anteriores não estabelecem uma sequência concorrente.
+
+Os itens abaixo estão **pendentes**, salvo quando o estado e um relatório
+informarem implementação e validação. Os fundamentos atuais
 estão no baseline; os previews existentes não equivalem ao executor proposto.
 Este roadmap detalha H0–H5 do
 [desenho de hardware](../sector-generation-hardware-design-2026-11-08.md).
@@ -26,6 +29,20 @@ falha ao aumentar paralelismo.
 - [ ] DAG-04: teste e correção da interação continuação/avanço/encerramento.
 - [ ] RAM-01: contrato de reserva/bytes reais antes de ampliar admissão.
 - [ ] MOD-01: fronteira inicial de efeitos e inputs puros documentada no código.
+
+### Andamento de H0
+
+DAG-01: **implementado e validado no escopo de testes sem assets**, para a
+identidade das colocações pendentes. Os caminhos síncrono e assíncrono usam o
+mesmo registro; a aceitação completa continua aberta até validar geração com
+assets/mods e integrar o comparador de outputs. Ver
+[relatório e limites](../sector-runtime-h0-placement-identities-2026-11-08.md).
+Não há nova API de cancelamento de colocações ou executor de grafo nesta entrega.
+
+Próximo trabalho: VAL-01/02, com harness de streaming e produtores controláveis,
+reproduzindo a interação continuação/avanço/encerramento de DAG-04. Fixar o
+baseline antes de alterar a política de avanço; não aumentar concorrência
+apenas por a correção de identidade já estar presente.
 
 Saída: baseline executável, pendências de identidade cobertas e causas de
 espera reproduzíveis. Não depende de uma nova amostra TMX para começar.
@@ -150,6 +167,6 @@ inteiro concluído ao concluir apenas uma tarefa H.
 5. Atualizar contrato se necessário, estado do item, relatório e checklist.
 6. Informar commit e limitações; manter Actions manuais e revisão antes de main.
 
-O primeiro trabalho de código recomendado é H0, com DAG-01 e o harness de
-streaming. A prioridade de entrega permanece setores comuns; uma coleta
-TMX inconclusiva não impede avançar essa sequência.
+Retomar pelo andamento de H0 e pelo relatório vinculado acima. A prioridade
+de entrega permanece setores comuns; uma coleta TMX inconclusiva não impede
+avançar essa sequência.

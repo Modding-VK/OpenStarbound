@@ -56,8 +56,10 @@ stutter de estruturas; não substitui a análise de throughput dos setores comun
 
 - A continuação de cadeia ainda encerra o loop, inclusive quando o preview de
   avanço tentou prosseguir. Ver [agendador](dependency-scheduler.md).
-- Índices de colocações pendentes podem sobreviver à compactação da lista.
-  Exigem identidade estável, sem atribuir a essa falha um crash não reproduzido.
+- Na base auditada, índices de colocações pendentes podiam sobreviver à
+  compactação da lista. O primeiro recorte de H0 substitui-os por IDs estáveis;
+  ver [validação e pendências](../sector-runtime-h0-placement-identities-2026-11-08.md).
+  Isso não atribui à falha um crash não reproduzido nem prova ganho de throughput.
 - `planMicroDungeons` não lê o halo de tiles que seu snapshot copia/versiona.
 - Os benchmarks de `generateRegion` são síncronos e não reproduzem a fila
   de exploração. Falta baseline de streaming automatizado.

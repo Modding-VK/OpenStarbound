@@ -41,6 +41,18 @@ cumpridas uma única vez e somente após sucesso autoritativo.
 Aceitação: testes com dois planos em voo, compactação, cancelamento, nova
 colocação e retorno invertido não acessam outra entrada nem duplicam efeitos.
 
+Primeiro recorte implementado em H0: `WorldGenerationPlacementQueue` atribui
+IDs monotônicos por instância de `WorldGenerator`, mantém a ordem relativa de
+inserção e retira a entrada após sucesso da factory, antes de cumprir a
+promise. Planos síncronos/assíncronos transportam apenas o ID e inputs copiados.
+A validação de epoch do mundo continua pertencendo à tarefa existente.
+ID retirado/ausente é ignorado antes da factory. Não há índice nem ponteiro
+persistente na descrição assíncrona. Testes sem assets cobrem retorno
+invertido, duplicação, remoção, inserção, retry e ordem; o
+[relatório](../sector-runtime-h0-placement-identities-2026-11-08.md) delimita
+a validação. Cancelamento público de colocações, versão do conjunto de inputs
+e comparação completa em jogo permanecem fora deste recorte.
+
 ## DAG-02 — Grafo persistente e demanda compartilhada
 
 Cada nó guarda estado de preparação/publicação, dependentes, contagem de

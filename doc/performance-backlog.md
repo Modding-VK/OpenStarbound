@@ -4,8 +4,14 @@
 
 O trabalho está detalhado na [coleção do runtime de setores](sector-runtime/README.md),
 com [roadmap H0–H5/R1–R2](sector-runtime/roadmap.md), IDs por subsistema,
-propósito, melhoria esperada, dependências e aceitação. Usar esse roadmap para
-atualizar o progresso, mantendo aqui a prioridade consolidada.
+propósito, melhoria esperada, dependências e aceitação. Por decisão do usuário,
+esse é o **programa principal**, não uma proposta alternativa. Usar o roadmap
+como fonte de estado e sequência; manter aqui a prioridade consolidada.
+
+Frente ativa: H0. A identidade das colocações já tem o primeiro recorte
+implementado, com [relatório e testes](sector-runtime-h0-placement-identities-2026-11-08.md).
+Seguir com VAL-01/02 e a reprodução de DAG-04 antes de ampliar concorrência.
+Os demais componentes do novo executor continuam pendentes.
 
 A direção de arquitetura vigente é o
 [pipeline orientado a CPU, RAM e GPU](sector-generation-hardware-design-2026-11-08.md),
@@ -19,7 +25,7 @@ houve orçamento médio de 27,982 ms para passagens que usaram só 1,935 ms,
 e BaseTiles pronto aguardou em média 66,660 ms até commit. A frente TMX trata
 outliers de estruturas e não deve bloquear esta prioridade.
 
-Sequência proposta, ainda sem implementação do novo executor:
+Sequência do programa principal, ainda sem implementação do novo executor:
 
 1. IDs estáveis para colocações pendentes, benchmark de streaming e cobertura
    da interação entre continuação e o encerramento antecipado do último preview.
@@ -50,7 +56,7 @@ Mods e saves seguem como critérios de bloqueio. NPC externo permanece suspenso
 e Linux Clang continua adiado. Nenhum ganho multiplicativo é alegado sem A/B
 reprodutível; não ativar prewarm como padrão.
 
-## Prioridade vigente — 03/11/2026
+## Prioridade histórica — 03/11/2026 (subordinada ao programa acima)
 
 Por decisão do usuário, trabalhar primeiro no threading por setores, conforme
 o [plano de threads dedicadas](world-region-rework-advanced-concept.md).

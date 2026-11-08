@@ -17,10 +17,12 @@ You must own Starbound for the game assets. The code is worked on whenever I rar
 
 ## Experimental sector runtime development
 
-The `Experimental` branch's [sector runtime documentation](doc/sector-runtime/README.md)
-organizes the CPU/RAM/GPU generation design, WorldThread rework, dedicated
-regional threads, compatibility contracts, validation and implementation roadmap.
-It explicitly distinguishes existing previews from proposed functionality.
+The `Experimental` branch's **primary development program** is the
+[sector runtime documentation](doc/sector-runtime/README.md), adopted on
+2026-11-08. Follow its [roadmap](doc/sector-runtime/roadmap.md) for CPU/RAM/GPU
+generation, the WorldThread rework, dedicated regional threads and compatibility
+validation. Earlier plans remain supporting history. Proposed functionality
+is not considered implemented until its report records code and validation.
 
 ## Installation
 ### Download the [latest stable release](https://github.com/OpenStarbound/OpenStarbound/releases/latest).
