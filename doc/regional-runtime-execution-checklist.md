@@ -221,6 +221,10 @@ do uso de CPU do sistema.
   Tracy 17 identificou MicroDungeons como bloqueador dominante e revelou a
   precedência incorreta da continuidade, corrigida para a próxima coleta; ver
   [runtime-validation-2026-11-08-tracy17-visible-blockers.md](runtime-validation-2026-11-08-tracy17-visible-blockers.md).
+- [x] Validar a continuidade após correção de precedência: Tracy 18 confirmou
+  435 retomadas para 443 agendamentos, sem crash. MicroDungeons segue o
+  bloqueador dominante e planos stale requerem fila de resultados prontos; ver
+  [runtime-validation-2026-11-08-tracy18-continuation.md](runtime-validation-2026-11-08-tracy18-continuation.md).
 - [x] Documentar protocolo A/B e critérios que condicionam prioridade futura
   de microdungeons/vizinhos; ver
   [regional-runtime-expiry-risk-validation-protocol.md](regional-runtime-expiry-risk-validation-protocol.md).
