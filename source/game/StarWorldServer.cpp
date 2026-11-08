@@ -1378,6 +1378,8 @@ void WorldServer::update(float dt) {
     size_t queuedSectors = m_worldStorage->generationQueueSize();
     unsigned generationMilliseconds = baseGenerationMilliseconds;
     bool updatePressureLimited = false;
+    unsigned dynamicDesiredMilliseconds = 0;
+    unsigned dynamicTargetMilliseconds = 0;
     unsigned elapsedBeforeGenerationMilliseconds = static_cast<unsigned>(min<double>(
         (Time::monotonicTime() - updateStartedAt) * 1000.0, highest<unsigned>()));
     if (queuedSectors != 0 && (performanceMode == "adaptive" || performanceMode == "aggressive" || performanceMode == "dynamic")) {
@@ -1393,13 +1395,21 @@ void WorldServer::update(float dt) {
         // ceiling; this makes available CPU useful without binding behavior to
         // a particular processor model.
         unsigned backlogStep = clamp<unsigned>(threadingConfig.getUInt("generationBudgetBacklogStep", 8), 1, 256);
-        unsigned hardTargetMilliseconds = clamp<unsigned>(
+        dynamicTargetMilliseconds = clamp<unsigned>(
             threadingConfig.getUInt("generationBudgetDynamicUpdateCeilingMilliseconds", 32), 1, 100);
         unsigned extraMilliseconds = static_cast<unsigned>((queuedSectors + backlogStep - 1) / backlogStep) * 4;
-        generationMilliseconds = min(maximumMilliseconds, baseGenerationMilliseconds + extraMilliseconds);
-        if (elapsedBeforeGenerationMilliseconds >= hardTargetMilliseconds) {
+        dynamicDesiredMilliseconds = min(maximumMilliseconds, baseGenerationMilliseconds + extraMilliseconds);
+        if (elapsedBeforeGenerationMilliseconds >= dynamicTargetMilliseconds) {
           generationMilliseconds = baseGenerationMilliseconds;
           updatePressureLimited = true;
+        } else {
+          // Do not grant a burst larger than the measured update headroom.
+          // The base opportunity remains intact even when it alone would
+          // exceed the ceiling; the dynamic increment is what must yield.
+          unsigned headroomMilliseconds = dynamicTargetMilliseconds - elapsedBeforeGenerationMilliseconds;
+          generationMilliseconds = min(dynamicDesiredMilliseconds, max(baseGenerationMilliseconds, headroomMilliseconds));
+          if (generationMilliseconds < dynamicDesiredMilliseconds)
+            updatePressureLimited = true;
         }
       } else {
         unsigned backlogStep = clamp<unsigned>(threadingConfig.getUInt("generationBudgetBacklogStep", 8), 1, 256);
@@ -1427,6 +1437,12 @@ void WorldServer::update(float dt) {
           m_explorationProfile->count("generation.performancePolicy.adaptivePasses");
         m_explorationProfile->count("generation.performancePolicy.updateElapsedMilliseconds",
             elapsedBeforeGenerationMilliseconds);
+        if (performanceMode == "dynamic") {
+          m_explorationProfile->count("generation.performancePolicy.dynamicDesiredMilliseconds", dynamicDesiredMilliseconds);
+          m_explorationProfile->count("generation.performancePolicy.dynamicHeadroomMilliseconds",
+              elapsedBeforeGenerationMilliseconds < dynamicTargetMilliseconds
+                  ? dynamicTargetMilliseconds - elapsedBeforeGenerationMilliseconds : 0);
+        }
         if (updatePressureLimited)
           m_explorationProfile->count("generation.performancePolicy.updatePressureLimitedPasses");
       }

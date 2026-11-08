@@ -168,11 +168,13 @@ hardware sem fixar uma escolha em um processador específico. A pool continua
 automática; a cada backlog ele cresce o orçamento em passos de 4 ms por
 `generationBudgetBacklogStep`, até o teto configurado. Enquanto o tempo já
 consumido pela atualização da thread dona for menor que
-`generationBudgetDynamicUpdateCeilingMilliseconds` (padrão 32 ms), ele pode
-usar o teto; ao cruzá-lo, volta ao orçamento base naquela passagem. Portanto,
-ele explora CPU ociosa, mas não insiste em ampliar uma atualização já atrasada.
+`generationBudgetDynamicUpdateCeilingMilliseconds` (padrão 32 ms), ele usa no
+máximo a folga restante dessa atualização; ao cruzá-lo, volta ao orçamento base
+naquela passagem. Portanto, ele explora CPU ociosa, mas não insiste em ampliar
+uma atualização já atrasada.
 `generation.performancePolicy.dynamicPasses` e
-`.updatePressureLimitedPasses` tornam essa decisão auditável.
+`.updatePressureLimitedPasses`, `.dynamicDesiredMilliseconds` e
+`.dynamicHeadroomMilliseconds` tornam essa decisão auditável.
 
 Esse primeiro recorte dimensiona workers na criação da pool; ele ainda não
 redimensiona threads durante a execução nem mede pressão de memória. Esses

@@ -714,7 +714,10 @@ void ExplorationProfile::report(bool final) {
           };
           try {
             writeReportFile(category, Json(std::move(fallback)));
-            Logger::warn("[ExplorationProfile] recovered report category={} with minimal fallback after BadVariantType", category);
+            if (!m_reportWriteFailureCategories.contains(category)) {
+              Logger::warn("[ExplorationProfile] recovered report category={} with minimal fallback after BadVariantType", category);
+              m_reportWriteFailureCategories[category] = true;
+            }
           } catch (...) {
             if (!m_reportWriteFailureCategories.contains(category)) {
               Logger::warn("[ExplorationProfile] report fallback failed component={} instance={} category={}",
