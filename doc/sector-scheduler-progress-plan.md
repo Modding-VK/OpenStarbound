@@ -564,6 +564,13 @@ de `placementAttempts`, rejeições por limites, colisão e `canPlace`, além de
 `anchorFound`. Esses números pertencem à mesma entrada hash/footprint limitada;
 não elevam a cardinalidade do profiling nem revelam nomes de templates.
 
+Quando `definitionMilliseconds` domina, o mesmo registro separa
+`definitionCacheLookupMilliseconds`, `definitionPathResolveMilliseconds` e
+`definitionReadAndBuildMilliseconds`, além de `definitionCacheMiss`. A última
+fase cobre a leitura do asset e a construção da definição; paths e nomes nunca
+são emitidos. Essa divisão só existe para factories já retidas como lentas e
+não altera a cache, a escolha aleatória ou o contrato serial de geração.
+
 `worldThreading.generationPersistentPriorityPreview` é o segundo recorte.
 Quando `generationFairnessSchedulerPreview` está ativo, ele passa a acompanhar
 a política de justiça por padrão; o campo explícito ainda pode ser definido

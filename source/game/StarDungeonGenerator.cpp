@@ -11,6 +11,7 @@
 #include "StarDungeonImagePart.hpp"
 #include "StarDungeonTMXPart.hpp"
 #include "StarExplorationProfile.hpp"
+#include "StarTime.hpp"
 
 namespace Star {
 
@@ -1409,14 +1410,29 @@ DungeonDefinitions::DungeonDefinitions() : m_paths(), m_cacheMutex(), m_definiti
   }
 }
 
-DungeonDefinitionConstPtr DungeonDefinitions::get(String const& name) const {
+DungeonDefinitionConstPtr DungeonDefinitions::get(String const& name, DungeonDefinitionLoadTiming* timing) const {
+  double lookupStarted = timing ? Time::monotonicTime() : 0.0;
   MutexLocker locker(m_cacheMutex);
-  return m_definitionCache.get(name,
-      [this](String const& name) -> DungeonDefinitionPtr {
-        if (auto path = m_paths.maybe(name))
-          return readDefinition(*path);
+  auto definition = m_definitionCache.get(name,
+      [this, timing](String const& name) -> DungeonDefinitionPtr {
+        if (timing)
+          timing->cacheMiss = true;
+        double pathStarted = timing ? Time::monotonicTime() : 0.0;
+        auto path = m_paths.maybe(name);
+        if (timing)
+          timing->pathResolveSeconds = Time::monotonicTime() - pathStarted;
+        if (path) {
+          double readStarted = timing ? Time::monotonicTime() : 0.0;
+          auto loaded = readDefinition(*path);
+          if (timing)
+            timing->readAndBuildSeconds = Time::monotonicTime() - readStarted;
+          return loaded;
+        }
         throw DungeonException::format("Unknown dungeon: '{}'", name);
       });
+  if (timing)
+    timing->cacheLookupSeconds = Time::monotonicTime() - lookupStarted;
+  return definition;
 }
 
 JsonObject DungeonDefinitions::getMetadata(String const& name) const {
@@ -1520,10 +1536,10 @@ int DungeonDefinition::extendSurfaceFreeSpace() const {
 }
 
 DungeonGenerator::DungeonGenerator(String const& dungeonName, uint64_t seed, float threatLevel, Maybe<DungeonId> dungeonId,
-    ExplorationProfile* profile)
+    ExplorationProfile* profile, DungeonDefinitionLoadTiming* definitionTiming)
   : m_profile(profile), m_rand(seed), m_threatLevel(threatLevel), m_dungeonId(dungeonId) {
   ExplorationProfile::Scope timing(m_profile, "dungeon.definitionLoad");
-  m_def = Root::singleton().dungeonDefinitions()->get(dungeonName);
+  m_def = Root::singleton().dungeonDefinitions()->get(dungeonName, definitionTiming);
 }
 
 Maybe<pair<List<RectI>, Set<Vec2I>>> DungeonGenerator::generate(DungeonGeneratorWorldFacadePtr facade, Vec2I position, bool markSurfaceAndTerrain, bool forcePlacement) {

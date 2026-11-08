@@ -39,9 +39,16 @@ Maybe<pair<List<RectI>, Set<Vec2I>>> MicroDungeonFactory::generate(RectI const& 
   auto generatingGuard = finally([this]() { m_generating = false; });
 
   double phaseStarted = timing ? Time::monotonicTime() : 0.0;
-  DungeonGenerator dungeonGenerator(dungeonName, seed, threatLevel, BiomeMicroDungeonId);
-  if (timing)
+  DungeonDefinitionLoadTiming definitionTiming;
+  DungeonGenerator dungeonGenerator(dungeonName, seed, threatLevel, BiomeMicroDungeonId, nullptr,
+      timing ? &definitionTiming : nullptr);
+  if (timing) {
     timing->definitionSeconds = Time::monotonicTime() - phaseStarted;
+    timing->definitionCacheLookupSeconds = definitionTiming.cacheLookupSeconds;
+    timing->definitionPathResolveSeconds = definitionTiming.pathResolveSeconds;
+    timing->definitionReadAndBuildSeconds = definitionTiming.readAndBuildSeconds;
+    timing->definitionCacheMiss = definitionTiming.cacheMiss;
+  }
 
   try {
     // don't bother scanning around because its used in a bruteforce manner for now.

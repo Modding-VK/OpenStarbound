@@ -322,3 +322,7 @@ etapa acima.
 - [ ] Usar a partição interna de factory para escolher uma única causa por vez:
   `definition`, âncora, colisão, `canPlace` ou `build`; comparar antes/depois
   com o mesmo hash, footprint e rota.
+- [x] Para factories lentas dominadas por `definition`, separar busca na cache,
+  resolução interna e leitura/construção da definição, sem registrar nome ou
+  path do asset. Tracy 23 identificou esta necessidade; a coleta seguinte deve
+  decidir se há miss de cache ou custo recorrente de lookup.

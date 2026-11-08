@@ -159,7 +159,9 @@ public:
   // or mod payload.
   void recordSlowMicroDungeonFactory(uint64_t templateHash, Vec2I sector,
       size_t footprintTiles, bool generated, double seconds,
-      double definitionSeconds, double anchorSeconds, double collisionSeconds,
+      double definitionSeconds, double definitionCacheLookupSeconds,
+      double definitionPathResolveSeconds, double definitionReadAndBuildSeconds,
+      bool definitionCacheMiss, double anchorSeconds, double collisionSeconds,
       double canPlaceSeconds, double buildSeconds, uint32_t placementAttempts,
       uint32_t boundsRejected, uint32_t collisionRejected, uint32_t placementRejected,
       bool anchorFound);
@@ -228,6 +230,10 @@ private:
     bool generated;
     double seconds;
     double definitionSeconds;
+    double definitionCacheLookupSeconds;
+    double definitionPathResolveSeconds;
+    double definitionReadAndBuildSeconds;
+    bool definitionCacheMiss;
     double anchorSeconds;
     double collisionSeconds;
     double canPlaceSeconds;

@@ -417,14 +417,18 @@ void ExplorationProfile::recordGenerationRequest(uint64_t epoch, uint64_t sequen
 
 void ExplorationProfile::recordSlowMicroDungeonFactory(uint64_t templateHash, Vec2I sector,
     size_t footprintTiles, bool generated, double seconds,
-    double definitionSeconds, double anchorSeconds, double collisionSeconds,
+    double definitionSeconds, double definitionCacheLookupSeconds,
+    double definitionPathResolveSeconds, double definitionReadAndBuildSeconds,
+    bool definitionCacheMiss, double anchorSeconds, double collisionSeconds,
     double canPlaceSeconds, double buildSeconds, uint32_t placementAttempts,
     uint32_t boundsRejected, uint32_t collisionRejected, uint32_t placementRejected,
     bool anchorFound) {
   if (!m_regionalDetails || seconds < m_slowSeconds)
     return;
   SlowMicroDungeonFactory sample{templateHash, sector, footprintTiles, generated, seconds,
-      definitionSeconds, anchorSeconds, collisionSeconds, canPlaceSeconds, buildSeconds,
+      definitionSeconds, definitionCacheLookupSeconds, definitionPathResolveSeconds,
+      definitionReadAndBuildSeconds, definitionCacheMiss, anchorSeconds, collisionSeconds,
+      canPlaceSeconds, buildSeconds,
       placementAttempts, boundsRejected, collisionRejected, placementRejected, anchorFound};
   if (m_slowMicroDungeonFactories.size() < m_entityDetailLimit) {
     m_slowMicroDungeonFactories.append(std::move(sample));
@@ -666,6 +670,10 @@ void ExplorationProfile::report(bool final) {
       {"footprintTiles", sample.footprintTiles}, {"generated", sample.generated},
       {"milliseconds", sample.seconds * 1000},
       {"definitionMilliseconds", sample.definitionSeconds * 1000},
+      {"definitionCacheLookupMilliseconds", sample.definitionCacheLookupSeconds * 1000},
+      {"definitionPathResolveMilliseconds", sample.definitionPathResolveSeconds * 1000},
+      {"definitionReadAndBuildMilliseconds", sample.definitionReadAndBuildSeconds * 1000},
+      {"definitionCacheMiss", sample.definitionCacheMiss},
       {"anchorMilliseconds", sample.anchorSeconds * 1000},
       {"collisionMilliseconds", sample.collisionSeconds * 1000},
       {"canPlaceMilliseconds", sample.canPlaceSeconds * 1000},

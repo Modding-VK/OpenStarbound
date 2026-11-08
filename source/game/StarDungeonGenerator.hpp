@@ -18,6 +18,15 @@ STAR_CLASS(DungeonDefinition);
 STAR_CLASS(DungeonDefinitions);
 class ExplorationProfile;
 
+// Optional, caller-owned diagnostic breakdown for a definition lookup. It is
+// populated only by the profiling route and never stores an asset path/name.
+struct DungeonDefinitionLoadTiming {
+  double cacheLookupSeconds = 0;
+  double pathResolveSeconds = 0;
+  double readAndBuildSeconds = 0;
+  bool cacheMiss = false;
+};
+
 class DungeonGeneratorWorldFacade {
 public:
   virtual ~DungeonGeneratorWorldFacade() {}
@@ -680,7 +689,7 @@ class DungeonDefinitions {
 public:
   DungeonDefinitions();
 
-  DungeonDefinitionConstPtr get(String const& name) const;
+  DungeonDefinitionConstPtr get(String const& name, DungeonDefinitionLoadTiming* timing = nullptr) const;
   JsonObject getMetadata(String const& name) const;
 
 private:
@@ -694,7 +703,7 @@ private:
 class DungeonGenerator {
 public:
   DungeonGenerator(String const& dungeonName, uint64_t seed, float threatLevel, Maybe<DungeonId> dungeonId,
-      ExplorationProfile* profile = nullptr);
+      ExplorationProfile* profile = nullptr, DungeonDefinitionLoadTiming* definitionTiming = nullptr);
 
   Maybe<pair<List<RectI>, Set<Vec2I>>> generate(DungeonGeneratorWorldFacadePtr facade, Vec2I position, bool markSurfaceAndTerrain, bool forcePlacement);
 

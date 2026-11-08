@@ -12,6 +12,9 @@ class MicroDungeonFactory {
 public:
   struct GenerationTiming {
     double definitionSeconds = 0;
+    double definitionCacheLookupSeconds = 0;
+    double definitionPathResolveSeconds = 0;
+    double definitionReadAndBuildSeconds = 0;
     double anchorSeconds = 0;
     double collisionSeconds = 0;
     double canPlaceSeconds = 0;
@@ -20,6 +23,7 @@ public:
     uint32_t boundsRejected = 0;
     uint32_t collisionRejected = 0;
     uint32_t placementRejected = 0;
+    bool definitionCacheMiss = false;
     bool anchorFound = false;
   };
 

@@ -1653,7 +1653,9 @@ void WorldGenerator::applyMicroDungeonPlan(WorldStorage* worldStorage, MicroDung
       sector = Vec2I((int)(*planSector)[0], (int)(*planSector)[1]);
     profile->recordSlowMicroDungeonFactory(xxHash3(plan.dungeonName), sector,
         generateResult ? generateResult->second.size() : 0, bool(generateResult), factorySeconds,
-        factoryDetails.definitionSeconds, factoryDetails.anchorSeconds, factoryDetails.collisionSeconds,
+        factoryDetails.definitionSeconds, factoryDetails.definitionCacheLookupSeconds,
+        factoryDetails.definitionPathResolveSeconds, factoryDetails.definitionReadAndBuildSeconds,
+        factoryDetails.definitionCacheMiss, factoryDetails.anchorSeconds, factoryDetails.collisionSeconds,
         factoryDetails.canPlaceSeconds, factoryDetails.buildSeconds, factoryDetails.placementAttempts,
         factoryDetails.boundsRejected, factoryDetails.collisionRejected, factoryDetails.placementRejected,
         factoryDetails.anchorFound);
