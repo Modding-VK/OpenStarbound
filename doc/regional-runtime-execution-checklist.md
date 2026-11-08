@@ -354,3 +354,6 @@ etapa acima.
   metadata/rules, tileset e construção inclusiva de partes `image`/`tmx`, sem
   caminhos ou nomes de assets. A próxima coleta deve escolher uma única etapa
   para otimização; não mover leitura de assets para workers sem nova auditoria.
+  Tracy 28 identificou readers TMX (129,831 ms em duas partes) como a causa
+  dominante do miss frio; ver
+  [runtime-validation-2026-11-08-tracy28-tmx-definition.md](runtime-validation-2026-11-08-tracy28-tmx-definition.md).
