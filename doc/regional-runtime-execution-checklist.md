@@ -339,4 +339,7 @@ etapa acima.
 - [x] Adicionar preview serial e limitado de pré-aquecimento de definições para
   planos privados de MicroDungeon já prontos e revalidados. O orçamento limita
   admissões, mas não preempta leitura fria; manter desligado até comparar p99,
-  expirações, save e mods contra a mesma rota.
+  expirações, save e mods contra a mesma rota. Tracy 26 confirmou que misses
+  deixam a factory, mas revelou defer redundante de planos vazios e um miss
+  individual de 134,765 ms ainda serial; corrigir o plano vazio antes de nova
+  validação; ver [runtime-validation-2026-11-08-tracy26-definition-prewarm.md](runtime-validation-2026-11-08-tracy26-definition-prewarm.md).
