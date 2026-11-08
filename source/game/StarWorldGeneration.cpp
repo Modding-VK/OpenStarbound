@@ -28,6 +28,7 @@
 #include "StarVehicleDatabase.hpp"
 #include "StarTime.hpp"
 #include "StarTrace.hpp"
+#include "StarXXHash.hpp"
 
 #include <thread>
 
@@ -1639,9 +1640,18 @@ void WorldGenerator::applyMicroDungeonPlan(WorldStorage* worldStorage, MicroDung
   // Planning above is value-only; all tiles, entities and promises remain in
   // the legacy owner-thread path below.
   ExplorationProfile::Scope factoryTiming(profile, "generation.microDungeonPlan.apply.factory");
+  double factoryStarted = profile ? Time::monotonicTime() : 0.0;
   auto generateResult = m_microDungeonFactory->generate(plan.bounds, plan.dungeonName, plan.position,
       plan.seed, m_worldServer->threatLevel(), facade);
   factoryTiming.stop();
+  double factorySeconds = profile ? Time::monotonicTime() - factoryStarted : 0.0;
+  if (profile) {
+    Vec2I sector(-1, -1);
+    if (auto planSector = worldStorage->sectorForPosition(plan.position))
+      sector = Vec2I((int)(*planSector)[0], (int)(*planSector)[1]);
+    profile->recordSlowMicroDungeonFactory(xxHash3(plan.dungeonName), sector,
+        generateResult ? generateResult->second.size() : 0, bool(generateResult), factorySeconds);
+  }
   if (!generateResult)
     return;
 

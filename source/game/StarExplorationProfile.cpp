@@ -409,6 +409,21 @@ void ExplorationProfile::recordGenerationRequest(uint64_t epoch, uint64_t sequen
   });
 }
 
+void ExplorationProfile::recordSlowMicroDungeonFactory(uint64_t templateHash, Vec2I sector,
+    size_t footprintTiles, bool generated, double seconds) {
+  if (!m_regionalDetails || seconds < m_slowSeconds)
+    return;
+  SlowMicroDungeonFactory sample{templateHash, sector, footprintTiles, generated, seconds};
+  if (m_slowMicroDungeonFactories.size() < m_entityDetailLimit) {
+    m_slowMicroDungeonFactories.append(std::move(sample));
+  } else {
+    auto shortest = std::min_element(m_slowMicroDungeonFactories.begin(), m_slowMicroDungeonFactories.end(),
+        [](auto const& a, auto const& b) { return a.seconds < b.seconds; });
+    if (sample.seconds > shortest->seconds)
+      *shortest = std::move(sample);
+  }
+}
+
 void ExplorationProfile::recordRegionalTurn(WorldRegionTurn const& turn, char const* event, uint64_t observationStep) {
   if (!m_regionalDetails)
     return;
@@ -623,6 +638,18 @@ void ExplorationProfile::report(bool final) {
   };
   auto staleBaseTiles = baseTileOutcomesJson(m_staleBaseTiles);
   auto evictedBaseTiles = baseTileOutcomesJson(m_evictedBaseTiles);
+  bool hasSlowMicroDungeonFactories = !m_slowMicroDungeonFactories.empty();
+  std::sort(m_slowMicroDungeonFactories.begin(), m_slowMicroDungeonFactories.end(),
+      [](auto const& a, auto const& b) { return a.seconds > b.seconds; });
+  JsonArray slowMicroDungeonFactories;
+  for (auto const& sample : m_slowMicroDungeonFactories) {
+    slowMicroDungeonFactories.append(JsonObject{
+      {"templateHash", sample.templateHash}, {"sector", jsonFromVec2I(sample.sector)},
+      {"footprintTiles", sample.footprintTiles}, {"generated", sample.generated},
+      {"milliseconds", sample.seconds * 1000}
+    });
+  }
+  m_slowMicroDungeonFactories.clear();
   auto generationTasks = std::move(m_generationTaskEvents);
   m_generationTaskEvents = {};
   auto generationRequests = std::move(m_generationRequestEvents);
@@ -664,7 +691,8 @@ void ExplorationProfile::report(bool final) {
   if (!stages.empty() || !counts.empty() || !maxima.empty() || !entityTypes.empty() || !slowEntities.empty()
       || !npcStages.empty() || !oldestQueuedSector.isNull() || !slowSectors.empty() || !tilePackets.empty()
       || !staleBaseTiles.empty() || !evictedBaseTiles.empty() || !generationTasks.empty() || !regionTurns.empty()
-      || !storyHops.empty() || !generationRequests.empty() || !generationSelections.empty()) {
+      || !storyHops.empty() || !generationRequests.empty() || !generationSelections.empty()
+      || hasSlowMicroDungeonFactories) {
     Json report = JsonObject{
       {"component", m_component}, {"context", m_context}, {"instance", m_instance},
       {"sessionStartedMonotonicMilliseconds", m_sessionStart * 1000},
@@ -675,6 +703,7 @@ void ExplorationProfile::report(bool final) {
       {"oldestQueuedSector", std::move(oldestQueuedSector)}, {"slowSectors", std::move(slowSectors)},
       {"tilePackets", std::move(tilePackets)},
       {"staleBaseTiles", std::move(staleBaseTiles)}, {"evictedBaseTiles", std::move(evictedBaseTiles)},
+      {"slowMicroDungeonFactories", std::move(slowMicroDungeonFactories)},
       {"generationTasks", std::move(generationTasks)},
       {"generationRequests", std::move(generationRequests)},
       {"generationSelections", std::move(generationSelections)},
@@ -843,11 +872,13 @@ void ExplorationProfile::report(bool final) {
       generation.set("generationTasks", object.get("generationTasks"));
       generation.set("generationRequests", object.get("generationRequests"));
       generation.set("generationSelections", object.get("generationSelections"));
+      generation.set("slowMicroDungeonFactories", object.get("slowMicroDungeonFactories"));
       bool hasGeneration = !objectOrEmpty(generation.get("stages")).empty() || !objectOrEmpty(generation.get("counts")).empty()
           || !arrayOrEmpty(generation.get("staleBaseTiles")).empty() || !arrayOrEmpty(generation.get("evictedBaseTiles")).empty()
           || !arrayOrEmpty(generation.get("generationTasks")).empty()
           || !arrayOrEmpty(generation.get("generationRequests")).empty()
-          || !arrayOrEmpty(generation.get("generationSelections")).empty();
+          || !arrayOrEmpty(generation.get("generationSelections")).empty()
+          || !arrayOrEmpty(generation.get("slowMicroDungeonFactories")).empty();
       makeCategory("generation", std::move(generation), hasGeneration);
 
       // Dungeon generation is authoritative and serial. Keep its fixed-label

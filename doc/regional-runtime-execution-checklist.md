@@ -313,3 +313,6 @@ etapa acima.
   completos/s e expirações contra `aggressive` com a mesma rota.
 - [ ] Correlacionar os estágios `generation.microDungeonPlan.apply.*` com Tracy
   para separar custo de planejamento, aplicação serial e publicação de mundo.
+- [ ] Para cada entrada de `slowMicroDungeonFactories`, reproduzir a mesma seed
+  e rota, comparar hash/footprint/duração e confirmar equivalência de tiles,
+  entidades e saves antes de otimizar a factory correspondente.

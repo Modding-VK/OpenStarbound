@@ -549,6 +549,14 @@ fachada, a geração de cada estrutura e a publicação de tiles/promises, sem
 registrar payloads de mods. O objetivo é saber qual fração ainda é
 necessariamente dona da world thread antes de qualquer refatoração adicional.
 
+Quando `regionalDetails` está ativo, somente factories acima de
+`slowOperationMilliseconds` entram em `slowMicroDungeonFactories` na categoria
+`generation`. Cada janela retém no máximo `entityDetailLimit` casos: hash
+numérico estável do template, setor, tamanho do footprint, resultado e duração.
+O nome da dungeon, caminho de asset e qualquer payload de mod não são gravados.
+Esse recorte permite correlacionar os outliers seriais com o Tracy antes de
+otimizar uma factory específica.
+
 `worldThreading.generationPersistentPriorityPreview` é o segundo recorte.
 Quando `generationFairnessSchedulerPreview` está ativo, ele passa a acompanhar
 a política de justiça por padrão; o campo explícito ainda pode ser definido

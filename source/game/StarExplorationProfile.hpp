@@ -154,6 +154,11 @@ public:
   void recordGenerationTask(WorldGenerationTaskIdentity const& identity, char const* event, size_t reservedBytes);
   void recordGenerationRequest(uint64_t epoch, uint64_t sequence, Vec2I sector,
       char const* event, double ageSeconds, int generationLevel);
+  // Bounded diagnostics for expensive authoritative dungeon factories. The
+  // caller supplies only a numeric stable template hash, never an asset name
+  // or mod payload.
+  void recordSlowMicroDungeonFactory(uint64_t templateHash, Vec2I sector,
+      size_t footprintTiles, bool generated, double seconds);
   void recordRegionalTurn(WorldRegionTurn const& turn, char const* event, uint64_t observationStep);
   // Call at an outer operation boundary, never inside a timed scope. Final
   // reports preserve short windows when a world closes before the interval.
@@ -212,6 +217,14 @@ private:
     double ageSeconds;
   };
 
+  struct SlowMicroDungeonFactory {
+    uint64_t templateHash;
+    Vec2I sector;
+    size_t footprintTiles;
+    bool generated;
+    double seconds;
+  };
+
   void recordEntity(Entity const& entity, double totalSeconds, double luaSeconds, double loggingSeconds);
   void writeReportFile(String const& category, Json const& report);
   static thread_local EntityScope* s_currentEntityScope;
@@ -261,6 +274,7 @@ private:
   List<TilePacketSample> m_tilePackets;
   List<BaseTileOutcome> m_staleBaseTiles;
   List<BaseTileOutcome> m_evictedBaseTiles;
+  List<SlowMicroDungeonFactory> m_slowMicroDungeonFactories;
   JsonArray m_generationTaskEvents;
   JsonArray m_generationRequestEvents;
   JsonArray m_generationSelectionEvents;
