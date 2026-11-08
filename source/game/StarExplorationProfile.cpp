@@ -201,7 +201,13 @@ ExplorationProfile::EntityLuaScope::~EntityLuaScope() {
 }
 
 void ExplorationProfile::setContext(String context) {
+  if (m_context == context)
+    return;
   m_context = std::move(context);
+  // A server is constructed as Nowhere and receives its stable world id a
+  // moment later. Never keep report paths derived from the transient context;
+  // the next report must create files under the real world identity.
+  m_reportFiles.clear();
 }
 
 ExplorationProfile* ExplorationProfile::npcProfile(World* world) {
@@ -519,7 +525,13 @@ void ExplorationProfile::writeReportFile(String const& category, Json const& rep
     File::makeDirectoryRecursive(directory);
     auto context = diagnosticPathPart(m_context, "session");
     file = &m_reportFiles[category];
-    *file = File::relativeTo(directory, strf("{}-{}.jsonl", context, m_instance));
+    // Instance numbering restarts for every process and was not sufficient to
+    // isolate consecutive launches when a previous primary JSONL existed.
+    // Session start is recorded in every line and makes the filename unique
+    // across normal launches; the existing bounded rotation remains a safety
+    // net for an exceptionally identical session identity.
+    *file = File::relativeTo(directory, strf("{}-{}-{}.jsonl", context, m_instance,
+        static_cast<uint64_t>(m_sessionStart * 1000)));
     // Instance numbering is process-local and restarts at one on the next
     // launch. Never append that next launch to a matching old JSONL: preserve
     // it through the configured rotation and make the primary file the current
@@ -914,6 +926,29 @@ void ExplorationProfile::report(bool final) {
       bool hasScripts = !objectOrEmpty(scripts.get("stages")).empty() || !arrayOrEmpty(scripts.get("storyHops")).empty()
           || (scripts.contains("allStages") && !objectOrEmpty(scripts.get("allStages")).empty());
       makeCategory("scripts", std::move(scripts), hasScripts);
+    } catch (BadVariantType const&) {
+      // Some transitional server profiles (notably Nowhere before a world id
+      // is assigned) can still fail while a category is assembled, before the
+      // per-category writer fallback. Preserve a minimal record here too.
+      try {
+        JsonObject fallback{
+          {"component", m_component}, {"context", m_context}, {"instance", m_instance},
+          {"category", reportCategory}, {"windowMilliseconds", (now - m_windowStart) * 1000},
+          {"slowOperationMilliseconds", m_slowSeconds * 1000},
+          {"final", final}, {"reportFallback", "badVariantType"}
+        };
+        writeReportFile(reportCategory, Json(std::move(fallback)));
+        if (!m_reportWriteFailureLogged) {
+          Logger::warn("[ExplorationProfile] recovered report category={} with outer BadVariantType fallback", reportCategory);
+          m_reportWriteFailureLogged = true;
+        }
+      } catch (...) {
+        if (!m_reportWriteFailureLogged) {
+          Logger::warn("[ExplorationProfile] report fallback failed component={} instance={} category={}",
+              m_component, m_instance, reportCategory);
+          m_reportWriteFailureLogged = true;
+        }
+      }
     } catch (std::exception const& exception) {
       if (!m_reportWriteFailureLogged) {
         Logger::warn("[ExplorationProfile] report file write failed component={} instance={} category={} failure=standardException detail={}",
