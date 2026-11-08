@@ -18,6 +18,17 @@ STAR_CLASS(DungeonDefinition);
 STAR_CLASS(DungeonDefinitions);
 class ExplorationProfile;
 
+struct DungeonTmxReadTiming {
+  double assetJsonSeconds = 0;
+  double mapSeconds = 0;
+  double tilesetsSeconds = 0;
+  double tileLayersSeconds = 0;
+  double objectGroupsSeconds = 0;
+  uint32_t mapCount = 0;
+  uint32_t tileLayerCount = 0;
+  uint32_t objectGroupCount = 0;
+};
+
 struct DungeonDefinitionConstructionTiming {
   double assetJsonSeconds = 0;
   double metadataSeconds = 0;
@@ -27,6 +38,7 @@ struct DungeonDefinitionConstructionTiming {
   double tmxPartsSeconds = 0;
   uint32_t imagePartCount = 0;
   uint32_t tmxPartCount = 0;
+  DungeonTmxReadTiming tmx;
 };
 
 // Optional, caller-owned diagnostic breakdown for a definition lookup. It is

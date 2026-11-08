@@ -14,6 +14,19 @@ namespace Dungeon {
   STAR_CLASS(TMXObjectGroup);
   STAR_CLASS(TMXMap);
 
+  // Activates only while a timed definition constructs a TMX part. The
+  // pointer is thread-local and never retained by a map/reader after loading.
+  class TmxReadTimingScope {
+  public:
+    explicit TmxReadTimingScope(DungeonTmxReadTiming* timing);
+    ~TmxReadTimingScope();
+    TmxReadTimingScope(TmxReadTimingScope const&) = delete;
+    TmxReadTimingScope& operator=(TmxReadTimingScope const&) = delete;
+
+  private:
+    DungeonTmxReadTiming* m_previous;
+  };
+
   class TMXTilesets {
   public:
     TMXTilesets(Json const& tmx);

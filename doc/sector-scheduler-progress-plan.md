@@ -611,6 +611,13 @@ referenciados; não emite nomes de arquivos, readers, tiles ou conteúdo de
 mods. Os tempos de partes por tipo são subconjuntos de
 `definitionPartsMilliseconds`, que é inclusivo.
 
+Para partes TMX, o recorte seguinte separa JSON do mapa,
+`TMXMap`, tilesets, camadas (inclusive decode/descompressão) e grupos de
+objetos. Também registra somente contagens de mapas, camadas e grupos. O
+ponteiro de diagnóstico é thread-local e existe apenas durante a construção da
+parte; não é retido pelo reader ou pelo mapa e não muda leitura, cache ou
+ordem de geração.
+
 `worldThreading.generationPersistentPriorityPreview` é o segundo recorte.
 Quando `generationFairnessSchedulerPreview` está ativo, ele passa a acompanhar
 a política de justiça por padrão; o campo explícito ainda pode ser definido

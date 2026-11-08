@@ -1496,6 +1496,7 @@ DungeonDefinition::DungeonDefinition(JsonObject const& definition, String const&
   for (auto const& partsDefMap : definition.get("parts").iterateArray()) {
     String kind = partsDefMap.get("def").getString(0);
     double partStarted = timing ? Time::monotonicTime() : 0.0;
+    Dungeon::TmxReadTimingScope tmxTiming(kind == "tmx" && timing ? &timing->tmx : nullptr);
     Dungeon::PartConstPtr part = parsePart(this, partsDefMap, tileset);
     if (timing) {
       double partSeconds = Time::monotonicTime() - partStarted;

@@ -357,3 +357,7 @@ etapa acima.
   Tracy 28 identificou readers TMX (129,831 ms em duas partes) como a causa
   dominante do miss frio; ver
   [runtime-validation-2026-11-08-tracy28-tmx-definition.md](runtime-validation-2026-11-08-tracy28-tmx-definition.md).
+- [x] Particionar reader TMX em JSON do mapa, `TMXMap`, tilesets, camadas/
+  descompressão e grupos de objetos, com contagens fixas. A próxima coleta deve
+  decidir entre cache de mapas e outra otimização serial de baixo risco; não
+  mover assets para workers nesta fase.

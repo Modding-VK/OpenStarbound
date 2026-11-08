@@ -10,10 +10,28 @@
 #include "StarObjectDatabase.hpp"
 #include "StarDungeonTMXPart.hpp"
 #include "StarJsonExtra.hpp"
+#include "StarTime.hpp"
 
 namespace Star {
 
 namespace Dungeon {
+
+namespace {
+thread_local DungeonTmxReadTiming* s_tmxReadTiming = nullptr;
+
+DungeonTmxReadTiming* activeTmxReadTiming() {
+  return s_tmxReadTiming;
+}
+}
+
+TmxReadTimingScope::TmxReadTimingScope(DungeonTmxReadTiming* timing)
+  : m_previous(s_tmxReadTiming) {
+  s_tmxReadTiming = timing;
+}
+
+TmxReadTimingScope::~TmxReadTimingScope() {
+  s_tmxReadTiming = m_previous;
+}
 
   bool TMXMap::forEachTile(TileCallback const& callback) const {
     for (auto const& layer : tileLayers()) {
@@ -201,18 +219,32 @@ TMXTileLayer::TMXTileLayer(Json const& layer) {
     m_width = tmx.getUInt("width");
     m_height = tmx.getUInt("height");
 
+    auto timing = activeTmxReadTiming();
+    double phaseStarted = timing ? Time::monotonicTime() : 0.0;
     m_tilesets = make_shared<TMXTilesets>(tmx.getArray("tilesets"));
+    if (timing)
+      timing->tilesetsSeconds += Time::monotonicTime() - phaseStarted;
 
     for (Json const& tmxLayer : tmx.get("layers").iterateArray()) {
       String layerType = tmxLayer.getString("type");
 
       if (layerType == "tilelayer") {
+        phaseStarted = timing ? Time::monotonicTime() : 0.0;
         TMXTileLayerPtr layer = make_shared<TMXTileLayer>(tmxLayer);
         m_tileLayers.append(layer);
+        if (timing) {
+          timing->tileLayersSeconds += Time::monotonicTime() - phaseStarted;
+          ++timing->tileLayerCount;
+        }
 
       } else if (layerType == "objectgroup") {
+        phaseStarted = timing ? Time::monotonicTime() : 0.0;
         TMXObjectGroupPtr group = make_shared<TMXObjectGroup>(tmxLayer, m_tilesets);
         m_objectGroups.append(group);
+        if (timing) {
+          timing->objectGroupsSeconds += Time::monotonicTime() - phaseStarted;
+          ++timing->objectGroupCount;
+        }
 
       } else {
         throw StarException(strf("Unknown layer type '{}'", layerType.utf8Ptr()));
@@ -439,7 +471,18 @@ TMXTileLayer::TMXTileLayer(Json const& layer) {
 
   void TMXPartReader::readAsset(String const& asset) {
     auto assets = Root::singleton().assets();
-    m_maps.append(make_pair(asset, make_shared<const TMXMap>(assets->json(asset))));
+    auto timing = activeTmxReadTiming();
+    double phaseStarted = timing ? Time::monotonicTime() : 0.0;
+    auto mapJson = assets->json(asset);
+    if (timing)
+      timing->assetJsonSeconds += Time::monotonicTime() - phaseStarted;
+    phaseStarted = timing ? Time::monotonicTime() : 0.0;
+    auto map = make_shared<const TMXMap>(mapJson);
+    if (timing) {
+      timing->mapSeconds += Time::monotonicTime() - phaseStarted;
+      ++timing->mapCount;
+    }
+    m_maps.append(make_pair(asset, std::move(map)));
   }
 
   Vec2U TMXPartReader::size() const {

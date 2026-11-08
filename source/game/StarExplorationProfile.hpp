@@ -165,6 +165,10 @@ public:
       double definitionTilesetSeconds, double definitionPartsSeconds,
       double definitionImagePartsSeconds, double definitionTmxPartsSeconds,
       uint32_t definitionImagePartCount, uint32_t definitionTmxPartCount,
+      double definitionTmxAssetJsonSeconds, double definitionTmxMapSeconds,
+      double definitionTmxTilesetsSeconds, double definitionTmxTileLayersSeconds,
+      double definitionTmxObjectGroupsSeconds, uint32_t definitionTmxMapCount,
+      uint32_t definitionTmxTileLayerCount, uint32_t definitionTmxObjectGroupCount,
       bool definitionCacheMiss, double anchorSeconds, double collisionSeconds,
       double canPlaceSeconds, double buildSeconds, uint32_t placementAttempts,
       uint32_t boundsRejected, uint32_t collisionRejected, uint32_t placementRejected,
@@ -245,6 +249,14 @@ private:
     double definitionTmxPartsSeconds;
     uint32_t definitionImagePartCount;
     uint32_t definitionTmxPartCount;
+    double definitionTmxAssetJsonSeconds;
+    double definitionTmxMapSeconds;
+    double definitionTmxTilesetsSeconds;
+    double definitionTmxTileLayersSeconds;
+    double definitionTmxObjectGroupsSeconds;
+    uint32_t definitionTmxMapCount;
+    uint32_t definitionTmxTileLayerCount;
+    uint32_t definitionTmxObjectGroupCount;
     bool definitionCacheMiss;
     double anchorSeconds;
     double collisionSeconds;
