@@ -1410,9 +1410,9 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
       }
       return {false, {}};
     }
-    PreparedMicroDungeonPlan result;
+    PreparedMicroDungeonPlan const* preparedResult = nullptr;
     try {
-      result = std::move(pending->promise->get());
+      preparedResult = &pending->promise->get();
     } catch (...) {
       retireBaseTileTask(pending->task, WorldGenerationTaskOutcome::Failed);
       m_pendingMicroDungeonPlans.remove(sector);
@@ -1442,6 +1442,49 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
       }
       return allowAsync ? generateMicroDungeons(worldStorage, sector, true) : SectorGenerationResult{false, {}};
     }
+    // A definition can take a long first load but requires no world mutation.
+    // Keep this owner-thread-only preview separate from applying the plan so a
+    // selected visible plan can warm its bounded list before the commit pass.
+    // The time limit controls admission between definitions; an individual
+    // asset read remains non-preemptible and is recorded as an overrun.
+    auto threading = Root::singleton().configuration()->get("worldThreading", JsonObject());
+    bool definitionPrewarmPreview = allowAsync && planPreview && workerPreview
+        && threading.getBool("generationMicroDungeonDefinitionPrewarmPreview", false);
+    if (definitionPrewarmPreview && !pending->definitionsPrewarmed) {
+      unsigned prewarmMilliseconds = clamp<unsigned>(
+          threading.getUInt("generationMicroDungeonDefinitionPrewarmMilliseconds", 1), 1, 8);
+      unsigned prewarmCandidateLimit = clamp<unsigned>(
+          threading.getUInt("generationMicroDungeonDefinitionPrewarmCandidateLimit", 1), 1, 8);
+      double deadline = Time::monotonicTime() + prewarmMilliseconds / 1000.0;
+      unsigned warmed = 0;
+      if (profile)
+        profile->count("generation.microDungeonDefinitionPrewarm.passes");
+      while (pending->definitionPrewarmNextPlan < preparedResult->plans.size()
+          && warmed < prewarmCandidateLimit && Time::monotonicTime() < deadline) {
+        auto const& plan = preparedResult->plans[pending->definitionPrewarmNextPlan++];
+        DungeonDefinitionLoadTiming definitionTiming;
+        double started = Time::monotonicTime();
+        Root::singleton().dungeonDefinitions()->get(plan.dungeonName, &definitionTiming);
+        double elapsed = Time::monotonicTime() - started;
+        if (profile) {
+          profile->count("generation.microDungeonDefinitionPrewarm.attempted");
+          profile->count(definitionTiming.cacheHit
+              ? "generation.microDungeonDefinitionPrewarm.cacheHits"
+              : "generation.microDungeonDefinitionPrewarm.cacheMisses");
+          if (definitionTiming.cacheEvicted)
+            profile->count("generation.microDungeonDefinitionPrewarm.evictions");
+          profile->record("generation.microDungeonDefinitionPrewarm.definition", elapsed);
+          if (Time::monotonicTime() >= deadline)
+            profile->count("generation.microDungeonDefinitionPrewarm.deadlineReached");
+        }
+        ++warmed;
+      }
+      pending->definitionsPrewarmed = pending->definitionPrewarmNextPlan >= preparedResult->plans.size();
+      if (profile && !pending->definitionsPrewarmed)
+        profile->count("generation.microDungeonDefinitionPrewarm.deferred");
+      return {false, {}};
+    }
+    PreparedMicroDungeonPlan result = std::move(*preparedResult);
     ExplorationProfile::Scope facadeTiming(profile, "generation.microDungeonPlan.apply.facade");
     auto facade = make_shared<DungeonGeneratorWorld>(m_worldServer, false);
     facadeTiming.stop();

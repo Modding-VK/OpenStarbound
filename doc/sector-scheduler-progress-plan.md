@@ -578,6 +578,29 @@ Não há estimativa de bytes até que exista uma contagem honesta da memória
 transitiva de uma definição; a ocupação é deliberadamente uma medida de
 cardinalidade, não uma alegação de uso de memória.
 
+`worldThreading.generationMicroDungeonDefinitionPrewarmPreview` é um preview
+desligado por padrão para materializar, na thread dona, definições dos planos
+privados já prontos e revalidados antes de aplicar seus efeitos. Ele não chama
+Lua, não cria entidades, não escreve tiles e não muda seed, ordem de planos ou
+promises. `generationMicroDungeonDefinitionPrewarmMilliseconds` (1–8) limita
+novas admissões entre definições e `...CandidateLimit` (1–8) limita quantas
+entradas são tocadas por passagem. Uma leitura fria individual não é
+preemptível: `deadlineReached` deve ser observado antes de concluir que o
+orçamento limita o frame.
+
+```json
+"worldThreading" : {
+  "generationMicroDungeonDefinitionPrewarmPreview" : true,
+  "generationMicroDungeonDefinitionPrewarmMilliseconds" : 1,
+  "generationMicroDungeonDefinitionPrewarmCandidateLimit" : 1
+}
+```
+
+Os contadores `generation.microDungeonDefinitionPrewarm.*` distinguem
+tentativas, hits, misses, evicções, adiamentos e alcance do deadline. O commit
+da MicroDungeon é adiado para a passagem seguinte mesmo quando o pré-aquecimento
+termina, preservando uma fronteira observável entre cache e publicação.
+
 `worldThreading.generationPersistentPriorityPreview` é o segundo recorte.
 Quando `generationFairnessSchedulerPreview` está ativo, ele passa a acompanhar
 a política de justiça por padrão; o campo explícito ainda pode ser definido

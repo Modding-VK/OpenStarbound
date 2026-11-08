@@ -336,3 +336,7 @@ etapa acima.
   84 hits, 7 misses, zero evicções e máximo de 7/20 no mundo principal; o
   outlier remanescente é primeiro carregamento frio, não churn; ver
   [runtime-validation-2026-11-08-tracy25-lru-hit-fix.md](runtime-validation-2026-11-08-tracy25-lru-hit-fix.md).
+- [x] Adicionar preview serial e limitado de pré-aquecimento de definições para
+  planos privados de MicroDungeon já prontos e revalidados. O orçamento limita
+  admissões, mas não preempta leitura fria; manter desligado até comparar p99,
+  expirações, save e mods contra a mesma rota.

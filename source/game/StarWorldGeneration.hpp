@@ -228,6 +228,8 @@ private:
     double scheduledAt;
     Maybe<WorkerPoolPromise<PreparedMicroDungeonPlan>> promise;
     bool dependencyPrepared = false;
+    size_t definitionPrewarmNextPlan = 0;
+    bool definitionsPrewarmed = false;
   };
 
   void prepareTiles(WorldStorage* worldStorage, Sector const& sector);
