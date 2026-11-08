@@ -233,7 +233,10 @@ do uso de CPU do sistema.
   [regional-runtime-expiry-risk-validation-protocol.md](regional-runtime-expiry-risk-validation-protocol.md).
 - [x] Separar relatórios de exploração entre lançamentos: arquivo primário
   existente é rotacionado antes da primeira escrita da nova sessão e cada
-  relatório registra o início monotônico da sessão.
+  relatório registra o início monotônico da sessão. Tracy 23 confirmou o
+  isolamento do arquivo do mundo; o fallback recuperável de `storage` no
+  perfil transitório `Nowhere` ainda requer correção de causa raiz; ver
+  [runtime-validation-2026-11-08-tracy23-factory-phases.md](runtime-validation-2026-11-08-tracy23-factory-phases.md).
 - [ ] Orçar bytes, tarefas pendentes e regiões globalmente.
 - [ ] Separar admissão, execução e commit em filas distintas.
 - [ ] Fazer a admissão alimentar preparação independente até os limites de
