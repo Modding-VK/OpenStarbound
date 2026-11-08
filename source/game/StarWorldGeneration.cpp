@@ -1106,7 +1106,6 @@ RpcPromise<Vec2I> WorldGenerator::enqueuePlacement(List<BiomeItemDistribution> d
     std::move(distributions),
     id,
     promise.second,
-    false,
   });
   return promise.first;
 }
@@ -1500,9 +1499,6 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
     for (auto const& plan : result.plans)
       applyMicroDungeonPlan(worldStorage, plan, facade, profile, planPreview);
     plansTiming.stop();
-    ExplorationProfile::Scope cleanupTiming(profile, "generation.microDungeonPlan.apply.cleanup");
-    m_queuedPlacements = m_queuedPlacements.filtered([&](QueuedPlacement& p) { return !p.fulfilled; });
-    cleanupTiming.stop();
     bool dependencyPrepared = pending->dependencyPrepared;
     retireBaseTileTask(pending->task, WorldGenerationTaskOutcome::Committed);
     m_pendingMicroDungeonPlans.remove(sector);
@@ -1546,9 +1542,8 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
       bytes += sizeof(*tiles);
       snapshot.haloTiles.append({haloSector, std::move(tiles)});
     }
-    for (size_t i = 0; i < m_queuedPlacements.size(); ++i)
-      if (!m_queuedPlacements[i].fulfilled)
-        snapshot.queuedPlacements.append({m_queuedPlacements[i].distributions, i});
+    for (auto const& entry : m_queuedPlacements.entries())
+      snapshot.queuedPlacements.append({entry.second.distributions, entry.first});
     auto threading = Root::singleton().configuration()->get("worldThreading", JsonObject());
     bool baseTilesDeliveryCapacityPreview = threading.getBool("generationBaseTilesDeliveryCapacityPreview", false);
     unsigned baseTilesPendingMultiplier = baseTilesDeliveryCapacityPreview
@@ -1615,11 +1610,8 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
   // writer can consume them without touching the live world.
   for (auto const& haloSector : tileArray->validSectorsFor(snapshot.tileHalo))
     snapshot.sectorRevisions[haloSector] = tileArray->sectorRevision(haloSector);
-  for (size_t i = 0; i < m_queuedPlacements.size(); ++i) {
-    auto const& placement = m_queuedPlacements[i];
-    if (!placement.fulfilled)
-      snapshot.queuedPlacements.append(QueuedMicroDungeonPlacementSnapshot{placement.distributions, i});
-  }
+  for (auto const& entry : m_queuedPlacements.entries())
+    snapshot.queuedPlacements.append({entry.second.distributions, entry.first});
 
   phase.next("generation.microDungeonPlan.describe");
   auto plans = planMicroDungeons(templateSource, snapshot);
@@ -1627,7 +1619,7 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
   if (profile && planPreview) {
     profile->count("generation.microDungeonPlan.candidates", plans.size());
     for (auto const& plan : plans) {
-      if (plan.queuedPlacement)
+      if (plan.queuedPlacementId)
         profile->count("generation.microDungeonPlan.queuedCandidates");
     }
   }
@@ -1640,10 +1632,6 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
     applyMicroDungeonPlan(worldStorage, plan, facade, profile, planPreview);
   }
 
-  phase.next("generation.microDungeonPlan.cleanup");
-  m_queuedPlacements = m_queuedPlacements.filtered([&](QueuedPlacement& p) {
-    return !p.fulfilled;
-  });
   return {true, {}};
 }
 
@@ -1652,7 +1640,7 @@ List<WorldGenerator::MicroDungeonPlan> WorldGenerator::planMicroDungeons(WorldTe
   STAR_TRACE_ZONE("Microdungeon plan candidates");
   starAssert(templateSource);
   RectI bounds = snapshot.sectorTiles.padded(WorldSectorSize - 1);
-  List<pair<BiomeItemPlacement, Maybe<size_t>>> candidates;
+  List<pair<BiomeItemPlacement, Maybe<WorldGenerationPlacementId>>> candidates;
   for (int x = snapshot.sectorTiles.xMin(); x < snapshot.sectorTiles.xMax(); ++x) {
     for (int y = snapshot.sectorTiles.yMin(); y < snapshot.sectorTiles.yMax(); ++y) {
       auto potential = templateSource->potentialBiomeItemsAt(x, y);
@@ -1663,7 +1651,7 @@ List<WorldGenerator::MicroDungeonPlan> WorldGenerator::planMicroDungeons(WorldTe
         templateSource->addPotentialBiomeItems(x, y, queuedItems, queued.distributions, BiomePlacementArea::Surface);
         templateSource->addPotentialBiomeItems(x, y, queuedItems, queued.distributions, BiomePlacementArea::Underground);
         for (auto placement : templateSource->validBiomeItems(x, y, queuedItems))
-          candidates.append({std::move(placement), queued.queuedPlacement});
+          candidates.append({std::move(placement), queued.queuedPlacementId});
       }
     }
   }
@@ -1683,8 +1671,9 @@ List<WorldGenerator::MicroDungeonPlan> WorldGenerator::planMicroDungeons(WorldTe
 
 void WorldGenerator::applyMicroDungeonPlan(WorldStorage* worldStorage, MicroDungeonPlan const& plan,
     DungeonGeneratorWorldPtr const& facade, ExplorationProfile* profile, bool planPreview) {
-  QueuedPlacement* queued = plan.queuedPlacement ? &m_queuedPlacements[*plan.queuedPlacement] : nullptr;
-  if (queued && queued->fulfilled)
+  // A plan may outlive other plans' successful placements. Never resolve an
+  // asynchronous descriptor through an index into a compacted container.
+  if (plan.queuedPlacementId && !m_queuedPlacements.contains(*plan.queuedPlacementId))
     return;
 
   // This is the only live-world generation call in the microdungeon pipeline.
@@ -1746,10 +1735,13 @@ void WorldGenerator::applyMicroDungeonPlan(WorldStorage* worldStorage, MicroDung
 
   Maybe<DungeonId> dungeonId;
   ExplorationProfile::Scope publishTiming(profile, "generation.microDungeonPlan.apply.publish");
-  if (queued) {
+  if (plan.queuedPlacementId) {
+    // Reacquire only after the factory returns: its facade can enqueue more
+    // placements. No pointer/reference into the registry crosses that call.
+    auto queued = m_queuedPlacements.take(*plan.queuedPlacementId);
+    starAssert(queued);
     dungeonId = queued->dungeonId;
     queued->promise.fulfill(plan.position);
-    queued->fulfilled = true;
   }
   for (auto position : generateResult->second) {
     if (ServerTile* tile = m_worldServer->modifyServerTile(position)) {

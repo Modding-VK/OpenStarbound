@@ -9,6 +9,7 @@
 #include "StarBiomePlacement.hpp"
 #include "StarWorkerPool.hpp"
 #include "StarWorldGenerationTasks.hpp"
+#include "StarWorldGenerationPlacementQueue.hpp"
 
 namespace Star {
 
@@ -144,7 +145,6 @@ private:
     List<BiomeItemDistribution> distributions;
     Maybe<DungeonId> dungeonId;
     RpcPromiseKeeper<Vec2I> promise;
-    bool fulfilled;
   };
 
   // Immutable selection descriptor. It intentionally contains no world,
@@ -155,7 +155,7 @@ private:
     Vec2I position;
     uint64_t seed;
     String dungeonName;
-    Maybe<size_t> queuedPlacement;
+    Maybe<WorldGenerationPlacementId> queuedPlacementId;
   };
 
   // Copy-only input for the future MicroDungeonPlan producer. It deliberately
@@ -164,7 +164,7 @@ private:
   // reconstructed from templateStore.
   struct QueuedMicroDungeonPlacementSnapshot {
     List<BiomeItemDistribution> distributions;
-    size_t queuedPlacement;
+    WorldGenerationPlacementId queuedPlacementId;
   };
 
   struct MicroDungeonPlanSnapshot {
@@ -258,7 +258,7 @@ private:
 
   WorldServer* m_worldServer;
   MicroDungeonFactoryPtr m_microDungeonFactory;
-  List<QueuedPlacement> m_queuedPlacements;
+  WorldGenerationPlacementQueue<QueuedPlacement> m_queuedPlacements;
   HashMap<Sector, PendingBaseTiles> m_pendingBaseTiles;
   HashMap<Sector, ReadyBaseTiles> m_readyBaseTiles;
   HashMap<Sector, PendingMicroDungeonPlan> m_pendingMicroDungeonPlans;

@@ -109,6 +109,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   core_tests_main.cpp
   world_region_partition_test.cpp
   world_generation_dependency_test.cpp
+  world_generation_placement_queue_test.cpp
   world_generation_tasks_test.cpp
   world_region_coordinator_test.cpp)
 IF(STAR_ENABLE_TRACY)
@@ -123,6 +124,7 @@ ENDIF()
 FOREACH(world_region_test_suite
     WorldRegionPartitionTest
     WorldGenerationDependencyTest
+    WorldGenerationPlacementQueueTest
     WorldGenerationTasksTest
     WorldRegionCoordinatorTest
     WorldRegionObservationTest)

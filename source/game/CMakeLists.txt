@@ -173,6 +173,7 @@ SET (star_game_HEADERS
     StarWorldClientState.hpp
     StarWorldGeneration.hpp
     StarWorldGenerationDependency.hpp
+    StarWorldGenerationPlacementQueue.hpp
     StarWorldGenerationTasks.hpp
     StarWorldRegionPartition.hpp
     StarWorldRegionCoordinator.hpp
