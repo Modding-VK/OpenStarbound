@@ -795,12 +795,19 @@ void ExplorationProfile::report(bool final) {
 
       makeCategory("world", object, true);
 
+      // Determine storage-category presence from the typed local objects,
+      // before moving them into a JsonObject.  Calling toObject() on a
+      // missing/optional Json field was the actual `BadVariantType` path on
+      // short Windows storage windows; it occurred before makeCategory() and
+      // therefore bypassed that writer's fallback.
+      auto storageStages = selectByPrefix(objectField("stages"), {"storage."});
+      auto storageCounts = selectByPrefix(objectField("counts"), {"storage."});
+      auto storageMaxima = selectByPrefix(objectField("maxima"), {"storage."});
+      bool hasStorage = !storageStages.empty() || !storageCounts.empty() || !storageMaxima.empty();
       JsonObject storage;
-      storage.set("stages", selectByPrefix(objectField("stages"), {"storage."}));
-      storage.set("counts", selectByPrefix(objectField("counts"), {"storage."}));
-      storage.set("maxima", selectByPrefix(objectField("maxima"), {"storage."}));
-      bool hasStorage = !storage.get("stages").toObject().empty()
-          || !storage.get("counts").toObject().empty() || !storage.get("maxima").toObject().empty();
+      storage.set("stages", std::move(storageStages));
+      storage.set("counts", std::move(storageCounts));
+      storage.set("maxima", std::move(storageMaxima));
       makeCategory("storage", std::move(storage), hasStorage);
 
       entityCategory("npcs", "npc", "npc.", "npc.");
