@@ -161,6 +161,10 @@ public:
       size_t footprintTiles, bool generated, double seconds,
       double definitionSeconds, double definitionCacheLookupSeconds,
       double definitionPathResolveSeconds, double definitionReadAndBuildSeconds,
+      double definitionAssetJsonSeconds, double definitionMetadataSeconds,
+      double definitionTilesetSeconds, double definitionPartsSeconds,
+      double definitionImagePartsSeconds, double definitionTmxPartsSeconds,
+      uint32_t definitionImagePartCount, uint32_t definitionTmxPartCount,
       bool definitionCacheMiss, double anchorSeconds, double collisionSeconds,
       double canPlaceSeconds, double buildSeconds, uint32_t placementAttempts,
       uint32_t boundsRejected, uint32_t collisionRejected, uint32_t placementRejected,
@@ -233,6 +237,14 @@ private:
     double definitionCacheLookupSeconds;
     double definitionPathResolveSeconds;
     double definitionReadAndBuildSeconds;
+    double definitionAssetJsonSeconds;
+    double definitionMetadataSeconds;
+    double definitionTilesetSeconds;
+    double definitionPartsSeconds;
+    double definitionImagePartsSeconds;
+    double definitionTmxPartsSeconds;
+    uint32_t definitionImagePartCount;
+    uint32_t definitionTmxPartCount;
     bool definitionCacheMiss;
     double anchorSeconds;
     double collisionSeconds;

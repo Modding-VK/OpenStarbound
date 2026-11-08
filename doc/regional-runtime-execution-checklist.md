@@ -350,3 +350,7 @@ etapa acima.
   passagens, mas o primeiro miss ainda causa 140,102 ms na WorldThread; manter
   o preview desligado fora de testes; ver
   [runtime-validation-2026-11-08-tracy27-empty-prewarm-fix.md](runtime-validation-2026-11-08-tracy27-empty-prewarm-fix.md).
+- [x] Particionar o primeiro miss frio de `DungeonDefinition` entre JSON,
+  metadata/rules, tileset e construção inclusiva de partes `image`/`tmx`, sem
+  caminhos ou nomes de assets. A próxima coleta deve escolher uma única etapa
+  para otimização; não mover leitura de assets para workers sem nova auditoria.

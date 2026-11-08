@@ -603,6 +603,14 @@ termina, preservando uma fronteira observável entre cache e publicação. Um
 resultado de plano vazio é exceção: não há definição a tocar, portanto ele
 registra `skippedEmptyPlans` e segue para o commit na própria passagem.
 
+Para um miss frio que ainda exceda o limiar, o registro limitado da factory
+separa `definitionAssetJsonMilliseconds`, configuração/rules de metadata,
+construção do tileset e construção inclusiva das partes `image` e `tmx`, com
+suas contagens. A fase de parte inclui seu reader e as leituras de assets
+referenciados; não emite nomes de arquivos, readers, tiles ou conteúdo de
+mods. Os tempos de partes por tipo são subconjuntos de
+`definitionPartsMilliseconds`, que é inclusivo.
+
 `worldThreading.generationPersistentPriorityPreview` é o segundo recorte.
 Quando `generationFairnessSchedulerPreview` está ativo, ele passa a acompanhar
 a política de justiça por padrão; o campo explícito ainda pode ser definido

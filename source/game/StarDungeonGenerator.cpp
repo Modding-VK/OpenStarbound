@@ -1432,7 +1432,7 @@ DungeonDefinitionConstPtr DungeonDefinitions::get(String const& name, DungeonDef
           timing->pathResolveSeconds = Time::monotonicTime() - pathStarted;
         if (path) {
           double readStarted = timing ? Time::monotonicTime() : 0.0;
-          auto loaded = readDefinition(*path);
+          auto loaded = readDefinition(*path, timing ? &timing->construction : nullptr);
           if (timing)
             timing->readAndBuildSeconds = Time::monotonicTime() - readStarted;
           return loaded;
@@ -1451,16 +1451,23 @@ JsonObject DungeonDefinitions::getMetadata(String const& name) const {
   return definition->metadata();
 }
 
-DungeonDefinitionPtr DungeonDefinitions::readDefinition(String const& path) {
+DungeonDefinitionPtr DungeonDefinitions::readDefinition(String const& path,
+    DungeonDefinitionConstructionTiming* timing) {
   try {
     auto assets = Root::singleton().assets();
-    return make_shared<DungeonDefinition>(assets->json(path).toObject(), AssetPath::directory(path));
+    double jsonStarted = timing ? Time::monotonicTime() : 0.0;
+    auto definition = assets->json(path).toObject();
+    if (timing)
+      timing->assetJsonSeconds = Time::monotonicTime() - jsonStarted;
+    return make_shared<DungeonDefinition>(definition, AssetPath::directory(path), timing);
   } catch (std::exception const& e) {
     throw DungeonException::format("Error loading dungeon '{}': {}", path, outputException(e, false));
   }
 }
 
-DungeonDefinition::DungeonDefinition(JsonObject const& definition, String const& directory) {
+DungeonDefinition::DungeonDefinition(JsonObject const& definition, String const& directory,
+    DungeonDefinitionConstructionTiming* timing) {
+  double phaseStarted = timing ? Time::monotonicTime() : 0.0;
   m_directory = directory;
   m_metadata = definition.get("metadata").toObject();
   m_name = m_metadata.get("name").toString();
@@ -1475,17 +1482,37 @@ DungeonDefinition::DungeonDefinition(JsonObject const& definition, String const&
   m_extendSurfaceFreeSpace = m_metadata.value("extendSurfaceFreeSpace", 0).toInt();
 
   m_anchors = jsonToStringList(m_metadata.get("anchor"));
+  if (timing)
+    timing->metadataSeconds = Time::monotonicTime() - phaseStarted;
 
+  phaseStarted = timing ? Time::monotonicTime() : 0.0;
   auto tileset = definition.maybe("tiles").apply([](Json const& tileset) {
       return make_shared<const Dungeon::ImageTileset>(tileset);
     });
+  if (timing)
+    timing->tilesetSeconds = Time::monotonicTime() - phaseStarted;
 
+  phaseStarted = timing ? Time::monotonicTime() : 0.0;
   for (auto const& partsDefMap : definition.get("parts").iterateArray()) {
+    String kind = partsDefMap.get("def").getString(0);
+    double partStarted = timing ? Time::monotonicTime() : 0.0;
     Dungeon::PartConstPtr part = parsePart(this, partsDefMap, tileset);
+    if (timing) {
+      double partSeconds = Time::monotonicTime() - partStarted;
+      if (kind == "image") {
+        timing->imagePartsSeconds += partSeconds;
+        ++timing->imagePartCount;
+      } else if (kind == "tmx") {
+        timing->tmxPartsSeconds += partSeconds;
+        ++timing->tmxPartCount;
+      }
+    }
     if (m_parts.contains(part->name()))
       throw DungeonException::format("Duplicate dungeon part name: {}", part->name());
     m_parts.insert(part->name(), part);
   }
+  if (timing)
+    timing->partsSeconds = Time::monotonicTime() - phaseStarted;
 
   if (m_metadata.contains("gravity"))
     m_gravity = m_metadata.get("gravity").toFloat();

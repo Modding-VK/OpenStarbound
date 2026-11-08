@@ -15,8 +15,16 @@ public:
     double definitionCacheLookupSeconds = 0;
     double definitionPathResolveSeconds = 0;
     double definitionReadAndBuildSeconds = 0;
+    double definitionAssetJsonSeconds = 0;
+    double definitionMetadataSeconds = 0;
+    double definitionTilesetSeconds = 0;
+    double definitionPartsSeconds = 0;
+    double definitionImagePartsSeconds = 0;
+    double definitionTmxPartsSeconds = 0;
     size_t definitionCacheEntries = 0;
     size_t definitionCacheCapacity = 0;
+    uint32_t definitionImagePartCount = 0;
+    uint32_t definitionTmxPartCount = 0;
     double anchorSeconds = 0;
     double collisionSeconds = 0;
     double canPlaceSeconds = 0;

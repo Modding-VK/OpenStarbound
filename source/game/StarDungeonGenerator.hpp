@@ -18,6 +18,17 @@ STAR_CLASS(DungeonDefinition);
 STAR_CLASS(DungeonDefinitions);
 class ExplorationProfile;
 
+struct DungeonDefinitionConstructionTiming {
+  double assetJsonSeconds = 0;
+  double metadataSeconds = 0;
+  double tilesetSeconds = 0;
+  double partsSeconds = 0;
+  double imagePartsSeconds = 0;
+  double tmxPartsSeconds = 0;
+  uint32_t imagePartCount = 0;
+  uint32_t tmxPartCount = 0;
+};
+
 // Optional, caller-owned diagnostic breakdown for a definition lookup. It is
 // populated only by the profiling route and never stores an asset path/name.
 struct DungeonDefinitionLoadTiming {
@@ -29,6 +40,7 @@ struct DungeonDefinitionLoadTiming {
   bool cacheHit = false;
   bool cacheMiss = false;
   bool cacheEvicted = false;
+  DungeonDefinitionConstructionTiming construction;
 };
 
 class DungeonGeneratorWorldFacade {
@@ -650,7 +662,8 @@ namespace Dungeon {
 
 class DungeonDefinition {
 public:
-  DungeonDefinition(JsonObject const& definition, String const& directory);
+  DungeonDefinition(JsonObject const& definition, String const& directory,
+      DungeonDefinitionConstructionTiming* timing = nullptr);
 
   JsonObject metadata() const;
   String directory() const;
@@ -697,7 +710,8 @@ public:
   JsonObject getMetadata(String const& name) const;
 
 private:
-  static DungeonDefinitionPtr readDefinition(String const& path);
+  static DungeonDefinitionPtr readDefinition(String const& path,
+      DungeonDefinitionConstructionTiming* timing = nullptr);
 
   StringMap<String> m_paths;
   mutable Mutex m_cacheMutex;
