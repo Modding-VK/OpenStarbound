@@ -198,7 +198,9 @@ do uso de CPU do sistema.
   [runtime-validation-2026-11-07-tracy14-dependency-preparation.md](runtime-validation-2026-11-07-tracy14-dependency-preparation.md).
 - [x] Preview limitado de planejamento privado de MicroDungeons para a
   fronteira já elegível de uma cadeia visível; aplicação, entidades e promises
-  continuam seriais. Requer validação de compatibilidade e espera no céu.
+  continuam seriais. Tracy 16 encontrou stales de halo antes da correção de
+  admissão integral; requer repetição. Ver
+  [runtime-validation-2026-11-08-tracy16-microdungeon-preparation.md](runtime-validation-2026-11-08-tracy16-microdungeon-preparation.md).
 - [x] Implementar preview de seleção por TTL restante: somente o pedido
   visível mais próximo de expirar dentro de uma janela configurável recebe uma
   tentativa reservada; o TTL e os contratos de geração permanecem inalterados.

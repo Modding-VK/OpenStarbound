@@ -996,8 +996,25 @@ bool WorldGenerator::admitMicroDungeonPlanPreparation(WorldStorage* worldStorage
   if (worldStorage->sectorLoadLevel(sector) < SectorLoadLevel::Tiles
       || !static_cast<ServerTileSectorArray const&>(*tileArray).sectorArray(sector))
     return false;
+  // The planning snapshot copies and revalidates the complete padded 3x3
+  // halo. The dependency graph's cardinal stage rule alone is insufficient:
+  // admitting while a diagonal is still preparing BaseTiles would almost
+  // certainly make this private snapshot stale before its normal apply path.
+  auto tileHalo = tileArray->sectorRegion(sector).padded(WorldSectorSize - 1);
+  for (auto const& haloSector : tileArray->validSectorsFor(tileHalo)) {
+    auto level = worldStorage->sectorGenerationLevel(haloSector);
+    if (!level || *level < SectorGenerationLevel::BaseTiles) {
+      if (auto profile = m_worldServer->explorationProfile())
+        profile->count("generation.microDungeonPlan.haloBaseTilesUnavailable");
+      return false;
+    }
+  }
   generateMicroDungeons(worldStorage, sector, true);
-  return m_pendingMicroDungeonPlans.contains(sector);
+  if (auto pending = m_pendingMicroDungeonPlans.ptr(sector)) {
+    pending->dependencyPrepared = true;
+    return true;
+  }
+  return false;
 }
 
 void WorldGenerator::retireBaseTileTask(shared_ptr<WorldGenerationTask> const& task, WorldGenerationTaskOutcome outcome) {
@@ -1372,11 +1389,14 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
     for (auto const& revision : pending->sourceSectorRevisions)
       current = current && worldStorage->tileArray()->sectorRevision(revision.first) == revision.second;
     if (!current) {
+      bool dependencyPrepared = pending->dependencyPrepared;
       retireBaseTileTask(pending->task, pending->task->valid()
           ? WorldGenerationTaskOutcome::Stale : WorldGenerationTaskOutcome::Cancelled);
       m_pendingMicroDungeonPlans.remove(sector);
       if (profile) {
         profile->count("generation.microDungeonPlan.staleResults");
+        if (dependencyPrepared)
+          profile->count("generation.preparationFeeder.microDungeonPlanStale");
         profile->count("generation.microDungeonPlan.retry");
       }
       return allowAsync ? generateMicroDungeons(worldStorage, sector, true) : SectorGenerationResult{false, {}};
@@ -1385,10 +1405,13 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
     for (auto const& plan : result.plans)
       applyMicroDungeonPlan(worldStorage, plan, facade, profile, planPreview);
     m_queuedPlacements = m_queuedPlacements.filtered([&](QueuedPlacement& p) { return !p.fulfilled; });
+    bool dependencyPrepared = pending->dependencyPrepared;
     retireBaseTileTask(pending->task, WorldGenerationTaskOutcome::Committed);
     m_pendingMicroDungeonPlans.remove(sector);
     if (profile) {
       profile->count("generation.microDungeonPlan.resultsApplied");
+      if (dependencyPrepared)
+        profile->count("generation.preparationFeeder.microDungeonPlanCommitted");
       profile->record("generation.microDungeonPlan.queueDelay", result.queueSeconds);
     }
     return {true, result.elapsedSeconds};

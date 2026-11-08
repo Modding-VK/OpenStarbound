@@ -218,6 +218,7 @@ private:
     uint64_t sourceTemplateRevision;
     double scheduledAt;
     Maybe<WorkerPoolPromise<PreparedMicroDungeonPlan>> promise;
+    bool dependencyPrepared = false;
   };
 
   void prepareTiles(WorldStorage* worldStorage, Sector const& sector);

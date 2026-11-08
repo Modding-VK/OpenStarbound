@@ -214,7 +214,10 @@ O worker recebe o mesmo snapshot privado de halo/revisões do caminho normal e
 calcula somente o plano. Aplicação de tiles, entidades, placements e promises
 não é antecipada e continua em `generateMicroDungeons` na thread dona. Os
 contadores `generation.preparationFeeder.microDungeonPlanAttempted` e
-`.microDungeonPlanAdmitted` medem o recorte.
+`.microDungeonPlanAdmitted` medem o recorte. Como o snapshot revalida um halo
+3×3, a admissão exige `BaseTiles` em todo o halo, não somente os vizinhos
+cardinais da fronteira. `.microDungeonPlanCommitted` e `.microDungeonPlanStale`
+separam resultado útil de trabalho descartado.
 
 O prefetch de setores usa a mesma interpretação: em `adaptive` ou
 `aggressive`, `sectorWorkers: 0` habilita prefetch quando o padding da fidelidade
