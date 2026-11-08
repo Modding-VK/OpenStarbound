@@ -411,6 +411,14 @@ Para análise por pedido, setores visíveis registram uma única vez os marcos
 recursivos. O protocolo A/B e os critérios de avanço estão em
 [regional-runtime-expiry-risk-validation-protocol.md](regional-runtime-expiry-risk-validation-protocol.md).
 
+Além dos marcos, cada tentativa visível `Complete` registra o primeiro bloqueio
+causal em `generation.visibleAttempt.blocked.*`: `baseTiles`,
+`microDungeons`, `caveLiquid`, `finalize`, `terraform`, `neighbor`, `deadline`,
+`levelLimit` ou `invalidSector`. Os eventos por pedido usam
+`visibleCompleteAttempted`, `visibleCompleteFinished` e `visibleBlocked.*`.
+O traço cobre somente raízes visíveis e preserva o diagnóstico pré-existente do
+pedido mais antigo; recursão de vizinhos não vira falso pedido de jogador.
+
 `worldThreading.generationDependencySchedulerPreview` usa o mesmo intervalo,
 mas constrói a árvore limitada de pré-requisitos do pedido antigo. Se uma etapa
 executável dessa árvore já tiver um pedido legítimo na fila, ela recebe a

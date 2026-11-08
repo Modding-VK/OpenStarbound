@@ -487,6 +487,10 @@ private:
   bool m_oldestQueueBlockRecorded = false;
   char const* m_oldestQueueBlockReason = "notSelected";
   Maybe<Sector> m_oldestQueueBlockingNeighbor;
+  bool m_traceVisibleQueueAttempt = false;
+  bool m_visibleQueueBlockRecorded = false;
+  char const* m_visibleQueueBlockReason = "none";
+  Maybe<Sector> m_visibleQueueBlockingNeighbor;
   bool m_performanceSamplingEnabled = false;
   size_t m_performancePeakQueuedSectors = 0;
   size_t m_performanceLateCompletedSectors = 0;

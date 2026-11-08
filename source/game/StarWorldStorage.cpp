@@ -1542,8 +1542,32 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
         m_oldestQueueBlockRecorded = false;
         m_oldestQueueBlockingNeighbor.reset();
       }
+      // Unlike the oldest-request log, this bounded regional trace covers
+      // every real Complete attempt. The recursive generator writes only the
+      // first blocker, which is the prerequisite currently preventing visible
+      // delivery rather than a later consequence of that block.
+      m_traceVisibleQueueAttempt = m_explorationProfile && m_explorationProfile->regionalDetailsEnabled()
+          && !schedulingOnly && targetLevel == SectorGenerationLevel::Complete;
+      if (m_traceVisibleQueueAttempt) {
+        m_visibleQueueBlockReason = "none";
+        m_visibleQueueBlockRecorded = false;
+        m_visibleQueueBlockingNeighbor.reset();
+        m_explorationProfile->count("generation.visibleAttempt.completeAttempted");
+        recordGenerationRequest(sector, "visibleCompleteAttempted");
+      }
       auto p = generateSectorToLevel(sector, targetLevel,
           sectorGenerationLevelLimit.value(NPos), true, generationDeadline);
+      if (m_traceVisibleQueueAttempt) {
+        if (p.first) {
+          m_explorationProfile->count("generation.visibleAttempt.completeFinished");
+          recordGenerationRequest(sector, "visibleCompleteFinished");
+        } else {
+          auto reason = m_visibleQueueBlockReason;
+          m_explorationProfile->count(strf("generation.visibleAttempt.blocked.{}", reason).c_str());
+          recordGenerationRequest(sector, strf("visibleBlocked.{}", reason).c_str());
+        }
+      }
+      m_traceVisibleQueueAttempt = false;
       if (dependencyTarget)
         dependencyPriorityAttempted = true;
       if (fairnessReservedTarget) {
@@ -2107,21 +2131,27 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
     size_t sectorGenerationLevelLimit, bool allowAsync, double generationDeadline) {
   STAR_TRACE_ZONE("WorldStorage generate sector");
   TileRevisionScope revisionScope(TileRevisionCause::WorldGeneration, m_tileArray->revisionTrackingEnabled());
-  if (Time::monotonicTime() >= generationDeadline) {
+  auto recordBlockedAttempt = [&](char const* reason, Maybe<Sector> blocker = {}, char const* oldestReason = nullptr) {
     if (m_traceOldestQueueAttempt && !m_oldestQueueBlockRecorded) {
-      m_oldestQueueBlockReason = "deadline";
+      m_oldestQueueBlockReason = oldestReason ? oldestReason : reason;
+      m_oldestQueueBlockingNeighbor = blocker;
       m_oldestQueueBlockRecorded = true;
     }
+    if (m_traceVisibleQueueAttempt && !m_visibleQueueBlockRecorded) {
+      m_visibleQueueBlockReason = reason;
+      m_visibleQueueBlockingNeighbor = blocker;
+      m_visibleQueueBlockRecorded = true;
+    }
+  };
+  if (Time::monotonicTime() >= generationDeadline) {
+    recordBlockedAttempt("deadline");
     if (m_explorationProfile)
       m_explorationProfile->count("generation.blocked.deadline");
     return {false, 0};
   }
 
   if (!m_tileArray->sectorValid(sector)) {
-    if (m_traceOldestQueueAttempt && !m_oldestQueueBlockRecorded) {
-      m_oldestQueueBlockReason = "invalidSector";
-      m_oldestQueueBlockRecorded = true;
-    }
+    recordBlockedAttempt("invalidSector", sector);
     if (m_explorationProfile)
       m_explorationProfile->count("generation.blocked.invalidSector");
     return {false, 0};
@@ -2187,11 +2217,7 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
             sectorGenerationLevelLimit - totalGeneratedLevels, allowAsync, generationDeadline);
         totalGeneratedLevels += p.second;
         if (!p.first || totalGeneratedLevels >= sectorGenerationLevelLimit) {
-          if (m_traceOldestQueueAttempt && !m_oldestQueueBlockRecorded) {
-            m_oldestQueueBlockReason = !p.first ? "neighbor" : "levelLimit";
-            m_oldestQueueBlockingNeighbor = adjacentSector;
-            m_oldestQueueBlockRecorded = true;
-          }
+          recordBlockedAttempt(!p.first ? "neighbor" : "levelLimit", adjacentSector);
           if (m_explorationProfile)
             m_explorationProfile->count(!p.first ? "generation.blocked.neighbor" : "generation.blocked.levelLimit");
           return {false, totalGeneratedLevels};
@@ -2211,11 +2237,10 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
     double profileStart = m_generationProfilingEnabled ? Time::monotonicTime() : 0.0;
     auto generationResult = m_generatorFacade->generateSectorLevel(this, sector, currentGeneration, allowAsync);
     if (!generationResult.complete) {
-      if (m_traceOldestQueueAttempt && !m_oldestQueueBlockRecorded) {
-        m_oldestQueueBlockReason = generationStages[stageIndex];
-        m_oldestQueueBlockingNeighbor = sector;
-        m_oldestQueueBlockRecorded = true;
-      }
+      static char const* const blockedReasonNames[] = {
+        "baseTiles", "microDungeons", "caveLiquid", "finalize", "terraform"
+      };
+      recordBlockedAttempt(blockedReasonNames[stageIndex], sector, generationStages[stageIndex]);
       if (m_explorationProfile) {
         static char const* const blockedStages[] = {
           "generation.blocked.baseTiles", "generation.blocked.microDungeons",
@@ -2242,10 +2267,7 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
 
     ++totalGeneratedLevels;
     if (totalGeneratedLevels >= sectorGenerationLevelLimit || Time::monotonicTime() >= generationDeadline) {
-      if (m_traceOldestQueueAttempt && !m_oldestQueueBlockRecorded) {
-        m_oldestQueueBlockReason = totalGeneratedLevels >= sectorGenerationLevelLimit ? "levelLimit" : "deadline";
-        m_oldestQueueBlockRecorded = true;
-      }
+      recordBlockedAttempt(totalGeneratedLevels >= sectorGenerationLevelLimit ? "levelLimit" : "deadline");
       if (m_explorationProfile)
         m_explorationProfile->count(totalGeneratedLevels >= sectorGenerationLevelLimit
             ? "generation.blocked.levelLimit" : "generation.blocked.deadline");

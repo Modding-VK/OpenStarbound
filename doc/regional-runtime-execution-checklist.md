@@ -215,6 +215,9 @@ do uso de CPU do sistema.
   TTL nem aumentar orçamento. Requer A/B de expirações e `sectorWait`.
 - [x] Instrumentar marcos por pedido visível (Tiles e cada etapa de geração),
   mantendo vizinhos recursivos fora da telemetria de interesse do jogador.
+- [x] Instrumentar o primeiro bloqueador de cada tentativa `Complete` visível,
+  distinguindo etapa, vizinho, deadline e limite de níveis; requer nova coleta
+  para decidir entre MicroDungeons, CaveLiquid e política de entrega.
 - [x] Documentar protocolo A/B e critérios que condicionam prioridade futura
   de microdungeons/vizinhos; ver
   [regional-runtime-expiry-risk-validation-protocol.md](regional-runtime-expiry-risk-validation-protocol.md).

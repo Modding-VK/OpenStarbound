@@ -61,6 +61,7 @@ linha também identifica `sessionStartedMonotonicMilliseconds`.
 | `generation.sectorWait` p50/p95/p99/máx | estágios do relatório | cauda menor, sem piora de média relevante |
 | `generation.expiryRisk.*` | contadores/estágios | promoção, tentativa e avanço observáveis |
 | `generation.visibleChainContinuation.*` | contadores/eventos | continuidade limitada sem repetição infinita |
+| `generation.visibleAttempt.blocked.*` | contadores/eventos regionais | primeiro pré-requisito que retém setor visível |
 | `generation.requests.expired` e eventos | detalhes regionais | pedidos em risco não terminam sem tentativa |
 | `WorldServerThread update` p95/p99 | Tracy oficial | sem regressão material |
 | `WorldStorage generate queue` p95/p99 | Tracy oficial | orçamento ainda respeitado |
@@ -80,3 +81,8 @@ visível, `tilesAvailable`, `baseTilesReady`, `microDungeonsReady`,
 `completed` ou `expired`. Todos preservam época, sequência, setor, idade e
 nível observado. Esses eventos permitem atribuir a espera a uma fase sem expor
 trabalho recursivo de vizinhos como um falso pedido de jogador.
+
+As tentativas `Complete` também acrescentam `visibleCompleteAttempted`,
+`visibleCompleteFinished` ou `visibleBlocked.<causa>`. Usar os contadores
+`generation.visibleAttempt.blocked.*` para totais, pois o vetor de eventos é
+intencionalmente limitado por janela.
