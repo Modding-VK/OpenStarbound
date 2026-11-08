@@ -196,8 +196,12 @@ do uso de CPU do sistema.
   posteriores para workers. Tracy 14 confirmou planos e admissões sem crash,
   mas não reduziu a cauda de espera; ver
   [runtime-validation-2026-11-07-tracy14-dependency-preparation.md](runtime-validation-2026-11-07-tracy14-dependency-preparation.md).
-- [ ] Tornar a seleção de pedidos visíveis sensível a idade/risco de expiração,
-  mantendo distância, reserva de justiça e ordem autoritativa de commit.
+- [x] Implementar preview de seleção por TTL restante: somente o pedido
+  visível mais próximo de expirar dentro de uma janela configurável recebe uma
+  tentativa reservada; o TTL e os contratos de geração permanecem inalterados.
+  Requer A/B focado em expirações e `sectorWait`.
+- [ ] Validar o preview de risco de expiração contra a mesma rota, duração,
+  save e mods, comparando expirações, `sectorWait`, justiça e tempo do update.
 - [ ] Orçar bytes, tarefas pendentes e regiões globalmente.
 - [ ] Separar admissão, execução e commit em filas distintas.
 - [ ] Fazer a admissão alimentar preparação independente até os limites de

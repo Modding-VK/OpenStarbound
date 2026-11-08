@@ -356,6 +356,17 @@ mais próximo. Com `regionalDetails`, o evento limitado de pedido usa
 `fairnessPromoted`. Comparar essa opção desligada e ligada na mesma rota é
 obrigatório antes de adotá-la como padrão.
 
+`worldThreading.generationExpiryRiskSchedulerPreview` é um recorte separado,
+também desligado por padrão. Antes da prioridade persistente e da amostragem de
+fairness, ele examina o TTL restante das entradas já visíveis e promove somente
+a que possui menor tempo restante dentro de
+`generationExpiryRiskMilliseconds` (padrão 3.000 ms; limitado a 250–12.000).
+Recebe uma tentativa reservada pela mesma janela final do orçamento de fairness,
+mas o TTL não é renovado e o alvo continua `Complete`; logo não cria trabalho,
+entidades ou persistência extras. `generation.expiryRisk.*` mede promoções,
+TTL restante, reservas, tentativas e avanços. O objetivo é reduzir expirações,
+não substituir a ordem normal por distância.
+
 `worldThreading.generationDependencySchedulerPreview` usa o mesmo intervalo,
 mas constrói a árvore limitada de pré-requisitos do pedido antigo. Se uma etapa
 executável dessa árvore já tiver um pedido legítimo na fila, ela recebe a
@@ -392,7 +403,9 @@ Configuração de teste:
 ```json
 "worldThreading" : {
   "generationVisibleCompletionPreview" : true,
-  "generationPersistentPriorityPreview" : true
+  "generationPersistentPriorityPreview" : true,
+  "generationExpiryRiskSchedulerPreview" : true,
+  "generationExpiryRiskMilliseconds" : 3000
 }
 ```
 

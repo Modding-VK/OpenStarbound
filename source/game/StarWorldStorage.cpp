@@ -1042,12 +1042,47 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
         threading.getUInt("generationFairnessIntervalPasses", 4), 1), 60);
     unsigned fairnessReserveMilliseconds = min<unsigned>(
         threading.getUInt("generationFairnessReserveMilliseconds", 2), 8);
+    // Fairness samples age periodically. A request can nevertheless reach its
+    // queue TTL between samples when moving quickly through new sectors. This
+    // preview reserves one normal owner-thread attempt for the request with
+    // the least remaining TTL inside a bounded danger window. It never renews
+    // the TTL or changes the request's generation target.
+    bool expiryRiskPreview = threading.getBool("generationExpiryRiskSchedulerPreview", false);
+    unsigned expiryRiskMilliseconds = clamp<unsigned>(
+        threading.getUInt("generationExpiryRiskMilliseconds", 3000), 250, 12000);
     Maybe<WorldGenerationDependencyNode> dependencyPriority;
     Maybe<Sector> fairnessReservedSector;
+    Maybe<Sector> expiryRiskReservedSector;
+    if (expiryRiskPreview && !m_generationQueue.empty()) {
+      Maybe<Sector> atRisk;
+      float remainingSeconds = 0.0f;
+      uint64_t atRiskSequence = 0;
+      for (auto const& entry : m_generationQueue) {
+        auto request = m_generationRequests.ptr(entry.first);
+        if (!request || entry.second * 1000.0f > expiryRiskMilliseconds)
+          continue;
+        if (!atRisk || entry.second < remainingSeconds
+            || (entry.second == remainingSeconds && request->sequence < atRiskSequence)) {
+          atRisk = entry.first;
+          remainingSeconds = entry.second;
+          atRiskSequence = request->sequence;
+        }
+      }
+      if (atRisk) {
+        m_generationQueue.toFront(*atRisk);
+        fairnessReservedSector = *atRisk;
+        expiryRiskReservedSector = *atRisk;
+        if (m_explorationProfile) {
+          m_explorationProfile->count("generation.expiryRisk.promoted");
+          m_explorationProfile->record("generation.expiryRisk.remaining", remainingSeconds);
+          recordGenerationRequest(*atRisk, "expiryRiskPromoted");
+        }
+      }
+    }
     // A priority that missed its reserved attempt because a preceding stage
     // consumed the deadline must survive to the next pass. The stored sequence
     // makes a later re-entry of the same coordinates a different request.
-    if (persistentPriorityPreview && m_generationPersistentPriority) {
+    if (!fairnessReservedSector && persistentPriorityPreview && m_generationPersistentPriority) {
       auto const& priority = *m_generationPersistentPriority;
       auto request = m_generationRequests.ptr(priority.sector);
       if (m_generationQueue.contains(priority.sector) && request && request->sequence == priority.sequence) {
@@ -1253,8 +1288,11 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     if (fairnessReservedSector && fairnessReserveMilliseconds > 0) {
       readyResultDeadline = max(Time::monotonicTime(),
           generationDeadline - fairnessReserveMilliseconds / 1000.0);
-      if (m_explorationProfile)
+      if (m_explorationProfile) {
         m_explorationProfile->count("generation.fairness.reservePasses");
+        if (expiryRiskReservedSector)
+          m_explorationProfile->count("generation.expiryRisk.reservePasses");
+      }
     }
     Maybe<Sector> visibleReadySector;
     for (auto const& sector : readySectors) {
@@ -1416,6 +1454,7 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     size_t visitedSectors = 0;
     bool dependencyPriorityAttempted = false;
     bool fairnessReservedAttempted = false;
+    bool expiryRiskReservedAttempted = false;
     while (!m_generationQueue.empty()) {
       if ((sectorGenerationLevelLimit && *sectorGenerationLevelLimit == 0) || Time::monotonicTime() >= generationDeadline)
         break;
@@ -1425,6 +1464,8 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
           && sector == Sector(dependencyPriority->sector[0], dependencyPriority->sector[1]);
       bool fairnessReservedTarget = !schedulingOnly && fairnessReservedSector && !fairnessReservedAttempted
           && sector == *fairnessReservedSector;
+      bool expiryRiskReservedTarget = !schedulingOnly && expiryRiskReservedSector && !expiryRiskReservedAttempted
+          && sector == *expiryRiskReservedSector;
       auto targetLevel = schedulingOnly ? SectorGenerationLevel::BaseTiles
           : dependencyTarget ? static_cast<SectorGenerationLevel>(dependencyPriority->level)
                              : SectorGenerationLevel::Complete;
@@ -1444,6 +1485,8 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
         dependencyPriorityAttempted = true;
       if (fairnessReservedTarget) {
         fairnessReservedAttempted = true;
+        if (expiryRiskReservedTarget)
+          expiryRiskReservedAttempted = true;
         if (persistentPriorityPreview && m_generationPersistentPriority
             && m_generationPersistentPriority->sector == sector) {
           m_generationPersistentPriority.reset();
@@ -1454,6 +1497,11 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
           m_explorationProfile->count("generation.fairness.reservedAttempted");
           if (p.second)
             m_explorationProfile->count("generation.fairness.reservedAdvanced");
+          if (expiryRiskReservedTarget) {
+            m_explorationProfile->count("generation.expiryRisk.reservedAttempted");
+            if (p.second)
+              m_explorationProfile->count("generation.expiryRisk.reservedAdvanced");
+          }
         }
       }
       if (m_traceOldestQueueAttempt && p.second)
