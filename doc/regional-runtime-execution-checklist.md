@@ -29,12 +29,27 @@ assets da rota de referência não tiver passado. Em particular:
 
 ## Estado atual
 
+A proposta vigente foi retrabalhada para aproveitar CPU, RAM e GPU:
+[sector-generation-hardware-design-2026-11-08.md](sector-generation-hardware-design-2026-11-08.md).
+Ela define executor e orçamento globais, resultados residentes versionados,
+antecipação pela rota, backend GPU assíncrono com referência CPU e entregas
+H0–H5. Estes componentes são propostas, ainda não implementados; os modos e
+chaves de configuração existentes não mudam com o documento.
+
 A auditoria atual da arquitetura e a sequência proposta para acelerar setores
 padrão estão em
 [sector-generation-architecture-audit-2026-11-08.md](sector-generation-architecture-audit-2026-11-08.md).
 Ela identifica orçamento ocioso, espera entre etapas, cópia de halo não usado
 no planejador e necessidade de IDs estáveis para colocações pendentes. O grafo
 executivo e o planejador menor são propostas, ainda não implementadas.
+
+- [ ] H0/H1: estabilizar IDs, baseline de streaming e grafo executivo com
+  preparação CPU/limites processuais; verificar entrega e ordem dos efeitos.
+- [ ] H2: produtos `PreparedSector`, caches versionadas e prefetch por rota,
+  com orçamento de RAM e contabilização de memória compartilhada.
+- [ ] H3: ampliar kernels CPU e preparar batches de publicação validáveis.
+- [ ] H4/H5: GPU compute opcional, comparação CPU/GPU em sombra, seleção por
+  custo e orçamento de VRAM/latência; manter execução CPU independente.
 
 A [auditoria de 07/11](performance-audit-2026-11-07.md) permanece como
 referência para o crash anterior e seus limites conhecidos.

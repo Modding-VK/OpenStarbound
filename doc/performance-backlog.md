@@ -2,8 +2,14 @@
 
 ## Prioridade de implementação — 08/11/2026
 
+A direção de arquitetura vigente é o
+[pipeline orientado a CPU, RAM e GPU](sector-generation-hardware-design-2026-11-08.md),
+revisado para o cenário de hardware com folga declarado pelo usuário. A
+política de alto throughput deve ampliar preparação antecipada, residência de
+resultados e uso dos backends compatíveis conforme o ganho de entrega.
+
 A [auditoria completa do pipeline de setores](sector-generation-architecture-audit-2026-11-08.md)
-passa a orientar o rework. Priorizar entrega de setores padrão: na run 29,
+fundamenta o rework. Priorizar entrega de setores padrão: na run 29,
 houve orçamento médio de 27,982 ms para passagens que usaram só 1,935 ms,
 e BaseTiles pronto aguardou em média 66,660 ms até commit. A frente TMX trata
 outliers de estruturas e não deve bloquear esta prioridade.
@@ -20,6 +26,20 @@ Sequência proposta, ainda sem implementação do novo executor:
    com limites de memória/justiça e prioridade correta no wrap do planeta.
 5. Integrar IO/decode salvo e prefetch previsto; extrair kernels puros de
    CaveLiquid e Finalize depois de seus contratos de validação.
+
+Essa sequência agora compõe H0–H3 da revisão de hardware. Acrescentar H4/H5:
+backend GPU opcional com fila assíncrona, buffers/fences, kernel CPU de
+referência, comparação em sombra e seleção CPU/GPU por custo completo.
+O protótipo GPU pode avançar em paralelo ao grafo e às caches; a publicação
+autoritativa depende de equivalência aprovada. Hardware sem compute e servidor
+dedicado preservam execução CPU completa.
+
+RAM passa a ter papel explícito: campos de terreno/bioma, planos vazios,
+produtos `PreparedSector`, tiles salvos decodificados e staging versionado,
+com orçamento processual e contagem de bytes únicos. Workers e lotes deixam de
+ser metas fixas: o controlador futuro usa capacidade utilizável, fila
+executável, demanda prevista e pressão observada. Os novos nomes do desenho
+não são chaves de configuração já disponíveis no runtime.
 
 Mods e saves seguem como critérios de bloqueio. NPC externo permanece suspenso
 e Linux Clang continua adiado. Nenhum ganho multiplicativo é alegado sem A/B

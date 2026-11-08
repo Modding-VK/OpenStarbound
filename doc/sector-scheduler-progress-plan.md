@@ -2,6 +2,12 @@
 
 ## Direção atual — 08/11/2026
 
+A revisão [orientada ao hardware](sector-generation-hardware-design-2026-11-08.md)
+define o desenho vigente: grafo comum para backends CPU/GPU, controle global
+de execução/memória, resultados residentes e antecipação da rota. O cenário
+de referência permite consumo elevado de recursos com ganho útil de entrega;
+os perfis novos do documento são conceituais e ainda não mudam a config.
+
 A [auditoria da arquitetura de geração](sector-generation-architecture-audit-2026-11-08.md)
 reconstrói o pipeline completo e propõe o próximo rework: grafo executivo
 persistente, candidatos de MicroDungeons sem snapshots de tiles não usados e

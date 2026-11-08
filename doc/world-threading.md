@@ -1,5 +1,15 @@
 # Experimental world worker queues
 
+## Proposed hardware-oriented successor
+
+The [CPU/RAM/GPU sector design](sector-generation-hardware-design-2026-11-08.md)
+defines the proposed successor: an incremental dependency graph, process-wide
+resource budgets, resident versioned preparation results, route-aware prefetch,
+and optional asynchronous GPU kernels with a CPU reference. Its high-throughput
+policy targets available hardware capacity while preserving mod/save semantics.
+This is a design, not implemented behavior or new configuration keys. The
+sections below describe the existing experimental worker path.
+
 ## Safety model
 
 `WorldServerThread` remains the only writer of live world state. Worker jobs

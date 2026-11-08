@@ -8,6 +8,13 @@ Estado: **análise e proposta; nenhuma alteração de runtime nesta auditoria**.
 Objetivo: aumentar substancialmente a entrega de setores padrão usando CPU
 disponível, preservando mods, saves e o contrato autoritativo do mundo.
 
+Revisão posterior da proposta, por solicitação do usuário: a
+[arquitetura orientada ao hardware](sector-generation-hardware-design-2026-11-08.md)
+é a direção vigente para CPU, RAM, GPU e a sequência de implementação. Os
+achados e as medições desta auditoria permanecem válidos; os trechos propositivos
+abaixo devem ser lidos com essa revisão, que integra GPU, residência em RAM e
+controle processual de recursos ao desenho desde o início.
+
 ## Conclusão
 
 É viável uma arquitetura superior, construída sobre o código existente:
