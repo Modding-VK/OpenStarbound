@@ -452,6 +452,10 @@ private:
   struct GenerationRequest {
     uint64_t sequence;
     double queuedAt;
+    // Profiling-only milestones. They are owner-thread state and make a
+    // request's wait attributable to the first unavailable generation stage.
+    bool tilesObserved = false;
+    uint8_t generationLevelObserved = 0;
   };
   // Runtime identity survives HUD/profiling toggles and interest renewals.
   // Sequence is unique within this storage lifetime, not a BaseTiles task ID.

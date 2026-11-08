@@ -202,6 +202,11 @@ do uso de CPU do sistema.
   Requer A/B focado em expirações e `sectorWait`.
 - [ ] Validar o preview de risco de expiração contra a mesma rota, duração,
   save e mods, comparando expirações, `sectorWait`, justiça e tempo do update.
+- [x] Instrumentar marcos por pedido visível (Tiles e cada etapa de geração),
+  mantendo vizinhos recursivos fora da telemetria de interesse do jogador.
+- [x] Documentar protocolo A/B e critérios que condicionam prioridade futura
+  de microdungeons/vizinhos; ver
+  [regional-runtime-expiry-risk-validation-protocol.md](regional-runtime-expiry-risk-validation-protocol.md).
 - [ ] Orçar bytes, tarefas pendentes e regiões globalmente.
 - [ ] Separar admissão, execução e commit em filas distintas.
 - [ ] Fazer a admissão alimentar preparação independente até os limites de

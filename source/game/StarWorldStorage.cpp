@@ -2041,6 +2041,34 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
   loadSectorToLevel(sector, SectorLoadLevel::Loaded);
 
   auto& metadata = m_sectorMetadata[sector];
+  // Request lifecycle events are intentionally emitted only for activated
+  // sectors. Recursive neighbor work remains implementation detail, while a
+  // visible request gains an exact owner-thread timestamp when its prerequisites
+  // first become available. The bounded profile recorder controls retention.
+  auto observeRequestMilestones = [&]() {
+    if (!m_explorationProfile)
+      return;
+    auto request = m_generationRequests.ptr(sector);
+    if (!request)
+      return;
+    if (!request->tilesObserved && metadata.loadLevel >= SectorLoadLevel::Tiles) {
+      request->tilesObserved = true;
+      recordGenerationRequest(sector, "tilesAvailable");
+    }
+    static char const* const readyEvents[] = {
+      nullptr, "baseTilesReady", "microDungeonsReady", "caveLiquidReady", "finalizeReady", "terraformReady"
+    };
+    auto observedLevel = min<uint8_t>(request->generationLevelObserved,
+        static_cast<uint8_t>(SectorGenerationLevel::Terraform));
+    auto currentLevel = min<uint8_t>(static_cast<uint8_t>(metadata.generationLevel),
+        static_cast<uint8_t>(SectorGenerationLevel::Terraform));
+    while (observedLevel < currentLevel) {
+      ++observedLevel;
+      request->generationLevelObserved = observedLevel;
+      recordGenerationRequest(sector, readyEvents[observedLevel]);
+    }
+  };
+  observeRequestMilestones();
 
   if (targetGenerationLevel == SectorGenerationLevel::Complete && metadata.generationLevel == SectorGenerationLevel::Terraform) {
     ExplorationProfile::Scope timing(m_explorationProfile.get(), "generation.terraform");
@@ -2121,6 +2149,7 @@ pair<bool, size_t> WorldStorage::generateSectorToLevel(Sector const& sector, Sec
     // A generation stage can alter an array directly or update its persisted
     // generation level without passing through modifyTile().
     m_tileArray->markSectorDirty(sector);
+    observeRequestMilestones();
 
     ++totalGeneratedLevels;
     if (totalGeneratedLevels >= sectorGenerationLevelLimit || Time::monotonicTime() >= generationDeadline) {

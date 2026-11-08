@@ -367,6 +367,13 @@ entidades ou persistência extras. `generation.expiryRisk.*` mede promoções,
 TTL restante, reservas, tentativas e avanços. O objetivo é reduzir expirações,
 não substituir a ordem normal por distância.
 
+Para análise por pedido, setores visíveis registram uma única vez os marcos
+`tilesAvailable`, `baseTilesReady`, `microDungeonsReady`, `caveLiquidReady`,
+`finalizeReady` e `terraformReady` em `generationRequests` quando
+`regionalDetails` está ativo. Eles não representam pedidos para vizinhos
+recursivos. O protocolo A/B e os critérios de avanço estão em
+[regional-runtime-expiry-risk-validation-protocol.md](regional-runtime-expiry-risk-validation-protocol.md).
+
 `worldThreading.generationDependencySchedulerPreview` usa o mesmo intervalo,
 mas constrói a árvore limitada de pré-requisitos do pedido antigo. Se uma etapa
 executável dessa árvore já tiver um pedido legítimo na fila, ela recebe a
