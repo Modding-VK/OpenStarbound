@@ -343,3 +343,7 @@ etapa acima.
   deixam a factory, mas revelou defer redundante de planos vazios e um miss
   individual de 134,765 ms ainda serial; corrigir o plano vazio antes de nova
   validação; ver [runtime-validation-2026-11-08-tracy26-definition-prewarm.md](runtime-validation-2026-11-08-tracy26-definition-prewarm.md).
+- [x] Corrigir o preview para que plano pronto sem MicroDungeon não seja
+  adiado: registrar `skippedEmptyPlans` e aplicar na mesma passagem. Revalidar
+  expirações e espera de setor com o preview habilitado antes de qualquer
+  decisão de adoção.

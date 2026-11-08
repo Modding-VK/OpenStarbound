@@ -599,7 +599,9 @@ orçamento limita o frame.
 Os contadores `generation.microDungeonDefinitionPrewarm.*` distinguem
 tentativas, hits, misses, evicções, adiamentos e alcance do deadline. O commit
 da MicroDungeon é adiado para a passagem seguinte mesmo quando o pré-aquecimento
-termina, preservando uma fronteira observável entre cache e publicação.
+termina, preservando uma fronteira observável entre cache e publicação. Um
+resultado de plano vazio é exceção: não há definição a tocar, portanto ele
+registra `skippedEmptyPlans` e segue para o commit na própria passagem.
 
 `worldThreading.generationPersistentPriorityPreview` é o segundo recorte.
 Quando `generationFairnessSchedulerPreview` está ativo, ele passa a acompanhar
