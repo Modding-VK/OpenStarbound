@@ -757,15 +757,21 @@ void ExplorationProfile::report(bool final) {
             return value->toObject();
         return JsonObject();
       };
-      auto selectEntity = [](Json const& source, String const& type) {
+      auto objectOrEmpty = [](Json const& value) {
+        return value.isType(Json::Type::Object) ? value.toObject() : JsonObject();
+      };
+      auto arrayOrEmpty = [](Json const& value) {
+        return value.isType(Json::Type::Array) ? value.toArray() : JsonArray();
+      };
+      auto selectEntity = [&](Json const& source, String const& type) {
         JsonObject selected;
-        if (auto value = source.toObject().ptr(type))
+        if (auto value = objectOrEmpty(source).ptr(type))
           selected.set(type, *value);
         return selected;
       };
-      auto selectSlowEntities = [](Json const& source, String const& type) {
+      auto selectSlowEntities = [&](Json const& source, String const& type) {
         JsonArray selected;
-        for (auto const& entity : source.iterateArray()) {
+        for (auto const& entity : arrayOrEmpty(source)) {
           if (entity.getString("type", "") == type)
             selected.append(entity);
         }
@@ -782,7 +788,7 @@ void ExplorationProfile::report(bool final) {
         if (category == "npcs")
           npcStages = object.get("npcStages");
         bool hasData = !stages.empty() || !counts.empty() || !maxima.empty() || !entityTypes.empty() || !slowEntities.empty()
-            || (!npcStages.isNull() && !npcStages.toObject().empty());
+            || !objectOrEmpty(npcStages).empty();
         fields.set("stages", std::move(stages));
         fields.set("counts", std::move(counts));
         fields.set("maxima", std::move(maxima));
@@ -822,11 +828,11 @@ void ExplorationProfile::report(bool final) {
       sectors.set("tilePackets", object.get("tilePackets"));
       sectors.set("regionalDiagnostics", object.get("regionalDiagnostics"));
       sectors.set("regionTurns", object.get("regionTurns"));
-      bool hasSectors = !sectors.get("counts").toObject().empty()
+      bool hasSectors = !objectOrEmpty(sectors.get("counts")).empty()
           || !sectors.get("oldestQueuedSector").isNull()
-          || !sectors.get("slowSectors").toArray().empty()
-          || !sectors.get("tilePackets").toArray().empty()
-          || !sectors.get("regionTurns").toArray().empty();
+          || !arrayOrEmpty(sectors.get("slowSectors")).empty()
+          || !arrayOrEmpty(sectors.get("tilePackets")).empty()
+          || !arrayOrEmpty(sectors.get("regionTurns")).empty();
       makeCategory("sectors", std::move(sectors), hasSectors);
 
       JsonObject generation;
@@ -837,11 +843,11 @@ void ExplorationProfile::report(bool final) {
       generation.set("generationTasks", object.get("generationTasks"));
       generation.set("generationRequests", object.get("generationRequests"));
       generation.set("generationSelections", object.get("generationSelections"));
-      bool hasGeneration = !generation.get("stages").toObject().empty() || !generation.get("counts").toObject().empty()
-          || !generation.get("staleBaseTiles").toArray().empty() || !generation.get("evictedBaseTiles").toArray().empty()
-          || !generation.get("generationTasks").toArray().empty()
-          || !generation.get("generationRequests").toArray().empty()
-          || !generation.get("generationSelections").toArray().empty();
+      bool hasGeneration = !objectOrEmpty(generation.get("stages")).empty() || !objectOrEmpty(generation.get("counts")).empty()
+          || !arrayOrEmpty(generation.get("staleBaseTiles")).empty() || !arrayOrEmpty(generation.get("evictedBaseTiles")).empty()
+          || !arrayOrEmpty(generation.get("generationTasks")).empty()
+          || !arrayOrEmpty(generation.get("generationRequests")).empty()
+          || !arrayOrEmpty(generation.get("generationSelections")).empty();
       makeCategory("generation", std::move(generation), hasGeneration);
 
       // Dungeon generation is authoritative and serial. Keep its fixed-label
@@ -851,22 +857,22 @@ void ExplorationProfile::report(bool final) {
       dungeons.set("stages", selectByPrefix(objectField("stages"), {"dungeon."}));
       dungeons.set("counts", selectByPrefix(objectField("counts"), {"dungeon."}));
       dungeons.set("maxima", selectByPrefix(objectField("maxima"), {"dungeon."}));
-      bool hasDungeons = !dungeons.get("stages").toObject().empty()
-          || !dungeons.get("counts").toObject().empty() || !dungeons.get("maxima").toObject().empty();
+      bool hasDungeons = !objectOrEmpty(dungeons.get("stages")).empty()
+          || !objectOrEmpty(dungeons.get("counts")).empty() || !objectOrEmpty(dungeons.get("maxima")).empty();
       makeCategory("dungeons", std::move(dungeons), hasDungeons);
 
       JsonObject wiring;
       wiring.set("stages", selectByPrefix(objectField("stages"), {"wiring."}));
       wiring.set("counts", selectByPrefix(objectField("counts"), {"wiring."}));
       wiring.set("maxima", selectByPrefix(objectField("maxima"), {"wiring."}));
-      bool hasWiring = !wiring.get("stages").toObject().empty() || !wiring.get("counts").toObject().empty() || !wiring.get("maxima").toObject().empty();
+      bool hasWiring = !objectOrEmpty(wiring.get("stages")).empty() || !objectOrEmpty(wiring.get("counts")).empty() || !objectOrEmpty(wiring.get("maxima")).empty();
       makeCategory("wiring", std::move(wiring), hasWiring);
 
       JsonObject liquids;
       liquids.set("stages", selectByPrefix(objectField("stages"), {"liquid."}));
       liquids.set("counts", selectByPrefix(objectField("counts"), {"liquid."}));
       liquids.set("maxima", selectByPrefix(objectField("maxima"), {"liquid."}));
-      bool hasLiquids = !liquids.get("stages").toObject().empty() || !liquids.get("counts").toObject().empty() || !liquids.get("maxima").toObject().empty();
+      bool hasLiquids = !objectOrEmpty(liquids.get("stages")).empty() || !objectOrEmpty(liquids.get("counts")).empty() || !objectOrEmpty(liquids.get("maxima")).empty();
       makeCategory("liquids", std::move(liquids), hasLiquids);
 
       JsonObject scripts;
@@ -874,8 +880,8 @@ void ExplorationProfile::report(bool final) {
       scripts.set("storyHops", object.get("storyHops"));
       if (m_component == "playerQuests" || m_component == "universeScripts")
         scripts.set("allStages", object.get("stages"));
-      bool hasScripts = !scripts.get("stages").toObject().empty() || !scripts.get("storyHops").toArray().empty()
-          || (scripts.contains("allStages") && !scripts.get("allStages").toObject().empty());
+      bool hasScripts = !objectOrEmpty(scripts.get("stages")).empty() || !arrayOrEmpty(scripts.get("storyHops")).empty()
+          || (scripts.contains("allStages") && !objectOrEmpty(scripts.get("allStages")).empty());
       makeCategory("scripts", std::move(scripts), hasScripts);
     } catch (std::exception const& exception) {
       if (!m_reportWriteFailureLogged) {
