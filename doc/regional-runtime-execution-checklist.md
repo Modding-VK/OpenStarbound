@@ -218,6 +218,9 @@ do uso de CPU do sistema.
 - [x] Instrumentar o primeiro bloqueador de cada tentativa `Complete` visível,
   distinguindo etapa, vizinho, deadline e limite de níveis; requer nova coleta
   para decidir entre MicroDungeons, CaveLiquid e política de entrega.
+  Tracy 17 identificou MicroDungeons como bloqueador dominante e revelou a
+  precedência incorreta da continuidade, corrigida para a próxima coleta; ver
+  [runtime-validation-2026-11-08-tracy17-visible-blockers.md](runtime-validation-2026-11-08-tracy17-visible-blockers.md).
 - [x] Documentar protocolo A/B e critérios que condicionam prioridade futura
   de microdungeons/vizinhos; ver
   [regional-runtime-expiry-risk-validation-protocol.md](regional-runtime-expiry-risk-validation-protocol.md).

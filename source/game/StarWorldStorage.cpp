@@ -1062,7 +1062,28 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     Maybe<Sector> fairnessReservedSector;
     Maybe<Sector> expiryRiskReservedSector;
     Maybe<Sector> visibleChainContinuationReservedSector;
-    if (expiryRiskPreview && !m_generationQueue.empty()) {
+    // A continuation is created only after a visible Complete attempt made
+    // real progress. Give it exactly one follow-up before scanning another
+    // near-expiry request; otherwise a dense queue with short TTLs promotes a
+    // risk candidate every pass and makes continuation unreachable.
+    if (visibleChainContinuationPreview && m_generationVisibleChainContinuation) {
+      auto const& continuation = *m_generationVisibleChainContinuation;
+      auto request = m_generationRequests.ptr(continuation.sector);
+      if (m_generationQueue.contains(continuation.sector) && request && request->sequence == continuation.sequence) {
+        m_generationQueue.toFront(continuation.sector);
+        fairnessReservedSector = continuation.sector;
+        visibleChainContinuationReservedSector = continuation.sector;
+        if (m_explorationProfile) {
+          m_explorationProfile->count("generation.visibleChainContinuation.resumed");
+          recordGenerationRequest(continuation.sector, "visibleChainContinuationResumed");
+        }
+      } else {
+        m_generationVisibleChainContinuation.reset();
+        if (m_explorationProfile)
+          m_explorationProfile->count("generation.visibleChainContinuation.dropped");
+      }
+    }
+    if (!fairnessReservedSector && expiryRiskPreview && !m_generationQueue.empty()) {
       Maybe<Sector> atRisk;
       float remainingSeconds = 0.0f;
       uint64_t atRiskSequence = 0;
@@ -1105,29 +1126,6 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
         m_generationPersistentPriority.reset();
         if (m_explorationProfile)
           m_explorationProfile->count("generation.persistentPriority.dropped");
-      }
-    }
-    // A normal Complete attempt may advance a visible sector's own stage or a
-    // prerequisite, then the legacy traversal sends it to the back while
-    // switching to BaseTiles-only scheduling. Retain exactly one follow-up
-    // attempt in the next pass so a common sector can deliver its serial chain
-    // rather than losing position after every useful advance. Expiry risk and
-    // existing persistent fairness remain higher priority.
-    if (!fairnessReservedSector && visibleChainContinuationPreview && m_generationVisibleChainContinuation) {
-      auto const& continuation = *m_generationVisibleChainContinuation;
-      auto request = m_generationRequests.ptr(continuation.sector);
-      if (m_generationQueue.contains(continuation.sector) && request && request->sequence == continuation.sequence) {
-        m_generationQueue.toFront(continuation.sector);
-        fairnessReservedSector = continuation.sector;
-        visibleChainContinuationReservedSector = continuation.sector;
-        if (m_explorationProfile) {
-          m_explorationProfile->count("generation.visibleChainContinuation.resumed");
-          recordGenerationRequest(continuation.sector, "visibleChainContinuationResumed");
-        }
-      } else {
-        m_generationVisibleChainContinuation.reset();
-        if (m_explorationProfile)
-          m_explorationProfile->count("generation.visibleChainContinuation.dropped");
       }
     }
     if ((fairnessPreview || dependencyPreview) && !fairnessReservedSector && !m_generationQueue.empty()

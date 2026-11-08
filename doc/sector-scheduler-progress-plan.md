@@ -397,10 +397,12 @@ final da passagem atual e a passagem termina, evitando que o tail
 `BaseTiles`-only o consuma imediatamente ou que a mesma cadeia monopolize o
 orçamento.
 
-Risco de expiração e prioridade persistente existente continuam precedendo a
-continuidade. A identidade é revalidada antes de retomar; unload, expiração,
-conclusão ou reentrada descartam o marcador. Não há renovação de TTL, aumento
-de orçamento, mudança de prioridade de commit ou execução de worker extra.
+Uma continuidade válida recebe uma tentativa antes da próxima seleção de risco
+de expiração; como é estritamente uma tentativa, o risco volta a prevalecer na
+passagem seguinte. A identidade é revalidada antes de retomar; unload,
+expiração, conclusão ou reentrada descartam o marcador. Não há renovação de
+TTL, aumento de orçamento, mudança de prioridade de commit ou execução de
+worker extra.
 `generation.visibleChainContinuation.scheduled`, `.resumed`, `.attempted` e
 `.dropped` medem o contrato.
 
