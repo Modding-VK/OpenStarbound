@@ -143,8 +143,9 @@ ser demonstrada.
 ### Primeiro recorte configurável
 
 O primeiro recorte implementado mantém o padrão `legacy` inalterado e aceita
-`worldThreading.performanceMode` com os valores `legacy`, `adaptive` e
-`aggressive`. Em `adaptive` ou `aggressive`, `sectorWorkers: 0` seleciona uma
+`worldThreading.performanceMode` com os valores `legacy`, `adaptive`,
+`aggressive` e `dynamic`. Em `adaptive`, `aggressive` ou `dynamic`,
+`sectorWorkers: 0` seleciona uma
 pool inicial a partir de `std::thread::hardware_concurrency()`, menos
 `reservedSystemWorkers` (padrão 1). `maxSectorWorkers` limita somente essa
 seleção automática; uma quantidade explícita em `sectorWorkers` continua útil
@@ -161,6 +162,17 @@ burst recua ao orçamento base naquela passagem. O modo `aggressive` ignora esse
 recuo por ser uma escolha explícita de throughput. Os contadores
 `generation.performancePolicy.*` registram passagens, fila, orçamento efetivo,
 tempo já gasto no update e recuos por pressão.
+
+`dynamic` é o perfil agnóstico de CPU para jogadores que desejam alto uso de
+hardware sem fixar uma escolha em um processador específico. A pool continua
+automática; a cada backlog ele cresce o orçamento em passos de 4 ms por
+`generationBudgetBacklogStep`, até o teto configurado. Enquanto o tempo já
+consumido pela atualização da thread dona for menor que
+`generationBudgetDynamicUpdateCeilingMilliseconds` (padrão 32 ms), ele pode
+usar o teto; ao cruzá-lo, volta ao orçamento base naquela passagem. Portanto,
+ele explora CPU ociosa, mas não insiste em ampliar uma atualização já atrasada.
+`generation.performancePolicy.dynamicPasses` e
+`.updatePressureLimitedPasses` tornam essa decisão auditável.
 
 Esse primeiro recorte dimensiona workers na criação da pool; ele ainda não
 redimensiona threads durante a execução nem mede pressão de memória. Esses
@@ -243,13 +255,13 @@ Exemplo de teste:
 
 ```json
 "worldThreading" : {
-  "performanceMode" : "adaptive",
+  "performanceMode" : "dynamic",
   "sectorWorkers" : 0,
   "reservedSystemWorkers" : 1,
   "maxSectorWorkers" : 0,
   "generationBudgetBacklogStep" : 8,
-  "generationBudgetMaximumMilliseconds" : 24,
-  "generationBudgetUpdateTargetMilliseconds" : 16,
+  "generationBudgetMaximumMilliseconds" : 40,
+  "generationBudgetDynamicUpdateCeilingMilliseconds" : 32,
   "generationPreparationFeederPreview" : true,
   "generationPreparationFeederMilliseconds" : 2,
   "generationPreparationFeederCandidateLimit" : 32,
@@ -527,6 +539,13 @@ Medir `generation.microDungeonPlan.readyResultsEnqueued`,
 setores completos/s e equivalência de saves/mods. A aplicação ainda pode ser
 uma etapa serial indivisível; esta mudança reduz espera ociosa, não autoriza
 escrita concorrente.
+
+O commit serial de um plano é agora detalhado em
+`generation.microDungeonPlan.apply.revalidate`, `.facade`, `.plans`,
+`.factory`, `.publish` e `.cleanup`. Isso separa a revalidação, a criação da
+fachada, a geração de cada estrutura e a publicação de tiles/promises, sem
+registrar payloads de mods. O objetivo é saber qual fração ainda é
+necessariamente dona da world thread antes de qualquer refatoração adicional.
 
 `worldThreading.generationPersistentPriorityPreview` é o segundo recorte.
 Quando `generationFairnessSchedulerPreview` está ativo, ele passa a acompanhar

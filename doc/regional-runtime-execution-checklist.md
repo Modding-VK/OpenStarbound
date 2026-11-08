@@ -304,6 +304,12 @@ etapa acima.
   mesma rota com/sem o preview e registrar pronto→aplicação, stale,
   completos/s, expirações e p99 da world thread.
 - [ ] Correlacionar Tracy e JSONL; medir profiling ligado e desligado.
-- [ ] Confirmar em Windows a escrita da categoria `storage` após a proteção
-  contra seções opcionais ausentes no relatório (`BadVariantType` observado em
-  2026-11-06).
+- [ ] Confirmar em Windows a escrita da categoria `storage`. Se uma seção
+  opcional ainda causar `BadVariantType`, o writer deve preservar uma linha
+  mínima com `reportFallback: "badVariantType"`; investigar a origem sem
+  perder a janela de profiling.
+- [ ] Validar `performanceMode: "dynamic"` em máquina com CPU distinta: medir
+  workers automáticos, `dynamicPasses`, recuos pelo teto da atualização, p99,
+  completos/s e expirações contra `aggressive` com a mesma rota.
+- [ ] Correlacionar os estágios `generation.microDungeonPlan.apply.*` com Tracy
+  para separar custo de planejamento, aplicação serial e publicação de mundo.

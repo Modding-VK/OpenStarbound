@@ -1010,7 +1010,7 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     bool readyResultSchedulerPreview = threading.getBool("generationReadyResultSchedulerPreview", false);
     auto performanceMode = threading.getString("performanceMode", "legacy");
     bool workerPreparationEnabled = threading.getUInt("sectorWorkers", 0) > 0
-        || performanceMode == "adaptive" || performanceMode == "aggressive";
+        || performanceMode == "adaptive" || performanceMode == "aggressive" || performanceMode == "dynamic";
     // This preview admits only the private BaseTiles stage. It deliberately
     // does not commit a worker result or run a higher stage, so a blocked
     // Complete request cannot leave available worker capacity idle merely

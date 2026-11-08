@@ -132,7 +132,7 @@ WorkerPool& sectorGenerationWorkerPool() {
     auto threadingConfig = Root::singleton().configuration()->get("worldThreading", JsonObject());
     unsigned sectorWorkers = threadingConfig.getUInt("sectorWorkers", 0);
     auto performanceMode = threadingConfig.getString("performanceMode", "legacy");
-    if (sectorWorkers == 0 && (performanceMode == "adaptive" || performanceMode == "aggressive")) {
+    if (sectorWorkers == 0 && (performanceMode == "adaptive" || performanceMode == "aggressive" || performanceMode == "dynamic")) {
       unsigned hardwareWorkers = max(1u, std::thread::hardware_concurrency());
       unsigned reservedWorkers = min<unsigned>(threadingConfig.getUInt("reservedSystemWorkers", 1), hardwareWorkers - 1);
       unsigned automaticWorkers = max(1u, hardwareWorkers - reservedWorkers);
@@ -1422,8 +1422,11 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
         && pending->task->identity.worldEpoch == m_worldServer->instanceEpoch()
         && m_worldServer->worldTemplate().get() == pending->sourceTemplate
         && m_worldServer->worldTemplate()->generationRevision() == pending->sourceTemplateRevision;
-    for (auto const& revision : pending->sourceSectorRevisions)
-      current = current && worldStorage->tileArray()->sectorRevision(revision.first) == revision.second;
+    {
+      ExplorationProfile::Scope timing(profile, "generation.microDungeonPlan.apply.revalidate");
+      for (auto const& revision : pending->sourceSectorRevisions)
+        current = current && worldStorage->tileArray()->sectorRevision(revision.first) == revision.second;
+    }
     if (!current) {
       bool dependencyPrepared = pending->dependencyPrepared;
       retireBaseTileTask(pending->task, pending->task->valid()
@@ -1438,10 +1441,16 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
       }
       return allowAsync ? generateMicroDungeons(worldStorage, sector, true) : SectorGenerationResult{false, {}};
     }
+    ExplorationProfile::Scope facadeTiming(profile, "generation.microDungeonPlan.apply.facade");
     auto facade = make_shared<DungeonGeneratorWorld>(m_worldServer, false);
+    facadeTiming.stop();
+    ExplorationProfile::Scope plansTiming(profile, "generation.microDungeonPlan.apply.plans");
     for (auto const& plan : result.plans)
       applyMicroDungeonPlan(worldStorage, plan, facade, profile, planPreview);
+    plansTiming.stop();
+    ExplorationProfile::Scope cleanupTiming(profile, "generation.microDungeonPlan.apply.cleanup");
     m_queuedPlacements = m_queuedPlacements.filtered([&](QueuedPlacement& p) { return !p.fulfilled; });
+    cleanupTiming.stop();
     bool dependencyPrepared = pending->dependencyPrepared;
     retireBaseTileTask(pending->task, WorldGenerationTaskOutcome::Committed);
     m_pendingMicroDungeonPlans.remove(sector);
@@ -1629,8 +1638,10 @@ void WorldGenerator::applyMicroDungeonPlan(WorldStorage* worldStorage, MicroDung
   // This is the only live-world generation call in the microdungeon pipeline.
   // Planning above is value-only; all tiles, entities and promises remain in
   // the legacy owner-thread path below.
+  ExplorationProfile::Scope factoryTiming(profile, "generation.microDungeonPlan.apply.factory");
   auto generateResult = m_microDungeonFactory->generate(plan.bounds, plan.dungeonName, plan.position,
       plan.seed, m_worldServer->threatLevel(), facade);
+  factoryTiming.stop();
   if (!generateResult)
     return;
 
@@ -1648,6 +1659,7 @@ void WorldGenerator::applyMicroDungeonPlan(WorldStorage* worldStorage, MicroDung
   }
 
   Maybe<DungeonId> dungeonId;
+  ExplorationProfile::Scope publishTiming(profile, "generation.microDungeonPlan.apply.publish");
   if (queued) {
     dungeonId = queued->dungeonId;
     queued->promise.fulfill(plan.position);
@@ -1659,6 +1671,7 @@ void WorldGenerator::applyMicroDungeonPlan(WorldStorage* worldStorage, MicroDung
       tile->dungeonId = dungeonId.value(tile->dungeonId);
     }
   }
+  publishTiming.stop();
 }
 
 void WorldGenerator::generateCaveLiquid(WorldStorage* worldStorage, ServerTileSectorArray::Sector const& sector) {

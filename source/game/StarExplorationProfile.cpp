@@ -700,6 +700,28 @@ void ExplorationProfile::report(bool final) {
         reportCategory = category;
         try {
           writeReportFile(category, Json(std::move(fields)));
+        } catch (BadVariantType const&) {
+          // A malformed optional field must not make an otherwise useful
+          // profiling window disappear. Persist a minimal, schema-valid
+          // record, mark it for offline diagnosis, and continue with the
+          // other categories. This is specifically recoverable from the
+          // historical Windows `BadVariantType` storage-report failure.
+          JsonObject fallback{
+            {"component", m_component}, {"context", m_context}, {"instance", m_instance},
+            {"category", category}, {"windowMilliseconds", object.get("windowMilliseconds")},
+            {"slowOperationMilliseconds", object.get("slowOperationMilliseconds")},
+            {"final", object.get("final")}, {"reportFallback", "badVariantType"}
+          };
+          try {
+            writeReportFile(category, Json(std::move(fallback)));
+            Logger::warn("[ExplorationProfile] recovered report category={} with minimal fallback after BadVariantType", category);
+          } catch (...) {
+            if (!m_reportWriteFailureCategories.contains(category)) {
+              Logger::warn("[ExplorationProfile] report fallback failed component={} instance={} category={}",
+                  m_component, m_instance, category);
+              m_reportWriteFailureCategories[category] = true;
+            }
+          }
         } catch (std::exception const& exception) {
           if (!m_reportWriteFailureCategories.contains(category)) {
             Logger::warn("[ExplorationProfile] report file write failed component={} instance={} category={} failure=standardException detail={}",

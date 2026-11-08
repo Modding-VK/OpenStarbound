@@ -1380,12 +1380,27 @@ void WorldServer::update(float dt) {
     bool updatePressureLimited = false;
     unsigned elapsedBeforeGenerationMilliseconds = static_cast<unsigned>(min<double>(
         (Time::monotonicTime() - updateStartedAt) * 1000.0, highest<unsigned>()));
-    if (queuedSectors != 0 && (performanceMode == "adaptive" || performanceMode == "aggressive")) {
+    if (queuedSectors != 0 && (performanceMode == "adaptive" || performanceMode == "aggressive" || performanceMode == "dynamic")) {
       unsigned maximumMilliseconds = threadingConfig.getUInt("generationBudgetMaximumMilliseconds",
           performanceMode == "aggressive" ? 36 : 24);
       maximumMilliseconds = clamp<unsigned>(maximumMilliseconds, baseGenerationMilliseconds, 50);
       if (performanceMode == "aggressive") {
         generationMilliseconds = maximumMilliseconds;
+      } else if (performanceMode == "dynamic") {
+        // Dynamic keeps the automatic worker pool, then chooses a burst from
+        // live queue pressure. Unlike adaptive it is allowed to consume the
+        // full user cap while the owner update remains below an explicit hard
+        // ceiling; this makes available CPU useful without binding behavior to
+        // a particular processor model.
+        unsigned backlogStep = clamp<unsigned>(threadingConfig.getUInt("generationBudgetBacklogStep", 8), 1, 256);
+        unsigned hardTargetMilliseconds = clamp<unsigned>(
+            threadingConfig.getUInt("generationBudgetDynamicUpdateCeilingMilliseconds", 32), 1, 100);
+        unsigned extraMilliseconds = static_cast<unsigned>((queuedSectors + backlogStep - 1) / backlogStep) * 4;
+        generationMilliseconds = min(maximumMilliseconds, baseGenerationMilliseconds + extraMilliseconds);
+        if (elapsedBeforeGenerationMilliseconds >= hardTargetMilliseconds) {
+          generationMilliseconds = baseGenerationMilliseconds;
+          updatePressureLimited = true;
+        }
       } else {
         unsigned backlogStep = clamp<unsigned>(threadingConfig.getUInt("generationBudgetBacklogStep", 8), 1, 256);
         unsigned extraMilliseconds = static_cast<unsigned>((queuedSectors + backlogStep - 1) / backlogStep) * 2;
@@ -1406,6 +1421,8 @@ void WorldServer::update(float dt) {
         m_explorationProfile->count("generation.performancePolicy.budgetMilliseconds", generationMilliseconds);
         if (performanceMode == "aggressive")
           m_explorationProfile->count("generation.performancePolicy.aggressivePasses");
+        else if (performanceMode == "dynamic")
+          m_explorationProfile->count("generation.performancePolicy.dynamicPasses");
         else
           m_explorationProfile->count("generation.performancePolicy.adaptivePasses");
         m_explorationProfile->count("generation.performancePolicy.updateElapsedMilliseconds",
@@ -1460,7 +1477,7 @@ void WorldServer::update(float dt) {
   // not a disabled pool. Keep prefetch aligned with the same policy used by
   // worldSectorWorkerPool so it can prepare sectors before visible interest.
   bool workersEnabled = threading.getUInt("sectorWorkers", 0) > 0
-      || performanceMode == "adaptive" || performanceMode == "aggressive";
+      || performanceMode == "adaptive" || performanceMode == "aggressive" || performanceMode == "dynamic";
   bool prefetchEnabled = prefetchPad > 0 && workersEnabled;
   for (auto const& pair : m_clientInfo) {
     for (auto const& monitoredRegion : pair.second->monitoringRegions(m_entityMap)) {
