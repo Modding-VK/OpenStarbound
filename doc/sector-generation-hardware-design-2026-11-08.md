@@ -9,6 +9,12 @@ a entrega de setores. Este documento atualiza a arquitetura e a sequência
 propostas na [auditoria do pipeline](sector-generation-architecture-audit-2026-11-08.md).
 A auditoria permanece como evidência do código atual.
 
+Detalhamento operacional: a [coleção do runtime de setores](sector-runtime/README.md)
+distribui contratos, propósitos e melhorias esperadas entre módulos ligados ao
+[roadmap](sector-runtime/roadmap.md). A
+[regra regional](sector-runtime/regional-threads.md) preserva uma thread
+dedicada por região 2×2; pools CPU/GPU são auxiliares de preparação.
+
 ## Objetivo e contrato de desempenho
 
 O runtime deve transformar capacidade disponível em mais setores publicáveis

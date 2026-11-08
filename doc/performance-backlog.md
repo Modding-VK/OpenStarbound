@@ -2,6 +2,11 @@
 
 ## Prioridade de implementação — 08/11/2026
 
+O trabalho está detalhado na [coleção do runtime de setores](sector-runtime/README.md),
+com [roadmap H0–H5/R1–R2](sector-runtime/roadmap.md), IDs por subsistema,
+propósito, melhoria esperada, dependências e aceitação. Usar esse roadmap para
+atualizar o progresso, mantendo aqui a prioridade consolidada.
+
 A direção de arquitetura vigente é o
 [pipeline orientado a CPU, RAM e GPU](sector-generation-hardware-design-2026-11-08.md),
 revisado para o cenário de hardware com folga declarado pelo usuário. A

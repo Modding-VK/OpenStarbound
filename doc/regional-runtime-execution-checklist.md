@@ -29,6 +29,12 @@ assets da rota de referência não tiver passado. Em particular:
 
 ## Estado atual
 
+O [índice central do programa de setores](sector-runtime/README.md) organiza
+os contratos por subsistema. O [roadmap detalhado](sector-runtime/roadmap.md)
+relaciona tarefas, dependências, propósito e critérios de conclusão; ele é a
+entrada operacional para a próxima implementação. Todos os novos itens estão
+pendentes até terem commit e relatório de validação.
+
 A proposta vigente foi retrabalhada para aproveitar CPU, RAM e GPU:
 [sector-generation-hardware-design-2026-11-08.md](sector-generation-hardware-design-2026-11-08.md).
 Ela define executor e orçamento globais, resultados residentes versionados,
@@ -63,10 +69,10 @@ auditadas em
 | BaseTiles em pool | Implementado, com identidade e validação de revisão |
 | Admissão de tarefas | Estágios declarados validados; chaves por `(setor, etapa)` podem coexistir |
 | Regiões lógicas em sombra | Implementado para observação e métricas |
-| Planejador de microdungeon por snapshot | Extraído, ainda síncrono |
+| Planejador de microdungeon por snapshot | Seleção extraída; caminho síncrono e worker opt-in disponíveis |
 | `MicroDungeonPlan` task | Planejador em worker opt-in; publicação ainda serial |
 | Ativação inicial com workers | Preview opt-in; aguarda conclusão e preserva contrato síncrono |
-| Entrega orientada à CPU | Preview `legacy`/`adaptive`/`aggressive`: pool automática inicial, orçamento por backlog e recuo adaptativo sob pressão do update; sem redimensionamento em execução ainda |
+| Entrega orientada à CPU | Modos `legacy`/`adaptive`/`aggressive`/`dynamic`: pool automática inicial nos modos não legados, orçamento por backlog e recuo conforme a política; sem redimensionamento em execução ainda |
 | Integridade da fila de geração | Conclusão remove o setor processado por chave; observação regional tolera e mede entradas sem identidade, sem interromper o mundo |
 | `WorldMutationBatch` | Contrato e validação pura criados; sem operações vivas |
 | Escrita paralela | Não implementada |

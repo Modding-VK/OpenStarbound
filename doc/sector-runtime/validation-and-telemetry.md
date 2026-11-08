@@ -1,0 +1,110 @@
+# Validação acelerada, telemetria e continuidade
+
+[Índice](README.md) · [Baseline](baseline.md) · [Roadmap](roadmap.md)
+
+## Propósito
+
+Reduzir a dependência de testes manuais sucessivos e provar que maior uso de
+hardware melhora a entrega real. Automatizar invariantes e reproduções
+curtas, mantendo testes em jogo para as fronteiras que exigem assets/mods.
+
+## VAL-01 — Benchmark de streaming
+
+Construir um harness que execute trajetória/interesse e ticks reprodutíveis,
+com save inicial copiado, seed, mods e configuração fixos. Os benchmarks
+existentes de `generateRegion` síncrono continuam úteis, mas não reproduzem
+fila, TTL, fairness, prefetch e entrega durante exploração.
+
+Separar medições de startup, setor inédito, setor salvo e revisita quente.
+Classificar origem/nível inicial de cada setor para não contar pedido já
+satisfeito como terreno novo. Incluir completions controladas para reproduzir
+as esperas artificiais sem depender de uma CPU específica.
+
+Executar três repetições ou mais por variante, mesma duração/distância e
+estado inicial, registrando mediana e dispersão. Usar uma execução sem
+profiling detalhado para throughput e outra instrumentada para diagnóstico.
+
+## VAL-02 — Comparador de outputs e testes sem assets
+
+Testes puros: identidade, exclusão de chave, 3×3, wrap, nós compartilhados,
+resultado vazio, limite de memória, retorno invertido, justiça, deadline e
+cancelamento. Cobrir explicitamente a interação continuação/`break`.
+
+Colocações: múltiplas promises, compactação, ID ausente, nova geração, retry
+e cumprimento único. Caches: alteração de template/assets, output antigo,
+read set incompleto e bytes compartilhados. GPU: referência CPU, perda de
+contexto e resultado tardio. IO: bytes antigos após write e promoção de carga.
+
+Os testes devem verificar comportamento e outputs; duplicar internamente o
+mesmo algoritmo num teste não comprova equivalência. Usar comparações de
+referência, invariantes e sequências adversariais de eventos.
+
+## VAL-03 — Métricas e marcos de entrega
+
+| Marco/custo | O que deve registrar |
+| --- | --- |
+| Interesse | origem, sequência, prioridade, tempo e nível inicial |
+| Preparação | reserva, início/fim, backend, bytes e input revision |
+| Elegibilidade | pré-requisito que faltava e instante de liberação |
+| Publicação | validação, custo exclusivo, efeitos e nível confirmado |
+| Entrega | enqueue/envio/recepção/aplicação de pacote inicial |
+| Saída da passagem | vazio, worker, dependência, política, etapas, deadline ou erro |
+| Recursos | CPU útil, RAM única/em voo, VRAM, transferência e espera GPU |
+
+Os nomes são requisitos de instrumentação futura, não contadores já
+implementados. Reutilizar os existentes quando sua semântica corresponder.
+Separar conclusão física do worker de primeiro polling, e instante de pacote
+enfileirado de apresentação no cliente.
+
+Perfis agregados por etapa preservam tempos inclusivos/exclusivos declarados.
+Somar p95 de etapas não produz o p95 da entrega. Janelas com perda de eventos,
+fallback de relatório ou truncamento declaram cobertura incompleta. O problema
+`storage`/`BadVariantType` transitório continua pendente de causa raiz.
+
+## VAL-04 — Matriz de cenários
+
+| Cenário | Falha ou ganho procurado |
+| --- | --- |
+| Céu e terreno sem estrutura | throughput padrão e custo de planos vazios |
+| TMX frio e repetido | materialização versus cache; aplicação separada |
+| Mundo salvo/editado | nenhuma regeneração ou sobrescrita indevida |
+| Mudança de direção/teleporte | cancelamento, bytes retidos e prefetch desperdiçado |
+| Borda horizontal/vertical | wrap, regiões parciais e prioridade |
+| Um/N workers e vários mundos | escalabilidade e orçamento processual |
+| Pouca/muita RAM, GPU integrada/dedicada | pressão real e contagem correta de memória |
+| GPU ausente/lenta/perdida | fallback completo, sem frame bloqueado por fence |
+| Dois jogadores próximos/distantes | justiça, demanda compartilhada e transferências |
+| Mantizi/Glitch e base FU | estruturas, callbacks, fios e inventários íntegros |
+| Unload, sync, crash/restart | tickets, checkpoint e recuperação |
+
+O backlog de oceanos/clima exige comparar outros líquidos e separar geração,
+simulação e render. Não deduzir uma causa geral de uma amostra tóxica isolada.
+
+## VAL-05 — Gates de adoção e relatório
+
+Uma variante só avança quando possui: invariantes aprovados, comparação de
+outputs, benchmark equivalente, memória limitada, falhas/recovery cobertas e
+limites conhecidos. Definir em H0 os alvos quantitativos de throughput,
+latência e resposta antes de medir a candidata; não ajustar a meta depois
+apenas para declarar sucesso.
+
+Mais CPU/RAM/GPU deve resultar em mais setores inéditos/s ou menor espera,
+sem regressão inaceitável de update/frame, justiça ou integridade. A magnitude
+de aceleração permanece uma hipótese até o benchmark.
+
+Criar relatório versionado por teste material: objetivo, commits/build,
+config, artefatos com nome/tamanho/data/hash, cenário, resultados, limitações,
+decisão e próximo passo. Dados brutos permanecem fora do Git por padrão.
+Selecionar a sessão correta dos ZIPs acumulados; não misturar runs anteriores.
+Manter os relatórios por sessão já isolados e as políticas de rotação.
+
+## Operação e retomada
+
+Atualizar estado do item no [roadmap](roadmap.md), relatório ligado ao item e
+checklist regional. Informar exatamente o que passou: syntax-only não é build
+completa, teste sem assets não valida mod, e push não valida Actions.
+Workflows continuam manuais. Nenhuma release ou merge em `main` decorre
+automaticamente de um teste aprovado.
+
+Melhoria esperada: regressões reproduzidas rapidamente, evidência rastreável
+entre agentes e menos rodadas de teste manual para erros de escalonamento.

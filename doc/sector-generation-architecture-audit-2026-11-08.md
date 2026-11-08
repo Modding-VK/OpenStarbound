@@ -15,6 +15,11 @@ achados e as medições desta auditoria permanecem válidos; os trechos proposit
 abaixo devem ser lidos com essa revisão, que integra GPU, residência em RAM e
 controle processual de recursos ao desenho desde o início.
 
+O detalhamento de trabalho e aceitação está no
+[índice do runtime de setores](sector-runtime/README.md) e em seu
+[roadmap](sector-runtime/roadmap.md). Esses documentos não transformam
+propostas em funcionalidade implementada.
+
 ## Conclusão
 
 É viável uma arquitetura superior, construída sobre o código existente:

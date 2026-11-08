@@ -15,6 +15,13 @@ By a truly unbelievable coincidence, I was out for a walk when I saw a small pac
 
 You must own Starbound for the game assets. The code is worked on whenever I rarely feel like it. Contributions are welcome!
 
+## Experimental sector runtime development
+
+The `Experimental` branch's [sector runtime documentation](doc/sector-runtime/README.md)
+organizes the CPU/RAM/GPU generation design, WorldThread rework, dedicated
+regional threads, compatibility contracts, validation and implementation roadmap.
+It explicitly distinguishes existing previews from proposed functionality.
+
 ## Installation
 ### Download the [latest stable release](https://github.com/OpenStarbound/OpenStarbound/releases/latest).
 The latest stable release is recommended, as the nightly build can have bugs.

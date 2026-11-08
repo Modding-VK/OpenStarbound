@@ -2,6 +2,12 @@
 
 ## Direção atual — 08/11/2026
 
+Os contratos executáveis propostos estão organizados no
+[programa de setores](sector-runtime/README.md), especialmente
+[grafo/escalonamento](sector-runtime/dependency-scheduler.md) e
+[WorldThread](sector-runtime/worldthread.md). O
+[roadmap](sector-runtime/roadmap.md) centraliza dependências e aceitação.
+
 A revisão [orientada ao hardware](sector-generation-hardware-design-2026-11-08.md)
 define o desenho vigente: grafo comum para backends CPU/GPU, controle global
 de execução/memória, resultados residentes e antecipação da rota. O cenário

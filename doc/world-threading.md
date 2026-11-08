@@ -2,6 +2,11 @@
 
 ## Proposed hardware-oriented successor
 
+The [sector runtime index](sector-runtime/README.md) provides the detailed
+contracts and [delivery roadmap](sector-runtime/roadmap.md). Dedicated regional
+simulation threads and auxiliary CPU/GPU preparation workers have separate
+ownership contracts; the target regional unit is 2×2 physical sectors.
+
 The [CPU/RAM/GPU sector design](sector-generation-hardware-design-2026-11-08.md)
 defines the proposed successor: an incremental dependency graph, process-wide
 resource budgets, resident versioned preparation results, route-aware prefetch,
