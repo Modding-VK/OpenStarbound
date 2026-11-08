@@ -202,6 +202,9 @@ do uso de CPU do sistema.
   Requer A/B focado em expirações e `sectorWait`.
 - [ ] Validar o preview de risco de expiração contra a mesma rota, duração,
   save e mods, comparando expirações, `sectorWait`, justiça e tempo do update.
+  Tracy 15 confirma ativação e resultado favorável sem crash, mas é sessão curta
+  sem controle `false`; ver
+  [runtime-validation-2026-11-07-tracy15-expiry-risk.md](runtime-validation-2026-11-07-tracy15-expiry-risk.md).
 - [x] Instrumentar marcos por pedido visível (Tiles e cada etapa de geração),
   mantendo vizinhos recursivos fora da telemetria de interesse do jogador.
 - [x] Documentar protocolo A/B e critérios que condicionam prioridade futura
