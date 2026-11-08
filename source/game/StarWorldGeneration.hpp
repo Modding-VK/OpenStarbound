@@ -128,6 +128,7 @@ public:
   void sectorLoadLevelChanged(WorldStorage* worldStorage, Sector const& sector, SectorLoadLevel loadLevel) override;
   List<Sector> readyBaseTileSectors(WorldStorage* worldStorage) override;
   bool admitBaseTilesPreparation(WorldStorage* worldStorage, Sector const& sector) override;
+  bool admitMicroDungeonPlanPreparation(WorldStorage* worldStorage, Sector const& sector) override;
   void terraformSector(WorldStorage* worldStorage, Sector const& sector) override;
   void initEntity(WorldStorage* worldStorage, EntityId entityId, EntityPtr const& entity) override;
   void destructEntity(WorldStorage* worldStorage, EntityPtr const& entity) override;

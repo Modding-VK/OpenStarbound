@@ -124,6 +124,11 @@ struct WorldGeneratorFacade {
   // responsible for later validation and publication.
   virtual bool admitBaseTilesPreparation(WorldStorage*, Sector const&) { return false; }
 
+  // Admit only the private MicroDungeons planning producer. The caller must
+  // have established all BaseTiles prerequisites; applying a completed plan
+  // remains exclusively in the normal generation path.
+  virtual bool admitMicroDungeonPlanPreparation(WorldStorage*, Sector const&) { return false; }
+
   // Perform terraforming operations (biome reapplication) on the given sector
   virtual void terraformSector(WorldStorage* storage, Sector const& sector) = 0;
 

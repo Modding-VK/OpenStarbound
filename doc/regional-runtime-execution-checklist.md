@@ -196,6 +196,9 @@ do uso de CPU do sistema.
   posteriores para workers. Tracy 14 confirmou planos e admissões sem crash,
   mas não reduziu a cauda de espera; ver
   [runtime-validation-2026-11-07-tracy14-dependency-preparation.md](runtime-validation-2026-11-07-tracy14-dependency-preparation.md).
+- [x] Preview limitado de planejamento privado de MicroDungeons para a
+  fronteira já elegível de uma cadeia visível; aplicação, entidades e promises
+  continuam seriais. Requer validação de compatibilidade e espera no céu.
 - [x] Implementar preview de seleção por TTL restante: somente o pedido
   visível mais próximo de expirar dentro de uma janela configurável recebe uma
   tentativa reservada; o TTL e os contratos de geração permanecem inalterados.

@@ -201,6 +201,21 @@ Planos truncados não autorizam trabalho adicional. Os contadores
 e truncamento. O objetivo é atacar a espera antes de um setor novo no céu ficar
 pronto, não apenas reordenar o resultado já calculado.
 
+### Preview de planejamento MicroDungeons da cadeia visível
+
+`worldThreading.generationDependencyMicroDungeonPreparationPreview` requer os
+previews de cadeia, `microDungeonPlanPreview` e
+`microDungeonPlanningWorkerPreview`; permanece desligado por padrão. Ele aceita
+até `generationDependencyMicroDungeonCandidateLimit` candidatos (padrão 4,
+máximo 16) que a análise já classificou como fronteira `MicroDungeons`:
+BaseTiles do próprio setor e dos vizinhos necessários já existem.
+
+O worker recebe o mesmo snapshot privado de halo/revisões do caminho normal e
+calcula somente o plano. Aplicação de tiles, entidades, placements e promises
+não é antecipada e continua em `generateMicroDungeons` na thread dona. Os
+contadores `generation.preparationFeeder.microDungeonPlanAttempted` e
+`.microDungeonPlanAdmitted` medem o recorte.
+
 O prefetch de setores usa a mesma interpretação: em `adaptive` ou
 `aggressive`, `sectorWorkers: 0` habilita prefetch quando o padding da fidelidade
 estiver configurado. Antes dessa correção, a pool automática podia existir e o
@@ -221,7 +236,9 @@ Exemplo de teste:
   "generationPreparationFeederMilliseconds" : 2,
   "generationPreparationFeederCandidateLimit" : 32,
   "generationDependencyPreparationPreview" : true,
-  "generationDependencyPreparationRootLimit" : 1
+  "generationDependencyPreparationRootLimit" : 1,
+  "generationDependencyMicroDungeonPreparationPreview" : true,
+  "generationDependencyMicroDungeonCandidateLimit" : 4
 }
 ```
 

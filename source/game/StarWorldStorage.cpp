@@ -1031,6 +1031,13 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
         && threading.getBool("generationDependencyPreparationPreview", false);
     unsigned dependencyPreparationRootLimit = clamp<unsigned>(
         threading.getUInt("generationDependencyPreparationRootLimit", 1), 1, 4);
+    // This is deliberately narrower than BaseTiles feeding: the graph must
+    // already expose MicroDungeons as a runnable frontier stage, and only the
+    // pure planning producer may run. Applying a plan remains serial.
+    bool dependencyMicroDungeonPreparationPreview = dependencyPreparationPreview
+        && threading.getBool("generationDependencyMicroDungeonPreparationPreview", false);
+    unsigned dependencyMicroDungeonCandidateLimit = clamp<unsigned>(
+        threading.getUInt("generationDependencyMicroDungeonCandidateLimit", 4), 1, 16);
     // Fairness already grants an old request a bounded reserved attempt. Keep
     // that grant across the next pass by default when fairness is explicitly
     // enabled; otherwise a preceding ready-result commit can consume the
@@ -1362,11 +1369,18 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     if (preparationFeederPreview && !m_generationQueue.empty() && preparationFeederMilliseconds > 0) {
       ExplorationProfile::Scope timing(m_explorationProfile.get(), "generation.preparationFeeder");
       List<Sector> candidates;
+      List<Sector> microDungeonCandidates;
       auto appendCandidate = [&](Sector const& sector) {
         if (candidates.size() >= preparationFeederCandidateLimit
             || std::find(candidates.begin(), candidates.end(), sector) != candidates.end())
           return;
         candidates.append(sector);
+      };
+      auto appendMicroDungeonCandidate = [&](Sector const& sector) {
+        if (microDungeonCandidates.size() >= dependencyMicroDungeonCandidateLimit
+            || std::find(microDungeonCandidates.begin(), microDungeonCandidates.end(), sector) != microDungeonCandidates.end())
+          return;
+        microDungeonCandidates.append(sector);
       };
       if (dependencyPreparationPreview) {
         static constexpr size_t DependencyPreparationMaxNodes = 512;
@@ -1411,6 +1425,9 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
           for (auto const& node : analysis.frontier) {
             if (node.level == static_cast<uint8_t>(SectorGenerationLevel::BaseTiles))
               appendCandidate(Sector(node.sector[0], node.sector[1]));
+            else if (dependencyMicroDungeonPreparationPreview
+                && node.level == static_cast<uint8_t>(SectorGenerationLevel::MicroDungeons))
+              appendMicroDungeonCandidate(Sector(node.sector[0], node.sector[1]));
           }
         }
       }
@@ -1446,6 +1463,23 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
         if (m_generatorFacade->admitBaseTilesPreparation(this, sector)) {
           if (m_explorationProfile)
             m_explorationProfile->count("generation.preparationFeeder.baseTilesAdmitted");
+        }
+      }
+      for (auto const& sector : microDungeonCandidates) {
+        if (Time::monotonicTime() >= feederDeadline) {
+          if (m_explorationProfile)
+            m_explorationProfile->count("generation.preparationFeeder.deadlineReached");
+          break;
+        }
+        auto metadata = m_sectorMetadata.ptr(sector);
+        if (!metadata || metadata->generationLevel < SectorGenerationLevel::BaseTiles
+            || metadata->generationLevel >= SectorGenerationLevel::MicroDungeons)
+          continue;
+        if (m_explorationProfile)
+          m_explorationProfile->count("generation.preparationFeeder.microDungeonPlanAttempted");
+        if (m_generatorFacade->admitMicroDungeonPlanPreparation(this, sector)) {
+          if (m_explorationProfile)
+            m_explorationProfile->count("generation.preparationFeeder.microDungeonPlanAdmitted");
         }
       }
     }

@@ -982,6 +982,24 @@ bool WorldGenerator::admitBaseTilesPreparation(WorldStorage* worldStorage, Secto
   return m_pendingBaseTiles.contains(sector);
 }
 
+bool WorldGenerator::admitMicroDungeonPlanPreparation(WorldStorage* worldStorage, Sector const& sector) {
+  // Never poll an existing promise here: consuming it applies dungeon changes,
+  // entities and placement promises, which remain on the normal owner-thread
+  // generation path. This feeder is scheduling-only.
+  if (m_pendingMicroDungeonPlans.contains(sector) || worldSectorWorkerPool().getWorkerCount() == 0)
+    return false;
+  auto threading = Root::singleton().configuration()->get("worldThreading", JsonObject());
+  if (!threading.getBool("microDungeonPlanPreview", false)
+      || !threading.getBool("microDungeonPlanningWorkerPreview", false))
+    return false;
+  auto tileArray = worldStorage->tileArray();
+  if (worldStorage->sectorLoadLevel(sector) < SectorLoadLevel::Tiles
+      || !static_cast<ServerTileSectorArray const&>(*tileArray).sectorArray(sector))
+    return false;
+  generateMicroDungeons(worldStorage, sector, true);
+  return m_pendingMicroDungeonPlans.contains(sector);
+}
+
 void WorldGenerator::retireBaseTileTask(shared_ptr<WorldGenerationTask> const& task, WorldGenerationTaskOutcome outcome) {
   if (!m_generationTasks || !m_generationTasks->retire(task, outcome))
     throw StarException("Invalid generation task retirement");

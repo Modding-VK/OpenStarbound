@@ -26,7 +26,9 @@ Na variante experimental, trocar somente para:
 
 ```json
 "generationExpiryRiskSchedulerPreview" : true,
-"generationExpiryRiskMilliseconds" : 3000
+"generationExpiryRiskMilliseconds" : 3000,
+"generationDependencyMicroDungeonPreparationPreview" : true,
+"generationDependencyMicroDungeonCandidateLimit" : 4
 ```
 
 Preservar também os previews de BaseTiles/dependências que já estiverem ativos
@@ -64,8 +66,9 @@ linha também identifica `sessionStartedMonotonicMilliseconds`.
 O preview não pode tornar-se padrão somente por aumentar setores/s. Ele deve
 reduzir expirações/espera sob cenário equivalente e manter compatibilidade de
 saves, mods e multiplayer. Se a promoção ocorrer mas não avançar, o próximo
-recorte autorizado é priorizar o pré-requisito imediato bloqueador; se o update
-piorar, reduzir a janela de risco antes de alterar microdungeons ou líquidos.
+recorte é comparar o planejamento privado de MicroDungeons contra a mesma rota
+antes de priorizar qualquer aplicação; se o update piorar, reduzir a janela de
+risco antes de alterar líquidos.
 
 ## Instrumentação por pedido
 
