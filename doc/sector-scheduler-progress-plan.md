@@ -201,6 +201,21 @@ Planos truncados não autorizam trabalho adicional. Os contadores
 e truncamento. O objetivo é atacar a espera antes de um setor novo no céu ficar
 pronto, não apenas reordenar o resultado já calculado.
 
+### Preview de capacidade BaseTiles para setores padrão
+
+`worldThreading.generationBaseTilesDeliveryCapacityPreview` amplia somente a
+janela de preparação privada de BaseTiles, de `2 × workers` para
+`generationBaseTilesPendingMultiplier × workers` (padrão 4, limitado a 2–4).
+O resultado ainda entra na fila existente de resultados prontos e só é
+instalado pela thread dona. MicroDungeons conserva seu limite próprio; a
+reserva global de `WorldGenerationTasks` é dimensionada para não impedir
+BaseTiles se um planejador de dungeon for criado primeiro.
+
+O preview não muda TTL, orçamento serial, entidades, scripts, persistência ou
+ordem de commit. `generation.baseTiles.pendingLimit` registra o teto efetivo;
+validar memória, resultados stale, atraso pronto→commit, expirações e
+setores/s antes de adotá-lo por padrão.
+
 ### Preview de planejamento MicroDungeons da cadeia visível
 
 `worldThreading.generationDependencyMicroDungeonPreparationPreview` requer os
@@ -240,6 +255,8 @@ Exemplo de teste:
   "generationPreparationFeederCandidateLimit" : 32,
   "generationDependencyPreparationPreview" : true,
   "generationDependencyPreparationRootLimit" : 1,
+  "generationBaseTilesDeliveryCapacityPreview" : true,
+  "generationBaseTilesPendingMultiplier" : 4,
   "generationDependencyMicroDungeonPreparationPreview" : true,
   "generationDependencyMicroDungeonCandidateLimit" : 4
 }

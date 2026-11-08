@@ -196,6 +196,9 @@ do uso de CPU do sistema.
   posteriores para workers. Tracy 14 confirmou planos e admissões sem crash,
   mas não reduziu a cauda de espera; ver
   [runtime-validation-2026-11-07-tracy14-dependency-preparation.md](runtime-validation-2026-11-07-tracy14-dependency-preparation.md).
+- [x] Preview de capacidade de entrega de setores padrão: ampliar apenas a
+  janela pendente de BaseTiles até `4 × workers`, mantendo resultados prontos
+  e commit autoritativo existentes. Requer validação de memória e expirações.
 - [x] Preview limitado de planejamento privado de MicroDungeons para a
   fronteira já elegível de uma cadeia visível; aplicação, entidades e promises
   continuam seriais. Tracy 16 encontrou stales de halo antes da correção de

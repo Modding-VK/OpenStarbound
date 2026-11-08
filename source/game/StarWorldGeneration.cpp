@@ -1262,11 +1262,18 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
     return {true, {}};
   }
 
-  size_t pendingLimit = workerPool.getWorkerCount() * 2;
+  auto threading = Root::singleton().configuration()->get("worldThreading", JsonObject());
+  bool baseTilesDeliveryCapacityPreview = threading.getBool("generationBaseTilesDeliveryCapacityPreview", false);
+  unsigned baseTilesPendingMultiplier = baseTilesDeliveryCapacityPreview
+      ? clamp<unsigned>(threading.getUInt("generationBaseTilesPendingMultiplier", 4), 2, 4)
+      : 2;
+  size_t pendingLimit = workerPool.getWorkerCount() * baseTilesPendingMultiplier;
+  if (profile)
+    profile->maximum("generation.baseTiles.pendingLimit", pendingLimit);
   if (m_pendingBaseTiles.size() >= pendingLimit) {
     // WorldStorage drains ready BaseTiles before requesting new work. Retain
     // completed results rather than evicting a neighbor needed by the queue.
-    // The existing fixed cap (at most 16 sector arrays) bounds retained tiles.
+    // WorldGenerationTasks bounds retained arrays, bytes and task identities.
     if (profile)
       profile->count("generation.baseTiles.admissionDeferred");
     return {false, {}};
@@ -1445,10 +1452,16 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
     for (size_t i = 0; i < m_queuedPlacements.size(); ++i)
       if (!m_queuedPlacements[i].fulfilled)
         snapshot.queuedPlacements.append({m_queuedPlacements[i].distributions, i});
+    auto threading = Root::singleton().configuration()->get("worldThreading", JsonObject());
+    bool baseTilesDeliveryCapacityPreview = threading.getBool("generationBaseTilesDeliveryCapacityPreview", false);
+    unsigned baseTilesPendingMultiplier = baseTilesDeliveryCapacityPreview
+        ? clamp<unsigned>(threading.getUInt("generationBaseTilesPendingMultiplier", 4), 2, 4)
+        : 2;
+    size_t taskPendingLimit = max(pendingLimit, workerPool.getWorkerCount() * (size_t)baseTilesPendingMultiplier);
     if (!m_generationTasks)
       m_generationTasks = make_unique<WorldGenerationTasks>(m_worldServer->instanceEpoch(),
-          WorldRegionPartition(WorldGeometry(tileArray->size())), pendingLimit,
-          pendingLimit * 9 * WorldSectorSize * WorldSectorSize * sizeof(ServerTile));
+          WorldRegionPartition(WorldGeometry(tileArray->size())), taskPendingLimit,
+          taskPendingLimit * 9 * WorldSectorSize * WorldSectorSize * sizeof(ServerTile));
     auto task = m_generationTasks->reserve(Vec2U(sector), WorldGenerationTaskStage::MicroDungeonPlan, bytes);
     if (!task)
       return {false, {}};
