@@ -282,9 +282,9 @@ do uso de CPU do sistema.
    integração com `main`; não ampliar o número de escritores do mundo.
 2. **BaseTiles:** repetir o teste com mundos reais e assets licenciados antes
    de mudar limite, política de descarte ou validação de revisão.
-3. **Microdungeons:** executar somente o recorte vertical de planejamento
-   descrito acima; batches de mutação e a fachada gravadora vêm depois da
-   equivalência do planejador.
+3. **Microdungeons:** validar a fila de planos prontos revalidada e ordenada
+   por visibilidade antes de ampliar produtores; batches de mutação e a
+   fachada gravadora vêm depois da equivalência do planejador.
 4. **Agendador:** converter a observação atual em grafo executivo somente
    depois de existir uma fronteira completa e versionada; prioridade nunca
    cria interesse nem autoriza publicação.
@@ -300,6 +300,9 @@ etapa acima.
 - [ ] Comparar 1/N workers, pouca memória, prefetch, unload/reload e dois jogadores.
 - [ ] Comparar tiles, dungeons, entidades, líquidos, colisão, iluminação e saves.
 - [ ] Medir p50/p95/p99, bytes, retries, descartes e trabalho útil por etapa.
+- [ ] Para `generationMicroDungeonReadyResultSchedulerPreview`, comparar a
+  mesma rota com/sem o preview e registrar pronto→aplicação, stale,
+  completos/s, expirações e p99 da world thread.
 - [ ] Correlacionar Tracy e JSONL; medir profiling ligado e desligado.
 - [ ] Confirmar em Windows a escrita da categoria `storage` após a proteção
   contra seções opcionais ausentes no relatório (`BadVariantType` observado em

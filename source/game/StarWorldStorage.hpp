@@ -119,6 +119,12 @@ struct WorldGeneratorFacade {
   // neighbor dependencies. Must not schedule jobs or load/activate sectors.
   virtual List<Sector> readyBaseTileSectors(WorldStorage*) { return {}; }
 
+  // Completed MicroDungeons planning jobs are still immutable worker output.
+  // The returned sectors must be applied only by the world owner through the
+  // ordinary generation entry point; this query neither consumes a promise
+  // nor mutates tiles, entities or placement promises.
+  virtual List<Sector> readyMicroDungeonPlanSectors(WorldStorage*) { return {}; }
+
   // Admit a private BaseTiles task without polling, draining or applying an
   // existing result. The world owner has already loaded Tiles and remains
   // responsible for later validation and publication.

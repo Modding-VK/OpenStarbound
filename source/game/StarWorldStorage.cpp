@@ -1385,6 +1385,58 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       }
     }
 
+    // A MicroDungeons worker already produced only an immutable plan. Draining
+    // a completed plan here lets its visible sector continue immediately,
+    // rather than waiting until a later full-queue traversal happens to poll
+    // the same sector. The owner still revalidates and applies every tile,
+    // entity and placement effect through generateSectorLevel.
+    bool microDungeonReadyResultSchedulerPreview = readyResultSchedulerPreview
+        && threading.getBool("generationMicroDungeonReadyResultSchedulerPreview", false);
+    if (microDungeonReadyResultSchedulerPreview) {
+      auto readyMicroDungeonSectors = m_generatorFacade->readyMicroDungeonPlanSectors(this);
+      HashMap<Sector, size_t> queueRanks;
+      size_t rank = 0;
+      for (auto const& entry : m_generationQueue)
+        queueRanks[entry.first] = rank++;
+      std::sort(readyMicroDungeonSectors.begin(), readyMicroDungeonSectors.end(), [&](Sector const& a, Sector const& b) {
+        auto aRank = queueRanks.ptr(a);
+        auto bRank = queueRanks.ptr(b);
+        if (bool(aRank) != bool(bRank))
+          return bool(aRank);
+        if (aRank && *aRank != *bRank)
+          return *aRank < *bRank;
+        return a < b;
+      });
+      for (auto const& sector : readyMicroDungeonSectors) {
+        if ((sectorGenerationLevelLimit && *sectorGenerationLevelLimit == 0)
+            || Time::monotonicTime() >= generationDeadline)
+          break;
+        // Only an activated sector is eligible. A speculative plan for a
+        // support sector remains pending until the normal dependency path
+        // owns that sector's generation lifetime.
+        if (!m_generationQueue.contains(sector))
+          continue;
+        auto metadata = m_sectorMetadata.ptr(sector);
+        if (!metadata || metadata->loadLevel < SectorLoadLevel::Tiles
+            || metadata->generationLevel != SectorGenerationLevel::BaseTiles)
+          continue;
+        if (m_explorationProfile)
+          m_explorationProfile->count("generation.microDungeonPlan.readyResultsSelectedVisible");
+        ExplorationProfile::Scope timing(m_explorationProfile.get(), "generation.microDungeonPlan.readyResultApply");
+        auto result = m_generatorFacade->generateSectorLevel(this, sector, SectorGenerationLevel::MicroDungeons, true);
+        timing.stop();
+        if (!result.complete)
+          continue;
+        metadata->generationLevel = SectorGenerationLevel::MicroDungeons;
+        m_tileArray->markSectorDirty(sector);
+        if (sectorGenerationLevelLimit)
+          --*sectorGenerationLevelLimit;
+        if (m_explorationProfile)
+          m_explorationProfile->count("generation.microDungeonPlan.readyResultsCommitted");
+        ++levelsAdvancedThisPass;
+      }
+    }
+
     // The regular queue traversal couples admission with attempts to advance
     // Complete and its neighbor prerequisites. Take a bounded snapshot of the
     // current order and admit independent BaseTiles separately. Loading only

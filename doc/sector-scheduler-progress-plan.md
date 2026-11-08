@@ -500,6 +500,34 @@ pronto retido sem alterar equivalência de mundo/mods/saves.
 }
 ```
 
+`worldThreading.generationMicroDungeonReadyResultSchedulerPreview` estende o
+mesmo contrato para o **plano privado já concluído** de MicroDungeons. Requer
+`generationReadyResultSchedulerPreview`; indexa promessas concluídas, ordena
+somente setores ainda visíveis pela fila autoritativa e chama o caminho normal
+na thread dona para revalidar revisões e publicar tiles, entidades e promises.
+O worker nunca recebe fachada do mundo nem publica efeitos. Setores auxiliares
+não visíveis permanecem pendentes até que sua geração normal os possua.
+
+Ele existe porque Tracy 19 mostrou BaseTiles com folga de capacidade (média de
+3,72 pendências para teto 44), enquanto MicroDungeons foi o primeiro bloqueio
+em 1.282 tentativas visíveis. Assim, a oportunidade de throughput é entregar o
+resultado já calculado, não aumentar cegamente workers ou o orçamento serial.
+Permanece desligado por padrão enquanto a equivalência é validada.
+
+```json
+"worldThreading" : {
+  "generationReadyResultSchedulerPreview" : true,
+  "generationMicroDungeonReadyResultSchedulerPreview" : true
+}
+```
+
+Medir `generation.microDungeonPlan.readyResultsEnqueued`,
+`.readyResultsPendingTotal`, `.readyResultsSelectedVisible`,
+`.readyResultsCommitted` e `.readyResultDelay`, além de stale, expirações,
+setores completos/s e equivalência de saves/mods. A aplicação ainda pode ser
+uma etapa serial indivisível; esta mudança reduz espera ociosa, não autoriza
+escrita concorrente.
+
 `worldThreading.generationPersistentPriorityPreview` é o segundo recorte.
 Quando `generationFairnessSchedulerPreview` está ativo, ele passa a acompanhar
 a política de justiça por padrão; o campo explícito ainda pode ser definido

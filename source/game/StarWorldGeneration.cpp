@@ -902,6 +902,7 @@ void WorldGenerator::sectorLoadLevelChanged(WorldStorage* worldStorage, Sector c
     }
     if (auto pending = m_pendingMicroDungeonPlans.ptr(sector)) {
       pending->task->invalidate();
+      m_readyMicroDungeonPlans.remove(sector);
       if (auto profile = m_worldServer->explorationProfile()) {
         profile->count("generation.microDungeonPlan.pendingInvalidatedOnUnload");
         profile->recordGenerationTask(pending->task->identity, "invalidated", pending->task->reservedBytes);
@@ -961,6 +962,33 @@ List<WorldGenerator::Sector> WorldGenerator::readyBaseTileSectors(WorldStorage* 
       profile->count("generation.microDungeonPlan.unloadedResultsDiscarded");
     return true;
   });
+  return ready;
+}
+
+List<WorldGenerator::Sector> WorldGenerator::readyMicroDungeonPlanSectors(WorldStorage* worldStorage) {
+  List<Sector> ready;
+  double now = Time::monotonicTime();
+  eraseWhere(m_readyMicroDungeonPlans, [&](auto const& entry) {
+    auto pending = m_pendingMicroDungeonPlans.ptr(entry.first);
+    return !pending || pending->task != entry.second.task || !pending->task->valid();
+  });
+  for (auto const& entry : m_pendingMicroDungeonPlans) {
+    auto const& pending = entry.second;
+    if (!pending.promise->done() || !pending.task->valid())
+      continue;
+    if (!m_readyMicroDungeonPlans.contains(entry.first)) {
+      m_readyMicroDungeonPlans[entry.first] = ReadyMicroDungeonPlan{pending.task, now};
+      if (auto profile = m_worldServer->explorationProfile()) {
+        profile->count("generation.microDungeonPlan.readyResultsEnqueued");
+        profile->recordGenerationTask(pending.task->identity, "ready", pending.task->reservedBytes);
+      }
+    }
+    ready.append(entry.first);
+  }
+  if (auto profile = m_worldServer->explorationProfile()) {
+    profile->count("generation.microDungeonPlan.readyResultsPendingSamples");
+    profile->count("generation.microDungeonPlan.readyResultsPendingTotal", ready.size());
+  }
   return ready;
 }
 
@@ -1387,6 +1415,7 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
     } catch (...) {
       retireBaseTileTask(pending->task, WorldGenerationTaskOutcome::Failed);
       m_pendingMicroDungeonPlans.remove(sector);
+      m_readyMicroDungeonPlans.remove(sector);
       throw;
     }
     bool current = m_generationTasks->contains(pending->task) && pending->task->valid()
@@ -1400,6 +1429,7 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
       retireBaseTileTask(pending->task, pending->task->valid()
           ? WorldGenerationTaskOutcome::Stale : WorldGenerationTaskOutcome::Cancelled);
       m_pendingMicroDungeonPlans.remove(sector);
+      m_readyMicroDungeonPlans.remove(sector);
       if (profile) {
         profile->count("generation.microDungeonPlan.staleResults");
         if (dependencyPrepared)
@@ -1415,8 +1445,14 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
     bool dependencyPrepared = pending->dependencyPrepared;
     retireBaseTileTask(pending->task, WorldGenerationTaskOutcome::Committed);
     m_pendingMicroDungeonPlans.remove(sector);
+    Maybe<double> readyAt;
+    if (auto ready = m_readyMicroDungeonPlans.ptr(sector))
+      readyAt = ready->readyAt;
+    m_readyMicroDungeonPlans.remove(sector);
     if (profile) {
       profile->count("generation.microDungeonPlan.resultsApplied");
+      if (readyAt)
+        profile->record("generation.microDungeonPlan.readyResultDelay", now - *readyAt);
       if (dependencyPrepared)
         profile->count("generation.preparationFeeder.microDungeonPlanCommitted");
       profile->record("generation.microDungeonPlan.queueDelay", result.queueSeconds);

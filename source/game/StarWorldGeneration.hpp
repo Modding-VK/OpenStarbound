@@ -127,6 +127,7 @@ public:
       SectorGenerationLevel generationLevel, bool allowAsync) override;
   void sectorLoadLevelChanged(WorldStorage* worldStorage, Sector const& sector, SectorLoadLevel loadLevel) override;
   List<Sector> readyBaseTileSectors(WorldStorage* worldStorage) override;
+  List<Sector> readyMicroDungeonPlanSectors(WorldStorage* worldStorage) override;
   bool admitBaseTilesPreparation(WorldStorage* worldStorage, Sector const& sector) override;
   bool admitMicroDungeonPlanPreparation(WorldStorage* worldStorage, Sector const& sector) override;
   void terraformSector(WorldStorage* worldStorage, Sector const& sector) override;
@@ -209,6 +210,14 @@ private:
     double readyAt;
   };
 
+  // Like ReadyBaseTiles, this is an owner-thread index over an already
+  // completed private producer. The payload remains in its promise until the
+  // regular MicroDungeons apply path revalidates and consumes it.
+  struct ReadyMicroDungeonPlan {
+    shared_ptr<WorldGenerationTask> task;
+    double readyAt;
+  };
+
   // The owning region keeps this record until the producer has returned and
   // its template and sector revisions have been revalidated.
   struct PendingMicroDungeonPlan {
@@ -251,6 +260,7 @@ private:
   HashMap<Sector, PendingBaseTiles> m_pendingBaseTiles;
   HashMap<Sector, ReadyBaseTiles> m_readyBaseTiles;
   HashMap<Sector, PendingMicroDungeonPlan> m_pendingMicroDungeonPlans;
+  HashMap<Sector, ReadyMicroDungeonPlan> m_readyMicroDungeonPlans;
   unique_ptr<WorldGenerationTasks> m_generationTasks;
   double m_lastPoolProfileTime = 0;
   WorldTemplatePtr m_baseTileTemplateSource;
