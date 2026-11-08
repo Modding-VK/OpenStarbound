@@ -332,4 +332,7 @@ etapa acima.
 - [x] Contar hits, misses, evicções, ocupação e capacidade da cache de
   definições de MicroDungeon, com cardinalidade fixa. Corrigir a LRU para
   evictar somente ao inserir um miss, nunca antes de confirmar um hit. Não
-  estimar bytes sem modelo de memória transitiva verificável.
+  estimar bytes sem modelo de memória transitiva verificável. Tracy 25 confirmou
+  84 hits, 7 misses, zero evicções e máximo de 7/20 no mundo principal; o
+  outlier remanescente é primeiro carregamento frio, não churn; ver
+  [runtime-validation-2026-11-08-tracy25-lru-hit-fix.md](runtime-validation-2026-11-08-tracy25-lru-hit-fix.md).
