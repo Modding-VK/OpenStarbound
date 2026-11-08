@@ -472,6 +472,10 @@ private:
     uint64_t sequence;
   };
   Maybe<PersistentGenerationPriority> m_generationPersistentPriority;
+  // One-pass continuation after a visible Complete attempt advanced part of
+  // its dependency chain. It is distinct from fairness persistence so a
+  // newly productive sector cannot repeatedly monopolize the queue.
+  Maybe<PersistentGenerationPriority> m_generationVisibleChainContinuation;
   HashMap<Sector, GenerationRequest> m_generationRequests;
   size_t m_lastOldestQueueDiagnosticBucket = 0;
   Maybe<Sector> m_oldestQueueDiagnosticSector;

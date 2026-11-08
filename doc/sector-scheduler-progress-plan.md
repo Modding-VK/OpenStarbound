@@ -387,6 +387,23 @@ entidades ou persistência extras. `generation.expiryRisk.*` mede promoções,
 TTL restante, reservas, tentativas e avanços. O objetivo é reduzir expirações,
 não substituir a ordem normal por distância.
 
+### Preview de continuidade da cadeia visível
+
+`worldThreading.generationVisibleChainContinuationPreview` permanece desligado
+por padrão. Quando uma tentativa `Complete` de um setor visível avança ao menos
+uma etapa, mas ainda não conclui, a fila preserva `(setor, sequência)` para uma
+única tentativa `Complete` na passagem seguinte. O setor fica na frente ao
+final da passagem atual e a passagem termina, evitando que o tail
+`BaseTiles`-only o consuma imediatamente ou que a mesma cadeia monopolize o
+orçamento.
+
+Risco de expiração e prioridade persistente existente continuam precedendo a
+continuidade. A identidade é revalidada antes de retomar; unload, expiração,
+conclusão ou reentrada descartam o marcador. Não há renovação de TTL, aumento
+de orçamento, mudança de prioridade de commit ou execução de worker extra.
+`generation.visibleChainContinuation.scheduled`, `.resumed`, `.attempted` e
+`.dropped` medem o contrato.
+
 Para análise por pedido, setores visíveis registram uma única vez os marcos
 `tilesAvailable`, `baseTilesReady`, `microDungeonsReady`, `caveLiquidReady`,
 `finalizeReady` e `terraformReady` em `generationRequests` quando
@@ -432,7 +449,8 @@ Configuração de teste:
   "generationVisibleCompletionPreview" : true,
   "generationPersistentPriorityPreview" : true,
   "generationExpiryRiskSchedulerPreview" : true,
-  "generationExpiryRiskMilliseconds" : 3000
+  "generationExpiryRiskMilliseconds" : 3000,
+  "generationVisibleChainContinuationPreview" : true
 }
 ```
 

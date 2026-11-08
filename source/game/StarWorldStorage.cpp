@@ -1057,9 +1057,11 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     bool expiryRiskPreview = threading.getBool("generationExpiryRiskSchedulerPreview", false);
     unsigned expiryRiskMilliseconds = clamp<unsigned>(
         threading.getUInt("generationExpiryRiskMilliseconds", 3000), 250, 12000);
+    bool visibleChainContinuationPreview = threading.getBool("generationVisibleChainContinuationPreview", false);
     Maybe<WorldGenerationDependencyNode> dependencyPriority;
     Maybe<Sector> fairnessReservedSector;
     Maybe<Sector> expiryRiskReservedSector;
+    Maybe<Sector> visibleChainContinuationReservedSector;
     if (expiryRiskPreview && !m_generationQueue.empty()) {
       Maybe<Sector> atRisk;
       float remainingSeconds = 0.0f;
@@ -1103,6 +1105,29 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
         m_generationPersistentPriority.reset();
         if (m_explorationProfile)
           m_explorationProfile->count("generation.persistentPriority.dropped");
+      }
+    }
+    // A normal Complete attempt may advance a visible sector's own stage or a
+    // prerequisite, then the legacy traversal sends it to the back while
+    // switching to BaseTiles-only scheduling. Retain exactly one follow-up
+    // attempt in the next pass so a common sector can deliver its serial chain
+    // rather than losing position after every useful advance. Expiry risk and
+    // existing persistent fairness remain higher priority.
+    if (!fairnessReservedSector && visibleChainContinuationPreview && m_generationVisibleChainContinuation) {
+      auto const& continuation = *m_generationVisibleChainContinuation;
+      auto request = m_generationRequests.ptr(continuation.sector);
+      if (m_generationQueue.contains(continuation.sector) && request && request->sequence == continuation.sequence) {
+        m_generationQueue.toFront(continuation.sector);
+        fairnessReservedSector = continuation.sector;
+        visibleChainContinuationReservedSector = continuation.sector;
+        if (m_explorationProfile) {
+          m_explorationProfile->count("generation.visibleChainContinuation.resumed");
+          recordGenerationRequest(continuation.sector, "visibleChainContinuationResumed");
+        }
+      } else {
+        m_generationVisibleChainContinuation.reset();
+        if (m_explorationProfile)
+          m_explorationProfile->count("generation.visibleChainContinuation.dropped");
       }
     }
     if ((fairnessPreview || dependencyPreview) && !fairnessReservedSector && !m_generationQueue.empty()
@@ -1176,7 +1201,8 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       }
     }
 
-    if (persistentPriorityPreview && fairnessReservedSector && !m_generationPersistentPriority) {
+    if (persistentPriorityPreview && fairnessReservedSector && !m_generationPersistentPriority
+        && !visibleChainContinuationReservedSector) {
       if (auto request = m_generationRequests.ptr(*fairnessReservedSector)) {
         m_generationPersistentPriority = PersistentGenerationPriority{*fairnessReservedSector, request->sequence};
         if (m_explorationProfile) {
@@ -1489,6 +1515,7 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     bool dependencyPriorityAttempted = false;
     bool fairnessReservedAttempted = false;
     bool expiryRiskReservedAttempted = false;
+    bool visibleChainContinuationReservedAttempted = false;
     while (!m_generationQueue.empty()) {
       if ((sectorGenerationLevelLimit && *sectorGenerationLevelLimit == 0) || Time::monotonicTime() >= generationDeadline)
         break;
@@ -1500,6 +1527,8 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
           && sector == *fairnessReservedSector;
       bool expiryRiskReservedTarget = !schedulingOnly && expiryRiskReservedSector && !expiryRiskReservedAttempted
           && sector == *expiryRiskReservedSector;
+      bool visibleChainContinuationReservedTarget = !schedulingOnly && visibleChainContinuationReservedSector
+          && !visibleChainContinuationReservedAttempted && sector == *visibleChainContinuationReservedSector;
       auto targetLevel = schedulingOnly ? SectorGenerationLevel::BaseTiles
           : dependencyTarget ? static_cast<SectorGenerationLevel>(dependencyPriority->level)
                              : SectorGenerationLevel::Complete;
@@ -1521,6 +1550,12 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
         fairnessReservedAttempted = true;
         if (expiryRiskReservedTarget)
           expiryRiskReservedAttempted = true;
+        if (visibleChainContinuationReservedTarget) {
+          visibleChainContinuationReservedAttempted = true;
+          m_generationVisibleChainContinuation.reset();
+          if (m_explorationProfile)
+            m_explorationProfile->count("generation.visibleChainContinuation.attempted");
+        }
         if (persistentPriorityPreview && m_generationPersistentPriority
             && m_generationPersistentPriority->sector == sector) {
           m_generationPersistentPriority.reset();
@@ -1541,6 +1576,18 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       if (m_traceOldestQueueAttempt && p.second)
         ++m_oldestQueueAdvances;
       m_traceOldestQueueAttempt = false;
+      bool scheduleVisibleChainContinuation = visibleChainContinuationPreview && !schedulingOnly
+          && targetLevel == SectorGenerationLevel::Complete && !p.first && p.second > 0
+          && m_generationQueue.contains(sector);
+      if (scheduleVisibleChainContinuation) {
+        if (auto request = m_generationRequests.ptr(sector)) {
+          m_generationVisibleChainContinuation = PersistentGenerationPriority{sector, request->sequence};
+          if (m_explorationProfile) {
+            m_explorationProfile->count("generation.visibleChainContinuation.scheduled");
+            recordGenerationRequest(sector, "visibleChainContinuationScheduled");
+          }
+        }
+      }
       if (!schedulingOnly && targetLevel == SectorGenerationLevel::Complete && p.first) {
         ++completedThisPass;
         // generateSectorToLevel can reach code that reprioritizes the queue.
@@ -1581,13 +1628,21 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
         // sectors may only schedule or commit their independent BaseTiles
         // stage during this pass.
         schedulingOnly = true;
-        m_generationQueue.toBack(sector);
+        if (scheduleVisibleChainContinuation)
+          m_generationQueue.toFront(sector);
+        else
+          m_generationQueue.toBack(sector);
       } else {
         m_generationQueue.toBack(sector);
       }
       if (sectorGenerationLevelLimit)
         *sectorGenerationLevelLimit -= p.second;
       levelsAdvancedThisPass += p.second;
+      // Leave the continuation at the front for the next owner-thread pass.
+      // Continuing this loop would immediately consume the same sector through
+      // the BaseTiles-only tail and defeat the one-follow-up-attempt bound.
+      if (scheduleVisibleChainContinuation)
+        break;
       if (schedulingOnly && ++visitedSectors >= m_generationQueue.size())
         break;
     }

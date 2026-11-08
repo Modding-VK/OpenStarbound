@@ -27,6 +27,7 @@ Na variante experimental, trocar somente para:
 ```json
 "generationExpiryRiskSchedulerPreview" : true,
 "generationExpiryRiskMilliseconds" : 3000,
+"generationVisibleChainContinuationPreview" : true,
 "generationDependencyMicroDungeonPreparationPreview" : true,
 "generationDependencyMicroDungeonCandidateLimit" : 4
 ```
@@ -59,6 +60,7 @@ linha também identifica `sessionStartedMonotonicMilliseconds`.
 | `generation.sectorsExpired` | contadores do relatório | queda clara contra baseline |
 | `generation.sectorWait` p50/p95/p99/máx | estágios do relatório | cauda menor, sem piora de média relevante |
 | `generation.expiryRisk.*` | contadores/estágios | promoção, tentativa e avanço observáveis |
+| `generation.visibleChainContinuation.*` | contadores/eventos | continuidade limitada sem repetição infinita |
 | `generation.requests.expired` e eventos | detalhes regionais | pedidos em risco não terminam sem tentativa |
 | `WorldServerThread update` p95/p99 | Tracy oficial | sem regressão material |
 | `WorldStorage generate queue` p95/p99 | Tracy oficial | orçamento ainda respeitado |

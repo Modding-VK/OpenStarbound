@@ -210,6 +210,9 @@ do uso de CPU do sistema.
   Tracy 15 confirma ativação e resultado favorável sem crash, mas é sessão curta
   sem controle `false`; ver
   [runtime-validation-2026-11-07-tracy15-expiry-risk.md](runtime-validation-2026-11-07-tracy15-expiry-risk.md).
+- [x] Implementar preview de continuidade de cadeia para setores visíveis que
+  avançaram, preservando uma única tentativa `Complete` subsequente sem renovar
+  TTL nem aumentar orçamento. Requer A/B de expirações e `sectorWait`.
 - [x] Instrumentar marcos por pedido visível (Tiles e cada etapa de geração),
   mantendo vizinhos recursivos fora da telemetria de interesse do jogador.
 - [x] Documentar protocolo A/B e critérios que condicionam prioridade futura
