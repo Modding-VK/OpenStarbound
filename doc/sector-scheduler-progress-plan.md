@@ -629,6 +629,27 @@ após a primeira tentativa real; ela não vira prioridade permanente.
 `generation.persistentPriority.stored`,
 `.resumed`, `.attempted` e `.dropped` verificam esse contrato.
 
+`worldThreading.generationVisibleBlockedAdvancePreview` é um recorte de
+throughput para setores padrão. Quando um `Complete` visível bloqueia, ele
+permite examinar até `generationVisibleBlockedCandidateLimit` (1–16) setores
+visíveis posteriores antes de recuar ao modo legado de admissão apenas de
+BaseTiles. Isso permite que uma cadeia independente, cujo resultado privado já
+está pronto, avance no orçamento remanescente. Todas as tentativas, validações
+e commits continuam na WorldThread; o preview não cria interesse, não renova
+TTL e não autoriza workers a publicar efeitos.
+
+```json
+"worldThreading" : {
+  "generationVisibleBlockedAdvancePreview" : true,
+  "generationVisibleBlockedCandidateLimit" : 4
+}
+```
+
+Medir `generation.visibleBlockedAdvance.continued` e `.limitReached` junto de
+`sectorsCompleted`, `sectorsExpired`, `sectorWait`, bloqueadores visíveis e
+p99 da WorldThread. Permanecer desligado até uma rota comparativa confirmar
+que o ganho de entrega não prejudica justiça ou compatibilidade.
+
 ## Primeiro recorte implementado
 
 `WorldStorage` mantém uma sequência por entrada e um epoch por instância de

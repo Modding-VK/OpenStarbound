@@ -1058,6 +1058,14 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     unsigned expiryRiskMilliseconds = clamp<unsigned>(
         threading.getUInt("generationExpiryRiskMilliseconds", 3000), 250, 12000);
     bool visibleChainContinuationPreview = threading.getBool("generationVisibleChainContinuationPreview", false);
+    // A blocked visible sector used to force the rest of this pass into
+    // BaseTiles-only scheduling. With ready results and private preparation,
+    // later visible sectors may already be able to advance independently.
+    // Keep this explicitly bounded and opt-in: it changes selection attempts,
+    // never ownership or concurrent publication.
+    bool visibleBlockedAdvancePreview = threading.getBool("generationVisibleBlockedAdvancePreview", false);
+    unsigned visibleBlockedCandidateLimit = clamp<unsigned>(
+        threading.getUInt("generationVisibleBlockedCandidateLimit", 4), 1, 16);
     Maybe<WorldGenerationDependencyNode> dependencyPriority;
     Maybe<Sector> fairnessReservedSector;
     Maybe<Sector> expiryRiskReservedSector;
@@ -1566,6 +1574,7 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     bool fairnessReservedAttempted = false;
     bool expiryRiskReservedAttempted = false;
     bool visibleChainContinuationReservedAttempted = false;
+    unsigned visibleBlockedCandidates = 0;
     while (!m_generationQueue.empty()) {
       if ((sectorGenerationLevelLimit && *sectorGenerationLevelLimit == 0) || Time::monotonicTime() >= generationDeadline)
         break;
@@ -1697,15 +1706,30 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
         // request alive, then return to normal distance ordering next pass.
         m_generationQueue.toBack(sector);
       } else if (!schedulingOnly) {
-        // Preserve ordered processing of higher generation levels. Once the
-        // first requested sector blocks on asynchronous base tiles, later
-        // sectors may only schedule or commit their independent BaseTiles
-        // stage during this pass.
-        schedulingOnly = true;
-        if (scheduleVisibleChainContinuation)
-          m_generationQueue.toFront(sector);
-        else
+        bool continueVisible = visibleBlockedAdvancePreview
+            && targetLevel == SectorGenerationLevel::Complete
+            && visibleBlockedCandidates++ < visibleBlockedCandidateLimit;
+        if (continueVisible) {
+          // Do not immediately retry the same blocked sector. Scan the next
+          // ordered visible candidate, bounded above, so a ready independent
+          // chain can use the remaining owner-thread budget.
           m_generationQueue.toBack(sector);
+          if (m_explorationProfile)
+            m_explorationProfile->count("generation.visibleBlockedAdvance.continued");
+        } else {
+          // Preserve ordered processing of higher generation levels. Once the
+          // first requested sector blocks on asynchronous base tiles, later
+          // sectors may only schedule or commit their independent BaseTiles
+          // stage during this pass.
+          schedulingOnly = true;
+          if (visibleBlockedAdvancePreview && targetLevel == SectorGenerationLevel::Complete
+              && m_explorationProfile)
+            m_explorationProfile->count("generation.visibleBlockedAdvance.limitReached");
+          if (scheduleVisibleChainContinuation)
+            m_generationQueue.toFront(sector);
+          else
+            m_generationQueue.toBack(sector);
+        }
       } else {
         m_generationQueue.toBack(sector);
       }

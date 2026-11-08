@@ -364,3 +364,7 @@ etapa acima.
   não é evidência para essa decisão; repetir uma rota com MicroDungeon TMX
   nova; ver
   [runtime-validation-2026-11-08-tracy29-tmx-inconclusive.md](runtime-validation-2026-11-08-tracy29-tmx-inconclusive.md).
+- [x] Adicionar preview limitado de avanço de setores visíveis após o primeiro
+  bloqueio: examina cadeias posteriores já prontas antes do fallback legado de
+  BaseTiles-only, sem escrita concorrente, TTL novo ou interesse implícito.
+  Requer comparação de entrega, expirações, justiça e saves/mods.
