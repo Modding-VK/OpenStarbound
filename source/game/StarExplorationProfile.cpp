@@ -416,10 +416,16 @@ void ExplorationProfile::recordGenerationRequest(uint64_t epoch, uint64_t sequen
 }
 
 void ExplorationProfile::recordSlowMicroDungeonFactory(uint64_t templateHash, Vec2I sector,
-    size_t footprintTiles, bool generated, double seconds) {
+    size_t footprintTiles, bool generated, double seconds,
+    double definitionSeconds, double anchorSeconds, double collisionSeconds,
+    double canPlaceSeconds, double buildSeconds, uint32_t placementAttempts,
+    uint32_t boundsRejected, uint32_t collisionRejected, uint32_t placementRejected,
+    bool anchorFound) {
   if (!m_regionalDetails || seconds < m_slowSeconds)
     return;
-  SlowMicroDungeonFactory sample{templateHash, sector, footprintTiles, generated, seconds};
+  SlowMicroDungeonFactory sample{templateHash, sector, footprintTiles, generated, seconds,
+      definitionSeconds, anchorSeconds, collisionSeconds, canPlaceSeconds, buildSeconds,
+      placementAttempts, boundsRejected, collisionRejected, placementRejected, anchorFound};
   if (m_slowMicroDungeonFactories.size() < m_entityDetailLimit) {
     m_slowMicroDungeonFactories.append(std::move(sample));
   } else {
@@ -658,7 +664,17 @@ void ExplorationProfile::report(bool final) {
     slowMicroDungeonFactories.append(JsonObject{
       {"templateHash", sample.templateHash}, {"sector", jsonFromVec2I(sample.sector)},
       {"footprintTiles", sample.footprintTiles}, {"generated", sample.generated},
-      {"milliseconds", sample.seconds * 1000}
+      {"milliseconds", sample.seconds * 1000},
+      {"definitionMilliseconds", sample.definitionSeconds * 1000},
+      {"anchorMilliseconds", sample.anchorSeconds * 1000},
+      {"collisionMilliseconds", sample.collisionSeconds * 1000},
+      {"canPlaceMilliseconds", sample.canPlaceSeconds * 1000},
+      {"buildMilliseconds", sample.buildSeconds * 1000},
+      {"placementAttempts", sample.placementAttempts},
+      {"boundsRejected", sample.boundsRejected},
+      {"collisionRejected", sample.collisionRejected},
+      {"placementRejected", sample.placementRejected},
+      {"anchorFound", sample.anchorFound}
     });
   }
   m_slowMicroDungeonFactories.clear();

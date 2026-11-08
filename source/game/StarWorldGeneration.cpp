@@ -1641,8 +1641,10 @@ void WorldGenerator::applyMicroDungeonPlan(WorldStorage* worldStorage, MicroDung
   // the legacy owner-thread path below.
   ExplorationProfile::Scope factoryTiming(profile, "generation.microDungeonPlan.apply.factory");
   double factoryStarted = profile ? Time::monotonicTime() : 0.0;
+  MicroDungeonFactory::GenerationTiming factoryDetails;
   auto generateResult = m_microDungeonFactory->generate(plan.bounds, plan.dungeonName, plan.position,
-      plan.seed, m_worldServer->threatLevel(), facade);
+      plan.seed, m_worldServer->threatLevel(), facade, false,
+      profile && profile->regionalDetailsEnabled() ? &factoryDetails : nullptr);
   factoryTiming.stop();
   double factorySeconds = profile ? Time::monotonicTime() - factoryStarted : 0.0;
   if (profile) {
@@ -1650,7 +1652,11 @@ void WorldGenerator::applyMicroDungeonPlan(WorldStorage* worldStorage, MicroDung
     if (auto planSector = worldStorage->sectorForPosition(plan.position))
       sector = Vec2I((int)(*planSector)[0], (int)(*planSector)[1]);
     profile->recordSlowMicroDungeonFactory(xxHash3(plan.dungeonName), sector,
-        generateResult ? generateResult->second.size() : 0, bool(generateResult), factorySeconds);
+        generateResult ? generateResult->second.size() : 0, bool(generateResult), factorySeconds,
+        factoryDetails.definitionSeconds, factoryDetails.anchorSeconds, factoryDetails.collisionSeconds,
+        factoryDetails.canPlaceSeconds, factoryDetails.buildSeconds, factoryDetails.placementAttempts,
+        factoryDetails.boundsRejected, factoryDetails.collisionRejected, factoryDetails.placementRejected,
+        factoryDetails.anchorFound);
   }
   if (!generateResult)
     return;

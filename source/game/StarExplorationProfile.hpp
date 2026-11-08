@@ -158,7 +158,11 @@ public:
   // caller supplies only a numeric stable template hash, never an asset name
   // or mod payload.
   void recordSlowMicroDungeonFactory(uint64_t templateHash, Vec2I sector,
-      size_t footprintTiles, bool generated, double seconds);
+      size_t footprintTiles, bool generated, double seconds,
+      double definitionSeconds, double anchorSeconds, double collisionSeconds,
+      double canPlaceSeconds, double buildSeconds, uint32_t placementAttempts,
+      uint32_t boundsRejected, uint32_t collisionRejected, uint32_t placementRejected,
+      bool anchorFound);
   void recordRegionalTurn(WorldRegionTurn const& turn, char const* event, uint64_t observationStep);
   // Call at an outer operation boundary, never inside a timed scope. Final
   // reports preserve short windows when a world closes before the interval.
@@ -223,6 +227,16 @@ private:
     size_t footprintTiles;
     bool generated;
     double seconds;
+    double definitionSeconds;
+    double anchorSeconds;
+    double collisionSeconds;
+    double canPlaceSeconds;
+    double buildSeconds;
+    uint32_t placementAttempts;
+    uint32_t boundsRejected;
+    uint32_t collisionRejected;
+    uint32_t placementRejected;
+    bool anchorFound;
   };
 
   void recordEntity(Entity const& entity, double totalSeconds, double luaSeconds, double loggingSeconds);

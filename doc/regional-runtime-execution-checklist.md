@@ -316,3 +316,6 @@ etapa acima.
 - [ ] Para cada entrada de `slowMicroDungeonFactories`, reproduzir a mesma seed
   e rota, comparar hash/footprint/duração e confirmar equivalência de tiles,
   entidades e saves antes de otimizar a factory correspondente.
+- [ ] Usar a partição interna de factory para escolher uma única causa por vez:
+  `definition`, âncora, colisão, `canPlace` ou `build`; comparar antes/depois
+  com o mesmo hash, footprint e rota.

@@ -557,6 +557,13 @@ O nome da dungeon, caminho de asset e qualquer payload de mod não são gravados
 Esse recorte permite correlacionar os outliers seriais com o Tracy antes de
 otimizar uma factory específica.
 
+O recorte interno seguinte particiona cada ocorrência lenta em
+`definitionMilliseconds`, `anchorMilliseconds`, `collisionMilliseconds`,
+`canPlaceMilliseconds` e `buildMilliseconds`. Também registra apenas contagens
+de `placementAttempts`, rejeições por limites, colisão e `canPlace`, além de
+`anchorFound`. Esses números pertencem à mesma entrada hash/footprint limitada;
+não elevam a cardinalidade do profiling nem revelam nomes de templates.
+
 `worldThreading.generationPersistentPriorityPreview` é o segundo recorte.
 Quando `generationFairnessSchedulerPreview` está ativo, ele passa a acompanhar
 a política de justiça por padrão; o campo explícito ainda pode ser definido
