@@ -180,6 +180,7 @@ SET (star_game_HEADERS
     StarWorldGenerationBaseTileLiquid.hpp
     StarWorldGenerationBaseTileInput.hpp
     StarWorldGenerationBaseTileObservation.hpp
+    StarWorldGenerationBaseTileLookupContext.hpp
     StarWorldGenerationBaseTiles.hpp
     StarWorldGenerationBufferAllocator.hpp
     StarWorldGenerationImmutableArray.hpp

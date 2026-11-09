@@ -1,6 +1,7 @@
 #include "StarWorldGenerationBaseTiles.hpp"
 #include "StarWorldGenerationBaseTileInput.hpp"
 #include "StarWorldGenerationBaseTileObservation.hpp"
+#include "StarWorldGenerationBaseTileLookupContext.hpp"
 #include "StarWorldGenerationMemory.hpp"
 #include "StarWorkerPool.hpp"
 
@@ -884,4 +885,299 @@ TEST(WorldGenerationBaseTileObservationTest, DISABLED_SyntheticObservationCosts)
         mode, count, rounds, timings[mode][rounds / 2], timings[mode].front(), timings[mode].back(), sizeof(Observation));
   }
   EXPECT_EQ(checksum, size_t(rounds) * count * (3 * (19 + 27) + 1));
+}
+
+namespace {
+using LookupScope = WorldGenerationBaseTileLookupScope;
+using LookupContext = WorldGenerationBaseTileLookupContext<32>;
+LookupScope lookupScope() { return {1, 7, 3, 5}; }
+template <typename Resolver>
+Observation lookupSample(TileInput input, unsigned missingLayers, Resolver const& resolver) {
+  ServerTile tile; populate(tile);
+  if (missingLayers & 1) tile.foreground = NullMaterialId;
+  if (missingLayers & 2) tile.background = NullMaterialId;
+  Observation observation; observeWorldGenerationBaseTile(tile, input, resolver, observation); return observation;
+}
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, ContextMustBeSealedBeforeItCanWriteAnything) {
+  LookupContext context(lookupScope()); EXPECT_FALSE(context.valid()); EXPECT_EQ(context.size(), 0u);
+  ASSERT_TRUE(context.add(lookupScope(), capturedTile())); Pair pair; missing(pair);
+  EXPECT_FALSE(context.apply(pair.b, tileInput(), lookupScope())); EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, ExplicitScopeRejectsMissingGenerationsAndUnsupportedVersions) {
+  std::array<std::function<void(LookupScope&)>, 6> changes{{
+      [](auto& s) { s.worldEpoch = 0; }, [](auto& s) { s.assetsGeneration = 0; }, [](auto& s) { s.materialsGeneration = 0; },
+      [](auto& s) { ++s.modelVersion; }, [](auto& s) { ++s.inputVersion; }, [](auto& s) { ++s.liquidVersion; }}};
+  for (auto change : changes) {
+    auto scope = lookupScope(); change(scope); LookupContext context(scope);
+    EXPECT_FALSE(context.add(scope, capturedTile())); EXPECT_FALSE(context.seal()); EXPECT_FALSE(context.valid());
+    Pair pair; missing(pair); EXPECT_FALSE(context.apply(pair.b, tileInput(), scope)); EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+  }
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, EveryScopeComponentGuardsBothAdmissionAndApplication) {
+  std::array<std::function<void(LookupScope&)>, 7> changes{{
+      [](auto& s) { ++s.worldEpoch; }, [](auto& s) { ++s.templateRevision; }, [](auto& s) { ++s.assetsGeneration; },
+      [](auto& s) { ++s.materialsGeneration; }, [](auto& s) { ++s.modelVersion; }, [](auto& s) { ++s.inputVersion; }, [](auto& s) { ++s.liquidVersion; }}};
+  for (auto change : changes) {
+    LookupContext context(lookupScope()); auto stale = lookupScope(); change(stale);
+    EXPECT_FALSE(context.add(stale, capturedTile())); EXPECT_EQ(context.size(), 0u);
+    ASSERT_TRUE(context.add(lookupScope(), capturedTile())); ASSERT_TRUE(context.seal()); Pair pair; missing(pair);
+    EXPECT_FALSE(context.apply(pair.b, tileInput(), stale)); EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+  }
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, ZeroTemplateRevisionIsAnExplicitValidRevision) {
+  auto scope = lookupScope(); scope.templateRevision = 0; LookupContext context(scope);
+  EXPECT_TRUE(context.add(scope, capturedTile())); EXPECT_TRUE(context.seal()); Pair pair; missing(pair);
+  EXPECT_TRUE(context.apply(pair.b, tileInput(), scope));
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, SealedCatalogMatchesTheIndependentBodyAndFrozenReplay) {
+  auto observation = capturedTile(); LookupContext context(lookupScope()); ASSERT_TRUE(context.add(lookupScope(), observation)); ASSERT_TRUE(context.seal());
+  Pair pair; missing(pair); ServerTile replay; populate(replay); replay.foreground = replay.background = NullMaterialId;
+  legacyBaseTile(pair.a, tileInput(), FrozenResolver{}); ASSERT_TRUE(context.apply(pair.b, tileInput(), lookupScope()));
+  ASSERT_TRUE(replayWorldGenerationBaseTile(replay, tileInput(), observation));
+  EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal()); EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, replay).equal());
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, EachUniqueQueryUsesOneEightByteWordNotAPerTileTape) {
+  LookupContext context(lookupScope()); ASSERT_TRUE(context.add(lookupScope(), capturedTile()));
+  EXPECT_EQ(context.size(), 6u); EXPECT_EQ(context.activeEntryBytes(), 48u); EXPECT_EQ(context.reservedEntryBytes(), 256u);
+  EXPECT_FALSE(std::is_copy_constructible<LookupContext>::value);
+  for (unsigned i = 0; i < 1024; ++i) ASSERT_TRUE(context.add(lookupScope(), capturedTile()));
+  EXPECT_EQ(context.size(), 6u); EXPECT_EQ(context.activeEntryBytes(), 48u);
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, IdenticalForegroundAndBackgroundKeysDeduplicateWithinOneSample) {
+  auto input = tileInput(); input.background = input.foreground; auto sample = lookupSample(input, 3, FrozenResolver{});
+  ASSERT_EQ(sample.count, 6u); LookupContext context(lookupScope()); ASSERT_TRUE(context.add(lookupScope(), sample));
+  EXPECT_EQ(context.size(), 3u); ASSERT_TRUE(context.seal()); Pair pair; missing(pair);
+  legacyBaseTile(pair.a, input, FrozenResolver{}); EXPECT_TRUE(context.apply(pair.b, input, lookupScope()));
+  EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, UnionSharesSupportKeysAcrossBiomesWithoutMixingHueKeys) {
+  LookupContext context(lookupScope()); auto input = tileInput(); ASSERT_TRUE(context.add(lookupScope(), capturedTile()));
+  input.blockBiome = 99; ASSERT_TRUE(context.add(lookupScope(), lookupSample(input, 3, FrozenResolver{})));
+  EXPECT_EQ(context.size(), 10u); ASSERT_TRUE(context.seal()); Pair pair; missing(pair);
+  legacyBaseTile(pair.a, input, FrozenResolver{}); EXPECT_TRUE(context.apply(pair.b, input, lookupScope()));
+  EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, CapacityRefusalDoesNotPartiallyInsertANewSample) {
+  WorldGenerationBaseTileLookupContext<6> context(lookupScope()); ASSERT_TRUE(context.add(lookupScope(), capturedTile()));
+  auto input = tileInput(); input.blockBiome = 99;
+  EXPECT_FALSE(context.add(lookupScope(), lookupSample(input, 3, FrozenResolver{}))); EXPECT_EQ(context.size(), 6u);
+  EXPECT_FALSE(context.conflicted()); ASSERT_TRUE(context.seal()); Pair pair; missing(pair);
+  EXPECT_FALSE(context.apply(pair.b, input, lookupScope())); EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+  EXPECT_TRUE(context.apply(pair.b, tileInput(), lookupScope()));
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, TooSmallFirstSampleLeavesTheBuilderEmptyAndUsable) {
+  WorldGenerationBaseTileLookupContext<5> context(lookupScope()); EXPECT_FALSE(context.add(lookupScope(), capturedTile()));
+  EXPECT_EQ(context.size(), 0u); EXPECT_FALSE(context.conflicted()); auto input = tileInput(); input.background = input.foreground;
+  EXPECT_TRUE(context.add(lookupScope(), lookupSample(input, 3, FrozenResolver{}))); EXPECT_EQ(context.size(), 3u); EXPECT_TRUE(context.seal());
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, ZeroCapacityHandlesCompleteEmptySamplesWithoutPointerArithmetic) {
+  WorldGenerationBaseTileLookupContext<0> context(lookupScope());
+  EXPECT_TRUE(context.add(lookupScope(), lookupSample(tileInput(), 0, FrozenResolver{}))); EXPECT_TRUE(context.seal());
+  Pair pair; legacyBaseTile(pair.a, tileInput(), FrozenResolver{});
+  EXPECT_TRUE(context.apply(pair.b, tileInput(), lookupScope())); EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, EmptySealedContextRefusesUncoveredMissingLayersBeforeMetadataWrites) {
+  LookupContext context(lookupScope()); ASSERT_TRUE(context.seal()); Pair pair; missing(pair);
+  EXPECT_FALSE(context.apply(pair.b, tileInput(), lookupScope())); EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, IncompleteOrMalformedObservationsCannotAddEntries) {
+  LookupContext context(lookupScope()); auto sample = capturedTile(); sample.complete = false;
+  EXPECT_FALSE(context.add(lookupScope(), sample)); sample = capturedTile(); sample.lookups[5].value = 256;
+  EXPECT_FALSE(context.add(lookupScope(), sample)); EXPECT_EQ(context.size(), 0u); EXPECT_FALSE(context.conflicted());
+  EXPECT_TRUE(context.add(lookupScope(), capturedTile())); EXPECT_TRUE(context.seal());
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, ConflictingResultsForAnyQueryKindPermanentlyPoisonTheBuilder) {
+  for (unsigned kind = 0; kind < 3; ++kind) {
+    LookupContext context(lookupScope()); ASSERT_TRUE(context.add(lookupScope(), capturedTile())); FrozenResolver resolver;
+    if (kind == 0) ++resolver.material;
+    else if (kind == 1) resolver.support = false;
+    else ++resolver.mod;
+    EXPECT_FALSE(context.add(lookupScope(), lookupSample(tileInput(), 3, resolver)));
+    EXPECT_TRUE(context.conflicted()); EXPECT_EQ(context.size(), 6u); EXPECT_FALSE(context.seal());
+    EXPECT_FALSE(context.add(lookupScope(), capturedTile())); Pair pair; missing(pair);
+    EXPECT_FALSE(context.apply(pair.b, tileInput(), lookupScope())); EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+  }
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, PositionDependentValuesForEqualKeysCannotBeSilentlyMemoized) {
+  struct Resolver {
+    mutable unsigned cursor = 0;
+    MaterialHue materialHue(BiomeIndex, MaterialId) const { return MaterialHue(++cursor); }
+    bool supportsMod(MaterialId, ModId) const { return true; }
+    MaterialHue modHue(BiomeIndex, ModId) const { return MaterialHue(++cursor); }
+  } resolver;
+  auto input = tileInput(); input.background = input.foreground; auto sample = lookupSample(input, 3, resolver); ASSERT_TRUE(sample.valid());
+  LookupContext context(lookupScope()); EXPECT_FALSE(context.add(lookupScope(), sample));
+  EXPECT_TRUE(context.conflicted()); EXPECT_EQ(context.size(), 0u); EXPECT_FALSE(context.seal());
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, SealPreventsFurtherMutationAndCanBeRepeatedWithoutWriting) {
+  LookupContext context(lookupScope()); ASSERT_TRUE(context.add(lookupScope(), capturedTile())); ASSERT_TRUE(context.seal());
+  EXPECT_FALSE(context.add(lookupScope(), capturedTile())); EXPECT_EQ(context.size(), 6u); EXPECT_TRUE(context.seal()); EXPECT_TRUE(context.valid());
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, MissingLastBackgroundHueIsRefusedBeforeAnyLayerOrBiomeWrite) {
+  LookupContext context(lookupScope()); auto input = tileInput();
+  ASSERT_TRUE(context.add(lookupScope(), lookupSample(input, 1, FrozenResolver{})));
+  auto alternate = input; alternate.background.mod = 34; FrozenResolver unsupported; unsupported.support = false;
+  ASSERT_TRUE(context.add(lookupScope(), lookupSample(alternate, 2, unsupported)));
+  alternate = input; alternate.blockBiome = 99; ASSERT_TRUE(context.add(lookupScope(), lookupSample(alternate, 2, FrozenResolver{})));
+  ASSERT_TRUE(context.seal()); Pair pair; missing(pair);
+  EXPECT_FALSE(context.apply(pair.b, input, lookupScope())); EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, RejectedCoverageAllowsTheLegacyFailurePathWithIdenticalPartialState) {
+  LookupContext context(lookupScope()); ASSERT_TRUE(context.seal()); Pair pair; missing(pair); RecordingResolver a{pair.a, true, 6}, b{pair.b, true, 6};
+  EXPECT_THROW(legacyBaseTile(pair.a, tileInput(), a), std::runtime_error);
+  ASSERT_FALSE(context.apply(pair.b, tileInput(), lookupScope()));
+  EXPECT_THROW(legacyBaseTile(pair.b, tileInput(), b), std::runtime_error);
+  sameTrace(a, b); EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, NoModForAirStillRequiresAndPreservesItsObservedHue) {
+  auto input = tileInput(); input.foreground = input.background = {EmptyMaterialId, NoModId}; LookupContext context(lookupScope());
+  ASSERT_TRUE(context.add(lookupScope(), lookupSample(input, 3, FrozenResolver{}))); EXPECT_EQ(context.size(), 3u); ASSERT_TRUE(context.seal());
+  Pair pair; missing(pair); legacyBaseTile(pair.a, input, FrozenResolver{});
+  EXPECT_TRUE(context.apply(pair.b, input, lookupScope())); EXPECT_EQ(pair.b.foregroundModHueShift, 27u);
+  EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, UnsupportedModsNeedNoHueEntryAndPreservePriorModState) {
+  FrozenResolver resolver; resolver.support = false; LookupContext context(lookupScope());
+  ASSERT_TRUE(context.add(lookupScope(), lookupSample(tileInput(), 3, resolver))); EXPECT_EQ(context.size(), 4u); ASSERT_TRUE(context.seal());
+  Pair pair; missing(pair); legacyBaseTile(pair.a, tileInput(), resolver); EXPECT_TRUE(context.apply(pair.b, tileInput(), lookupScope()));
+  EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal()); EXPECT_EQ(pair.b.foregroundModHueShift, 5u);
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, PackedKeysDoNotAliasAtBiomeMaterialOrModBoundaries) {
+  WorldGenerationBaseTileLookupContext<128> context(lookupScope()); auto input = tileInput();
+  for (BiomeIndex biome : {BiomeIndex(0), BiomeIndex(1), BiomeIndex(255)})
+    for (MaterialId material : {MaterialId(0), MaterialId(21), EmptyMaterialId})
+      for (ModId mod : {ModId(31), BiomeModId, NoModId}) {
+        input.blockBiome = biome; input.foreground = {material, mod};
+        ServerTile tile; populate(tile); tile.foreground = NullMaterialId; RecordingResolver resolver{tile}; Observation sample;
+        observeWorldGenerationBaseTile(tile, input, resolver, sample); ASSERT_TRUE(context.add(lookupScope(), sample));
+      }
+  ASSERT_TRUE(context.seal());
+  for (BiomeIndex biome : {BiomeIndex(0), BiomeIndex(1), BiomeIndex(255)})
+    for (MaterialId material : {MaterialId(0), MaterialId(21), EmptyMaterialId})
+      for (ModId mod : {ModId(31), BiomeModId, NoModId}) {
+        input.blockBiome = biome; input.foreground = {material, mod}; Pair pair; pair.a.foreground = pair.b.foreground = NullMaterialId;
+        RecordingResolver resolver{pair.a}; legacyBaseTile(pair.a, input, resolver);
+        ASSERT_TRUE(context.apply(pair.b, input, lookupScope())); ASSERT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+      }
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, SampleOrderDoesNotChangeTheDeduplicatedCatalogResults) {
+  auto input = tileInput(); input.blockBiome = 99; auto a = capturedTile(), b = lookupSample(input, 3, FrozenResolver{});
+  LookupContext first(lookupScope()), second(lookupScope());
+  ASSERT_TRUE(first.add(lookupScope(), a)); ASSERT_TRUE(first.add(lookupScope(), b));
+  ASSERT_TRUE(second.add(lookupScope(), b)); ASSERT_TRUE(second.add(lookupScope(), a));
+  ASSERT_TRUE(first.seal()); ASSERT_TRUE(second.seal()); EXPECT_EQ(first.size(), second.size());
+  for (auto const& in : {tileInput(), input}) {
+    Pair pair; missing(pair); ASSERT_TRUE(first.apply(pair.a, in, lookupScope())); ASSERT_TRUE(second.apply(pair.b, in, lookupScope()));
+    EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+  }
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, BranchMatrixMatchesIndependentLegacyAndTapeWithoutRetainingPerTileInputs) {
+  for (unsigned flags = 0; flags < 4096; ++flags) {
+    Pair pair; ServerTile replay, expected; populate(replay); populate(expected); auto input = tileInput();
+    pair.a.foreground = pair.b.foreground = replay.foreground = expected.foreground = flags & 1 ? NullMaterialId : MaterialId(1);
+    pair.a.background = pair.b.background = replay.background = expected.background = flags & 2 ? NullMaterialId : MaterialId(2);
+    input.foreground = {flags & 4 ? EmptyMaterialId : MaterialId(21), flags & 16 ? NoModId : ModId(31)};
+    input.background = {flags & 8 ? EmptyMaterialId : MaterialId(22), flags & 32 ? NoModId : ModId(32)};
+    input.blockBiome = flags & 128 ? NullBiomeIndex : BiomeIndex(11); input.biomeTransition = flags & 256;
+    input.oceanLiquid = flags & 512 ? EmptyLiquidId : LiquidId(3); input.encloseLiquids = flags & 1024; input.y = flags & 2048 ? 10 : 0;
+    RecordingResolver resolver{pair.a, bool(flags & 64)}, reference{expected, bool(flags & 64)}; Observation observation;
+    legacyBaseTile(expected, input, reference);
+    observeWorldGenerationBaseTile(pair.a, input, resolver, observation); LookupContext context(lookupScope());
+    ASSERT_TRUE(context.add(lookupScope(), observation)); ASSERT_TRUE(context.seal());
+    ASSERT_TRUE(context.apply(pair.b, input, lookupScope())); ASSERT_TRUE(replayWorldGenerationBaseTile(replay, input, observation));
+    ASSERT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal()); ASSERT_TRUE(compareWorldGenerationBaseTile(pair.a, replay).equal());
+    ASSERT_TRUE(compareWorldGenerationBaseTile(pair.a, expected).equal()); sameTrace(resolver, reference);
+  }
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, OneSealedContextServesFourWorkersAndDifferentPrivateInitialTiles) {
+  LookupContext context(lookupScope()); ASSERT_TRUE(context.add(lookupScope(), capturedTile())); ASSERT_TRUE(context.seal());
+  auto expected = std::make_unique<ServerTileSectorArray::Array>(), actual = std::make_unique<ServerTileSectorArray::Array>(); fill(*expected); fill(*actual);
+  for (unsigned i = 0; i < 1024; ++i) {
+    auto& a = (*expected)(i / 32, i % 32); auto& b = (*actual)(i / 32, i % 32);
+    a.foreground = b.foreground = i % 2 ? NullMaterialId : EmptyMaterialId; a.background = b.background = i % 3 ? NullMaterialId : MaterialId(2);
+    auto input = tileInput(); input.y = int(i % 32); legacyBaseTile(a, input, FrozenResolver{});
+  }
+  WorkerPool pool("Shared compact BaseTiles lookup context", 4); std::vector<WorkerPoolPromise<bool>> promises;
+  for (unsigned part = 0; part < 4; ++part) promises.push_back(pool.addProducer<bool>([&, part] {
+    for (unsigned i = part * 256; i < (part + 1) * 256; ++i) {
+      auto input = tileInput(); input.y = int(i % 32);
+      if (!context.apply((*actual)(i / 32, i % 32), input, lookupScope())) return false;
+    }
+    return true;
+  }));
+  for (auto& promise : promises) { EXPECT_TRUE(promise.get()); }
+  pool.finish(); EXPECT_TRUE(compareWorldGenerationBaseTiles(*expected, *actual, baseTicket()).equal()); EXPECT_EQ(context.size(), 6u);
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, CatalogCoverageIsNotAnOriginalSnapshotGuardOrARetryPermit) {
+  LookupContext context(lookupScope()); ASSERT_TRUE(context.add(lookupScope(), capturedTile())); ASSERT_TRUE(context.seal());
+  Pair pair; missing(pair); pair.a.foreground = pair.b.foreground = 21; pair.a.foregroundHueShift = pair.b.foregroundHueShift = 88;
+  legacyBaseTile(pair.a, tileInput(), FrozenResolver{}); EXPECT_TRUE(context.apply(pair.b, tileInput(), lookupScope()));
+  EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal()); EXPECT_EQ(pair.b.foregroundHueShift, 88u);
+}
+
+TEST(WorldGenerationBaseTileLookupContextTest, LiquidKeepPreservesFloatBitsWithoutGuardingAnUnrelatedEarlierSample) {
+  LookupContext context(lookupScope()); ASSERT_TRUE(context.add(lookupScope(), capturedTile())); ASSERT_TRUE(context.seal()); Pair pair;
+  pair.a.foreground = pair.b.foreground = EmptyMaterialId; pair.a.liquid.level = pair.b.liquid.level = -0.0f;
+  pair.a.liquid.pressure = pair.b.liquid.pressure = bits(0x7fc00123u); auto input = tileInput(); input.oceanLiquid = EmptyLiquidId;
+  legacyBaseTile(pair.a, input, FrozenResolver{}); EXPECT_TRUE(context.apply(pair.b, input, lookupScope()));
+  EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+}
+
+// Isolated, explicit micro-cost experiment; no timing threshold in CTest.
+TEST(WorldGenerationBaseTileLookupContextTest, DISABLED_SyntheticLookupContextCosts) {
+  constexpr unsigned count = 8192, rounds = 9; std::vector<ServerTile> tiles(count);
+  auto input = tileInput(); auto observation = capturedTile(); LookupContext context(lookupScope());
+  ASSERT_TRUE(context.add(lookupScope(), observation)); ASSERT_TRUE(context.seal()); FrozenResolver resolver;
+  std::array<std::array<double, rounds>, 4> timings{}; size_t checksum = 0;
+  for (unsigned round = 0; round < rounds; ++round) {
+    for (unsigned position = 0; position < 3; ++position) {
+      unsigned mode = (round + position) % 3;
+      for (auto& tile : tiles) { populate(tile); tile.foreground = tile.background = NullMaterialId; }
+      auto begin = std::chrono::steady_clock::now();
+      for (auto& tile : tiles) {
+        if (mode == 0) applyWorldGenerationBaseTile(tile, input, resolver);
+        else if (mode == 1) checksum += replayWorldGenerationBaseTile(tile, input, observation);
+        else checksum += context.apply(tile, input, lookupScope());
+      }
+      timings[mode][round] = std::chrono::duration<double, std::nano>(std::chrono::steady_clock::now() - begin).count() / count;
+      for (auto const& tile : tiles) checksum += tile.foregroundHueShift + tile.backgroundModHueShift;
+    }
+    auto begin = std::chrono::steady_clock::now();
+    for (unsigned i = 0; i < count; ++i) {
+      LookupContext built(lookupScope()); checksum += built.add(lookupScope(), observation) && built.seal(); checksum += built.activeEntryBytes();
+    }
+    timings[3][round] = std::chrono::duration<double, std::nano>(std::chrono::steady_clock::now() - begin).count() / count;
+  }
+  for (unsigned mode = 0; mode < 4; ++mode) {
+    std::sort(timings[mode].begin(), timings[mode].end());
+    std::printf("BaseTileLookupContextCost mode=%u count=%u rounds=%u medianNs=%.2f minNs=%.2f maxNs=%.2f contextBytes=%zu entries=%zu activeEntryBytes=%zu reservedEntryBytes=%zu\n",
+        mode, count, rounds, timings[mode][rounds / 2], timings[mode].front(), timings[mode].back(), sizeof(LookupContext), context.size(), context.activeEntryBytes(), context.reservedEntryBytes());
+  }
+  EXPECT_EQ(checksum, size_t(rounds) * count * (3 * (19 + 27) + 2 + 49));
 }
