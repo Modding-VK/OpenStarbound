@@ -11,6 +11,7 @@
 #include "StarWorldGenerationTasks.hpp"
 #include "StarWorldGenerationMemory.hpp"
 #include "StarWorldGenerationBufferAllocator.hpp"
+#include "StarWorldGenerationImmutableArray.hpp"
 #include "StarWorldGenerationMemoryEstimate.hpp"
 #include "StarWorldGenerationPlacementQueue.hpp"
 
@@ -147,7 +148,7 @@ public:
 
 private:
   struct QueuedPlacement {
-    List<BiomeItemDistribution> distributions;
+    WorldGenerationSnapshotCache<BiomeItemDistribution, List<BiomeItemDistribution>> distributions;
     Maybe<DungeonId> dungeonId;
     RpcPromiseKeeper<Vec2I> promise;
   };
@@ -170,7 +171,7 @@ private:
   // promises: a worker receives only this data and its own WorldTemplate
   // reconstructed from templateStore.
   struct QueuedMicroDungeonPlacementSnapshot {
-    List<BiomeItemDistribution> distributions;
+    shared_ptr<WorldGenerationImmutableArray<BiomeItemDistribution> const> distributions;
     WorldGenerationPlacementId queuedPlacementId;
   };
 
@@ -254,6 +255,7 @@ private:
   };
 
   void prepareTiles(WorldStorage* worldStorage, Sector const& sector);
+  List<QueuedMicroDungeonPlacementSnapshot> queuedPlacementSnapshot();
   void profileGenerationMemory(double now);
   struct TemplateStoreCache {
     WorldTemplatePtr source;

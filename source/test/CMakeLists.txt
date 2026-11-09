@@ -106,6 +106,8 @@ ADD_EXECUTABLE(world_generation_contract_tests
   ../game/StarWorldGenerationTasks.cpp
   ../game/StarWorldGenerationMemory.cpp
   ../game/StarWorldGenerationMemoryEstimate.cpp
+  ../game/StarBiomePlacementSampling.cpp
+  ../game/StarBiomePlacementDefaults.cpp
   ../game/StarWorldRegionCoordinator.cpp
   gtest/gtest-all.cc
   core_tests_main.cpp
@@ -119,6 +121,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_estimate_test.cpp
   world_generation_worker_cache_test.cpp
   world_generation_buffer_test.cpp
+  world_generation_distribution_test.cpp
   block_allocator_exception_test.cpp
   world_region_coordinator_test.cpp)
 IF(STAR_ENABLE_TRACY)
@@ -140,6 +143,7 @@ FOREACH(world_region_test_suite
     WorldGenerationEstimateTest
     WorldGenerationWorkerCacheTest
     WorldGenerationBufferTest
+    WorldGenerationDistributionTest
     BlockAllocatorExceptionTest
     WorldRegionCoordinatorTest
     WorldRegionObservationTest)

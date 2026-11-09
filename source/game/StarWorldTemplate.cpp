@@ -506,7 +506,15 @@ bool WorldTemplate::breathable(int, int) const {
 }
 
 void WorldTemplate::addPotentialBiomeItems(int x, int y, PotentialBiomeItems& items, List<BiomeItemDistribution> const& distributions, BiomePlacementArea area, Maybe<BiomePlacementMode> mode) const {
-  for (auto const& itemDistribution : distributions) {
+  addPotentialBiomeItemsFromArray(x, y, items, distributions.ptr(), distributions.size(), area, mode);
+}
+
+void WorldTemplate::addPotentialBiomeItemsFromArray(int x, int y, PotentialBiomeItems& items,
+    BiomeItemDistribution const* distributions, size_t count, BiomePlacementArea area,
+    Maybe<BiomePlacementMode> mode) const {
+  // No nullptr + 0 arithmetic for an empty immutable array.
+  for (size_t i = 0; i < count; ++i) {
+    auto const& itemDistribution = distributions[i];
     auto placeMode = mode.value(itemDistribution.mode());
 
     if (area == BiomePlacementArea::Surface) {

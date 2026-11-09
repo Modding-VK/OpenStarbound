@@ -6,9 +6,6 @@
 
 namespace Star {
 
-TreeVariant::TreeVariant()
-  : stemHueShift(), foliageHueShift(), ceiling(), ephemeral() {}
-
 TreeVariant::TreeVariant(Json const& variant) {
   stemName = variant.getString("stemName");
   foliageName = variant.getString("foliageName");
@@ -45,8 +42,6 @@ Json TreeVariant::toJson() const {
   };
 }
 
-GrassVariant::GrassVariant() : hueShift(), ceiling(), ephemeral() {}
-
 GrassVariant::GrassVariant(Json const& variant) {
   name = variant.getString("name");
   directory = variant.getString("directory");
@@ -68,8 +63,6 @@ Json GrassVariant::toJson() const {
       {"ephemeral", ephemeral},
       {"tileDamageParameters", tileDamageParameters.toJson()}};
 }
-
-BushVariant::BushVariant() : baseHueShift(), modHueShift(), ceiling(), ephemeral() {}
 
 BushVariant::BushVariant(Json const& variant) {
   bushName = variant.getString("bushName");

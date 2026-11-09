@@ -40,6 +40,15 @@ static int const PlantAdjustmentLimit = 2;
 
 namespace {
 
+struct DistributionBackingSizer {
+  template <typename Values>
+  WorldGenerationBackingEstimate operator()(Values const& values) const {
+    WorldGenerationBackingEstimate result;
+    for (auto const& distribution : values) result.add(distribution.generationBackingEstimate());
+    return result;
+  }
+};
+
 bool crossesLiquidSector(WorldGeometry const& geometry, Vec2I a, Vec2I b) {
   a = geometry.xwrap(a);
   b = geometry.xwrap(b);
@@ -1069,7 +1078,10 @@ void WorldGenerator::profileGenerationMemory(double now) {
   profile->count("generation.memory.process.sampledReservedBufferBytesTotal", usage.reservedBufferBytes);
   profile->count("generation.memory.process.sampledPlanBufferRequestBytesTotal", usage.classBytes[6]);
   profile->count("generation.memory.process.sampledCandidateBufferRequestBytesTotal", usage.classBytes[7]);
-  profile->count("generation.memory.process.sampledBufferResourcesTotal", usage.classResources[6] + usage.classResources[7]);
+  profile->count("generation.memory.process.sampledDistributionBufferRequestBytesTotal", usage.classBytes[8]);
+  profile->count("generation.memory.process.sampledDistributionEstimateTotal", usage.classBytes[9]);
+  profile->count("generation.memory.process.sampledBufferResourcesTotal",
+      usage.classResources[6] + usage.classResources[7] + usage.classResources[8]);
   profile->maximum("generation.memory.process.lifetimePeakReservedBufferBytes", usage.peakReservedBufferBytes);
   profile->maximum("generation.memory.buffers.modelVersion", 1);
   profile->maximum("generation.memory.process.lifetimePeakEstimatedBytes", usage.peakEstimatedBytes);
@@ -1163,13 +1175,39 @@ bool WorldGenerator::entityPersistent(WorldStorage*, EntityPtr const& entity) co
 }
 
 RpcPromise<Vec2I> WorldGenerator::enqueuePlacement(List<BiomeItemDistribution> distributions, Maybe<DungeonId> id) {
+  WorldGenerationSnapshotCache<BiomeItemDistribution, List<BiomeItemDistribution>> input(
+      worldGenerationMemoryLedger(), std::move(distributions), DistributionBackingSizer{});
   auto promise = RpcPromise<Vec2I>::createPair();
   m_queuedPlacements.append(QueuedPlacement {
-    std::move(distributions),
+    std::move(input),
     id,
     promise.second,
   });
   return promise.first;
+}
+
+List<WorldGenerator::QueuedMicroDungeonPlacementSnapshot> WorldGenerator::queuedPlacementSnapshot() {
+  List<QueuedMicroDungeonPlacementSnapshot> result;
+  result.reserve(m_queuedPlacements.entries().size());
+  auto profile = m_worldServer->explorationProfile();
+  m_queuedPlacements.prepareSnapshots([&](WorldGenerationPlacementId id, QueuedPlacement& placement) {
+    bool first = !placement.distributions.frozen();
+    ExplorationProfile::Scope timing(first ? profile : nullptr, "generation.memory.distributions.freeze");
+    auto distributions = placement.distributions.freeze(DistributionBackingSizer{});
+    result.append({distributions, id});
+    if (profile) {
+      profile->count("generation.memory.distributions.sharedSnapshots");
+      profile->maximum("generation.memory.distributions.modelVersion", 1);
+      if (first) {
+        profile->count("generation.memory.distributions.frozenBundles");
+        profile->count("generation.memory.distributions.items", distributions->values().size());
+        profile->count("generation.memory.distributions.opaqueItems", distributions->opaqueItems());
+        if (!distributions->estimateComplete())
+          profile->count("generation.memory.distributions.incomplete");
+      }
+    }
+  });
+  return result;
 }
 
 void WorldGenerator::replaceBiomeBlocks(ServerTile* tile) {
@@ -1658,8 +1696,7 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
         return {false, {}};
       snapshot.haloTiles.append({haloSector, std::move(tiles)});
     }
-    for (auto const& entry : m_queuedPlacements.entries())
-      snapshot.queuedPlacements.append({entry.second.distributions, entry.first});
+    snapshot.queuedPlacements = queuedPlacementSnapshot();
     if (profile && profile->regionalDetailsEnabled()) {
       ExplorationProfile::Scope sizing(profile, "generation.memory.estimates.snapshotSizing");
       WorldGenerationSizeEstimate metadata;
@@ -1667,8 +1704,7 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
       metadata.add(snapshot.sectorRevisions.size(), sizeof(decltype(snapshot.sectorRevisions)::value_type));
       metadata.add(snapshot.haloTiles.capacity(), sizeof(decltype(snapshot.haloTiles)::value_type));
       metadata.add(snapshot.queuedPlacements.capacity(), sizeof(QueuedMicroDungeonPlacementSnapshot));
-      for (auto const& placement : snapshot.queuedPlacements)
-        metadata.add(placement.distributions.capacity(), sizeof(BiomeItemDistribution));
+      // Distribution buffers/backing are retained once by their shared bundle.
       snapshot.metadataMemory = trackMemoryEstimate(WorldGenerationMemoryClass::SnapshotMetadataEstimate, metadata);
     }
     auto revisions = snapshot.sectorRevisions;
@@ -1745,8 +1781,7 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
   // writer can consume them without touching the live world.
   for (auto const& haloSector : tileArray->validSectorsFor(snapshot.tileHalo))
     snapshot.sectorRevisions[haloSector] = tileArray->sectorRevision(haloSector);
-  for (auto const& entry : m_queuedPlacements.entries())
-    snapshot.queuedPlacements.append({entry.second.distributions, entry.first});
+  snapshot.queuedPlacements = queuedPlacementSnapshot();
 
   phase.next("generation.microDungeonPlan.describe");
   auto plans = planMicroDungeons(templateSource, snapshot,
@@ -1786,8 +1821,11 @@ WorldGenerator::MicroDungeonPlans WorldGenerator::planMicroDungeons(WorldTemplat
         candidates.push_back({placement, {}});
       for (auto const& queued : snapshot.queuedPlacements) {
         WorldTemplate::PotentialBiomeItems queuedItems;
-        templateSource->addPotentialBiomeItems(x, y, queuedItems, queued.distributions, BiomePlacementArea::Surface);
-        templateSource->addPotentialBiomeItems(x, y, queuedItems, queued.distributions, BiomePlacementArea::Underground);
+        auto const& distributions = queued.distributions->values();
+        templateSource->addPotentialBiomeItemsFromArray(x, y, queuedItems,
+            distributions.data(), distributions.size(), BiomePlacementArea::Surface);
+        templateSource->addPotentialBiomeItemsFromArray(x, y, queuedItems,
+            distributions.data(), distributions.size(), BiomePlacementArea::Underground);
         for (auto placement : templateSource->validBiomeItems(x, y, queuedItems))
           candidates.push_back({std::move(placement), queued.queuedPlacementId});
       }

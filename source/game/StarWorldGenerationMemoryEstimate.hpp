@@ -7,15 +7,28 @@
 
 namespace Star {
 
-// Version 2 keeps allocator-backed buffers separate from nested estimates.
+// Version 3 counts shared distribution backing once, not per snapshot.
 // It is neither allocator accounting nor an upper bound on retained heap.
 struct WorldGenerationSizeEstimate {
-  static constexpr unsigned ModelVersion = 2;
+  static constexpr unsigned ModelVersion = 3;
   size_t bytes = 0;
   bool complete = true;
 
   void add(size_t count, size_t elementBytes = 1);
   void stringCapacity(String const& string);
+};
+
+struct WorldGenerationBackingEstimate {
+  WorldGenerationSizeEstimate storage;
+  size_t opaqueItems = 0;
+
+  void add(WorldGenerationBackingEstimate const& other) {
+    storage.add(other.storage.bytes);
+    storage.complete = storage.complete && other.storage.complete;
+    if (other.opaqueItems > std::numeric_limits<size_t>::max() - opaqueItems)
+      storage.complete = false;
+    else opaqueItems += other.opaqueItems;
+  }
 };
 
 struct WorldGenerationJsonSnapshot {

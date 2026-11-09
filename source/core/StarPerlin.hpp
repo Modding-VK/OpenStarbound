@@ -40,6 +40,10 @@ public:
   Float get(Float x, Float y) const;
   Float get(Float x, Float y, Float z) const;
 
+  // Requested bytes of the owned lookup arrays, excluding this object and
+  // allocator overhead. Also valid for default/moved-from objects.
+  size_t allocatedStorageBytes() const;
+
   PerlinType type() const;
 
   unsigned octaves() const;
@@ -280,6 +284,15 @@ Float Perlin<Float>::get(Float x) const {
     default:
       throw PerlinException("::get called on uninitialized Perlin");
   }
+}
+
+template <typename Float>
+size_t Perlin<Float>::allocatedStorageBytes() const {
+  constexpr size_t count = PerlinSampleSize + PerlinSampleSize + 2;
+  return (p ? count * sizeof(int) : 0)
+      + (g3 ? count * 3 * sizeof(Float) : 0)
+      + (g2 ? count * 2 * sizeof(Float) : 0)
+      + (g1 ? count * sizeof(Float) : 0);
 }
 
 template <typename Float>

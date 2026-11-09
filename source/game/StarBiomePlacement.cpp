@@ -54,13 +54,6 @@ EnumMap<BiomePlacementMode> const BiomePlacementModeNames{
   {BiomePlacementMode::Ocean, "ocean"}
 };
 
-BiomeItemPlacement::BiomeItemPlacement(BiomeItem item, Vec2I position, float priority)
-  : item(std::move(item)), position(position), priority(priority) {}
-
-bool BiomeItemPlacement::operator<(BiomeItemPlacement const& rhs) const {
-  return priority < rhs.priority;
-}
-
 Maybe<BiomeItem> BiomeItemDistribution::createItem(Json const& config, RandomSource& rand, float biomeHueShift) {
   auto& root = Root::singleton();
 
@@ -142,16 +135,6 @@ Maybe<BiomeItem> BiomeItemDistribution::createItem(Json const& config, RandomSou
   }
 
   return {};
-}
-
-BiomeItemDistribution::BiomeItemDistribution() {
-  m_mode = BiomePlacementMode::Floor;
-  m_distribution = DistributionType::Random;
-  m_modulus = 1;
-  m_modulusOffset = 0;
-  m_blockSeed = 0;
-  m_blockProbability = 0.0f;
-  m_priority = 0.0f;
 }
 
 BiomeItemDistribution::BiomeItemDistribution(Json const& config, uint64_t seed, float biomeHueShift) {
@@ -244,50 +227,6 @@ Json BiomeItemDistribution::toJson() const {
         return JsonArray{variantFromBiomeItem(p.first), p.second.toJson()};
       })},
   };
-}
-
-BiomePlacementMode BiomeItemDistribution::mode() const {
-  return m_mode;
-}
-
-List<BiomeItem> BiomeItemDistribution::allItems() const {
-  if (m_distribution == DistributionType::Random) {
-    return m_randomItems;
-  } else if (m_distribution == DistributionType::Periodic) {
-    List<BiomeItem> items;
-    for (auto const& pair : m_weightedItems)
-      items.append(pair.first);
-    return items;
-  } else {
-    return {};
-  }
-}
-
-Maybe<BiomeItemPlacement> BiomeItemDistribution::itemToPlace(int x, int y) const {
-  if (m_distribution == DistributionType::Random) {
-    if (staticRandomFloat(x, y, m_blockSeed) <= m_blockProbability)
-      return BiomeItemPlacement{staticRandomValueFrom(m_randomItems, x, y, m_blockSeed), Vec2I(x, y), m_priority};
-
-  } else if (m_distribution == DistributionType::Periodic) {
-    BiomeItem const* biomeItem = nullptr;
-    if (m_densityFunction.get(x, y) > 0) {
-      if ((int)(x + m_modulusOffset + m_modulusDistortion.get(x, y)) % m_modulus == 0) {
-        float maxWeight = lowest<float>();
-        for (auto const& weightedItem : m_weightedItems) {
-          float weight = weightedItem.second.get(x, y);
-          if (weight > maxWeight) {
-            maxWeight = weight;
-            biomeItem = &weightedItem.first;
-          }
-        }
-      }
-    }
-
-    if (biomeItem)
-      return BiomeItemPlacement{*biomeItem, Vec2I(x, y), m_priority};
-  }
-
-  return {};
 }
 
 EnumMap<BiomeItemDistribution::DistributionType> const BiomeItemDistribution::DistributionTypeNames{

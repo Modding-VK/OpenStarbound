@@ -17,12 +17,15 @@ enum class WorldGenerationMemoryClass : size_t {
   WorkerTemplateEstimate,
   MicroDungeonPlanBuffer,
   MicroDungeonCandidateBuffer,
+  MicroDungeonDistributionBuffer,
+  MicroDungeonDistributionEstimate,
   Count
 };
 
 constexpr bool worldGenerationBufferClass(WorldGenerationMemoryClass kind) {
   return kind == WorldGenerationMemoryClass::MicroDungeonPlanBuffer
-      || kind == WorldGenerationMemoryClass::MicroDungeonCandidateBuffer;
+      || kind == WorldGenerationMemoryClass::MicroDungeonCandidateBuffer
+      || kind == WorldGenerationMemoryClass::MicroDungeonDistributionBuffer;
 }
 
 struct WorldGenerationMemorySnapshot {

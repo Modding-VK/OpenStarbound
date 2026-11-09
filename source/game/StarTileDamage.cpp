@@ -65,9 +65,6 @@ DataStream& operator<<(DataStream& ds, TileDamage const& tileDamage) {
   return ds;
 }
 
-TileDamageParameters::TileDamageParameters()
-  : m_damageRecoveryPerSecond(0.0f), m_maximumEffectTime(0.0f), m_totalHealth(0), m_requiredHarvestLevel(0) {}
-
 TileDamageParameters::TileDamageParameters(Json config, Maybe<float> healthOverride, Maybe<unsigned> harvestLevelOverride) {
   if (config.type() == Json::Type::String)
     config = Root::singleton().assets()->json(config.toString());

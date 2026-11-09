@@ -175,6 +175,8 @@ SET (star_game_HEADERS
     StarWorldGenerationDependency.hpp
     StarWorldGenerationMemory.hpp
     StarWorldGenerationBufferAllocator.hpp
+    StarWorldGenerationImmutableArray.hpp
+    StarBiomePlacementTypes.hpp
     StarWorldGenerationMemoryEstimate.hpp
     StarWorldGenerationWorkerCache.hpp
     StarWorldGenerationPass.hpp
@@ -307,6 +309,8 @@ SET (star_game_SOURCES
     StarBiome.cpp
     StarBiomeDatabase.cpp
     StarBiomePlacement.cpp
+    StarBiomePlacementSampling.cpp
+    StarBiomePlacementDefaults.cpp
     StarCelestialCoordinate.cpp
     StarCelestialDatabase.cpp
     StarCelestialGraphics.cpp

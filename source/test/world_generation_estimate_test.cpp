@@ -218,7 +218,7 @@ TEST(WorldGenerationEstimateTest, StringModelUsesUtf8CapacityNotCharacterCount) 
   estimate.stringCapacity(string);
   EXPECT_TRUE(estimate.complete);
   EXPECT_EQ(estimate.bytes, string.utf8().capacity() + 1);
-  EXPECT_EQ(WorldGenerationSizeEstimate::ModelVersion, 2u);
+  EXPECT_EQ(WorldGenerationSizeEstimate::ModelVersion, 3u);
 }
 
 TEST(WorldGenerationEstimateTest, ConcurrentSharedAcquireAndLastReleaseRemainUnique) {

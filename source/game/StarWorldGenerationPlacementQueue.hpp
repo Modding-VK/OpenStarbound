@@ -11,7 +11,7 @@ namespace Star {
 
 using WorldGenerationPlacementId = uint64_t;
 
-// Owner-thread registry. Workers only receive IDs and copied input values,
+// Owner-thread registry. Workers only receive IDs and immutable input values,
 // never this queue or its promise-bearing entries. IDs are scoped to one
 // WorldGenerator lifetime; the generation task validates the world epoch.
 template <typename Placement>
@@ -45,6 +45,13 @@ public:
   // as the old compacted list did, including candidate-sort tie breakers.
   std::map<WorldGenerationPlacementId, Placement> const& entries() const {
     return m_entries;
+  }
+
+  // Owner-only payload preparation. Do not mutate registry structure from
+  // the visitor; IDs remain immutable and promises stay on this thread.
+  template <typename Visitor>
+  void prepareSnapshots(Visitor visitor) {
+    for (auto& entry : m_entries) visitor(entry.first, entry.second);
   }
 
 private:
