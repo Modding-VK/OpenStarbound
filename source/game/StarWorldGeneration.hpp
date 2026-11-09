@@ -9,6 +9,7 @@
 #include "StarBiomePlacement.hpp"
 #include "StarWorkerPool.hpp"
 #include "StarWorldGenerationTasks.hpp"
+#include "StarWorldGenerationMemory.hpp"
 #include "StarWorldGenerationPlacementQueue.hpp"
 
 namespace Star {
@@ -186,7 +187,7 @@ private:
   };
 
   struct PreparedBaseTiles {
-    ServerTileSectorArray::ArrayPtr tiles;
+    shared_ptr<WorldGenerationTrackedResource<ServerTileSectorArray::ArrayPtr>> tiles;
     double elapsedSeconds;
     double queueSeconds;
     double completedAt;
@@ -233,6 +234,7 @@ private:
   };
 
   void prepareTiles(WorldStorage* worldStorage, Sector const& sector);
+  void profileGenerationMemory(double now);
   void retireBaseTileTask(shared_ptr<WorldGenerationTask> const& task, WorldGenerationTaskOutcome outcome);
   SectorGenerationResult prepareTilesAsync(WorldStorage* worldStorage, Sector const& sector, bool allowAsync);
   SectorGenerationResult generateMicroDungeons(WorldStorage* worldStorage, Sector const& sector, bool allowAsync);
@@ -265,6 +267,7 @@ private:
   HashMap<Sector, ReadyMicroDungeonPlan> m_readyMicroDungeonPlans;
   unique_ptr<WorldGenerationTasks> m_generationTasks;
   double m_lastPoolProfileTime = 0;
+  double m_lastGenerationMemoryProfileTime = 0;
   WorldTemplatePtr m_baseTileTemplateSource;
   uint64_t m_baseTileTemplateRevision = 0;
   Json m_baseTileTemplateStore;

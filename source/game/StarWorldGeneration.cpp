@@ -921,6 +921,7 @@ void WorldGenerator::sectorLoadLevelChanged(WorldStorage* worldStorage, Sector c
 List<WorldGenerator::Sector> WorldGenerator::readyBaseTileSectors(WorldStorage* worldStorage) {
   List<Sector> ready;
   double now = Time::monotonicTime();
+  profileGenerationMemory(now);
   eraseWhere(m_pendingBaseTiles, [&](auto& entry) {
     if (!entry.second.promise->done())
       return false;
@@ -1045,6 +1046,23 @@ bool WorldGenerator::admitMicroDungeonPlanPreparation(WorldStorage* worldStorage
     return true;
   }
   return false;
+}
+
+void WorldGenerator::profileGenerationMemory(double now) {
+  auto profile = m_worldServer->explorationProfile();
+  if (!profile || now - m_lastGenerationMemoryProfileTime < 1.0)
+    return;
+  m_lastGenerationMemoryProfileTime = now;
+  auto usage = worldGenerationMemoryLedger().snapshot();
+  profile->count("generation.memory.process.samples");
+  profile->count("generation.memory.process.sampledReservedArrayBytesTotal", usage.reservedBytes);
+  profile->count("generation.memory.process.sampledResourcesTotal", usage.resources);
+  profile->count("generation.memory.process.sampledBaseTilesArrayBytesTotal",
+      usage.classBytes[static_cast<size_t>(WorldGenerationMemoryClass::BaseTilesArray)]);
+  profile->count("generation.memory.process.sampledMicroDungeonHaloArrayBytesTotal",
+      usage.classBytes[static_cast<size_t>(WorldGenerationMemoryClass::MicroDungeonHalo)]);
+  profile->maximum("generation.memory.process.sampleMaximumReservedArrayBytes", usage.reservedBytes);
+  profile->maximum("generation.memory.process.lifetimePeakReservedArrayBytes", usage.peakReservedBytes);
 }
 
 void WorldGenerator::retireBaseTileTask(shared_ptr<WorldGenerationTask> const& task, WorldGenerationTaskOutcome outcome) {
@@ -1258,7 +1276,7 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
       return prepareTilesAsync(worldStorage, sector, true);
     }
     auto tileArray = worldStorage->tileArray();
-    tileArray->loadSector(sector, std::move(result.tiles));
+    tileArray->loadSector(sector, std::move(result.tiles->value));
     auto collisionRegion = tileArray->sectorRegion(sector).padded(CollisionGenerator::BlockInfluenceRadius);
     for (int x = collisionRegion.xMin(); x < collisionRegion.xMax(); ++x) {
       for (int y = collisionRegion.yMin(); y < collisionRegion.yMax(); ++y)
@@ -1332,11 +1350,18 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
   // preparation destroys its copies before reclaiming the unsubmitted bytes.
   auto sourceTiles = static_cast<ServerTileSectorArray const&>(*tileArray).sectorArray(sector);
   auto sourceTileRevision = tileArray->sectorRevision(sector);
-  auto tiles = tileArray->copySector(sector);
-  starAssert(sourceTiles);
-  if (!tiles)
+  auto tilesHolder = makeWorldGenerationTrackedResource<ServerTileSectorArray::ArrayPtr>(
+      worldGenerationMemoryLedger(), WorldGenerationMemoryClass::BaseTilesArray,
+      sizeof(ServerTileSectorArray::Array));
+  if (!tilesHolder) {
+    if (profile)
+      profile->count("generation.memory.process.admissionDeferred");
     return {false, {}};
-  auto tilesHolder = make_shared<ServerTileSectorArray::ArrayPtr>(std::move(tiles));
+  }
+  tilesHolder->value = tileArray->copySector(sector);
+  starAssert(sourceTiles);
+  if (!tilesHolder->value)
+    return {false, {}};
   auto sectorRegion = tileArray->sectorRegion(sector);
   auto planet = m_worldServer->worldTemplate();
   auto templateRevision = planet->generationRevision();
@@ -1367,10 +1392,10 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
           // queued task unloaded in the meantime need not calculate terrain.
           if (task->valid()) {
             auto workerPlanet = workerWorldTemplate(planet, templateRevision, templateStore);
-            prepareBaseTileArray(workerPlanet, materialDatabase, sectorRegion, **tilesHolder);
+            prepareBaseTileArray(workerPlanet, materialDatabase, sectorRegion, *tilesHolder->value);
           }
           double completedAt = Time::monotonicTime();
-          PreparedBaseTiles result{std::move(*tilesHolder), completedAt - start, start - scheduledAt, completedAt};
+          PreparedBaseTiles result{tilesHolder, completedAt - start, start - scheduledAt, completedAt};
           if (!task->ready())
             throw StarException("Generation task completed in an invalid state");
           return result;
@@ -1563,6 +1588,13 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
         profile->count("generation.tasks.admissionDeferred");
       return {false, {}};
     }
+    auto snapshotHolder = makeWorldGenerationTrackedResource<MicroDungeonPlanSnapshot>(
+        worldGenerationMemoryLedger(), WorldGenerationMemoryClass::MicroDungeonHalo, *bytes);
+    if (!snapshotHolder) {
+      if (profile)
+        profile->count("generation.memory.process.admissionDeferred");
+      return {false, {}};
+    }
     auto templateSource = m_worldServer->worldTemplate();
     auto templateRevision = templateSource->generationRevision();
     if (m_microDungeonTemplateSource != templateSource || m_microDungeonTemplateRevision != templateRevision) {
@@ -1570,7 +1602,8 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
       m_microDungeonTemplateRevision = templateRevision;
       m_microDungeonTemplateStore = templateSource->store();
     }
-    MicroDungeonPlanSnapshot snapshot{m_microDungeonTemplateStore, templateRevision, sector,
+    auto& snapshot = snapshotHolder->value;
+    snapshot = MicroDungeonPlanSnapshot{m_microDungeonTemplateStore, templateRevision, sector,
         sectorTiles, tileHalo, {}, {}, {}};
     for (auto const& haloSector : haloSectors) {
       snapshot.sectorRevisions[haloSector] = tileArray->sectorRevision(haloSector);
@@ -1583,7 +1616,6 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
       snapshot.queuedPlacements.append({entry.second.distributions, entry.first});
     auto revisions = snapshot.sectorRevisions;
     auto templateStore = snapshot.templateStore;
-    auto snapshotHolder = make_shared<MicroDungeonPlanSnapshot>(std::move(snapshot));
     try {
       auto& pendingRecord = m_pendingMicroDungeonPlans[sector];
       pendingRecord = PendingMicroDungeonPlan{task, std::move(revisions), templateSource.get(), templateRevision, now, {}};
@@ -1594,7 +1626,7 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
           double started = Time::monotonicTime();
           List<MicroDungeonPlan> plans;
           if (task->valid())
-            plans = planMicroDungeons(workerWorldTemplate(templateSource, templateRevision, templateStore), *snapshotHolder);
+            plans = planMicroDungeons(workerWorldTemplate(templateSource, templateRevision, templateStore), snapshotHolder->value);
           double completed = Time::monotonicTime();
           if (!task->ready())
             throw StarException("Generation task completed in an invalid state");
