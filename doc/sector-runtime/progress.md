@@ -1,11 +1,11 @@
 # Progressão do projeto — percentuais e ordem das tarefas
 
 Atualizado em **09/11/2026**. Branch: `Experimental`.
-Estado inspecionado: `730e36ba390ebd75b41680776126be01d2e6e15b`;
-última implementação: `730e36ba`.
+Estado inspecionado: `45db240274c37b9ed1b675c728b3bef1f3509d3e`;
+última implementação: `45db2402`.
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h0-container-storage-2026-11-09.md)
+· [Último relatório técnico](../sector-runtime-h0-json-storage-2026-11-09.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -22,7 +22,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **3,1%** — 6 marcos verificados de 196 |
 | Contratos com avanço registrado | **6 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | 266 testes, 400 execuções adicionais e 17 grupos CTest, ASan/UBSan |
+| Última evidência de testes | 294 testes, 560 execuções adicionais e 18 grupos CTest, ASan/UBSan |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,1% não significam que o jogo esteja só 3,1% pronto.** O runtime anterior
@@ -91,13 +91,14 @@ autoritativa. GPU é opcional, com fallback CPU completo.
 
 ## Próximas ações — fila imediata
 
-1. **RAM-01, em execução:** candidatos/factory e listas/cópia/scratch cobertos
-   nos recortes `25cecf95`/`c4d7ddb3`; `730e36ba` inclui buckets completos de
-   nomes e pares ocupados de fatores de dano sem mudar cópias/representação.
-   Originais continuam adotados após construir. Próximo: Json compartilhado e
-   bookkeeping/allocator dos nós; consolidar exclusões de layout/biomas/seletores,
-   envelope e reação à pressão antes de ampliar admissão. Modelos geral 7,
-   distribuições 3, payloads/temporários 2; demais modelos próprios mantidos.
+1. **RAM-01, em execução:** os recortes anteriores cobrem candidatos/listas/
+   cópia/scratch, buckets de nomes e pares de fatores. `45db2402` inclui buckets
+   e chaves de JsonObject por owner, com omissão explícita ao truncar a captura.
+   Coleta Json segue diagnóstica; originais continuam adotados após construir.
+   Próximo: ownership de Json nos variants e bookkeeping/allocator dos nós;
+   consolidar exclusões de layout/biomas/seletores, envelope e reação à pressão
+   antes de ampliar admissão. Modelos geral 8/Json 2; demais modelos próprios
+   mantidos, sem alterar geração/cópias/representação.
 2. **VAL-02, próxima entrega e apoio à primeira:** ampliar o comparador para
    candidatos, IDs, prioridades, ordem e outputs completos. Manter os controles
    de colisões de hash como gate de qualquer eliminação de cópias.
@@ -128,7 +129,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | ---: | --- | --- | --- | ---: | --- |
 | 1 | H0 | [DAG-01](dependency-scheduler.md) | Identidades estáveis | 25% | Completar identidade/versionamento e comparação integrada; IDs de colocações já testados |
 | 2 | H0 | [DAG-04](dependency-scheduler.md) | Conclusões e progresso dentro da passagem | 25% | Mailbox executiva/reação a conclusões; continuação/avanço já corrigidos no recorte |
-| 3 | H0 | [RAM-01](memory-and-prefetch.md) | Reserva e contabilização de bytes | 25% | Json compartilhado, nós/allocator e envelope processual/pressão |
+| 3 | H0 | [RAM-01](memory-and-prefetch.md) | Reserva e contabilização de bytes | 25% | Json dos variants, nós/allocator e envelope processual/pressão |
 | 4 | H0 | [VAL-02](validation-and-telemetry.md) | Comparador de outputs e produtores controlados | 25% | Fluxo completo de candidatos/outputs e dependências reais |
 | 5 | H0 | [MOD-01](compatibility.md) | Classificar operações por efeito | 25% | Auditoria completa do escopo que ganhará concorrência |
 | 6 | H0 | [VAL-01](validation-and-telemetry.md) | Benchmark de streaming | 25% | Rota/save/config fixos, streaming real e A/B equivalente |
@@ -182,12 +183,12 @@ de todas as implementações antigas para conceder crédito retroativo.
 | --- | --- | --- |
 | DAG-01 | `d72b7239`, [identidades de colocações](../sector-runtime-h0-placement-identities-2026-11-08.md) | Recorte de colocações, não todo o contrato de identidade/integração |
 | DAG-04 | `2131ead3`, [passagem/continuação](../sector-runtime-h0-streaming-pass-2026-11-09.md) | Não implementa a mailbox executiva nem reação a conclusões na mesma passagem |
-| RAM-01 | Recortes `5c3c4c8f` a `730e36ba`, [inventário](memory-and-prefetch.md) e [último relatório](../sector-runtime-h0-container-storage-2026-11-09.md) | Buckets/pares de fatores incluídos; originais adotados após construir, Json/nós e teto processual seguem parciais; nota não sobe por quantidade de testes |
+| RAM-01 | Recortes `5c3c4c8f` a `45db2402`, [inventário](memory-and-prefetch.md) e [último relatório](../sector-runtime-h0-json-storage-2026-11-09.md) | JsonObject ampliado; coleta Json diagnóstica, variants/nós, pré-adoção e teto processual seguem parciais; nota não sobe por quantidade de testes |
 | VAL-02 | [Harness inicial](../sector-runtime-h0-streaming-pass-2026-11-09.md) e [sampler/controles de hash](../sector-runtime-h0-planning-storage-2026-11-09.md) | Comparação ainda não cobre o streaming/mundo completo |
 | MOD-01 | [Leitores imutáveis](../sector-runtime-h0-distribution-bundles-2026-11-09.md) e [proteção da seleção](../sector-runtime-h0-planning-storage-2026-11-09.md) | Auditoria restrita, não de todos os efeitos/inicializadores |
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 
-Os 266 testes e demais números do resumo provêm do **último relatório técnico**,
+Os 294 testes e demais números do resumo provêm do **último relatório técnico**,
 no cenário NoAssets, não de streaming integrado. A criação original do painel
 foi documental; os avanços posteriores de runtime estão associados aos commits/
 relatórios do histórico. Atualizar este painel não acrescenta uma medição de
@@ -216,6 +217,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 09/11/2026 | Implementação `25cecf95` | RAM-01: backing conhecido de candidatos/factory e campos públicos dos seis variants; 223 testes/15 grupos. Continua parcial: nenhum marco adicional completo, RAM-01/H0 mantidos em 25% | 3,1% |
 | 09/11/2026 | Implementação `c4d7ddb3` | RAM-01: listas potenciais, cópia de validação e scratch com ownership/registro agregado; 246 testes/16 grupos. Cobertura parcial e teto pendente, sem novo marco completo; RAM-01/H0 mantidos em 25% | 3,1% |
 | 09/11/2026 | Implementação `730e36ba` | RAM-01: buckets completos de nomes e pares ocupados de fatores de dano; 266 testes/17 grupos. Json/nós e orçamento profundo seguem parciais, sem novo marco completo; RAM-01/H0 mantidos em 25% | 3,1% |
+| 09/11/2026 | Implementação `45db2402` | RAM-01: JsonObject com buckets/chaves por owner e omissão limitada sem tamanho conflitante; 294 testes/18 grupos. Coleta diagnóstica, variants/nós e teto pendentes, sem novo marco completo; RAM-01/H0 mantidos em 25% | 3,1% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

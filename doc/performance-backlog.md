@@ -74,13 +74,21 @@ adicionais e dezesseis grupos CTest, ASan/UBSan; modelo geral 6/temporários 1.
 Sem ganho real ou teto completo; RAM-01 segue em 25%. Próximo: Json/TileDamage
 privados, buckets/metadados do hash e envelope de memória/pressão, mantendo
 baseline integrado e comparador antes de ampliar concorrência.
-O [relatório vigente](sector-runtime-h0-container-storage-2026-11-09.md), `730e36ba`,
+O [recorte dos containers](sector-runtime-h0-container-storage-2026-11-09.md), `730e36ba`,
 inclui buckets completos de nomes e pares ocupados dos fatores de dano,
 sem mudar layout/allocators/cópias/ordem/geração. São 266 testes, 400 execuções
 adicionais e dezessete grupos CTest, ASan/UBSan. Modelos geral 7/distribuições 3/
 payloads 2/temporários 2. RAM-01/H0 seguem em 25%; próximo: Json compartilhado,
 bookkeeping/allocator dos nós e envelope processual/pressão. Não é teto profundo
 completo nem ganho de setores/s medido; preservar os gates de equivalência.
+O [relatório vigente](sector-runtime-h0-json-storage-2026-11-09.md), `45db2402`,
+inclui buckets completos/chaves de JsonObject por owner, sem alterar input,
+serialização, representação ou cópias. Objeto truncado é omitido da cobrança,
+não registrado com tamanho parcial conflitante. São 294 testes, 560 execuções
+adicionais e dezoito grupos CTest, ASan/UBSan; modelos geral 8/Json 2.
+Coleta Json segue diagnóstica, não cobre Json dos variants ou nós/allocator.
+RAM-01/H0 em 25%; próximo: esses donos e envelope/pressão processuais antes
+de maior admissão. Comparador e baseline integrado continuam necessários.
 Achado de CPU-01: overflow assinado na seed automática de `StarRandom.cpp:197`,
 observado em execução estrita de sanitizers; RNG de produção permanece
 inalterado. A reprodução e a separação dos testes de hash com seeds privadas

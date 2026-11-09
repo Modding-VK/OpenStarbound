@@ -155,6 +155,12 @@ dano, sem mudar representação/allocators/cópias/ordem. Modelos geral 7,
 distribuições 3, payloads/temporários 2. Json e overhead dos nós ficam fora;
 não amplia admissão, conclui teto processual ou demonstra ganho de throughput.
 
+O [recorte do Json](sector-runtime-h0-json-storage-2026-11-09.md) inclui buckets
+e texto de chaves de JsonObject por owner. Objetos sem allowance suficiente
+são explicitamente omitidos da cobrança, preservando input e modelo canônico
+para uma captura completa posterior. Modelos geral 8/Json 2; profiling continua
+necessário. Json dos variants, nós/allocator e teto processual seguem parciais.
+
 ## Diagnóstico
 
 Com `explorationProfiling.enabled`, os contadores fixos são:

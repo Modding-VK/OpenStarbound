@@ -76,6 +76,14 @@ mudança de ordem e bytes do mapa de fatores preservados; não são validação
 completa de save, mods ou multiplayer. Json/overhead de nós permanecem excluídos,
 sem autorizar eliminação de cópias ou maior admissão.
 
+O [recorte do Json](../sector-runtime-h0-json-storage-2026-11-09.md) usa o
+mesmo objeto imutável, sem reserializar, copiar chaves ou trocar representação/
+allocator/ordem. Medição parcial não registra bytes dependentes do limite para
+um owner compartilhado; recusa/omissão não filtra o input. Identidade, ordem
+e bytes DataStream foram confrontados em fixtures nativos, incluindo capturas
+concorrentes; não substituem save/reload, mods ou multiplayer reais. Json dos
+variants e overhead dos nós permanecem fora, sem aprovar concorrência adicional.
+
 ## MOD-02 — Equivalência e versionamento
 
 Definir inputs que produzem um output: seed, template/layout, geração de

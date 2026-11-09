@@ -183,6 +183,12 @@ Próximas ações executáveis:
 CPU-01 conserva overflow da seed automática e metadata Perlin Uninitialized
 como pendências. Não foram corrigidos por consultas const de memória.
 
+Continuação em `45db2402`: o
+[recorte do Json](sector-runtime-h0-json-storage-2026-11-09.md) cobre buckets
+completos/chaves de JsonObject por owner, com omissão explícita de objetos
+que não cabem no limite. Ver esse relatório para modelos, testes e próximos
+passos vigentes; os resultados e manifesto deste arquivo são históricos.
+
 ## Manifesto das fontes
 
 Fontes locais coletadas/conferidas em 09/11/2026, nomes relativos ao checkout,

@@ -39,7 +39,7 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[buckets de nomes e fatores de dano](sector-runtime-h0-container-storage-2026-11-09.md).
+[buckets e chaves do Json compartilhado](sector-runtime-h0-json-storage-2026-11-09.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
 corrigido opt-in e VAL-01/02 têm harness sintético inicial, com 26 testes H0
@@ -84,10 +84,17 @@ ASan/UBSan; modelo geral 6/temporários 1. RAM-01 segue em 25%; próximo:
 Json/TileDamage privados, buckets/metadados e envelope processual explícito.
 `730e36ba` acrescenta payload completo do vetor de buckets de nomes e pares
 ocupados dos fatores de dano sem mudar layout/allocators/cópias/geração.
-Validação atual: 266 testes, 400 execuções adicionais e dezessete grupos CTest,
+Validação daquela etapa: 266 testes, 400 execuções adicionais e dezessete grupos CTest,
 ASan/UBSan; modelos geral 7/distribuições 3/payloads 2/temporários 2.
 RAM-01/H0 seguem em 25%; próximo: Json compartilhado, bookkeeping/allocator
 dos nós e envelope de memória/pressão. Não é teto profundo ou ganho medido.
+`45db2402` inclui buckets completos e texto de chaves JsonObject, com owner
+único e omissão explícita de objetos que não cabem no limite da captura.
+Mantém input/serialização/cópias; modelos geral 8/Json 2, sem mudar os demais
+modelos próprios ou exigir profiling para classes que já eram independentes.
+Validação atual: 294 testes, 560 execuções adicionais e dezoito grupos CTest,
+ASan/UBSan. RAM-01/H0 continuam em 25%; próximo: Json nos variants, nós/allocator
+e envelope de memória/pressão. Coleta Json ainda depende de profiling.
 Streaming real com assets/mods
 e executor de conclusões ainda pendentes.
 

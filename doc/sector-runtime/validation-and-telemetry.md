@@ -106,6 +106,16 @@ temporários 2; Json e overhead dos nós continuam opacos. Quatro objetos reais
 e sintaxe Tracy de quatro fontes aprovados; não é linking completo, TSan,
 prova integrada de save/mods ou ganho de jogo medido.
 
+O [recorte do Json](../sector-runtime-h0-json-storage-2026-11-09.md) passa
+**294 testes**, dezoito grupos CTest e 28 novos repetidos vinte vezes
+(560 execuções adicionais), ASan/UBSan. JsonObject inclui buckets e chaves
+por owner; testa omissão limitada sem envenenar o modelo de outra captura,
+limite finito/recusa, sharing, bytes serializados, WorkerPool e oito capturas
+concorrentes. Seis casos confrontam map com recorder std::allocator de teste,
+inclusive alinhamento 64. Modelos geral 8/Json 2; profiling continua necessário.
+Quatro objetos reais e sintaxe Tracy de quatro fontes aprovados; não é
+streaming/assets/mods, TSan, linking completo ou ganho de jogo medido.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

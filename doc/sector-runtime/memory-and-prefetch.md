@@ -104,6 +104,14 @@ layout, cópia ou alocação. Modelos geral 7/distribuições 3/payloads 2/tempo
 nomes de saída/buffers/cache de worker mantêm modelo próprio 1. Json continua
 opaco e não há novo teto ou admissão. Sizing adicional precisa de benchmark.
 
+O [recorte do Json](../sector-runtime-h0-json-storage-2026-11-09.md), `45db2402`,
+inclui vetor completo de buckets e capacidade UTF-8 das chaves de JsonObject,
+com cobrança canônica por owner. Objetos cujas chaves não cabem no limite
+diagnóstico são explicitamente omitidos, sem alterar o input ou registrar
+tamanho parcial conflitante. Modelos geral 8/Json 2; demais versões próprias
+mantidas. Continua restrito a handles de templates/profiling, não Json interno
+dos BiomeItem; nós/allocator e teto processual permanecem abertos.
+
 ### Inventário de ownership e cobertura atual
 
 | Produto/recurso | Dono e término da retenção | Contabilidade atual |
@@ -111,7 +119,7 @@ opaco e não há novo teto ou admissão. Sizing adicional precisa de benchmark.
 | Array BaseTiles privado | wrapper capturado pelo worker e devolvido na promise; até descarte/publicação e último wrapper | reserva processual de `sizeof(Array)`, única por grupo |
 | Halo do planejador | wrapper do snapshot, incluindo capturas da closure; não é parte da lista de planos | quantidade de arrays × `sizeof(Array)`; grupo único |
 | Arrays autoritativos após publicação | `WorldStorage`/`TileSectorArray`, até unload | fora do ledger privado; não foram liberados fisicamente ao publicar |
-| Template serializado | `TemplateStoreCache` e handles capturados nos jobs, até último tracker | estimativa v1 por backing compartilhado entre handles rastreados; profiling regional |
+| Template serializado | `TemplateStoreCache` e handles capturados nos jobs, até último tracker | Json v2: objeto + buckets completos + texto das chaves, arrays/strings com fórmulas anteriores; owner único entre handles rastreados; profiling regional; objeto truncado omitido explicitamente |
 | Template privado/cache do worker | entrada de `WorldGenerationWorkerCache` thread-local, até substituição/saída da thread e último uso | objeto + storage solicitado da LRU, modelo próprio v1; sem profiling para cobrança; heaps de layout/biomas/seletores fora |
 | Revisões/referências no snapshot e pendências | snapshot assíncrono e registros pendentes, cada metadado com seu lifetime | representações/capacidades públicas com profiling regional; bundle compartilhado não é repetido por referência |
 | Input de distribuição ainda não capturado | pedido enfileirado, até primeiro freeze ou retirada | estimativa do original já construído, incluindo container; não é reserva anterior à construção pelo chamador |
@@ -119,9 +127,9 @@ opaco e não há novo teto ou admissão. Sizing adicional precisa de benchmark.
 | Vetor intermediário de candidatos | planejamento síncrono/assíncrono, até retorno/unwind | pedido de buffer com header/padding, reservado antes de alocar; realocação mantém os dois buffers cobrados |
 | Backing conhecido de candidatos/temporário da factory | token agregado no container; elementos destruídos antes do token | classe 12 estimada antes da factory/crescimento e reconciliada; modelo 7 inclui buckets completos de nomes e pares de fatores; Json/overhead dos nós excluídos; independe do profiling e não é teto profundo hard |
 | Vetor de descritores de planos | local síncrono ou payload da promise, até último handle físico | reserva fixa por pedido de buffer; pré-reserva pelo número elegível; sem cópia no consumo |
-| Nomes de saída compartilhados | handles const dos descritores; até último consumidor físico | fórmula de v4 mantida no modelo 7: backing de String estimado antes da cópia/reconciliado; objeto/control block reservado pelo allocator; não repetido por plano, SSO pode superestimar |
+| Nomes de saída compartilhados | handles const dos descritores; até último consumidor físico | fórmula de v4 mantida no modelo 8: backing de String estimado antes da cópia/reconciliado; objeto/control block reservado pelo allocator; não repetido por plano, SSO pode superestimar |
 | Índice de nomes | local ao planejamento; destruído ao retornar | nodes/buckets reservados antes do raw allocator; keys apontam para strings possuídas, sem cópia da chave textual |
-| Metadata do resultado assíncrono | token do resultado e referências retidas | fórmula de v4 mantida no modelo 7: objeto preparado após construir, com profiling regional; nomes e capacidade dos descritores cobrados separadamente |
+| Metadata do resultado assíncrono | token do resultado e referências retidas | fórmula de v4 mantida no modelo 8: objeto preparado após construir, com profiling regional; nomes e capacidade dos descritores cobrados separadamente |
 | Listas potenciais ambientais/enfileiradas | escopos distintos locais ao ponto/colocação; destruição antes de liberar parcela | classe 13: capacidades e backing conhecido adotados após construção/população; não mede pico anterior à adoção |
 | Cópia de validação | escopo privado e parâmetro movido do validador, dentro da operação | classe 13: previsão antes da cópia, uma cópia de elementos preservada; saída prevista cobre ponte de transferência |
 | Scratch de itens válidos | escopo Output local ao planejamento; elementos limpos após captura, buffer no fim do job | classe 13 estimada: capacidade permanece cobrada após clear; inputs micro conservam crescimento/cópias legados; Json/privados e raw allocator ainda não são reserva hard |
@@ -135,6 +143,9 @@ restantes. Não ampliar admissão com base apenas nesta contabilidade parcial.
 SSO pode superestimar; Json, nós/allocator e containers não cobertos podem subestimar.
 `complete` cobre travessia/aritmética do modelo, não o heap completo. O scan é
 limitado a 32.768 valores; input inteiro é preservado ao truncar a estimativa.
+Json v2 não cobra o objeto cujas chaves não cabem no allowance; contadores
+expõem essa omissão. O limite de valores não garante teto em milissegundos:
+iteradores de hash não vazio também podem percorrer slots vazios.
 Json comum/assets/cache privado podem reter backing após o último tracker;
 saldo zero não prova liberação física global. Também faltam custos transitórios
 dos heaps internos dos elementos e cobertura profunda independente do profiling.

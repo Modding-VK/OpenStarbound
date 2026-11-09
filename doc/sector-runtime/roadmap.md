@@ -155,11 +155,20 @@ inclui vazios/sentinela/padding e substitui a parcela de objetos ocupados,
 sem duplicá-la. Fatores de dano acrescentam os pares ocupados, não o nó completo.
 Sem mudar layout/allocators/cópias/ordem; 20 casos novos, 266 no total, 400
 execuções adicionais e dezessete grupos CTest, ASan/UBSan. Ver
-[relatório vigente](../sector-runtime-h0-container-storage-2026-11-09.md).
+[relatório da etapa](../sector-runtime-h0-container-storage-2026-11-09.md).
 Modelos geral 7/distribuições 3/payloads 2/temporários 2. Json, overhead de
 nós/allocator e teto processual continuam pendentes; RAM-01/H0 seguem em 25%.
 
-Próximo trabalho executável: Json compartilhado e bookkeeping/allocator de nós,
+RAM-01, Json em `45db2402`: buckets completos e capacidades UTF-8 das chaves
+por owner rastreado; objeto sem allowance para todas as chaves é omitido da
+cobrança, sem conflitar com captura completa posterior. Preserva input e
+representação; coleta continua diagnóstica. São 28 casos novos, 294 no total,
+560 execuções adicionais e dezoito grupos CTest, ASan/UBSan. Ver
+[relatório vigente](../sector-runtime-h0-json-storage-2026-11-09.md).
+Modelos geral 8/Json 2; versões próprias de distribuição/candidatos/temporários
+mantidas. Json dos variants e nós/allocator continuam fora; RAM-01/H0 em 25%.
+
+Próximo trabalho executável: ownership de Json nos variants e bookkeeping/allocator de nós,
 preservando fallback síncrono, ownership único e história de cópias. Estender
 o comparador ao fluxo de candidatos/IDs/prioridades e ao
 streaming real, usando o controle de colisões como gate antes de eliminar cópias.
