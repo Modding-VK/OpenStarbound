@@ -55,13 +55,14 @@ void releaseResource(WorldGenerationMemorySnapshot& usage, WorldGenerationMemory
 
 struct WorldGenerationMemoryState {
   explicit WorldGenerationMemoryState(size_t maximum, WorldGenerationMemoryPressureLimits limits = {})
-    : maximumBytes(maximum), pressure(limits) {
+    : maximumBytes(maximum), admissionLimits(limits), pressure(limits) {
     if (limits.enabled && (!(limits.resumeBytes < limits.softBytes && limits.softBytes < limits.hardBytes)
         || limits.hardBytes > maximum)) throw std::invalid_argument("Invalid scoped generation memory limits");
     usage.admission.enabled = limits.enabled;
   }
   std::mutex mutex;
   size_t const maximumBytes;
+  WorldGenerationMemoryPressureLimits const admissionLimits;
   WorldGenerationMemorySnapshot usage;
   std::map<SharedKey, SharedEntry, SharedKeyLess> shared;
   WorldGenerationMemoryPressurePolicy pressure;
@@ -155,27 +156,35 @@ std::shared_ptr<WorldGenerationMemoryReservation> WorldGenerationMemoryLedger::r
   return reservation;
 }
 
-bool WorldGenerationMemoryLedger::reserveBatch(WorldGenerationMemoryRequest const* requests,
-    std::shared_ptr<WorldGenerationMemoryReservation>* reservations, size_t count) {
+WorldGenerationMemoryBatchStatus WorldGenerationMemoryLedger::tryReserveBatch(WorldGenerationMemoryRequest const* requests,
+    std::shared_ptr<WorldGenerationMemoryReservation>* reservations, size_t count, size_t& requestedBytes) {
+  using Status = WorldGenerationMemoryBatchStatus;
   size_t bytes = 0;
   for (size_t i = 0; i < count; ++i) {
     auto const& request = requests[i];
     if (static_cast<size_t>(request.kind) >= static_cast<size_t>(WorldGenerationMemoryClass::Count)
         || request.kind == WorldGenerationMemoryClass::TemplateJsonEstimate
-        || request.bytes > std::numeric_limits<size_t>::max() - bytes) return false;
+        || request.bytes > std::numeric_limits<size_t>::max() - bytes) return Status::Invalid;
     bytes += request.bytes;
   }
+  requestedBytes = bytes;
   // All potentially throwing allocations precede admission and charging.
   // These tokens stay inactive until every part fits under the same lock.
   for (size_t i = 0; i < count; ++i)
     reservations[i] = std::shared_ptr<WorldGenerationMemoryReservation>(
         new WorldGenerationMemoryReservation(m_state, requests[i].kind, requests[i].bytes, m_demand));
-  if (!count) return true;
+  if (!count) return Status::Admitted;
   std::lock_guard<std::mutex> lock(m_state->mutex);
   auto& usage = m_state->usage;
-  if (!m_state->admit(bytes, m_demand)
-      || bytes > m_state->maximumBytes - usage.reservedBytes
-      || count > std::numeric_limits<size_t>::max() - usage.resources) return false;
+  bool allowed = m_state->admit(bytes, m_demand);
+  if (usage.admission.enabled && usage.admission.lastAdvice.pressure == WorldGenerationMemoryPressure::Invalid)
+    return Status::Invalid;
+  auto const& limits = m_state->admissionLimits;
+  size_t capacity = !limits.enabled ? m_state->maximumBytes
+      : m_demand == WorldGenerationMemoryDemand::Speculative ? limits.softBytes : limits.hardBytes;
+  if (bytes > capacity) return Status::Impossible;
+  if (!allowed || bytes > m_state->maximumBytes - usage.reservedBytes
+      || count > std::numeric_limits<size_t>::max() - usage.resources) return Status::Deferred;
   // Total bytes/resources bound every class sum, including duplicate classes.
   // No allocation, callback or throwing operation may occur in this loop.
   for (size_t i = 0; i < count; ++i) {
@@ -184,7 +193,7 @@ bool WorldGenerationMemoryLedger::reserveBatch(WorldGenerationMemoryRequest cons
     ++usage.classResources[static_cast<size_t>(requests[i].kind)];
     reservations[i]->m_active = true;
   }
-  return true;
+  return Status::Admitted;
 }
 
 bool WorldGenerationMemoryLedger::matches(std::shared_ptr<WorldGenerationMemoryReservation> const& reservation,

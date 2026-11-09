@@ -61,6 +61,17 @@ struct WorldGenerationMemoryRequest {
   size_t bytes;
 };
 
+enum class WorldGenerationMemoryBatchStatus { Admitted, Deferred, Impossible, Invalid };
+
+class WorldGenerationMemoryReservation;
+
+template <size_t N>
+struct WorldGenerationMemoryBatchAdmission {
+  WorldGenerationMemoryBatchStatus status = WorldGenerationMemoryBatchStatus::Invalid;
+  size_t requestedBytes = 0;
+  std::optional<std::array<std::shared_ptr<WorldGenerationMemoryReservation>, N>> memory;
+};
+
 // Share this token only with references to the same physical resource/group.
 // It owns the ledger state, not a world, task, worker or live-world callback.
 class WorldGenerationMemoryReservation {
@@ -104,9 +115,17 @@ public:
   template <size_t N>
   std::optional<std::array<std::shared_ptr<WorldGenerationMemoryReservation>, N>> reserveBatch(
       std::array<WorldGenerationMemoryRequest, N> const& requests) {
+    return tryReserveBatch(requests).memory;
+  }
+  // Status and reservation come from the same admission, not a later snapshot.
+  // Impossible means this request cannot fit even in an empty declared scope.
+  template <size_t N>
+  WorldGenerationMemoryBatchAdmission<N> tryReserveBatch(std::array<WorldGenerationMemoryRequest, N> const& requests) {
+    WorldGenerationMemoryBatchAdmission<N> result;
     std::array<std::shared_ptr<WorldGenerationMemoryReservation>, N> reservations{};
-    if (!reserveBatch(requests.data(), reservations.data(), N)) return {};
-    return {std::move(reservations)};
+    result.status = tryReserveBatch(requests.data(), reservations.data(), N, result.requestedBytes);
+    if (result.status == WorldGenerationMemoryBatchStatus::Admitted) result.memory.emplace(std::move(reservations));
+    return result;
   }
   // Deduplicate immutable Json storage by ownership, not address/content.
   std::shared_ptr<WorldGenerationMemoryReservation> reserveSharedJson(
@@ -116,8 +135,8 @@ public:
 private:
   template <typename T> friend class WorldGenerationBufferAllocator;
   template <typename Source, typename Payload> friend class WorldGenerationWorkerCache;
-  bool reserveBatch(WorldGenerationMemoryRequest const* requests,
-      std::shared_ptr<WorldGenerationMemoryReservation>* reservations, size_t count);
+  WorldGenerationMemoryBatchStatus tryReserveBatch(WorldGenerationMemoryRequest const* requests,
+      std::shared_ptr<WorldGenerationMemoryReservation>* reservations, size_t count, size_t& requestedBytes);
   bool matches(std::shared_ptr<WorldGenerationMemoryReservation> const& reservation,
       WorldGenerationMemoryClass kind, size_t bytes) const;
   bool owns(std::shared_ptr<WorldGenerationMemoryReservation> const& reservation,
