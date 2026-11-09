@@ -118,6 +118,10 @@ uint64_t WorldTemplate::generationRevision() const {
   return m_generationRevision;
 }
 
+size_t WorldTemplate::generationCacheStorageBytes() const {
+  return sizeof(WorldTemplate) + m_blockCache.allocatorStorageBytes();
+}
+
 void WorldTemplate::setWorldParameters(VisitableWorldParametersPtr newParameters) {
   m_worldParameters = take(newParameters);
   setupWeatherDomains();

@@ -14,6 +14,7 @@ enum class WorldGenerationMemoryClass : size_t {
   TemplateJsonEstimate,
   SnapshotMetadataEstimate,
   MicroDungeonPlanEstimate,
+  WorkerTemplateEstimate,
   Count
 };
 
@@ -27,6 +28,7 @@ struct WorldGenerationMemorySnapshot {
   size_t peakEstimatedBytes = 0;
   size_t sharedResources = 0;
   size_t sharedRegistryEntries = 0;
+  size_t incompleteEstimateUpdates = 0;
   std::array<size_t, static_cast<size_t>(WorldGenerationMemoryClass::Count)> classBytes{};
   std::array<size_t, static_cast<size_t>(WorldGenerationMemoryClass::Count)> classResources{};
 };
@@ -41,6 +43,7 @@ public:
   WorldGenerationMemoryReservation(WorldGenerationMemoryReservation const&) = delete;
   WorldGenerationMemoryReservation& operator=(WorldGenerationMemoryReservation const&) = delete;
   bool resizeEstimate(size_t bytes);
+  void noteIncompleteEstimate();
 
 private:
   friend class WorldGenerationMemoryLedger;

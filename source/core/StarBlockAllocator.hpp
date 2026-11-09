@@ -52,6 +52,11 @@ public:
   T* allocate(size_t n);
   void deallocate(T* p, size_t n);
 
+  // Owner-thread diagnostic across this allocator's rebound family. Includes
+  // pooled blocks, pool bookkeeping and live multi-element requests, not
+  // malloc overhead, family hash buckets or payload-owned allocations.
+  size_t requestedStorageBytes() const;
+
   template <typename... Args>
   void construct(pointer p, Args&&... args) const;
   void destroy(pointer p) const;
@@ -99,9 +104,11 @@ private:
     std::vector<unique_ptr<Block>> blocks;
     Block* unfilledBlock;
     std::allocator<T> multiAllocator;
+    size_t multiBytes = 0;
   };
 
-  typedef std::unordered_map<std::type_index, shared_ptr<void>> BlockAllocatorFamily;
+  typedef std::unordered_map<std::type_index,
+      pair<shared_ptr<void>, size_t (*)(void const*)>> BlockAllocatorFamily;
 
   static Data* getAllocatorData(BlockAllocatorFamily& family);
 
@@ -150,7 +157,9 @@ T* BlockAllocator<T, BlockSize>::allocate(size_t n) {
       m_data->unfilledBlock = nullptr;
     return allocated;
   } else {
-    return m_data->multiAllocator.allocate(n);
+    auto allocated = m_data->multiAllocator.allocate(n);
+    m_data->multiBytes += n * sizeof(T);
+    return allocated;
   }
 }
 
@@ -176,7 +185,17 @@ void BlockAllocator<T, BlockSize>::deallocate(T* p, size_t n) {
     }
   } else {
     m_data->multiAllocator.deallocate(p, n);
+    m_data->multiBytes -= n * sizeof(T);
   }
+}
+
+template <typename T, size_t BlockSize>
+size_t BlockAllocator<T, BlockSize>::requestedStorageBytes() const {
+  size_t bytes = 0;
+  for (auto const& entry : *m_family)
+    if (entry.second.first)
+      bytes += entry.second.second(entry.second.first.get());
+  return bytes;
 }
 
 template <typename T, size_t BlockSize>
@@ -256,10 +275,17 @@ auto BlockAllocator<T, BlockSize>::Block::chunkPointer(ChunkIndex chunkIndex) ->
 
 template <typename T, size_t BlockSize>
 typename BlockAllocator<T, BlockSize>::Data* BlockAllocator<T, BlockSize>::getAllocatorData(BlockAllocatorFamily& family) {
-  auto& dataptr = family[typeid(Data)];
-  if (!dataptr)
-    dataptr = make_shared<Data>();
-  return (Data*)dataptr.get();
+  auto& entry = family[typeid(Data)];
+  if (!entry.first) {
+    auto data = make_shared<Data>();
+    entry.second = [](void const* pointer) {
+      auto const& state = *static_cast<Data const*>(pointer);
+      return sizeof(Data) + state.blocks.capacity() * sizeof(unique_ptr<Block>)
+          + state.blocks.size() * sizeof(Block) + state.multiBytes;
+    };
+    entry.first = std::move(data);
+  }
+  return (Data*)entry.first.get();
 }
 
 }

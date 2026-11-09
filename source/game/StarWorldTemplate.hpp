@@ -97,6 +97,9 @@ public:
   SkyParameters skyParameters() const;
   WorldLayoutPtr worldLayout() const;
   uint64_t generationRevision() const;
+  // Owner-thread only. Object plus requested block-cache allocator storage;
+  // excludes layout/biomes/selectors and every other nested allocation.
+  size_t generationCacheStorageBytes() const;
 
   void setWorldParameters(VisitableWorldParametersPtr newParameters);
   void setWorldLayout(WorldLayoutPtr newLayout);

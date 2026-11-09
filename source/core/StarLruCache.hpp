@@ -21,6 +21,7 @@ public:
   void setMaxSize(size_t maxSize);
 
   size_t currentSize() const;
+  size_t allocatorStorageBytes() const { return m_map.allocatorStorageBytes(); }
 
   List<Key> keys() const;
   List<Value> values() const;

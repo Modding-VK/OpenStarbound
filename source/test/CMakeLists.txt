@@ -117,6 +117,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_tasks_test.cpp
   world_generation_memory_test.cpp
   world_generation_estimate_test.cpp
+  world_generation_worker_cache_test.cpp
   world_region_coordinator_test.cpp)
 IF(STAR_ENABLE_TRACY)
   TARGET_LINK_LIBRARIES(world_generation_contract_tests PRIVATE ${STAR_EXT_LIBS} Tracy::TracyClient)
@@ -135,6 +136,7 @@ FOREACH(world_region_test_suite
     WorldGenerationTasksTest
     WorldGenerationMemoryTest
     WorldGenerationEstimateTest
+    WorldGenerationWorkerCacheTest
     WorldRegionCoordinatorTest
     WorldRegionObservationTest)
   ADD_TEST(NAME world_generation_contract_${world_region_test_suite}

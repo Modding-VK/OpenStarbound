@@ -86,6 +86,12 @@ bool WorldGenerationMemoryReservation::resizeEstimate(size_t bytes) {
   return true;
 }
 
+void WorldGenerationMemoryReservation::noteIncompleteEstimate() {
+  std::lock_guard<std::mutex> lock(m_state->mutex);
+  auto& count = m_state->usage.incompleteEstimateUpdates;
+  if (count != std::numeric_limits<size_t>::max()) ++count;
+}
+
 WorldGenerationMemoryLedger::WorldGenerationMemoryLedger(size_t maximumBytes)
   : m_state(std::make_shared<WorldGenerationMemoryState>(maximumBytes)) {}
 

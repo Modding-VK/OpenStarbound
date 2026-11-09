@@ -1,4 +1,5 @@
 #include "StarWorldGeneration.hpp"
+#include "StarWorldGenerationWorkerCache.hpp"
 #include "StarWorldServer.hpp"
 #include "StarExplorationProfile.hpp"
 #include "StarMaterialItem.hpp"
@@ -112,21 +113,15 @@ void prepareBaseTileArray(WorldTemplatePtr const& planet, MaterialDatabaseConstP
   }
 }
 
-WorldTemplatePtr workerWorldTemplate(WorldTemplatePtr const& sourceTemplate,
-    uint64_t sourceRevision, WorldGenerationJsonSnapshotPtr const& templateStore) {
-  static thread_local weak_ptr<WorldTemplate> cachedSourceTemplate;
-  static thread_local uint64_t cachedSourceRevision = 0;
-  static thread_local WorldTemplatePtr cachedWorkerTemplate;
-
-  if (!cachedWorkerTemplate || cachedSourceTemplate.lock() != sourceTemplate
-      || cachedSourceRevision != sourceRevision) {
-    auto workerTemplate = make_shared<WorldTemplate>(templateStore->value);
-    cachedSourceTemplate = sourceTemplate;
-    cachedSourceRevision = sourceRevision;
-    cachedWorkerTemplate = std::move(workerTemplate);
-  }
-
-  return cachedWorkerTemplate;
+auto workerWorldTemplate(WorldTemplatePtr const& sourceTemplate,
+    uint64_t sourceRevision, WorldGenerationJsonSnapshotPtr const& templateStore,
+    WorldGenerationMemoryLedger& ledger) {
+  static thread_local WorldGenerationWorkerCache<WorldTemplate, WorldTemplate> cache;
+  auto use = cache.get(sourceTemplate, sourceRevision, ledger, sizeof(WorldTemplate),
+      +[](WorldTemplate const& value) { return value.generationCacheStorageBytes(); },
+      [&] { return make_shared<WorldTemplate>(templateStore->value); });
+  if (!use) throw StarException("Could not track worker template storage");
+  return use;
 }
 
 WorkerPool& sectorGenerationWorkerPool() {
@@ -1068,8 +1063,12 @@ void WorldGenerator::profileGenerationMemory(double now) {
   profile->count("generation.memory.process.sampledTemplateJsonEstimateTotal", usage.classBytes[2]);
   profile->count("generation.memory.process.sampledMetadataEstimateTotal", usage.classBytes[3]);
   profile->count("generation.memory.process.sampledPlanEstimateTotal", usage.classBytes[4]);
+  profile->count("generation.memory.process.sampledWorkerTemplateEstimateTotal", usage.classBytes[5]);
+  profile->count("generation.memory.process.sampledWorkerTemplatesTotal", usage.classResources[5]);
+  profile->maximum("generation.memory.process.lifetimeIncompleteEstimateUpdates", usage.incompleteEstimateUpdates);
   profile->maximum("generation.memory.process.lifetimePeakEstimatedBytes", usage.peakEstimatedBytes);
   profile->maximum("generation.memory.estimates.modelVersion", WorldGenerationSizeEstimate::ModelVersion);
+  profile->maximum("generation.memory.estimates.workerCacheModelVersion", 1);
   if (profile->regionalDetailsEnabled()) profile->count("generation.memory.estimates.enabledSamples");
 }
 
@@ -1418,7 +1417,8 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
     if (profile)
       tileArray->beginRevisionTracking(sector);
     auto promise = workerPool.addProducer<PreparedBaseTiles>(
-      [task, planet, templateRevision, templateStore, materialDatabase, sectorRegion, tilesHolder, scheduledAt]() mutable {
+      [task, planet, templateRevision, templateStore, materialDatabase, sectorRegion, tilesHolder, scheduledAt,
+          memoryLedger = worldGenerationMemoryLedger()]() mutable {
         if (!task->start())
           throw StarException("Generation task started more than once");
         try {
@@ -1427,8 +1427,8 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
           // Invalidation keeps the reservation until this producer exits. A
           // queued task unloaded in the meantime need not calculate terrain.
           if (task->valid()) {
-            auto workerPlanet = workerWorldTemplate(planet, templateRevision, templateStore);
-            prepareBaseTileArray(workerPlanet, materialDatabase, sectorRegion, *tilesHolder->value);
+            auto workerPlanet = workerWorldTemplate(planet, templateRevision, templateStore, memoryLedger);
+            prepareBaseTileArray(workerPlanet.value(), materialDatabase, sectorRegion, *tilesHolder->value);
           }
           double completedAt = Time::monotonicTime();
           PreparedBaseTiles result{tilesHolder, completedAt - start, start - scheduledAt, completedAt};
@@ -1672,14 +1672,17 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
     try {
       auto& pendingRecord = m_pendingMicroDungeonPlans[sector];
       pendingRecord = PendingMicroDungeonPlan{pendingMemory, task, std::move(revisions), templateSource.get(), templateRevision, now, {}};
-      auto promise = workerPool.addProducer<PreparedMicroDungeonPlan>([task, templateSource, templateRevision, templateStore, snapshotHolder, planMemory, measurePlan, now]() mutable {
+      auto promise = workerPool.addProducer<PreparedMicroDungeonPlan>([task, templateSource, templateRevision, templateStore, snapshotHolder, planMemory, measurePlan, now,
+          memoryLedger = worldGenerationMemoryLedger()]() mutable {
         if (!task->start())
           throw StarException("Generation task started more than once");
         try {
           double started = Time::monotonicTime();
           List<MicroDungeonPlan> plans;
-          if (task->valid())
-            plans = planMicroDungeons(workerWorldTemplate(templateSource, templateRevision, templateStore), snapshotHolder->value);
+          if (task->valid()) {
+            auto workerPlanet = workerWorldTemplate(templateSource, templateRevision, templateStore, memoryLedger);
+            plans = planMicroDungeons(workerPlanet.value(), snapshotHolder->value);
+          }
           bool estimateComplete = true;
           double estimateSeconds = 0;
           if (measurePlan) {

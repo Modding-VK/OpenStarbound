@@ -175,6 +175,7 @@ SET (star_game_HEADERS
     StarWorldGenerationDependency.hpp
     StarWorldGenerationMemory.hpp
     StarWorldGenerationMemoryEstimate.hpp
+    StarWorldGenerationWorkerCache.hpp
     StarWorldGenerationPass.hpp
     StarWorldGenerationPlacementQueue.hpp
     StarWorldGenerationTasks.hpp

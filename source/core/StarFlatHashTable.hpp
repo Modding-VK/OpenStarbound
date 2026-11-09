@@ -91,6 +91,8 @@ public:
 
   void reserve(size_t capacity);
   Allocator getAllocator() const;
+  // Available when the allocator supports owner-thread storage diagnostics.
+  size_t allocatorStorageBytes() const;
 
   bool operator==(FlatHashTable const& rhs) const;
   bool operator!=(FlatHashTable const& rhs) const;
@@ -461,6 +463,11 @@ void FlatHashTable<Value, Key, GetKey, Hash, Equals, Allocator>::reserve(size_t 
 template <typename Value, typename Key, typename GetKey, typename Hash, typename Equals, typename Allocator>
 Allocator FlatHashTable<Value, Key, GetKey, Hash, Equals, Allocator>::getAllocator() const {
   return m_buckets.get_allocator();
+}
+
+template <typename Value, typename Key, typename GetKey, typename Hash, typename Equals, typename Allocator>
+size_t FlatHashTable<Value, Key, GetKey, Hash, Equals, Allocator>::allocatorStorageBytes() const {
+  return m_buckets.get_allocator().requestedStorageBytes();
 }
 
 template <typename Value, typename Key, typename GetKey, typename Hash, typename Equals, typename Allocator>

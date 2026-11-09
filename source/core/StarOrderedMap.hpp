@@ -110,6 +110,11 @@ public:
   reverse_iterator rend();
 
   size_t size() const;
+  // BlockAllocator-backed OrderedHashMap only. The independently constructed
+  // order and lookup allocator families are each counted once.
+  size_t allocatorStorageBytes() const {
+    return m_map.allocatorStorageBytes() + m_order.get_allocator().requestedStorageBytes();
+  }
 
   iterator erase(iterator i);
   size_t erase(key_type const& k);

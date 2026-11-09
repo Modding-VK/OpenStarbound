@@ -151,6 +151,7 @@ public:
   pair<const_iterator, const_iterator> equal_range(key_type const& key) const;
 
   void reserve(size_t capacity);
+  size_t allocatorStorageBytes() const;
 
   bool operator==(FlatHashMap const& rhs) const;
   bool operator!=(FlatHashMap const& rhs) const;
@@ -527,6 +528,11 @@ auto FlatHashMap<Key, Mapped, Hash, Equals, Allocator>::equal_range(key_type con
 template <typename Key, typename Mapped, typename Hash, typename Equals, typename Allocator>
 void FlatHashMap<Key, Mapped, Hash, Equals, Allocator>::reserve(size_t capacity) {
   m_table.reserve(capacity);
+}
+
+template <typename Key, typename Mapped, typename Hash, typename Equals, typename Allocator>
+size_t FlatHashMap<Key, Mapped, Hash, Equals, Allocator>::allocatorStorageBytes() const {
+  return m_table.allocatorStorageBytes();
 }
 
 template <typename Key, typename Mapped, typename Hash, typename Equals, typename Allocator>
