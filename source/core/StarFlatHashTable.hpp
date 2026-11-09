@@ -306,6 +306,10 @@ auto FlatHashTable<Value, Key, GetKey, Hash, Equals, Allocator>::begin() -> iter
 
 template <typename Value, typename Key, typename GetKey, typename Hash, typename Equals, typename Allocator>
 auto FlatHashTable<Value, Key, GetKey, Hash, Equals, Allocator>::end() -> iterator {
+  // An unallocated/moved-from table has no sentinel bucket. Do not form a
+  // pointer before its (possibly null) data pointer, even just for comparison.
+  if (m_buckets.empty())
+    return iterator{nullptr};
   return iterator{m_buckets.data() + m_buckets.size() - 1};
 }
 
