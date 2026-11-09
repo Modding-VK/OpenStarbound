@@ -35,13 +35,15 @@ os contratos por subsistema. O [roadmap detalhado](sector-runtime/roadmap.md)
 relaciona tarefas, dependências, propósito e critérios de conclusão; ele é a
 entrada operacional para a implementação; documentos antigos são apoio e
 histórico, sem outra fila de prioridades. Frente ativa: H0. O relatório atual é
-[reserva antes das cópias de inputs](sector-runtime-h0-memory-admission-2026-11-09.md).
+[ledger processual dos arrays privados](sector-runtime-h0-process-memory-2026-11-09.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
 corrigido opt-in e VAL-01/02 têm harness sintético inicial, com 26 testes H0
 aprovados naquele recorte. RAM-01 já reserva arrays antes das cópias, com
-rollback de preparação e handoff; o próximo passo é contabilidade processual
-de recursos compartilhados e sobreviventes. Streaming real com assets/mods
+rollback de preparação e handoff. O ledger processual observacional acompanha
+agora arrays privados sobreviventes ao mundo, sem mudar cotas ou impor novo
+teto. Próximo: templates compartilhados, metadados e produtos variáveis,
+antes do orçamento global completo. Streaming real com assets/mods
 e executor de conclusões ainda pendentes.
 
 A proposta vigente foi retrabalhada para aproveitar CPU, RAM e GPU:
@@ -77,7 +79,8 @@ auditadas em
 | --- | --- |
 | BaseTiles em pool | Implementado, com identidade e validação de revisão |
 | Admissão de tarefas | Estágios declarados validados; chaves por `(setor, etapa)` podem coexistir |
-| Reserva dos snapshots | Antes das cópias; rollback pré-dispatch e handoff; bytes rasos e limites por mundo, ledger processual pendente |
+| Reserva dos snapshots | Antes das cópias; rollback pré-dispatch e handoff; cotas lógicas por mundo preservadas |
+| Reservas físicas de arrays privados | Ledger processual único por wrapper, inclusive após fechar o mundo; teto global/deep accounting pendentes |
 | Regiões lógicas em sombra | Implementado para observação e métricas |
 | Planejador de microdungeon por snapshot | Seleção extraída; caminho síncrono e worker opt-in disponíveis |
 | Identidade de colocações pendentes | IDs monotônicos no plano e registro pela dona; testes sem assets aprovados, validação integrada pendente |

@@ -59,9 +59,20 @@ Uma sentinela nula inválida foi corrigida; o overflow do RNG automático foi
 registrado para CPU-01, não corrigido. Ver
 [relatório atual e limites](../sector-runtime-h0-memory-admission-2026-11-09.md).
 
-Próximo trabalho executável: RAM-01, inventário/contabilidade processual dos
-produtos e recursos compartilhados, inclusive sobreviventes ao fechamento
-do mundo; manter MOD-01 explícito antes de mudar admissão ou ownership.
+RAM-01, segundo recorte em `65bae55c`: ledger processual observacional de arrays privados,
+com reserva única por wrapper e retenção após fechar o mundo, integrado a
+BaseTiles/halo. Inventário de produtos/caches e limites está em
+[memória](memory-and-prefetch.md); o
+[relatório atual](../sector-runtime-h0-process-memory-2026-11-09.md) delimita
+validação e contadores. São 20 testes novos, 95 testes de contratos no total,
+400 repetições adicionais aprovadas e oito grupos CTest, com sanitizers
+estritos. O objeto real de geração também compilou. Isso ainda não impõe
+teto global nem mede toda a RAM.
+
+Próximo trabalho executável: RAM-01, medir/versionar tamanhos e storage único
+de templates compartilhados, metadados e saídas variáveis; depois definir
+limites processuais por hardware/configuração e reação à pressão.
+Manter MOD-01 explícito antes de mudar admissão ou ownership.
 Estender o harness para dependências reais e o baseline com rota/save/config
 fixos. Não ampliar admissão nem ligar previews por padrão antes desses gates.
 

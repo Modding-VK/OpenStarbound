@@ -34,12 +34,33 @@ O produto quantidade × tamanho é verificado contra overflow, sem alterar
 os limites de tarefas/bytes existentes. Ver
 [relatório e escopo](../sector-runtime-h0-memory-admission-2026-11-09.md).
 
-O recorte contabiliza objetos `Array` completos, inclusive campos inline,
-mas não allocator, templates/caches, distribuições, índices ou saída variável
-do planejador. O teto ainda é por mundo, não processual. Destruir o mundo
-invalida tickets sobreviventes, mas não mantém um ledger global das cópias
-ainda retidas por workers. RAM-01 permanece aberto para essas fronteiras;
-não ampliar admissão com base apenas nesta correção de ordem.
+O [recorte processual seguinte](../sector-runtime-h0-process-memory-2026-11-09.md)
+adiciona um ledger compartilhado para as reservas de arrays privados, ligado
+ao lifetime dos dados e não apenas à tarefa. Referências ao mesmo wrapper
+contam uma vez; fechar o mundo não esquece buffers retidos pelo worker ou pela
+promise. A publicação de BaseTiles transfere o array ao mundo vivo e encerra
+sua classificação privada quando o último wrapper termina.
+
+O ledger runtime é observacional, sem novo teto global; cotas locais continuam
+iguais. O teto finito da API é usado apenas em testes isolados. Isso não mede
+RSS e não conclui o orçamento processual de RAM-01.
+
+### Inventário de ownership e cobertura atual
+
+| Produto/recurso | Dono e término da retenção | Contabilidade atual |
+| --- | --- | --- |
+| Array BaseTiles privado | wrapper capturado pelo worker e devolvido na promise; até descarte/publicação e último wrapper | reserva processual de `sizeof(Array)`, única por grupo |
+| Halo do planejador | wrapper do snapshot, incluindo capturas da closure; não é parte da lista de planos | quantidade de arrays × `sizeof(Array)`; grupo único |
+| Arrays autoritativos após publicação | `WorldStorage`/`TileSectorArray`, até unload | fora do ledger privado; não foram liberados fisicamente ao publicar |
+| Template serializado | `m_baseTileTemplateStore`/`m_microDungeonTemplateStore` e cópias de Json nos jobs | fora; deduplicar storage compartilhado antes de cobrar bytes |
+| Template privado/cache do worker | `cachedWorkerTemplate` thread-local, até troca de revisão ou saída da thread | fora; pode sobreviver ao job/mundo, chave fonte é weak_ptr |
+| Revisões/distribuições no snapshot | mapas/listas do snapshot e metadados pendentes | fora; overhead/capacidade profunda pendentes |
+| Descritores de planos e strings | promise/resultado e pré-aquecimento, até consumo/descarte | fora; tamanho variável não equivale aos bytes do halo já destruído |
+| Decode de tiles salvos | caminhos específicos de `WorldStorage` | fora deste recorte |
+| Tokens, control blocks e allocator | ledger/wrappers/containers | fora dos bytes declarados; há overhead por grupo, não por tile |
+
+RAM-01 permanece aberto para o orçamento processual completo e os produtos
+restantes. Não ampliar admissão com base apenas nesta contabilidade parcial.
 
 ## RAM-02 — Camadas de cache e invalidação
 

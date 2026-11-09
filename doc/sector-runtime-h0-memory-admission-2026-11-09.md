@@ -196,6 +196,10 @@ validação desta atividade. Não houve merge em `main` nem release.
 
 ## Manifesto e continuidade
 
+Continuação: [ledger processual de arrays privados](sector-runtime-h0-process-memory-2026-11-09.md).
+O relatório seguinte e o roadmap registram o avanço posterior; o escopo e
+as pendências abaixo preservam o handoff desta entrega.
+
 Nenhum arquivo novo de config/log/Tracy foi recebido ou reanalisado. Os
 artefatos de código conferidos em 09/11/2026 são:
 

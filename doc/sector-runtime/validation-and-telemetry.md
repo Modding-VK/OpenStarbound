@@ -19,6 +19,12 @@ Esse recorte de VAL-01/02 não é benchmark do jogo: não executa o gerador
 recursivo 3×3, assets, TTL, IO, Lua ou rede. A comparação sintética não valida
 equivalência de mundos/mods nem permite declarar fator de aceleração.
 
+O [recorte de memória processual](../sector-runtime-h0-process-memory-2026-11-09.md)
+expande o alvo para 95 testes, com 20 casos de ledger/lifecycle e testes
+usando WorkerPool real, gates controlados e oito threads. Os 20 casos passaram
+também em 20 repetições embaralhadas. São oito grupos CTest NoAssets, sem
+confundir casos únicos com repetições nem ASan/UBSan com validação de TSan.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

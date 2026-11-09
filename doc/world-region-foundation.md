@@ -79,12 +79,17 @@ configuração daquela etapa). Os previews posteriores têm limites próprios;
 RAM-01 mantém os valores vigentes, sem ampliá-los.
 O registro também aplica um teto de bytes equivalente aos arrays reservados.
 Essa contabilidade é **rasa**: `sizeof(ServerTileSectorArray::Array)` por tarefa;
-não inclui buffers internos dos tiles, template, caches, allocator ou outros
-mundos. Na implementação inicial, a cópia e o template eram preparados antes
+inclui os campos inline, mas não templates/caches, metadados, allocator ou
+outros mundos. Na implementação inicial, a cópia e o template eram preparados antes
 da reserva. O [recorte RAM-01 de 09/11](sector-runtime-h0-memory-admission-2026-11-09.md)
 corrige essa ordem para os arrays de BaseTiles/halo e acrescenta rollback
 pré-submissão; o orçamento global de memória/pools, custos dinâmicos e a
 admissão por interesse continuam pendentes.
+
+O [ledger processual de arrays privados](sector-runtime-h0-process-memory-2026-11-09.md)
+acrescenta contabilidade por lifetime do payload, independente do registro
+destruído. Ele é observacional e não substitui a cota local nem mede toda a
+RAM: publicação transfere ownership ao estado autoritativo, fora desse ledger.
 
 Com workers desligados (`sectorWorkers: 0` no modo `legacy`), o registro não
 é criado: segue o caminho síncrono. Nos modos não legados, zero pode selecionar
