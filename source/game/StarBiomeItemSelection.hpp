@@ -2,10 +2,31 @@
 
 #include "StarLiquidTypes.hpp"
 #include "StarBiomePlacementTypes.hpp"
+#include "StarWorldGenerationMemoryEstimate.hpp"
 
 #include <utility>
 
 namespace Star {
+
+struct BiomeItemListBackingSizer {
+  WorldGenerationBackingEstimate operator()(List<BiomeItemPlacement> const& values) const noexcept {
+    WorldGenerationBackingEstimate result;
+    result.storage.add(values.capacity(), sizeof(BiomeItemPlacement));
+    for (auto const& value : values) result.add(estimateBiomeItemGenerationBacking(value.item));
+    return result;
+  }
+};
+
+struct PotentialBiomeItemBackingSizer {
+  template <typename Potential>
+  WorldGenerationBackingEstimate operator()(Potential const& values) const noexcept {
+    WorldGenerationBackingEstimate result;
+    for (auto list : {&values.surfaceBiomeItems, &values.caveSurfaceBiomeItems,
+        &values.caveCeilingBiomeItems, &values.caveBackgroundBiomeItems, &values.oceanItems})
+      result.add(BiomeItemListBackingSizer{}(*list));
+    return result;
+  }
+};
 
 // Reusing capacity can suppress copies during vector growth. Hash-set copies
 // can change iteration/static choice, so MicroDungeonNames must retain fresh

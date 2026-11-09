@@ -178,6 +178,7 @@ SET (star_game_HEADERS
     StarWorldGenerationImmutableArray.hpp
     StarWorldGenerationNamePool.hpp
     StarWorldGenerationPayloadBuffer.hpp
+    StarWorldGenerationTemporaryMemory.hpp
     StarBiomeItemSelection.hpp
     StarBiomePlacementTypes.hpp
     StarWorldGenerationMemoryEstimate.hpp

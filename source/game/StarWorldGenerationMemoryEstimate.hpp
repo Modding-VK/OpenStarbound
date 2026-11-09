@@ -7,10 +7,10 @@
 
 namespace Star {
 
-// Version 5 adds known candidate backing and public value-variant storage.
+// Version 6 adds retained potential/validation/scratch list estimates.
 // It is neither allocator accounting nor an upper bound on retained heap.
 struct WorldGenerationSizeEstimate {
-  static constexpr unsigned ModelVersion = 5;
+  static constexpr unsigned ModelVersion = 6;
   size_t bytes = 0;
   bool complete = true;
 

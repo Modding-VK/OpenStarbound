@@ -1,6 +1,8 @@
 #include "StarWorldGeneration.hpp"
 #include "StarWorldGenerationWorkerCache.hpp"
 #include "StarWorldGenerationPayloadBuffer.hpp"
+#include "StarWorldGenerationTemporaryMemory.hpp"
+#include "StarBiomeItemSelection.hpp"
 #include "StarWorldServer.hpp"
 #include "StarExplorationProfile.hpp"
 #include "StarMaterialItem.hpp"
@@ -1092,6 +1094,8 @@ void WorldGenerator::profileGenerationMemory(double now) {
   profile->count("generation.memory.process.sampledNameEstimateTotal", usage.classBytes[11]);
   profile->count("generation.memory.process.sampledCandidatePayloadEstimateTotal", usage.classBytes[12]);
   profile->maximum("generation.memory.candidatePayloads.modelVersion", 1);
+  profile->count("generation.memory.process.sampledTemporaryEstimateTotal", usage.classBytes[13]);
+  profile->maximum("generation.memory.temporaries.modelVersion", 1);
   profile->count("generation.memory.process.sampledBufferResourcesTotal",
       usage.classResources[6] + usage.classResources[7] + usage.classResources[8] + usage.classResources[10]);
   profile->maximum("generation.memory.names.modelVersion", 1);
@@ -1827,29 +1831,41 @@ WorldGenerator::MicroDungeonPlans WorldGenerator::planMicroDungeons(WorldTemplat
   RectI bounds = snapshot.sectorTiles.padded(WorldSectorSize - 1);
   using Candidate = pair<BiomeItemPlacement, Maybe<WorldGenerationPlacementId>>;
   WorldGenerationPayloadBuffer<Candidate, CandidateBackingSizer> candidates(ledger, CandidateBackingSizer{});
-  List<BiomeItemPlacement> validItems;
+  WorldGenerationTemporaryMemory temporaryMemory(ledger);
+  using Potential = WorldTemplate::PotentialBiomeItems;
+  using PotentialScope = WorldGenerationScopedTemporary<Potential, PotentialBiomeItemBackingSizer>;
+  WorldGenerationScopedTemporary<List<BiomeItemPlacement>, BiomeItemListBackingSizer> validItems(
+      temporaryMemory, WorldGenerationTemporarySlot::Output, {},
+      [] { return List<BiomeItemPlacement>{}; }, BiomeItemListBackingSizer{});
   for (int x = snapshot.sectorTiles.xMin(); x < snapshot.sectorTiles.xMax(); ++x) {
     for (int y = snapshot.sectorTiles.yMin(); y < snapshot.sectorTiles.yMax(); ++y) {
-      auto potential = templateSource->potentialBiomeItemsAt(x, y);
-      templateSource->validBiomeItemsInto(x, y, potential, validItems);
-      for (auto const& placement : validItems)
+      PotentialScope potential(temporaryMemory, WorldGenerationTemporarySlot::Ambient, {},
+          [&] { return templateSource->potentialBiomeItemsAt(x, y); }, PotentialBiomeItemBackingSizer{});
+      auto validate = [&](Potential&& input, List<BiomeItemPlacement>& output) {
+        templateSource->validBiomeItemsInto(x, y, std::move(input), output);
+      };
+      validateWorldGenerationTemporaryCopy(temporaryMemory, potential, validItems, validate);
+      for (auto const& placement : validItems.value())
         candidates.append(estimateBiomeItemGenerationBacking(placement.item), [&] {
           return Candidate{placement, {}};
         });
-      validItems.clear(); // Release payloads, retaining only scratch capacity.
+      validItems.mutate([](auto& values) { values.clear(); }); // Keep only scratch capacity.
       for (auto const& queued : snapshot.queuedPlacements) {
-        WorldTemplate::PotentialBiomeItems queuedItems;
+        PotentialScope queuedItems(temporaryMemory, WorldGenerationTemporarySlot::Queued, {},
+            [] { return Potential{}; }, PotentialBiomeItemBackingSizer{});
         auto const& distributions = queued.distributions->values();
-        templateSource->addPotentialBiomeItemsFromArray(x, y, queuedItems,
-            distributions.data(), distributions.size(), BiomePlacementArea::Surface);
-        templateSource->addPotentialBiomeItemsFromArray(x, y, queuedItems,
-            distributions.data(), distributions.size(), BiomePlacementArea::Underground);
-        templateSource->validBiomeItemsInto(x, y, queuedItems, validItems);
-        for (auto placement : validItems)
+        queuedItems.mutate([&](Potential& values) {
+          templateSource->addPotentialBiomeItemsFromArray(x, y, values,
+              distributions.data(), distributions.size(), BiomePlacementArea::Surface);
+          templateSource->addPotentialBiomeItemsFromArray(x, y, values,
+              distributions.data(), distributions.size(), BiomePlacementArea::Underground);
+        });
+        validateWorldGenerationTemporaryCopy(temporaryMemory, queuedItems, validItems, validate);
+        for (auto placement : validItems.value())
           candidates.append(estimateBiomeItemGenerationBacking(placement.item), [&] {
             return Candidate{std::move(placement), queued.queuedPlacementId};
           });
-        validItems.clear();
+        validItems.mutate([](auto& values) { values.clear(); });
       }
     }
   }
