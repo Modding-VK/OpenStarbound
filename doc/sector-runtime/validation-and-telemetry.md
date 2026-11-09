@@ -181,6 +181,16 @@ de seis fontes aprovados, sem linking completo do jogo. Comparator não roda no
 hot path. Novo contador de código: generation.baseTiles.staleProductIdentity;
 não há nova run que o tenha observado, throughput ou equivalência integrada.
 
+O [recorte inputs/consultas](../sector-runtime-h0-base-tile-inputs-2026-11-09.md)
+passa **548 testes**, 27 grupos CTest e os 64 casos afetados repetidos vinte vezes
+(**1.280 execuções adicionais**), ASan/UBSan. São 24 novos: campos completos e
+traces em 4.096 combinações, seis pontos de exceção com estado parcial equivalente,
+NoMod, camadas existentes, input intacto, resolver emprestado e 1.024 tiles em quatro
+workers com valores imutáveis. Controles negativos demonstram que input igual não
+fecha o resolver e tile parcial não é input seguro de retry. Sete objetos reais
+e sintaxe Tracy de três fontes aprovados, sem linking completo do jogo/Tracy.
+Não executa WorldTemplate/assets reais nem mede throughput; H0 continua parcial.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

@@ -145,6 +145,15 @@ corpos; codecs e layout de TileDamageStatus permanecem iguais. biomeTransition
 herdado não inicializado/copiado foi registrado, não corrigido nem atribuído a
 crashes. Assets/mods/saves/multiplayer e replay completo continuam não validados.
 
+O [adaptador de inputs BaseTiles](../sector-runtime-h0-base-tile-inputs-2026-11-09.md)
+conserva writes/consultas foreground→background→líquido e o estado parcial antes
+de cada exceção. NoModId ainda consulta suporte e hue, mesmo para ar; mod não
+suportado conserva mod/hue anteriores. Bioma de ambiente não substitui o block
+biome. Camadas já existentes não fazem novas consultas. Não há replay de tile
+parcial, antecipação de consultas, mudança de RNG/save/API Lua ou publicação.
+O resolver real continua dependente de template/assets; NoAssets não valida
+mods instalados, saves ou multiplayer. MOD-01 permanece parcial.
+
 ## MOD-02 — Equivalência e versionamento
 
 Definir inputs que produzem um output: seed, template/layout, geração de

@@ -171,6 +171,12 @@ Comparator diagnóstico cobre campos inicializados, não força registro de byte
 ou teto novo. [Contrato](../sector-runtime-base-tiles-contract.md): ticket não
 é contexto profundo/cache key; Keep conserva a dependência do líquido anterior.
 
+Os [inputs escalares BaseTiles](../sector-runtime-h0-base-tile-inputs-2026-11-09.md)
+são valores locais sem heap; resolver é referência emprestada, não novo snapshot
+ou cache. Não acrescentam classe/estimativa de payload, scan, reserva ou teto.
+Ticket/produto/líquido seguem modelo 1; retry 2 e envelope/admissão 1 inalterados.
+Contexto profundo/observações congeladas e demanda real continuam pendentes.
+
 ### Inventário de ownership e cobertura atual
 
 | Produto/recurso | Dono e término da retenção | Contabilidade atual |
@@ -225,9 +231,10 @@ não foi removida. A floresta retém handles, não cópias profundas, e seu over
 diagnóstico ainda é excluído. Consolidar envelope/exclusões/pressão para o
 escopo antes de ampliar admissão; não exigir cada heap para H1 em sombra.
 O envelope consolidado expõe essas fronteiras, não remove as exclusões. Próximo:
-materiais/mods/biomas explícitos e comparador do produtor, sem antecipar consultas
-ou alterar cópias/RNG. Ticket/comparador de campos já foram entregues, não o
-contexto profundo; auditar biomeTransition antes de normalizar snapshots e
+congelar/versionar observações do resolver e comparar reexecução a partir do input
+original. Inputs escalares, adaptador e comparador de campos já foram entregues,
+não o contexto profundo; não antecipar consultas ou alterar cópias/RNG. Auditar
+biomeTransition antes de normalizar snapshots e
 ampliar pureza/demanda real com MOD-01/VAL-02 antes de replay. O protocolo de
 saída variável continua validado em jobs controlados, não no produtor completo.
 Batch de BaseTiles já evita admissão parcial do array/parcela inicial do template,

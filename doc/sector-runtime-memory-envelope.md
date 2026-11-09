@@ -5,7 +5,7 @@ Estado: H0 / RAM-01, `Experimental`, 09/11/2026.
 · [Roadmap](sector-runtime/roadmap.md) · [Relatório da entrega](sector-runtime-h0-capacity-kernel-2026-11-09.md)
 
 Continuidade de identidade/equivalência: [contrato BaseTiles](sector-runtime-base-tiles-contract.md)
-e [último relatório](sector-runtime-h0-base-tiles-identity-2026-11-09.md).
+e [último relatório](sector-runtime-h0-base-tile-inputs-2026-11-09.md).
 
 Este contrato delimita o **subconjunto privado de geração contabilizado**.
 Não redefine RAM-01 como orçamento de todo o motor e não transforma estimativa
@@ -245,8 +245,10 @@ de ativar um orçamento para tarefas reais:
 
 1. O sinal já alimenta o protocolo; falta mailbox/retry real. Ticket versionado e
    comparador de campos BaseTiles foram entregues, mas não são conteúdo/contexto
-   puro completo. Explicitar materiais/mods/biomas/assets e demanda com MOD-01/
-   VAL-02 antes de replay. Auditar biomeTransition/default/cópias. Estender tokens
+   puro completo. Inputs escalares de materiais/mods/biomas já têm adaptador sem
+   heap; congelar/versionar observações do resolver e contexto/assets/demanda com
+   MOD-01/VAL-02 antes de replay. Não reutilizar tiles parciais após exceção.
+   Auditar biomeTransition/default/cópias. Estender tokens
    sem recobrança; não reexecutar callbacks/Lua/mundo vivo por capturar exceção.
 2. Preservar headroom e progresso de dependências/consumo: os testes preservam
    a margem soft→hard e o overlap real, não provam ausência de deadlock em todo

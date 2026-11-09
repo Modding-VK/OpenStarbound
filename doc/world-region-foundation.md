@@ -212,8 +212,13 @@ cobre campos inicializados, inclusive dano privado/cache com modo explícito.
 [Contrato](sector-runtime-base-tiles-contract.md): não é content key/contexto puro,
 nem scan no hot path; bordas inválidas não são lidas. 524 testes/26 grupos CTest
 com ASan/UBSan. Novo contador de código: generation.baseTiles.staleProductIdentity.
-Próximo: materiais/mods/biomas explícitos/comparador do produtor; biomeTransition
-default/cópias herdado permanece pendente. Sem retry/pressão real ou ganho alegado.
+Sem retry/pressão real ou ganho alegado.
+O [recorte de inputs/consultas](sector-runtime-h0-base-tile-inputs-2026-11-09.md),
+`2ea41cf8`, conserva ordem/argumentos/estado parcial e NoMod no adaptador real.
+548 testes/27 grupos CTest com ASan/UBSan; resolver real ainda depende de template/
+assets. Próximo: congelar/versionar observações e comparar replay a partir do
+input original antes de cache/retry, sem antecipar consultas ou usar tile parcial.
+biomeTransition default/cópias herdado permanece pendente. RAM-01/H0 em 25%.
 
 ## Diagnóstico
 

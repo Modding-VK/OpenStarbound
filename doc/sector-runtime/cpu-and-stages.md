@@ -47,6 +47,14 @@ default/cópia não inicializa/copia biomeTransition; BaseTiles o sobrescreve no
 tiles válidos. Não corrigido, não causa de crash estabelecida. Auditar os demais
 consumidores e compatibilidade antes de mudar snapshots ou eliminar cópias.
 
+Continuidade: [inputs escalares BaseTiles](../sector-runtime-h0-base-tile-inputs-2026-11-09.md).
+WorldGenerationBaseTileInput explicita biomas/material/mod/oceano/y por tile;
+um adaptador injeta materialHue/supportsMod/modHue sem mudar a ordem ou antecipar
+consultas. O resolver real ainda usa o template do caminho e MaterialDatabase;
+const/injeção não fecham dependências. Próximo: congelar/versionar observações
+do resolver e comparar reexecução a partir do input original antes de cache/retry.
+CPU-01 e PreparedSector permanecem pendentes; sem novo marco ou ganho medido.
+
 Aceitação: execução concorrente não alcança template vivo, callbacks ou RNG
 global; comparador de outputs cobre a mudança de contexto e de worker.
 

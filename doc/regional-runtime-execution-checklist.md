@@ -39,7 +39,7 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[identidade/comparador BaseTiles](sector-runtime-h0-base-tiles-identity-2026-11-09.md), com
+[inputs e consultas BaseTiles](sector-runtime-h0-base-tile-inputs-2026-11-09.md), com
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
@@ -138,10 +138,16 @@ incluindo estado anterior em Keep e revisões, antes de ampliar pureza/demanda/r
 `f7785963` entrega ticket versionado devolvido pelo worker, sem substituir guards
 vivos, e comparador diagnóstico dos campos completos inicializados de tiles reais.
 [Contrato](sector-runtime-base-tiles-contract.md) separa identidade/conteúdo,
-cache normalizado e bordas válidas. Validação atual: 524 testes, 800 execuções
+cache normalizado e bordas válidas. Validação daquela etapa: 524 testes, 800 execuções
 adicionais e 26 grupos CTest com ASan/UBSan. Comparador fora do hot path; retry/
-pressão real desligados. H0 em 25%. Próximo: materiais/mods/biomas explícitos e
-comparador do produtor; auditar biomeTransition/default/cópias antes de normalizar.
+pressão real desligados. H0 em 25%.
+`2ea41cf8` explicita materiais/mods/biomas/oceano no input escalar e conserva
+consultas/escritas e estado após exceções no adaptador real, incluindo NoMod.
+Validação atual: 548 testes, 1.280 execuções adicionais e 27 grupos CTest,
+ASan/UBSan. Resolver ainda não fecha template/assets; próximo: congelar/versionar
+observações e comparar replay a partir do input original antes de cache/retry.
+Não antecipar consultas ou reaproveitar tile parcial; auditar biomeTransition/
+default/cópias antes de normalizar. RAM-01/H0 em 25%, programa 3,1% inalterados.
 Streaming real com assets/mods
 e executor de conclusões ainda pendentes.
 

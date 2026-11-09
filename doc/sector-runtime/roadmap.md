@@ -234,13 +234,23 @@ revisões, geometria e versões, mantendo guards vivos antes de publicar. Compar
 diagnóstico cobre 25 grupos de campos dos tiles inicializados, inclusive dano
 privado/derivado e modos explícitos de cache; limita a leitura às bordas válidas.
 São 40 casos novos, 524 no total, 800 execuções adicionais e 26 grupos CTest com
-ASan/UBSan. Ver [relatório vigente](../sector-runtime-h0-base-tiles-identity-2026-11-09.md)
+ASan/UBSan. Ver [relatório da etapa](../sector-runtime-h0-base-tiles-identity-2026-11-09.md)
 e [contrato](../sector-runtime-base-tiles-contract.md). Ticket não é conteúdo ou
 contexto puro completo; não há scan completo no commit. biomeTransition herdado
 não inicializado/copiado foi registrado para auditoria, não corrigido. H0 em 25%.
 
-Próximo trabalho executável: inputs explícitos de materiais/mods/biomas e comparador
-do produtor sem antecipar consultas ou alterar cópias/RNG. Auditar biomeTransition
+Inputs/consultas em `2ea41cf8`: WorldGenerationBaseTileInput modelo 1 e adaptador
+real injetam consultas mantendo ordem/argumentos/writes foreground→background→líquido.
+NoMod, mod não suportado e seis pontos de exceção preservam estado anterior/parcial.
+São 24 casos novos, 548 no total, 1.280 execuções adicionais e 27 grupos CTest com
+ASan/UBSan; 4.096 combinações de branches e 1.024 tiles com resolver imutável.
+Ver [relatório vigente](../sector-runtime-h0-base-tile-inputs-2026-11-09.md).
+Não é produtor puro completo: resolver depende de template/assets, input igual
+não garante output igual e tile parcial não é input seguro de retry. H0 em 25%.
+
+Próximo trabalho executável: congelar/versionar observações do resolver, comparar
+reexecução a partir do input original e medir custo de preparação antes de cache/
+retry, sem antecipar consultas ou alterar cópias/RNG. Auditar biomeTransition
 antes de normalizar snapshots; versionar contexto profundo/assets e ligar demanda
 ao interesse real antes de replay/cache de produtos.
 Não repetir callbacks/Lua/mundo vivo por uma exceção.

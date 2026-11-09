@@ -140,14 +140,21 @@ ASan/UBSan. Não otimiza simulação de oceanos/clima, nem ativa limite ou retry
 Próximo: identidade/contexto versionado e comparador dos campos completos de
 BaseTiles, incluindo líquido anterior em Keep e revisões, antes de ampliar
 pureza/demanda e replay. RAM-01/H0 em 25%, sem ganho de setores/s demonstrado.
-O [relatório vigente](sector-runtime-h0-base-tiles-identity-2026-11-09.md), `f7785963`,
+O [recorte anterior](sector-runtime-h0-base-tiles-identity-2026-11-09.md), `f7785963`,
 entrega ticket por admissão no resultado BaseTiles e comparador de campos
 inicializados de ServerTile reais. Guards vivos permanecem; ticket não é conteúdo
 ou contexto profundo. [Contrato](sector-runtime-base-tiles-contract.md) explicita
 25 grupos de campos/cache/bordas. São 524 testes, 800 execuções adicionais e 26
 grupos CTest com ASan/UBSan, sem scan de tiles no commit, retry/limite real ou ganho
-alegado. Próximo: materiais/mods/biomas explícitos e comparador do produtor,
-mantendo consultas/cópias/RNG e auditoria do flag herdado abaixo. H0 em 25%.
+alegado. H0 em 25%.
+O [relatório vigente](sector-runtime-h0-base-tile-inputs-2026-11-09.md), `2ea41cf8`,
+explicita input por tile e adaptador de consultas, preservando sequência, NoMod e
+estado parcial nas seis falhas possíveis. 548 testes, 1.280 execuções adicionais
+e 27 grupos CTest, ASan/UBSan. Não há contexto puro completo/novo orçamento ou
+ganho demonstrado; H0 em 25%. Próximo: congelar/versionar observações do resolver,
+comparar replay a partir do input original e medir preparação antes de cache/retry.
+Não antecipar consultas, reaproveitar tile parcial ou alterar cópias/RNG; manter
+auditoria do flag herdado abaixo e os gates com assets/mods/saves/multiplayer.
 
 Achado adicional de inicialização/cópia, não corrigido: WorldTile não inicializa/
 copia biomeTransition no construtor/operador; BaseTiles sobrescreve o flag nos

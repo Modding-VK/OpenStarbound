@@ -3,7 +3,7 @@
 Estado: H0, `Experimental`, 09/11/2026.
 [Programa](sector-runtime/README.md) · [Roadmap](sector-runtime/roadmap.md)
 · [Memória](sector-runtime-memory-envelope.md)
-· [Relatório](sector-runtime-h0-base-tiles-identity-2026-11-09.md)
+· [Relatório](sector-runtime-h0-base-tile-inputs-2026-11-09.md)
 
 ## Identidade não é autorização de commit nem chave de conteúdo
 
@@ -33,6 +33,45 @@ ou bancos de materiais. Mesmo ticket em um teste não implica payload igual.
 Sem cache de produtos, replay automático, promoção de demanda ou mudança de
 limites/defaults. O ramo escalar Keep depende do líquido anterior: identidade
 de conteúdo futura deve incluí-lo. Revisões dependem de rastrear mutações reais.
+
+## Inputs escalares e consultas do adaptador, modelo 1
+
+WorldGenerationBaseTileInput contém só o que a aplicação por tile consome de
+blockInfo: block/environment biome, transition, material/mod de foreground e
+background, oceanLiquid/nível/enclosure e y absoluto. É valor sem Json, ponteiros,
+Root, seed ou dono de memória. O loop real ainda obtém blockInfo uma vez por tile.
+
+applyWorldGenerationBaseTile recebe tile, input const e resolver const emprestado.
+Não cria std::function/vtable ou buffers. O resolver expõe materialHue, supportsMod
+e modHue; a produção vincula o WorldTemplate já usado em cada caminho (privado no
+worker, autoritativo no síncrono) e o MaterialDatabase existente.
+Injeção/const **não certifica pureza**: só um resolver de valores imutáveis com
+dependências fechadas permitirá reexecução pura. Assets/contexto profundo seguem
+fora do input, e ticket igual não comprova igualdade dos valores do resolver.
+
+Sequência preservada, inclusive estado parcial antes de exceção:
+
+1. Atualizar os três campos de bioma.
+2. Só se foreground for NullMaterialId: atribuir material e cor default, consultar
+   hue usando o **novo block biome**, atribuir hue, consultar suporte do mod e,
+   se suportado, atribuir mod antes de consultar/atribuir mod hue.
+3. Repetir a mesma sequência para background, depois de foreground completo.
+4. Aplicar líquido usando os materiais finais, só depois das consultas terminarem.
+
+EmptyMaterialId já existente não é camada ausente. Não corrigir automaticamente
+mod antigo não suportado: os campos antigos são preservados. NoModId ainda passa
+por supportsMod e modHue, mesmo em ar/meta; atalhar essa chamada pode mudar hue
+persistido/observável. Environment biome não substitui block biome nessas consultas.
+
+O caminho síncrono pode estar escrevendo no array vivo; resolver antecipadamente
+todas as consultas mudaria o estado parcial deixado por uma exceção. O adaptador
+mantém as escritas e propaga falhas, sem retry interno. Repetir sobre um tile
+parcialmente escrito não equivale a recomeçar do snapshot original. Testes incluem
+esses controles negativos e o estado observado antes de cada chamada.
+
+Modelo do input/adaptador 1; produto/ticket e kernel líquido permanecem 1 porque
+esta extração preserva comportamento. Não há mudança de save, contexto completo,
+cache de produto, orçamento, número de workers ou publicação serial.
 
 ## Comparação de campos, modelo 1
 
@@ -90,8 +129,9 @@ puras de constructor/reset de TileDamageStatus foram movidas sem mudança de
 corpo para permitir esses testes sem ligar Root/assets; dano/recovery/codec não
 mudaram. CMake registra a nova unidade no jogo e no alvo NoAssets.
 
-Próximo: fronteira explícita para materiais/mods/biomas e comparador de outputs
-do produtor, sem antecipar consultas ou mudar cópias/RNG. Auditar biomeTransition
-antes de normalizar input; versionar assets/contexto profundo e ligar demanda
-ao interesse real antes de retry/cache de produtos. Preservar gates MOD-01/VAL-02,
+Próximo: congelar/versionar as observações do resolver para cálculo independente,
+comparar reexecução a partir de inputs originais e medir o custo de preparação
+antes de integrar cache/retry. Não antecipar consultas nem reaproveitar tile parcial.
+Auditar biomeTransition antes de normalizar snapshots; versionar assets/contexto
+profundo e ligar demanda ao interesse real. Preservar gates MOD-01/VAL-02,
 baseline integrado, revisão independente e fallback CPU.

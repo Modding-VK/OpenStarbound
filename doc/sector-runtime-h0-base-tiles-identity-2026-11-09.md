@@ -10,6 +10,10 @@ Implementação: `f7785963cf70efa6d8703807e44ceaba2da3fc7c`.
 · [Memória](sector-runtime-memory-envelope.md)
 · [Etapa anterior](sector-runtime-h0-capacity-kernel-2026-11-09.md)
 
+Continuação vigente: [inputs escalares e consultas BaseTiles](sector-runtime-h0-base-tile-inputs-2026-11-09.md).
+Este relatório preserva evidências/manifesto da entrega `f7785963`; o próximo
+trabalho e a validação atuais estão na continuação e no roadmap.
+
 ## Objetivo e resultado
 
 Vincular cada resultado BaseTiles à admissão/contexto esperado e permitir comparar
