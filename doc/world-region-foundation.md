@@ -161,6 +161,12 @@ são explicitamente omitidos da cobrança, preservando input e modelo canônico
 para uma captura completa posterior. Modelos geral 8/Json 2; profiling continua
 necessário. Json dos variants, nós/allocator e teto processual seguem parciais.
 
+O [recorte de Json enfileirado](sector-runtime-h0-variant-json-2026-11-09.md)
+acompanha os campos dos variants numa floresta limitada/deduplicada e transfere
+o mesmo handle do original ao bundle, retido até o último consumidor físico.
+Sem novas cópias de itens/rescan no freeze ou aumento de admissão. Modelos
+geral 9/Json 2/Json enfileirado 1; Json ambiental/privado e nós continuam fora.
+
 ## Diagnóstico
 
 Com `explorationProfiling.enabled`, os contadores fixos são:

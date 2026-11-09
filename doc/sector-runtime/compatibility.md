@@ -84,6 +84,15 @@ e bytes DataStream foram confrontados em fixtures nativos, incluindo capturas
 concorrentes; não substituem save/reload, mods ou multiplayer reais. Json dos
 variants e overhead dos nós permanecem fora, sem aprovar concorrência adicional.
 
+O [recorte de Json enfileirado](../sector-runtime-h0-variant-json-2026-11-09.md)
+enumera referências dos campos, sem usar allItems/toJson, copiar BiomeItem/
+Perlin ou alterar seleção. A cópia existente conserva owners Json; o mesmo
+acompanhamento segue o bundle, sem rescan/serialização no freeze. Retirada da
+fila não encerra lifetime de worker. Sampler nativo/colisões e seleção ponderada
+foram confrontados; isso não aprova mundo/mods/save/multiplayer completos.
+Só cobre os variants enfileirados; Json ambiental/privado e nós permanecem
+exclusões explícitas. Não há nova concorrência autoritativa.
+
 ## MOD-02 — Equivalência e versionamento
 
 Definir inputs que produzem um output: seed, template/layout, geração de

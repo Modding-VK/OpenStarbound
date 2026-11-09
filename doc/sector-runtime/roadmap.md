@@ -164,12 +164,27 @@ por owner rastreado; objeto sem allowance para todas as chaves é omitido da
 cobrança, sem conflitar com captura completa posterior. Preserva input e
 representação; coleta continua diagnóstica. São 28 casos novos, 294 no total,
 560 execuções adicionais e dezoito grupos CTest, ASan/UBSan. Ver
-[relatório vigente](../sector-runtime-h0-json-storage-2026-11-09.md).
+[relatório da etapa](../sector-runtime-h0-json-storage-2026-11-09.md).
 Modelos geral 8/Json 2; versões próprias de distribuição/candidatos/temporários
 mantidas. Json dos variants e nós/allocator continuam fora; RAM-01/H0 em 25%.
 
-Próximo trabalho executável: ownership de Json nos variants e bookkeeping/allocator de nós,
-preservando fallback síncrono, ownership único e história de cópias. Estender
+RAM-01, Json dos variants enfileirados em `49a12fbf`: coleta dos campos sem
+copiar itens, floresta limitada/deduplicada com template e transferência do
+mesmo handle original→bundle. Mantém lifetime em retirada da fila, falha/retry
+e workers após fechamento do facade; caminho sem heap não aloca tracker vazio.
+São 26 casos novos, 320 no total, 520 execuções adicionais e dezenove grupos
+CTest, ASan/UBSan. Ver
+[relatório vigente](../sector-runtime-h0-variant-json-2026-11-09.md).
+Modelos geral 9/Json 2/Json enfileirado 1; fórmulas próprias anteriores mantidas.
+Coleta diagnóstica, não cobertura geral do Json ambiental/privado ou dos nós.
+RAM-01/H0 seguem em 25%, sem ganho de setores/s demonstrado.
+
+Próximo trabalho executável: consolidar envelope coberto/exclusões e política
+de pressão antes de limites processuais por hardware/configuração. Classificar
+Json ambiental/privado e bookkeeping/allocator dos nós como cobertura ou
+exclusão explícita; não estender contabilidade indefinidamente antes de um
+protótipo H1 em sombra com escopo delimitado. Preservar fallback síncrono,
+ownership único e história de cópias. Estender
 o comparador ao fluxo de candidatos/IDs/prioridades e ao
 streaming real, usando o controle de colisões como gate antes de eliminar cópias.
 Auditar metadata do Perlin não inicializado antes de novos consumidores em

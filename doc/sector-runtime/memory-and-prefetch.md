@@ -112,6 +112,14 @@ tamanho parcial conflitante. Modelos geral 8/Json 2; demais versões próprias
 mantidas. Continua restrito a handles de templates/profiling, não Json interno
 dos BiomeItem; nós/allocator e teto processual permanecem abertos.
 
+O [recorte de Json enfileirado](../sector-runtime-h0-variant-json-2026-11-09.md),
+`49a12fbf`, enumera Json dos seis variants nas duas listas físicas sem copiar
+itens. Floresta com limite único e deduplicação por owner compartilhada com
+templates; o mesmo handle acompanha entrada original, bundle e consumidores
+até o último uso. Freeze não refaz scan e preserva a cópia existente. Sem raízes
+de heap não aloca tracker vazio; coleta continua diagnóstica. Modelos geral 9,
+Json 2 e Json enfileirado 1; outras fórmulas/versões próprias mantidas.
+
 ### Inventário de ownership e cobertura atual
 
 | Produto/recurso | Dono e término da retenção | Contabilidade atual |
@@ -123,13 +131,14 @@ dos BiomeItem; nós/allocator e teto processual permanecem abertos.
 | Template privado/cache do worker | entrada de `WorldGenerationWorkerCache` thread-local, até substituição/saída da thread e último uso | objeto + storage solicitado da LRU, modelo próprio v1; sem profiling para cobrança; heaps de layout/biomas/seletores fora |
 | Revisões/referências no snapshot e pendências | snapshot assíncrono e registros pendentes, cada metadado com seu lifetime | representações/capacidades públicas com profiling regional; bundle compartilhado não é repetido por referência |
 | Input de distribuição ainda não capturado | pedido enfileirado, até primeiro freeze ou retirada | estimativa do original já construído, incluindo container; não é reserva anterior à construção pelo chamador |
+| Json dos variants enfileirados | handle da entrada original transferido ao bundle; até último consumidor físico | floresta diagnóstica na classe 2, owner único inclusive com templates; campos grass/bush/árvores/ObjectPool, sem cobrança duplicada em classes 9/12/13; Json ambiental/privado fora |
 | Bundle imutável de distribuição enfileirada | fila, snapshots e worker; até último consumidor físico | pedidos do objeto/control block/vetor reservados antes de alocar; backing conhecido único estimado/reconciliado, sem profiling; modelo 7 inclui Perlin/vetores/strings públicas, buckets completos dos nomes e pares de fatores, não Json/overhead dos nós |
 | Vetor intermediário de candidatos | planejamento síncrono/assíncrono, até retorno/unwind | pedido de buffer com header/padding, reservado antes de alocar; realocação mantém os dois buffers cobrados |
 | Backing conhecido de candidatos/temporário da factory | token agregado no container; elementos destruídos antes do token | classe 12 estimada antes da factory/crescimento e reconciliada; modelo 7 inclui buckets completos de nomes e pares de fatores; Json/overhead dos nós excluídos; independe do profiling e não é teto profundo hard |
 | Vetor de descritores de planos | local síncrono ou payload da promise, até último handle físico | reserva fixa por pedido de buffer; pré-reserva pelo número elegível; sem cópia no consumo |
-| Nomes de saída compartilhados | handles const dos descritores; até último consumidor físico | fórmula de v4 mantida no modelo 8: backing de String estimado antes da cópia/reconciliado; objeto/control block reservado pelo allocator; não repetido por plano, SSO pode superestimar |
+| Nomes de saída compartilhados | handles const dos descritores; até último consumidor físico | fórmula de v4 mantida no modelo 9: backing de String estimado antes da cópia/reconciliado; objeto/control block reservado pelo allocator; não repetido por plano, SSO pode superestimar |
 | Índice de nomes | local ao planejamento; destruído ao retornar | nodes/buckets reservados antes do raw allocator; keys apontam para strings possuídas, sem cópia da chave textual |
-| Metadata do resultado assíncrono | token do resultado e referências retidas | fórmula de v4 mantida no modelo 8: objeto preparado após construir, com profiling regional; nomes e capacidade dos descritores cobrados separadamente |
+| Metadata do resultado assíncrono | token do resultado e referências retidas | fórmula de v4 mantida no modelo 9: objeto preparado após construir, com profiling regional; nomes e capacidade dos descritores cobrados separadamente |
 | Listas potenciais ambientais/enfileiradas | escopos distintos locais ao ponto/colocação; destruição antes de liberar parcela | classe 13: capacidades e backing conhecido adotados após construção/população; não mede pico anterior à adoção |
 | Cópia de validação | escopo privado e parâmetro movido do validador, dentro da operação | classe 13: previsão antes da cópia, uma cópia de elementos preservada; saída prevista cobre ponte de transferência |
 | Scratch de itens válidos | escopo Output local ao planejamento; elementos limpos após captura, buffer no fim do job | classe 13 estimada: capacidade permanece cobrada após clear; inputs micro conservam crescimento/cópias legados; Json/privados e raw allocator ainda não são reserva hard |
@@ -159,6 +168,11 @@ real. As reservas anteriores ao crescimento agora cobrem os buffers, não todo
 o heap de seus elementos. O bundle de distribuições também reserva seus
 pedidos; a parcela aninhada continua estimada e pode omitir Json/nós/allocator.
 `opaqueItems` explicita essa lacuna mesmo quando `complete` é verdadeiro.
+O acompanhamento Json opcional do bundle usa `jsonAccounting()->complete`,
+separado do estimateComplete dos campos conhecidos; opacidade dos variants
+não foi removida. A floresta retém handles, não cópias profundas, e seu overhead
+diagnóstico ainda é excluído. Consolidar envelope/exclusões/pressão para o
+escopo antes de ampliar admissão; não exigir cada heap para H1 em sombra.
 
 ## RAM-02 — Camadas de cache e invalidação
 

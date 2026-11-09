@@ -178,6 +178,13 @@ de jogo/assets/mods, save/reload, multiplayer, TSan, OOM real, throughput,
 Windows/macOS/ARM ou allocators alternativos. Sem Actions, release, merge em
 main ou revisão independente.
 
+Continuação em `49a12fbf`: o
+[recorte de Json enfileirado](sector-runtime-h0-variant-json-2026-11-09.md)
+acompanha campos dos variants até o último consumidor do bundle, com floresta
+limitada e handle transferido sem rescan. Ver esse relatório para estado,
+modelos, validações e próximos passos vigentes. Resultados/manifesto deste
+arquivo descrevem a etapa histórica, não a cobertura posterior.
+
 ## Manifesto das fontes
 
 Fontes locais coletadas/conferidas em 09/11/2026, nomes relativos ao checkout,

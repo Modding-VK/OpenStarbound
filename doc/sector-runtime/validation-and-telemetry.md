@@ -116,6 +116,15 @@ inclusive alinhamento 64. Modelos geral 8/Json 2; profiling continua necessário
 Quatro objetos reais e sintaxe Tracy de quatro fontes aprovados; não é
 streaming/assets/mods, TSan, linking completo ou ganho de jogo medido.
 
+O [recorte de Json enfileirado](../sector-runtime-h0-variant-json-2026-11-09.md)
+passa **320 testes**, dezenove grupos CTest e 26 novos repetidos vinte vezes
+(520 execuções adicionais), ASan/UBSan. Floresta com limite único, sharing com
+template, todos os variants, transferência do mesmo handle sem rescan, retirada
+da fila, recusa/falha/retry, WorkerPool e oito bundles privados. Sampler misto
+confrontado em 561 posições e até 64 seeds; ObjectPool em 64 seeds. Modelos
+geral 9/Json 2/Json enfileirado 1. Quatro objetos reais e sintaxe Tracy de cinco
+fontes aprovados; coleta diagnóstica, não cobertura geral, TSan ou streaming real.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

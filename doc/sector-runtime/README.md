@@ -3,7 +3,7 @@
 Atualização: 09/11/2026. Branch: `Experimental`. Runtime de partida:
 `7ca7ed2a`; recortes de H0: `d72b7239`, `2131ead3`, `5c3c4c8f`, `65bae55c`,
 `803d4cf7`, `739067b1`, `1bd348e6`, `34c76ea3`, `887149c0`, `cad311d1`, `25cecf95`,
-`c4d7ddb3`, `730e36ba` e `45db2402`;
+`c4d7ddb3`, `730e36ba`, `45db2402` e `49a12fbf`;
 documentação de arquitetura de partida: `8d3b0ade`.
 
 Este é o **programa principal de desenvolvimento**, adotado pelo usuário em
@@ -74,12 +74,18 @@ dos fatores de dano, sem mudar representação, allocators, cópias ou geração
 São 266 testes, 400 execuções adicionais e dezessete grupos CTest, ASan/UBSan.
 Modelos geral 7/distribuições 3/payloads 2/temporários 2; Json e overhead dos
 nós continuam parciais. RAM-01 permanece em 25%, sem ganho de setores/s medido.
-O [relatório vigente](../sector-runtime-h0-json-storage-2026-11-09.md), `45db2402`,
+O [recorte do Json](../sector-runtime-h0-json-storage-2026-11-09.md), `45db2402`,
 amplia JsonObject para buckets completos e texto das chaves, deduplicados por
 owner. Objetos que não cabem no limite são explicitamente omitidos da cobrança,
 sem registrar tamanho parcial conflitante; o input inteiro é preservado.
 São 294 testes, 560 execuções adicionais e dezoito grupos CTest com ASan/UBSan;
 modelos geral 8/Json 2. Json dos variants, nós/allocator e teto seguem parciais.
+O [relatório vigente](../sector-runtime-h0-variant-json-2026-11-09.md), `49a12fbf`,
+acompanha Json dos variants enfileirados numa floresta limitada, deduplicada
+com o template. O mesmo handle segue original→bundle→último consumidor,
+sem novas cópias de itens ou rescan no freeze. São 320 testes, 520 execuções
+adicionais e dezenove grupos CTest, ASan/UBSan; modelos geral 9/Json 2/Json
+enfileirado 1. Coleta segue diagnóstica; Json ambiental/privado e nós ficam fora.
 Orçamento processual completo, benchmark real e equivalência com assets
 continuam pendentes.
 Isso não implementa o executor, a nova WorldThread ou compute GPU.

@@ -39,7 +39,7 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[buckets e chaves do Json compartilhado](sector-runtime-h0-json-storage-2026-11-09.md).
+[Json dos variants enfileirados](sector-runtime-h0-variant-json-2026-11-09.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
 corrigido opt-in e VAL-01/02 têm harness sintético inicial, com 26 testes H0
@@ -92,9 +92,16 @@ dos nós e envelope de memória/pressão. Não é teto profundo ou ganho medido.
 único e omissão explícita de objetos que não cabem no limite da captura.
 Mantém input/serialização/cópias; modelos geral 8/Json 2, sem mudar os demais
 modelos próprios ou exigir profiling para classes que já eram independentes.
-Validação atual: 294 testes, 560 execuções adicionais e dezoito grupos CTest,
+Validação daquela etapa: 294 testes, 560 execuções adicionais e dezoito grupos CTest,
 ASan/UBSan. RAM-01/H0 continuam em 25%; próximo: Json nos variants, nós/allocator
 e envelope de memória/pressão. Coleta Json ainda depende de profiling.
+`49a12fbf` acompanha Json dos variants enfileirados numa floresta limitada,
+deduplicada com templates. O mesmo handle segue original/bundle/worker, sem
+novas cópias de itens ou rescan no freeze; input sem heap não aloca tracker vazio.
+Validação atual: 320 testes, 520 execuções adicionais e dezenove grupos CTest,
+ASan/UBSan; modelos geral 9/Json 2/Json enfileirado 1. RAM-01/H0 em 25%.
+Próximo: consolidar envelope/exclusões e pressão antes de limites por hardware;
+Json ambiental/privado e nós seguem parciais. Sem ganho de setores/s medido.
 Streaming real com assets/mods
 e executor de conclusões ainda pendentes.
 
