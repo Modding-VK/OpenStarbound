@@ -167,6 +167,12 @@ o mesmo handle do original ao bundle, retido até o último consumidor físico.
 Sem novas cópias de itens/rescan no freeze ou aumento de admissão. Modelos
 geral 9/Json 2/Json enfileirado 1; Json ambiental/privado e nós continuam fora.
 
+O [recorte do envelope](sector-runtime-h0-memory-envelope-2026-11-09.md) acrescenta
+schema das 14 classes, totais/coerência e modelo isolado de pressão/histerese.
+Só métricas observacionais estão no runtime, sem novo controle de admissão ou
+limites padrão. O [contrato](sector-runtime-memory-envelope.md) fixa o escopo e
+as exclusões antes de reserva atômica, headroom e controle processual futuros.
+
 ## Diagnóstico
 
 Com `explorationProfiling.enabled`, os contadores fixos são:

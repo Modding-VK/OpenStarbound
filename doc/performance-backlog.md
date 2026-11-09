@@ -89,7 +89,7 @@ adicionais e dezoito grupos CTest, ASan/UBSan; modelos geral 8/Json 2.
 Coleta Json segue diagnóstica, não cobre Json dos variants ou nós/allocator.
 RAM-01/H0 em 25%; próximo: esses donos e envelope/pressão processuais antes
 de maior admissão. Comparador e baseline integrado continuam necessários.
-O [relatório vigente](sector-runtime-h0-variant-json-2026-11-09.md), `49a12fbf`,
+O [recorte de Json enfileirado](sector-runtime-h0-variant-json-2026-11-09.md), `49a12fbf`,
 acompanha Json dos variants enfileirados numa floresta limitada, deduplicada
 com templates. O mesmo handle segue original→bundle→último consumidor físico,
 sem novas cópias de itens/rescan no freeze. São 320 testes, 520 execuções
@@ -97,6 +97,14 @@ adicionais e dezenove grupos CTest, ASan/UBSan; modelos geral 9/Json 2/Json
 enfileirado 1. Coleta diagnóstica, Json ambiental/privado e nós ainda parciais.
 RAM-01/H0 em 25%; próximo: consolidar envelope/exclusões/pressão para o escopo
 antes de limites por hardware e maior admissão; benchmark/comparador mantidos.
+O [relatório vigente](sector-runtime-h0-memory-envelope-2026-11-09.md), `ada755bf`/`0915af25`,
+consolida schema/envelope das 14 classes e modelo isolado de pressão/histerese.
+O [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md) distingue
+arrays, requests e estimativas. Runtime só amostra o envelope; nenhuma decisão
+de admissão/cancelamento mudou. São 354 testes, 680 execuções adicionais e vinte
+grupos CTest, ASan/UBSan; envelope modelo 1, fórmulas anteriores mantidas.
+RAM-01/H0 em 25%; próximo: reserva atômica do escopo, overlap/rollback e progresso
+de dependências antes de controlador processual/fairness e limites externos.
 Achado de CPU-01: overflow assinado na seed automática de `StarRandom.cpp:197`,
 observado em execução estrita de sanitizers; RNG de produção permanece
 inalterado. A reprodução e a separação dos testes de hash com seeds privadas

@@ -3,7 +3,7 @@
 Atualização: 09/11/2026. Branch: `Experimental`. Runtime de partida:
 `7ca7ed2a`; recortes de H0: `d72b7239`, `2131ead3`, `5c3c4c8f`, `65bae55c`,
 `803d4cf7`, `739067b1`, `1bd348e6`, `34c76ea3`, `887149c0`, `cad311d1`, `25cecf95`,
-`c4d7ddb3`, `730e36ba`, `45db2402` e `49a12fbf`;
+`c4d7ddb3`, `730e36ba`, `45db2402`, `49a12fbf`, `ada755bf` e `0915af25`;
 documentação de arquitetura de partida: `8d3b0ade`.
 
 Este é o **programa principal de desenvolvimento**, adotado pelo usuário em
@@ -80,12 +80,18 @@ owner. Objetos que não cabem no limite são explicitamente omitidos da cobranç
 sem registrar tamanho parcial conflitante; o input inteiro é preservado.
 São 294 testes, 560 execuções adicionais e dezoito grupos CTest com ASan/UBSan;
 modelos geral 8/Json 2. Json dos variants, nós/allocator e teto seguem parciais.
-O [relatório vigente](../sector-runtime-h0-variant-json-2026-11-09.md), `49a12fbf`,
+O [recorte de Json enfileirado](../sector-runtime-h0-variant-json-2026-11-09.md), `49a12fbf`,
 acompanha Json dos variants enfileirados numa floresta limitada, deduplicada
 com o template. O mesmo handle segue original→bundle→último consumidor,
 sem novas cópias de itens ou rescan no freeze. São 320 testes, 520 execuções
 adicionais e dezenove grupos CTest, ASan/UBSan; modelos geral 9/Json 2/Json
 enfileirado 1. Coleta segue diagnóstica; Json ambiental/privado e nós ficam fora.
+O [relatório vigente](../sector-runtime-h0-memory-envelope-2026-11-09.md), `ada755bf`/`0915af25`,
+consolida as 14 classes em um envelope verificado e um modelo isolado de pressão
+com histerese. O [contrato do envelope](../sector-runtime-memory-envelope.md)
+declara unidades, exclusões e a fronteira para admissão atômica. Runtime integra
+apenas métricas observacionais, sem controlar filas. São 354 testes, 680
+execuções adicionais e vinte grupos CTest, ASan/UBSan; envelope modelo 1.
 Orçamento processual completo, benchmark real e equivalência com assets
 continuam pendentes.
 Isso não implementa o executor, a nova WorldThread ou compute GPU.

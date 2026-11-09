@@ -204,6 +204,13 @@ Mods/saves/multiplayer e fallback CPU continuam essenciais. NPC externo
 suspenso e Linux Clang adiado; pendências CPU-01 de seed automática/Perlin
 Uninitialized não foram corrigidas pelo acompanhamento de Json.
 
+Continuação em `ada755bf`/`0915af25`: o
+[recorte do envelope](sector-runtime-h0-memory-envelope-2026-11-09.md) consolida
+as classes e um modelo isolado de pressão/histerese, sem consumidor de admissão.
+O [contrato](sector-runtime-memory-envelope.md) declara escopo/exclusões e a
+fronteira para reserva processual atômica. Ver o novo relatório para estado e
+validações vigentes; os resultados e manifesto abaixo/acima são desta etapa histórica.
+
 ## Manifesto das fontes
 
 Fontes locais coletadas/conferidas em 09/11/2026, nomes relativos ao checkout,

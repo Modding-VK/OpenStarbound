@@ -93,6 +93,14 @@ foram confrontados; isso não aprova mundo/mods/save/multiplayer completos.
 Só cobre os variants enfileirados; Json ambiental/privado e nós permanecem
 exclusões explícitas. Não há nova concorrência autoritativa.
 
+O [recorte do envelope](../sector-runtime-h0-memory-envelope-2026-11-09.md)
+somente classifica o snapshot do ledger e acrescenta métricas. A política de
+pressão é owner-local e isolada, sem consumidor de admissão ou callbacks de
+mundo. Não cancela, evicta, bloqueia drenagem ou libera buffers em uso. Conselho
+não é reserva atômica nem permissão para alterar o mundo; sua integração futura
+exige escopo, progresso e os gates de equivalência. O
+[contrato](../sector-runtime-memory-envelope.md) mantém explícitas essas exclusões.
+
 ## MOD-02 — Equivalência e versionamento
 
 Definir inputs que produzem um output: seed, template/layout, geração de

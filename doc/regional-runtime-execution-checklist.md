@@ -39,7 +39,8 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[Json dos variants enfileirados](sector-runtime-h0-variant-json-2026-11-09.md).
+[envelope e pressão isolada](sector-runtime-h0-memory-envelope-2026-11-09.md), com
+[contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
 corrigido opt-in e VAL-01/02 têm harness sintético inicial, com 26 testes H0
@@ -98,10 +99,16 @@ e envelope de memória/pressão. Coleta Json ainda depende de profiling.
 `49a12fbf` acompanha Json dos variants enfileirados numa floresta limitada,
 deduplicada com templates. O mesmo handle segue original/bundle/worker, sem
 novas cópias de itens ou rescan no freeze; input sem heap não aloca tracker vazio.
-Validação atual: 320 testes, 520 execuções adicionais e dezenove grupos CTest,
+Validação daquela etapa: 320 testes, 520 execuções adicionais e dezenove grupos CTest,
 ASan/UBSan; modelos geral 9/Json 2/Json enfileirado 1. RAM-01/H0 em 25%.
 Próximo: consolidar envelope/exclusões e pressão antes de limites por hardware;
 Json ambiental/privado e nós seguem parciais. Sem ganho de setores/s medido.
+`ada755bf`/`0915af25` consolida schema das 14 classes e envelope verificado. Há modelo
+isolado de pressão/histerese, mas runtime só amostra métricas; não há limite
+finito novo ou consumidor de admissão. Validação atual: 354 testes, 680 execuções
+adicionais e vinte grupos CTest, ASan/UBSan. Envelope modelo 1, fórmulas mantidas.
+RAM-01/H0 em 25%; próximo: reserva atômica do escopo, overlap/rollback e
+headroom/progresso de dependências, depois controlador/fairness e limites externos.
 Streaming real com assets/mods
 e executor de conclusões ainda pendentes.
 

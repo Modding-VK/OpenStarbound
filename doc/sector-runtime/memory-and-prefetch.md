@@ -120,6 +120,15 @@ até o último uso. Freeze não refaz scan e preserva a cópia existente. Sem ra
 de heap não aloca tracker vazio; coleta continua diagnóstica. Modelos geral 9,
 Json 2 e Json enfileirado 1; outras fórmulas/versões próprias mantidas.
 
+O [recorte do envelope](../sector-runtime-h0-memory-envelope-2026-11-09.md),
+`ada755bf`/`0915af25`, consolida as 14 classes em payloads de arrays, requests de allocator
+e estimativas, com verificação de somas/recursos e qualidade separada de
+completude. O [contrato de cobertura/exclusões e pressão](../sector-runtime-memory-envelope.md)
+é a referência para delimitar um orçamento futuro. Modelo de pressão isolado
+com histerese protege headroom urgente nas recomendações; não é chamado pela
+admissão do jogo. Só a amostragem do envelope está integrada ao profiling.
+Envelope modelo 1, fórmulas/limites anteriores mantidos, RAM-01 parcial.
+
 ### Inventário de ownership e cobertura atual
 
 | Produto/recurso | Dono e término da retenção | Contabilidade atual |
@@ -173,6 +182,10 @@ separado do estimateComplete dos campos conhecidos; opacidade dos variants
 não foi removida. A floresta retém handles, não cópias profundas, e seu overhead
 diagnóstico ainda é excluído. Consolidar envelope/exclusões/pressão para o
 escopo antes de ampliar admissão; não exigir cada heap para H1 em sombra.
+O envelope consolidado expõe essas fronteiras, não remove as exclusões. Próximo:
+reserva atômica do escopo, overlap/rollback e prova de progresso de dependências,
+antes de usar recomendações para admissão. Não há teto RSS ou orçamento finito
+padrão; controlador processual/fairness e pressão externa ainda faltam.
 
 ## RAM-02 — Camadas de cache e invalidação
 

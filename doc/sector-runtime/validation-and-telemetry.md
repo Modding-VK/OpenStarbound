@@ -125,6 +125,15 @@ confrontado em 561 posições e até 64 seeds; ObjectPool em 64 seeds. Modelos
 geral 9/Json 2/Json enfileirado 1. Quatro objetos reais e sintaxe Tracy de cinco
 fontes aprovados; coleta diagnóstica, não cobertura geral, TSan ou streaming real.
 
+O [recorte do envelope](../sector-runtime-h0-memory-envelope-2026-11-09.md)
+passa **354 testes**, vinte grupos CTest e 34 novos repetidos vinte vezes
+(680 execuções adicionais), ASan/UBSan. Schema das 14 classes, somas/recursos,
+overflow, retenção real e oito threads; política isolada com headroom, histerese,
+inválidos e grade de 19.521 combinações em um caso. Envelope modelo 1, sem mudar
+fórmulas anteriores. Dois objetos reais e sintaxe Tracy de três fontes aprovados.
+Runtime só amostra o envelope; não executa decisões de admissão, não houve
+emissão em jogo ou benchmark integrado. Ver [escopo/exclusões](../sector-runtime-memory-envelope.md).
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,
