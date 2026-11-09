@@ -67,6 +67,13 @@ consumo por handle da promise removem realocações de saída e cópia no commit
 O modelo de estimativas passa a 2 para não cobrar novamente a capacidade do
 buffer; heaps internos de elementos continuam parcialmente fora.
 
+O [recorte dos inputs compartilhados](../sector-runtime-h0-distribution-bundles-2026-11-09.md),
+`887149c0`, mantém uma cópia snapshot-equivalente por pedido enfileirado,
+compartilhada const nas capturas seguintes. Original adotado e backing conhecido
+Perlin/vetores/nomes rastreados sem profiling; pedidos do objeto/control block
+e vetor do bundle reservados antes de alocar. Modelo geral de estimativas 3;
+não é limite superior dos heaps profundos nem medição de ganho no jogo.
+
 ### Inventário de ownership e cobertura atual
 
 | Produto/recurso | Dono e término da retenção | Contabilidade atual |
@@ -76,12 +83,14 @@ buffer; heaps internos de elementos continuam parcialmente fora.
 | Arrays autoritativos após publicação | `WorldStorage`/`TileSectorArray`, até unload | fora do ledger privado; não foram liberados fisicamente ao publicar |
 | Template serializado | `TemplateStoreCache` e handles capturados nos jobs, até último tracker | estimativa v1 por backing compartilhado entre handles rastreados; profiling regional |
 | Template privado/cache do worker | entrada de `WorldGenerationWorkerCache` thread-local, até substituição/saída da thread e último uso | objeto + storage solicitado da LRU, modelo próprio v1; sem profiling para cobrança; heaps de layout/biomas/seletores fora |
-| Revisões/distribuições no snapshot e pendências | snapshot assíncrono e registros pendentes, cada cópia com seu lifetime | v1 de representações/capacidades públicas; heaps internos, buckets vazios e caminho síncrono fora |
+| Revisões/referências no snapshot e pendências | snapshot assíncrono e registros pendentes, cada metadado com seu lifetime | representações/capacidades públicas com profiling regional; bundle compartilhado não é repetido por referência |
+| Input de distribuição ainda não capturado | pedido enfileirado, até primeiro freeze ou retirada | estimativa do original já construído, incluindo container; não é reserva anterior à construção pelo chamador |
+| Bundle imutável de distribuição enfileirada | fila, snapshots e worker; até último consumidor físico | pedidos do objeto/control block/vetor reservados antes de alocar; backing conhecido único estimado/reconciliado, sem profiling; Perlin/vetores/nomes, não buckets vazios ou internals opacos |
 | Vetor intermediário de candidatos | planejamento síncrono/assíncrono, até retorno/unwind | pedido de buffer com header/padding, reservado antes de alocar; realocação mantém os dois buffers cobrados |
 | Vetor de descritores de planos | local síncrono ou payload da promise, até último handle físico | reserva fixa por pedido de buffer; pré-reserva pelo número elegível; sem cópia no consumo |
-| Strings/metadata do resultado assíncrono | token do resultado e referências retidas | estimativa v2 após construir, sem repetir capacidade dos descritores; SSO/heaps internos ainda não são orçamento hard |
+| Strings/metadata do resultado assíncrono | token do resultado e referências retidas | fórmula de v2 mantida no modelo 3, após construir, sem repetir capacidade dos descritores; SSO/heaps internos ainda não são orçamento hard |
 | Decode de tiles salvos | caminhos específicos de `WorldStorage` | fora deste recorte |
-| Tokens, control blocks e allocator | ledger/wrappers/containers | overhead geral fora; entram requests da LRU e header/padding dos buffers rastreados, não control blocks externos |
+| Tokens, control blocks e allocator | ledger/wrappers/containers | overhead geral fora; entram requests da LRU, buffers e control block do bundle alocado com allocator rastreado, não demais control blocks externos |
 
 RAM-01 permanece aberto para o orçamento processual completo e os produtos
 restantes. Não ampliar admissão com base apenas nesta contabilidade parcial.
@@ -98,7 +107,9 @@ antes de crescer. A falha de inserção do vetor do pool foi
 em `1bd348e6`: seleção só é publicada após o vetor possuir o bloco, com retry
 e contabilidade preservados. Injeção de exceção não conclui ensaios de pressão
 real. As reservas anteriores ao crescimento agora cobrem os buffers, não todo
-o heap de seus elementos.
+o heap de seus elementos. O bundle de distribuições também reserva seus
+pedidos; a parcela aninhada continua estimada e pode omitir variants/buckets.
+`opaqueItems` explicita essa lacuna mesmo quando `complete` é verdadeiro.
 
 ## RAM-02 — Camadas de cache e invalidação
 

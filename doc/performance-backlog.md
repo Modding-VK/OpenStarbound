@@ -33,16 +33,26 @@ inserção: 144 testes, 800 execuções adicionais e onze grupos CTest aprovados
 Não demonstra OOM real nem vínculo com crashes anteriores. Próximo: reserva
 antes de crescer outputs, caminhos síncronos e heaps de layout/biomas/seletores
 ainda excluídos, antes de ampliar admissão. O
-[recorte vigente](sector-runtime-h0-output-buffers-2026-11-09.md), `34c76ea3`,
+[recorte dos buffers](sector-runtime-h0-output-buffers-2026-11-09.md), `34c76ea3`,
 implementa reserva dos buffers variáveis antes da alocação nos caminhos
 síncrono/assíncrono e consumo dos planos sem cópia. São 167 testes, 460
 execuções adicionais e doze grupos CTest aprovados. Não há ganho de jogo medido;
 próximo: heaps aninhados/temporários, cobertura de caches e gates de
-MOD-01/VAL-01/02 antes de maior admissão.
+MOD-01/VAL-01/02 antes de maior admissão. O
+[recorte vigente](sector-runtime-h0-distribution-bundles-2026-11-09.md), `887149c0`,
+compartilha inputs de distribuição após uma cópia snapshot-equivalente e cobra
+o backing conhecido uma vez. São 185 testes, 360 execuções adicionais e treze
+grupos CTest com ASan/UBSan, incluindo sampler real e leitores concorrentes.
+Modelo de estimativas 3, sem ganho real medido ou cota ampliada. Próximo:
+nomes de saída/temporários, variants opacos e layout/biomas/seletores; benchmark
+real e equivalência continuam gates para a ampliação do pipeline.
 Achado de CPU-01: overflow assinado na seed automática de `StarRandom.cpp:197`,
 observado em execução estrita de sanitizers; RNG de produção permanece
 inalterado. A reprodução e a separação dos testes de hash com seeds privadas
 fixas estão no relatório de admissão; não considerar essa pendência resolvida.
+O relatório vigente também registra metadata escalar não inicializada na cópia
+herdada de Perlin `Uninitialized`; a consulta de bytes só lê ponteiros.
+Auditar antes de novos consumidores dessa metadata em CPU-01.
 Os demais componentes do novo executor continuam pendentes.
 
 A direção de arquitetura vigente é o

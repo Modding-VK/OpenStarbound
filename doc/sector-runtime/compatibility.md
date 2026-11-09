@@ -38,6 +38,14 @@ Workers de cálculo e kernels GPU recebem valores imutáveis. Não lhes entregar
 suas próprias threads e scripts de patch; reutilizar sua API auditada não
 autoriza executar esses scripts num worker de geração arbitrário.
 
+Recorte auditado em H0: o
+[bundle de distribuições enfileiradas](../sector-runtime-h0-distribution-bundles-2026-11-09.md)
+compartilha valores somente const; o sampler/Perlin não mantém cache mutável.
+O template continua privado por worker e a fila/promises permanecem na dona.
+Preserva uma cópia inicial porque a normalização do hash set pode afetar a
+escolha estática. Sampler real e ordem foram comparados sem assets; isso não
+aprova todos os variants, callbacks ou equivalência com mods/multiplayer.
+
 ## MOD-02 — Equivalência e versionamento
 
 Definir inputs que produzem um output: seed, template/layout, geração de

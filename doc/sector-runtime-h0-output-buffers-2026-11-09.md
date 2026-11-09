@@ -230,3 +230,13 @@ Retomar RAM-01/H0 por:
 Os buffers do planejador são uma etapa do runtime comum, não um desvio para
 materialização TMX. H0 completo, executor H1, nova WorldThread e GPU continuam
 pendentes; não dependem de declarar toda a memória do motor já contabilizada.
+
+## Continuação em 09/11/2026
+
+O [recorte seguinte](sector-runtime-h0-distribution-bundles-2026-11-09.md),
+`887149c0`, compartilha distribuições enfileiradas após uma única cópia
+snapshot-equivalente e rastreia backing conhecido único, inclusive no caminho
+síncrono. Modelo de estimativas 3, 185 testes e treze grupos CTest aprovados.
+Este relatório preserva o manifesto e os resultados da etapa anterior;
+retomar pelo relatório seguinte e pelo roadmap, não pelas pendências históricas
+sem considerar sua cobertura parcial posterior.

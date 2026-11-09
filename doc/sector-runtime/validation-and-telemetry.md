@@ -56,6 +56,16 @@ da promise, consumo sem cópia e seleção sintética equivalente. Modelo de
 estimativas 2 separa requests de buffers de heurísticas de heaps internos.
 Sem benchmark do jogo; menos cópia não é por si só um fator de aceleração medido.
 
+O [recorte de distribuições compartilhadas](../sector-runtime-h0-distribution-bundles-2026-11-09.md)
+passa **185 testes**, treze grupos CTest e 18 casos novos repetidos 20 vezes
+(360 execuções adicionais), com ASan/UBSan. Usa sampler real sem Root, cópia
+nativa para referência e controle negativo da ordem de hash; verifica 561
+coordenadas por variante, oito leitores concorrentes e retenção com WorkerPool.
+Treasure opaco é preservado/amostrado. Modelo de estimativas 3, sem cobertura
+completa de variants ou benchmark do jogo. `sharedSnapshots` conta referências,
+não setores/s. Sete objetos reais e sintaxe Tracy de oito fontes aprovados;
+sem linking completo, TSan ou validação de mods/mundos.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

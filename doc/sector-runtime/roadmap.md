@@ -101,12 +101,25 @@ profiling. Pré-reserva dos descritores e handle da promise eliminam crescimento
 durante construção e cópia no consumo pela dona; payload preparado é move-only.
 São 23 casos novos, 167 no total, 460 execuções adicionais e doze grupos CTest
 aprovados com ASan/UBSan. Ver
-[relatório atual](../sector-runtime-h0-output-buffers-2026-11-09.md).
+[relatório da etapa](../sector-runtime-h0-output-buffers-2026-11-09.md).
 Modelo de estimativas 2 separa buffers reservados de heaps ainda aproximados.
 Não há teto novo ou ganho ponta a ponta medido.
 
-Próximo trabalho executável: heaps aninhados/temporários de nomes, distribuições
-e metadados excluídos, preservando fallback síncrono. Ampliar a cobertura dos
+RAM-01, inputs de distribuição em `887149c0`: primeira captura copia uma vez
+para preservar normalização/ordem de hash e seleção; capturas seguintes
+compartilham o bundle const. Original adotado e backing conhecido rastreados
+sem profiling; buffers do bundle reservados antes de alocar. Estimativas 3,
+sem teto hard para heaps profundos. São 18 casos novos, 185 no total, 360
+execuções adicionais e treze grupos CTest com ASan/UBSan, incluindo sampler
+real aleatório/periódico e oito leitores concorrentes. Ver
+[relatório vigente](../sector-runtime-h0-distribution-bundles-2026-11-09.md).
+MOD-01 recebe auditoria restrita dos leitores desse bundle, não aprovação de
+todo o caminho com assets/mods. Sem ganho no jogo medido.
+
+Próximo trabalho executável: nomes de saída, heaps temporários de candidatos,
+variants opacos e metadados excluídos, preservando fallback síncrono.
+Auditar metadata do Perlin não inicializado antes de novos consumidores em
+CPU-01; RNG de produção não foi alterado. Ampliar a cobertura dos
 heaps de layout/biomas/seletores e caches com ownership/storage únicos.
 Definir cobertura sem profiling antes da admissão obrigatória, limites
 processuais por hardware/configuração e reação à pressão.

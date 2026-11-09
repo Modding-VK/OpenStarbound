@@ -113,6 +113,13 @@ simultâneos na realocação e retenção na promise. Cobre o caminho síncrono 
 profiling e evita cópia no consumo pela dona. As estimativas passam a v2 sem
 duplicar capacidade; strings/heaps internos e teto global continuam parciais.
 
+O [recorte dos inputs imutáveis](sector-runtime-h0-distribution-bundles-2026-11-09.md)
+compartilha distribuições enfileiradas após uma cópia equivalente, preservando
+ordem de seleção. Acompanha backing conhecido único e reserva buffers do
+bundle antes de alocar, sem profiling, com modelo geral de estimativas 3.
+Variants opacos, temporários e teto global permanecem parciais. Não altera
+admissão nem comprova ganho real de entrega.
+
 Com workers desligados (`sectorWorkers: 0` no modo `legacy`), o registro não
 é criado: segue o caminho síncrono. Nos modos não legados, zero pode selecionar
 workers automaticamente; não interpretar o zero isolado como desativação.
