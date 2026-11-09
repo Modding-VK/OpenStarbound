@@ -1,4 +1,5 @@
 #include "StarWorldGenerationBaseTiles.hpp"
+#include "StarWorldGenerationBaseTileInput.hpp"
 #include "StarWorldGenerationMemory.hpp"
 #include "StarWorkerPool.hpp"
 
@@ -6,6 +7,8 @@
 #include <cstring>
 #include <functional>
 #include <limits>
+#include <stdexcept>
+#include <type_traits>
 
 #include "gtest/gtest.h"
 
@@ -329,4 +332,258 @@ TEST(WorldGenerationBaseTilesTest, StaleTaggedResultRetainsItsPrivatePayloadUnti
     EXPECT_EQ(ledger.snapshot().resources, 1u); EXPECT_TRUE(result.tiles->value);
   }
   EXPECT_EQ(ledger.snapshot().resources, 0u);
+}
+
+namespace {
+using TileInput = WorldGenerationBaseTileInput;
+TileInput tileInput() { return {11, 77, true, {21, 31}, {22, 32}, 3, 10, true, 0}; }
+uint32_t floatBits(float value) { uint32_t result; std::memcpy(&result, &value, sizeof(result)); return result; }
+enum class Lookup { MaterialHue, SupportsMod, ModHue };
+struct LookupEvent {
+  Lookup kind{};
+  unsigned biome = 0, material = 0, mod = 0;
+  std::array<uint32_t, 17> state{};
+  bool operator==(LookupEvent const& other) const {
+    return kind == other.kind && biome == other.biome && material == other.material && mod == other.mod && state == other.state;
+  }
+};
+struct RecordingResolver {
+  ServerTile const& tile;
+  bool support = true;
+  unsigned throwAt = 0;
+  mutable unsigned count = 0;
+  mutable std::array<LookupEvent, 6> events{};
+  void record(Lookup kind, unsigned biome, unsigned material, unsigned mod) const {
+    if (count == events.size()) throw std::logic_error("too many BaseTiles lookups");
+    events[count++] = {kind, biome, material, mod,
+        {tile.blockBiomeIndex, tile.environmentBiomeIndex, unsigned(tile.biomeTransition),
+          tile.foreground, tile.foregroundHueShift, tile.foregroundMod, tile.foregroundModHueShift, tile.foregroundColorVariant,
+          tile.background, tile.backgroundHueShift, tile.backgroundMod, tile.backgroundModHueShift, tile.backgroundColorVariant,
+          tile.liquid.liquid, floatBits(tile.liquid.level), floatBits(tile.liquid.pressure), unsigned(tile.liquid.source)}};
+    if (count == throwAt) throw std::runtime_error("controlled lookup failure");
+  }
+  static MaterialHue materialValue(BiomeIndex biome, MaterialId material) { return MaterialHue((unsigned(biome) * 13u + unsigned(material) * 3u + 17u) & 255u); }
+  static MaterialHue modValue(BiomeIndex biome, ModId mod) { return MaterialHue((unsigned(biome) * 7u + unsigned(mod) * 5u + 23u) & 255u); }
+  MaterialHue materialHue(BiomeIndex biome, MaterialId material) const { record(Lookup::MaterialHue, biome, material, NoModId); return materialValue(biome, material); }
+  bool supportsMod(MaterialId material, ModId mod) const {
+    record(Lookup::SupportsMod, NullBiomeIndex, material, mod);
+    return mod == NoModId || (isRealMaterial(material) && isRealMod(mod) && support);
+  }
+  MaterialHue modHue(BiomeIndex biome, ModId mod) const { record(Lookup::ModHue, biome, NullMaterialId, mod); return modValue(biome, mod); }
+};
+struct FrozenResolver {
+  MaterialHue material = 19, mod = 27;
+  bool support = true;
+  MaterialHue materialHue(BiomeIndex, MaterialId) const { return material; }
+  bool supportsMod(MaterialId id, ModId candidate) const { return candidate == NoModId || (isRealMaterial(id) && isRealMod(candidate) && support); }
+  MaterialHue modHue(BiomeIndex, ModId) const { return mod; }
+};
+// First-party legacy body kept independent of the new sequencing/liquid helpers.
+template <typename Resolver>
+void legacyBaseTile(ServerTile& tile, TileInput const& in, Resolver const& resolver) {
+  tile.blockBiomeIndex = in.blockBiome; tile.environmentBiomeIndex = in.environmentBiome; tile.biomeTransition = in.biomeTransition;
+  if (tile.foreground == NullMaterialId) {
+    tile.foreground = in.foreground.material; tile.foregroundColorVariant = DefaultMaterialColorVariant;
+    tile.foregroundHueShift = resolver.materialHue(tile.blockBiomeIndex, tile.foreground);
+    if (resolver.supportsMod(tile.foreground, in.foreground.mod)) {
+      tile.foregroundMod = in.foreground.mod; tile.foregroundModHueShift = resolver.modHue(tile.blockBiomeIndex, tile.foregroundMod);
+    }
+  }
+  if (tile.background == NullMaterialId) {
+    tile.background = in.background.material; tile.backgroundColorVariant = DefaultMaterialColorVariant;
+    tile.backgroundHueShift = resolver.materialHue(tile.blockBiomeIndex, tile.background);
+    if (resolver.supportsMod(tile.background, in.background.mod)) {
+      tile.backgroundMod = in.background.mod; tile.backgroundModHueShift = resolver.modHue(tile.blockBiomeIndex, tile.backgroundMod);
+    }
+  }
+  if (tile.foreground != EmptyMaterialId) tile.liquid = LiquidStore();
+  else if (in.oceanLiquid != EmptyLiquidId && in.y < in.oceanLiquidLevel) {
+    float pressure = in.oceanLiquidLevel - in.y;
+    if (tile.background == EmptyMaterialId) tile.liquid = LiquidStore::endless(in.oceanLiquid, pressure);
+    else if (in.encloseLiquids) tile.liquid = LiquidStore::filled(in.oceanLiquid, 1.0f, pressure);
+  }
+}
+void missing(Pair& pair) { pair.a.foreground = pair.b.foreground = NullMaterialId; pair.a.background = pair.b.background = NullMaterialId; }
+void sameTrace(RecordingResolver const& a, RecordingResolver const& b) { EXPECT_EQ(a.count, b.count); EXPECT_TRUE(a.events == b.events); }
+}
+
+TEST(WorldGenerationBaseTileInputsTest, ScalarInputHasNoOwningResourcesOrDynamicLifetime) {
+  static_assert(std::is_trivially_copyable<TileInput>::value);
+  static_assert(std::is_standard_layout<TileInput>::value);
+  TileInput input; EXPECT_EQ(input.blockBiome, NullBiomeIndex); EXPECT_EQ(input.foreground.material, EmptyMaterialId);
+  EXPECT_EQ(input.foreground.mod, NoModId); EXPECT_EQ(input.oceanLiquid, EmptyLiquidId);
+}
+
+TEST(WorldGenerationBaseTileInputsTest, BiomeMetadataAlwaysChangesEvenWhenBothLayersAlreadyExist) {
+  Pair pair; RecordingResolver resolver{pair.b}; auto input = tileInput(); applyWorldGenerationBaseTile(pair.b, input, resolver);
+  EXPECT_EQ(resolver.count, 0u); EXPECT_EQ(pair.b.blockBiomeIndex, 11u); EXPECT_EQ(pair.b.environmentBiomeIndex, 77u); EXPECT_TRUE(pair.b.biomeTransition);
+}
+
+TEST(WorldGenerationBaseTileInputsTest, ExistingForegroundRetainsAllFiveFieldsAndOnlyBackgroundQueries) {
+  Pair pair; pair.a.background = pair.b.background = NullMaterialId; auto input = tileInput(); RecordingResolver a{pair.a}, b{pair.b};
+  legacyBaseTile(pair.a, input, a); applyWorldGenerationBaseTile(pair.b, input, b);
+  EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal()); sameTrace(a, b); EXPECT_EQ(b.count, 3u);
+  EXPECT_EQ(pair.b.foreground, 1u); EXPECT_EQ(pair.b.foregroundHueShift, 0u); EXPECT_EQ(pair.b.foregroundColorVariant, 2u);
+}
+
+TEST(WorldGenerationBaseTileInputsTest, ExistingBackgroundRetainsAllFiveFieldsAndOnlyForegroundQueries) {
+  Pair pair; pair.a.foreground = pair.b.foreground = NullMaterialId; auto input = tileInput(); RecordingResolver a{pair.a}, b{pair.b};
+  legacyBaseTile(pair.a, input, a); applyWorldGenerationBaseTile(pair.b, input, b);
+  EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal()); sameTrace(a, b); EXPECT_EQ(b.count, 3u);
+  EXPECT_EQ(pair.b.background, EmptyMaterialId); EXPECT_EQ(pair.b.backgroundHueShift, 6u); EXPECT_EQ(pair.b.backgroundColorVariant, 3u);
+}
+
+TEST(WorldGenerationBaseTileInputsTest, BothMissingLayersResolveForegroundBeforeBackgroundInSixCalls) {
+  Pair pair; missing(pair); RecordingResolver resolver{pair.b}; applyWorldGenerationBaseTile(pair.b, tileInput(), resolver);
+  ASSERT_EQ(resolver.count, 6u);
+  for (unsigned offset : {0u, 3u}) { EXPECT_EQ(resolver.events[offset].kind, Lookup::MaterialHue); EXPECT_EQ(resolver.events[offset + 1].kind, Lookup::SupportsMod); EXPECT_EQ(resolver.events[offset + 2].kind, Lookup::ModHue); }
+  EXPECT_EQ(resolver.events[0].material, 21u); EXPECT_EQ(resolver.events[3].material, 22u);
+  EXPECT_EQ(resolver.events[2].mod, 31u); EXPECT_EQ(resolver.events[5].mod, 32u);
+}
+
+TEST(WorldGenerationBaseTileInputsTest, UnsupportedForegroundModPreservesTheOldModAndHue) {
+  Pair pair; pair.b.foreground = NullMaterialId; pair.b.foregroundMod = 99; pair.b.foregroundModHueShift = 123;
+  RecordingResolver resolver{pair.b, false}; applyWorldGenerationBaseTile(pair.b, tileInput(), resolver);
+  EXPECT_EQ(resolver.count, 2u); EXPECT_EQ(pair.b.foregroundMod, 99u); EXPECT_EQ(pair.b.foregroundModHueShift, 123u);
+}
+
+TEST(WorldGenerationBaseTileInputsTest, UnsupportedBackgroundModPreservesTheOldModAndHue) {
+  Pair pair; pair.b.background = NullMaterialId; pair.b.backgroundMod = 99; pair.b.backgroundModHueShift = 123;
+  RecordingResolver resolver{pair.b, false}; applyWorldGenerationBaseTile(pair.b, tileInput(), resolver);
+  EXPECT_EQ(resolver.count, 2u); EXPECT_EQ(pair.b.backgroundMod, 99u); EXPECT_EQ(pair.b.backgroundModHueShift, 123u);
+}
+
+TEST(WorldGenerationBaseTileInputsTest, NoModStillQueriesSupportAndModHueEvenForAir) {
+  Pair pair; pair.b.foreground = NullMaterialId; auto input = tileInput(); input.foreground = {EmptyMaterialId, NoModId};
+  RecordingResolver resolver{pair.b, false}; applyWorldGenerationBaseTile(pair.b, input, resolver);
+  EXPECT_EQ(resolver.count, 3u); EXPECT_EQ(pair.b.foregroundMod, NoModId);
+  EXPECT_EQ(pair.b.foregroundModHueShift, RecordingResolver::modValue(input.blockBiome, NoModId));
+}
+
+TEST(WorldGenerationBaseTileInputsTest, SkippingNoModHueWouldChangeTheLegacyOutput) {
+  Pair pair; missing(pair); auto input = tileInput(); input.foreground.mod = input.background.mod = NoModId;
+  RecordingResolver resolver{pair.b}; applyWorldGenerationBaseTile(pair.b, input, resolver);
+  EXPECT_EQ(resolver.count, 6u); EXPECT_NE(pair.b.foregroundModHueShift, 5u); EXPECT_NE(pair.b.backgroundModHueShift, 7u);
+}
+
+TEST(WorldGenerationBaseTileInputsTest, ExistingAirIsInitializedAndDoesNotRequestForegroundReplacement) {
+  Pair pair; pair.b.foreground = EmptyMaterialId; RecordingResolver resolver{pair.b}; applyWorldGenerationBaseTile(pair.b, tileInput(), resolver);
+  EXPECT_EQ(resolver.count, 0u); EXPECT_EQ(pair.b.foreground, EmptyMaterialId); EXPECT_EQ(pair.b.foregroundHueShift, 0u);
+}
+
+TEST(WorldGenerationBaseTileInputsTest, ProposedNullMaterialRetainsTheLegacyLookupBehavior) {
+  Pair pair; pair.b.foreground = NullMaterialId; auto input = tileInput(); input.foreground.material = NullMaterialId;
+  RecordingResolver resolver{pair.b}; applyWorldGenerationBaseTile(pair.b, input, resolver);
+  EXPECT_EQ(resolver.count, 2u); EXPECT_EQ(pair.b.foreground, NullMaterialId); EXPECT_EQ(pair.b.liquid.liquid, EmptyLiquidId);
+}
+
+TEST(WorldGenerationBaseTileInputsTest, HueLookupsUseTheNewBlockBiomeNeverTheEnvironmentBiome) {
+  Pair pair; missing(pair); RecordingResolver resolver{pair.b}; applyWorldGenerationBaseTile(pair.b, tileInput(), resolver);
+  for (unsigned i : {0u, 2u, 3u, 5u}) EXPECT_EQ(resolver.events[i].biome, 11u);
+  EXPECT_NE(pair.b.blockBiomeIndex, pair.b.environmentBiomeIndex);
+}
+
+TEST(WorldGenerationBaseTileInputsTest, TransitionFlagIsExplicitAndOverwritesPriorState) {
+  Pair pair; pair.b.biomeTransition = true; auto input = tileInput(); input.biomeTransition = false;
+  applyWorldGenerationBaseTile(pair.b, input, FrozenResolver{}); EXPECT_FALSE(pair.b.biomeTransition);
+}
+
+TEST(WorldGenerationBaseTileInputsTest, LiquidUsesTheResolvedMaterialsAfterBothLayers) {
+  Pair pair; missing(pair); auto input = tileInput(); input.foreground.material = input.background.material = EmptyMaterialId;
+  RecordingResolver resolver{pair.b}; applyWorldGenerationBaseTile(pair.b, input, resolver);
+  EXPECT_EQ(pair.b.liquid.liquid, 3u); EXPECT_TRUE(pair.b.liquid.source); EXPECT_EQ(pair.b.liquid.pressure, 10.0f);
+}
+
+TEST(WorldGenerationBaseTileInputsTest, EveryLookupFailurePreservesLegacyPartialWritesAndStopsFurtherQueries) {
+  for (unsigned point = 1; point <= 6; ++point) {
+    Pair pair; missing(pair); auto input = tileInput(); RecordingResolver a{pair.a, true, point}, b{pair.b, true, point};
+    EXPECT_THROW(legacyBaseTile(pair.a, input, a), std::runtime_error);
+    EXPECT_THROW(applyWorldGenerationBaseTile(pair.b, input, b), std::runtime_error);
+    EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal()); sameTrace(a, b); EXPECT_EQ(b.count, point);
+    EXPECT_EQ(pair.b.liquid.liquid, 3u); EXPECT_EQ(pair.b.liquid.pressure, 4.5f);
+  }
+}
+
+TEST(WorldGenerationBaseTileInputsTest, UnsupportedRealModsNeverAskForTheirHue) {
+  Pair pair; missing(pair); RecordingResolver resolver{pair.b, false}; applyWorldGenerationBaseTile(pair.b, tileInput(), resolver);
+  EXPECT_EQ(resolver.count, 4u); for (unsigned i = 0; i < resolver.count; ++i) EXPECT_NE(resolver.events[i].kind, Lookup::ModHue);
+}
+
+TEST(WorldGenerationBaseTileInputsTest, ResolverIsBorrowedWithoutCopyingItsState) {
+  struct Noncopyable : FrozenResolver { Noncopyable() = default; Noncopyable(Noncopyable const&) = delete; } resolver;
+  Pair pair; missing(pair); applyWorldGenerationBaseTile(pair.b, tileInput(), resolver);
+  EXPECT_EQ(pair.b.foregroundHueShift, 19u); EXPECT_EQ(pair.b.foregroundModHueShift, 27u);
+}
+
+TEST(WorldGenerationBaseTileInputsTest, DamageCollisionDungeonAndRootAreNotTouched) {
+  Pair pair; missing(pair); TileDamageStatusTestAccess::change(pair.a.foregroundDamage, 1); TileDamageStatusTestAccess::change(pair.b.foregroundDamage, 1);
+  auto input = tileInput(); RecordingResolver a{pair.a}, b{pair.b}; legacyBaseTile(pair.a, input, a); applyWorldGenerationBaseTile(pair.b, input, b);
+  EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal()); EXPECT_FALSE(pair.b.collisionCacheDirty);
+  EXPECT_EQ(pair.b.dungeonId, 123u); ASSERT_TRUE(pair.b.rootSource); EXPECT_EQ(*pair.b.rootSource, Vec2I(7, 8));
+}
+
+TEST(WorldGenerationBaseTileInputsTest, BranchMatrixMatchesAllTileFieldsAndLookupTraces) {
+  for (unsigned flags = 0; flags < 4096; ++flags) {
+    Pair pair; auto input = tileInput();
+    pair.a.foreground = pair.b.foreground = flags & 1 ? NullMaterialId : MaterialId(1);
+    pair.a.background = pair.b.background = flags & 2 ? NullMaterialId : MaterialId(2);
+    input.foreground = {flags & 4 ? EmptyMaterialId : MaterialId(21), flags & 16 ? NoModId : ModId(31)};
+    input.background = {flags & 8 ? EmptyMaterialId : MaterialId(22), flags & 32 ? NoModId : ModId(32)};
+    input.blockBiome = flags & 128 ? NullBiomeIndex : BiomeIndex(11); input.biomeTransition = flags & 256;
+    input.oceanLiquid = flags & 512 ? EmptyLiquidId : LiquidId(3); input.encloseLiquids = flags & 1024; input.y = flags & 2048 ? 10 : 0;
+    RecordingResolver a{pair.a, bool(flags & 64)}, b{pair.b, bool(flags & 64)};
+    legacyBaseTile(pair.a, input, a); applyWorldGenerationBaseTile(pair.b, input, b);
+    ASSERT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal()); sameTrace(a, b);
+  }
+}
+
+TEST(WorldGenerationBaseTileInputsTest, ExplicitInputIsNotModifiedByPreparation) {
+  Pair pair; missing(pair); auto input = tileInput(), before = input; applyWorldGenerationBaseTile(pair.b, input, FrozenResolver{});
+  EXPECT_EQ(input.blockBiome, before.blockBiome); EXPECT_EQ(input.environmentBiome, before.environmentBiome); EXPECT_EQ(input.biomeTransition, before.biomeTransition);
+  EXPECT_EQ(input.foreground.material, before.foreground.material); EXPECT_EQ(input.foreground.mod, before.foreground.mod);
+  EXPECT_EQ(input.background.material, before.background.material); EXPECT_EQ(input.background.mod, before.background.mod);
+  EXPECT_EQ(input.oceanLiquid, before.oceanLiquid); EXPECT_EQ(input.oceanLiquidLevel, before.oceanLiquidLevel); EXPECT_EQ(input.encloseLiquids, before.encloseLiquids); EXPECT_EQ(input.y, before.y);
+}
+
+TEST(WorldGenerationBaseTileInputsTest, ImmutableResolverAndPartitionedTilesMatchTheSerialProducerBody) {
+  auto expected = std::make_unique<ServerTileSectorArray::Array>(), actual = std::make_unique<ServerTileSectorArray::Array>(); fill(*expected); fill(*actual);
+  std::array<TileInput, 1024> inputs; FrozenResolver const resolver;
+  for (unsigned i = 0; i < 1024; ++i) {
+    auto& a = (*expected)(i / 32, i % 32); auto& b = (*actual)(i / 32, i % 32);
+    a.foreground = b.foreground = i % 2 ? NullMaterialId : EmptyMaterialId; a.background = b.background = i % 3 ? NullMaterialId : MaterialId(2);
+    inputs[i] = tileInput(); inputs[i].y = int(i % 32); inputs[i].foreground.material = i % 5 ? EmptyMaterialId : MaterialId(21);
+    legacyBaseTile(a, inputs[i], resolver);
+  }
+  WorkerPool pool("Explicit BaseTiles inputs contract", 4); std::vector<WorkerPoolPromise<bool>> promises;
+  for (unsigned part = 0; part < 4; ++part) promises.push_back(pool.addProducer<bool>([&, part] {
+    for (unsigned i = part * 256; i < (part + 1) * 256; ++i) applyWorldGenerationBaseTile((*actual)(i / 32, i % 32), inputs[i], resolver);
+    return true;
+  }));
+  for (auto& promise : promises) { EXPECT_TRUE(promise.get()); }
+  pool.finish();
+  EXPECT_TRUE(compareWorldGenerationBaseTiles(*expected, *actual, baseTicket()).equal());
+}
+
+TEST(WorldGenerationBaseTileInputsTest, APartiallyWrittenTileIsNotASafeFreshRetryInput) {
+  Pair pair; missing(pair); auto input = tileInput(); RecordingResolver fail{pair.b, true, 1};
+  EXPECT_THROW(applyWorldGenerationBaseTile(pair.b, input, fail), std::runtime_error);
+  FrozenResolver resolver; applyWorldGenerationBaseTile(pair.b, input, resolver); legacyBaseTile(pair.a, input, resolver);
+  EXPECT_FALSE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+}
+
+TEST(WorldGenerationBaseTileInputsTest, ScalarSampleAloneDoesNotCloseTheResolverOrAssetContext) {
+  Pair pair; missing(pair); auto input = tileInput(); FrozenResolver a, b; b.material = 99;
+  applyWorldGenerationBaseTile(pair.a, input, a); applyWorldGenerationBaseTile(pair.b, input, b);
+  EXPECT_FALSE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+}
+
+TEST(WorldGenerationBaseTileInputsTest, ObserversSeeTheSameStagedWritesBeforeEachQuery) {
+  Pair pair; missing(pair); RecordingResolver resolver{pair.b}; auto input = tileInput(); applyWorldGenerationBaseTile(pair.b, input, resolver);
+  ASSERT_EQ(resolver.count, 6u);
+  EXPECT_EQ(resolver.events[0].state[0], 11u); EXPECT_EQ(resolver.events[0].state[1], 77u); EXPECT_EQ(resolver.events[0].state[2], 1u);
+  EXPECT_EQ(resolver.events[0].state[3], 21u); EXPECT_EQ(resolver.events[0].state[7], DefaultMaterialColorVariant); EXPECT_EQ(resolver.events[0].state[8], NullMaterialId);
+  EXPECT_EQ(resolver.events[1].state[4], RecordingResolver::materialValue(11, 21));
+  EXPECT_EQ(resolver.events[2].state[5], 31u); EXPECT_EQ(resolver.events[2].state[6], 5u);
+  EXPECT_EQ(resolver.events[3].state[8], 22u); EXPECT_EQ(resolver.events[3].state[12], DefaultMaterialColorVariant);
+  for (unsigned i = 0; i < 6; ++i) EXPECT_EQ(resolver.events[i].state[15], floatBits(4.5f));
 }

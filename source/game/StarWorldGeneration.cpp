@@ -1,5 +1,6 @@
 #include "StarWorldGeneration.hpp"
 #include "StarWorldGenerationBaseTileLiquid.hpp"
+#include "StarWorldGenerationBaseTileInput.hpp"
 #include "StarWorldGenerationMemoryEnvelope.hpp"
 #include "StarWorldGenerationWorkerCache.hpp"
 #include "StarWorldGenerationPayloadBuffer.hpp"
@@ -90,39 +91,23 @@ CollisionKind biomeForegroundCollision(MaterialDatabaseConstPtr const& materialD
 void prepareBaseTileArray(WorldTemplatePtr const& planet, MaterialDatabaseConstPtr const& materialDatabase,
     RectI const& sectorRegion, ServerTileSectorArray::Array& tiles) {
   STAR_TRACE_ZONE("Base tiles worker prepare");
+  struct Resolver {
+    WorldTemplate const& planet;
+    MaterialDatabase const& materials;
+    MaterialHue materialHue(BiomeIndex biome, MaterialId material) const { return planet.biomeMaterialHueShift(biome, material); }
+    bool supportsMod(MaterialId material, ModId mod) const { return materials.supportsMod(material, mod); }
+    MaterialHue modHue(BiomeIndex biome, ModId mod) const { return planet.biomeModHueShift(biome, mod); }
+  } resolver{*planet, *materialDatabase};
   for (int x = sectorRegion.xMin(); x < sectorRegion.xMax(); ++x) {
     for (int y = sectorRegion.yMin(); y < sectorRegion.yMax(); ++y) {
       ServerTile& tile = tiles(x - sectorRegion.xMin(), y - sectorRegion.yMin());
       auto blockInfo = planet->blockInfo(x, y);
 
-      tile.blockBiomeIndex = blockInfo.blockBiomeIndex;
-      tile.environmentBiomeIndex = blockInfo.environmentBiomeIndex;
-      tile.biomeTransition = blockInfo.biomeTransition;
-
-      if (tile.foreground == NullMaterialId) {
-        tile.foreground = blockInfo.foreground;
-        tile.foregroundColorVariant = DefaultMaterialColorVariant;
-        tile.foregroundHueShift = planet->biomeMaterialHueShift(tile.blockBiomeIndex, tile.foreground);
-
-        if (materialDatabase->supportsMod(tile.foreground, blockInfo.foregroundMod)) {
-          tile.foregroundMod = blockInfo.foregroundMod;
-          tile.foregroundModHueShift = planet->biomeModHueShift(tile.blockBiomeIndex, tile.foregroundMod);
-        }
-      }
-
-      if (tile.background == NullMaterialId) {
-        tile.background = blockInfo.background;
-        tile.backgroundColorVariant = DefaultMaterialColorVariant;
-        tile.backgroundHueShift = planet->biomeMaterialHueShift(tile.blockBiomeIndex, tile.background);
-
-        if (materialDatabase->supportsMod(tile.background, blockInfo.backgroundMod)) {
-          tile.backgroundMod = blockInfo.backgroundMod;
-          tile.backgroundModHueShift = planet->biomeModHueShift(tile.blockBiomeIndex, tile.backgroundMod);
-        }
-      }
-
-      applyWorldGenerationBaseTileLiquid(tile.liquid, {tile.foreground, tile.background,
-          blockInfo.oceanLiquid, blockInfo.oceanLiquidLevel, blockInfo.encloseLiquids, y});
+      WorldGenerationBaseTileInput input{blockInfo.blockBiomeIndex, blockInfo.environmentBiomeIndex,
+          blockInfo.biomeTransition, {blockInfo.foreground, blockInfo.foregroundMod},
+          {blockInfo.background, blockInfo.backgroundMod}, blockInfo.oceanLiquid,
+          blockInfo.oceanLiquidLevel, blockInfo.encloseLiquids, y};
+      applyWorldGenerationBaseTile(tile, input, resolver);
     }
   }
 }
