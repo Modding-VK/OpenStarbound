@@ -35,7 +35,7 @@ os contratos por subsistema. O [roadmap detalhado](sector-runtime/roadmap.md)
 relaciona tarefas, dependências, propósito e critérios de conclusão; ele é a
 entrada operacional para a implementação; documentos antigos são apoio e
 histórico, sem outra fila de prioridades. Frente ativa: H0. O relatório atual é
-[cache privado e storage da LRU](sector-runtime-h0-worker-cache-2026-11-09.md).
+[recuperação do pool após exceção](sector-runtime-h0-allocator-exception-2026-11-09.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
 corrigido opt-in e VAL-01/02 têm harness sintético inicial, com 26 testes H0
@@ -48,10 +48,12 @@ arrays. Validação: 115 testes, 400 execuções adicionais e nove grupos CTest,
 ASan/UBSan estritos; não é medição integral de RAM ou de throughput.
 `739067b1` acompanha o objeto/cache privado por worker, mesmo sem profiling,
 até saída da thread; não cobre todo o grafo privado nem picos entre jobs.
-Validação atual: 136 testes, 420 execuções adicionais e dez grupos CTest,
+Validação daquela etapa: 136 testes, 420 execuções adicionais e dez grupos CTest,
 incluindo oito workers concorrentes, com ASan/UBSan estritos.
-Próximo: reproduzir/corrigir falha de inserção do pool identificada por
-inspeção, crescimento de outputs e heaps excluídos antes de cotas globais.
+`1bd348e6` reproduz/corrige a publicação antecipada da seleção do pool após
+exceção; 144 testes, 800 execuções adicionais e onze grupos CTest aprovados
+com ASan/UBSan, sem ensaio de OOM real. Próximo: reserva/crescimento de outputs
+variáveis, caminhos síncronos e heaps excluídos antes de cotas globais.
 Streaming real com assets/mods
 e executor de conclusões ainda pendentes.
 

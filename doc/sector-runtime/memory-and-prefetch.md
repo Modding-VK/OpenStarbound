@@ -83,8 +83,11 @@ saldo zero não prova liberação física global. Também faltam custos transit�
 de construção de outputs e cobertura independente do profiling.
 O cache privado pode persistir após mundo/inputs antigos saírem; sua contagem
 não desaparece junto com os trackers de Json. Atualização após job não é reserva
-antes de crescer. Auditar a falha de inserção do vetor do pool indicada no
-relatório atual antes de testar pressão ou ampliar admissão.
+antes de crescer. A falha de inserção do vetor do pool foi
+[reproduzida/corrigida](../sector-runtime-h0-allocator-exception-2026-11-09.md)
+em `1bd348e6`: seleção só é publicada após o vetor possuir o bloco, com retry
+e contabilidade preservados. Injeção de exceção não conclui ensaios de pressão
+real nem as reservas anteriores ao crescimento de outputs variáveis.
 
 ## RAM-02 — Camadas de cache e invalidação
 

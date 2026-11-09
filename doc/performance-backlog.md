@@ -24,13 +24,15 @@ São 115 testes de contratos e nove grupos CTest aprovados, sem ganho de runtime
 alegado. Próximo: caches privados, containers excluídos, crescimento de outputs
 e cobertura independente do profiling, antes de limites processuais
 configuráveis; preservar MOD-01 e não ampliar admissão com números parciais.
-O [recorte vigente](sector-runtime-h0-worker-cache-2026-11-09.md), `739067b1`,
+O [recorte do cache privado](sector-runtime-h0-worker-cache-2026-11-09.md), `739067b1`,
 acompanha o template privado/LRU sobrevivente ao job/mundo; 136 testes e dez
-grupos CTest aprovados, sem ganho de runtime alegado. A próxima reprodução é
-o risco de publicação antecipada do ponteiro do pool quando a inserção do
-vetor falha, encontrado por inspeção; depois outputs variáveis e heaps de
-layout/biomas/seletores ainda fora. Não confundir falha inferida com crash
-reproduzido ou corrigido.
+grupos CTest aprovados, sem ganho de runtime alegado. O
+[recorte vigente](sector-runtime-h0-allocator-exception-2026-11-09.md), `1bd348e6`,
+reproduz/corrige a publicação antecipada do ponteiro do pool em exceção de
+inserção: 144 testes, 800 execuções adicionais e onze grupos CTest aprovados.
+Não demonstra OOM real nem vínculo com crashes anteriores. Próximo: reserva
+antes de crescer outputs, caminhos síncronos e heaps de layout/biomas/seletores
+ainda excluídos, antes de ampliar admissão.
 Achado de CPU-01: overflow assinado na seed automática de `StarRandom.cpp:197`,
 observado em execução estrita de sanitizers; RNG de produção permanece
 inalterado. A reprodução e a separação dos testes de hash com seeds privadas

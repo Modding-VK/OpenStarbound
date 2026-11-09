@@ -257,3 +257,12 @@ Fontes conferidas em 09/11/2026, bytes e SHA-256:
 
 RAM-01 completo/H0 continuam abertos; a nova WorldThread, executor H1 e GPU
 permanecem futuras entregas, não efeitos desta contabilidade.
+
+### Continuação posterior — `1bd348e6`
+
+O [relatório seguinte](sector-runtime-h0-allocator-exception-2026-11-09.md)
+reproduz o estado inválido inferido acima e corrige a publicação da seleção
+do pool. São 144 testes, onze grupos CTest e oito casos novos repetidos 100
+vezes (800 execuções adicionais). A injeção não é OOM real; não houve vínculo
+demonstrado com capturas/crashes anteriores. Este documento preserva o estado
+histórico de `739067b1`; o relatório seguinte governa a retomada de RAM-01.

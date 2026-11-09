@@ -84,12 +84,19 @@ solicitado da LRU nas fronteiras de job, mesmo sem profiling. Inclui buckets,
 blocos retidos e bookkeeping do pool, não todo o grafo do template nem picos
 transitórios. São 21 casos novos, 136 no total, 420 execuções adicionais e
 dez grupos CTest com ASan/UBSan; dois objetos reais compilados. Ver
-[relatório atual](../sector-runtime-h0-worker-cache-2026-11-09.md).
+[relatório da etapa](../sector-runtime-h0-worker-cache-2026-11-09.md).
 
-Próximo trabalho executável: reproduzir/corrigir a publicação antecipada de
-`unfilledBlock` em falha de inserção do vetor do BlockAllocator, achado estático
-da auditoria de RAM-01, antes de ensaios de pressão. Depois cobrir crescimento
-de outputs/caminhos síncronos e heaps de layout/biomas/seletores excluídos.
+RAM-01, falha do pool corrigida em `1bd348e6`: controle negativo com dois testes
+reproduziu seleção fora dos blocos possuídos após exceção. A publicação de
+`unfilledBlock` agora ocorre depois da inserção bem-sucedida. Oito casos novos,
+144 no total, 800 execuções adicionais e onze grupos CTest passaram com
+ASan/UBSan, incluindo recuperação do pool no próximo job. Ver
+[relatório atual](../sector-runtime-h0-allocator-exception-2026-11-09.md).
+Isso não é ensaio de OOM real, ganho de throughput ou aumento de admissão.
+
+Próximo trabalho executável: reserva/crescimento de outputs variáveis e
+caminhos síncronos, falha/cancelamento e retenção física. Depois ampliar a
+cobertura dos heaps de layout/biomas/seletores e metadados excluídos.
 Definir cobertura sem profiling antes da admissão obrigatória, limites
 processuais por hardware/configuração e reação à pressão.
 O inventário é parcial, não autorização para ampliar filas.

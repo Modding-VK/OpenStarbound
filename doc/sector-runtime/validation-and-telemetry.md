@@ -38,8 +38,15 @@ amplia para **136 testes**, dez grupos CTest e 21 casos novos repetidos 20 vezes
 (420 execuções adicionais). Inclui allocator/LRU reais, retenção thread-local
 e oito workers simultâneos com gates controlados e saldo final zero. Objetos
 reais de geração/template e sintaxe Tracy aprovados, sem linking completo.
-Teste de falha multi-elemento não valida a falha de inserção do vetor do pool:
-esse risco estático permanece explícito para a próxima reprodução/correção.
+Naquela etapa, teste de falha multi-elemento não validava a falha de inserção
+do vetor do pool; a reprodução/correção foi a próxima entrega.
+
+O [recorte de exceção do pool](../sector-runtime-h0-allocator-exception-2026-11-09.md)
+confirma o estado inválido com dois casos negativos antes da correção e passa
+**144 testes**, onze grupos CTest e oito casos novos repetidos 100 vezes
+(800 execuções adicionais), com ASan/UBSan. Injeta falha na fronteira interna
+de inserção, sem forçar OOM real ou dereferenciar o ponteiro inválido; após a
+correção exercita retry, aliases, valores vivos e uso do cache no próximo job.
 
 ## VAL-01 — Benchmark de streaming
 
