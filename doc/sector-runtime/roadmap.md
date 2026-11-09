@@ -146,11 +146,20 @@ até sua destruição. Um tracker local de quatro posições conserva os donos
 ambiental/enfileirado e o lifetime na transferência. São 23 casos novos,
 246 no total, 460 execuções adicionais e dezesseis grupos CTest, ASan/UBSan;
 432 candidatos nativos comparados com o caminho anterior. Ver
-[relatório vigente](../sector-runtime-h0-temporary-storage-2026-11-09.md).
+[relatório da etapa](../sector-runtime-h0-temporary-storage-2026-11-09.md).
 Modelos geral 6/temporários 1; demais fórmulas mantidas. RAM-01 segue em 25%:
 não é reserva inicial de todos os originais, teto hard profundo ou benchmark.
 
-Próximo trabalho executável: Json compartilhado/internals TileDamage e buckets/metadados do hash,
+RAM-01, containers em `730e36ba`: consulta const do vetor de buckets de nomes
+inclui vazios/sentinela/padding e substitui a parcela de objetos ocupados,
+sem duplicá-la. Fatores de dano acrescentam os pares ocupados, não o nó completo.
+Sem mudar layout/allocators/cópias/ordem; 20 casos novos, 266 no total, 400
+execuções adicionais e dezessete grupos CTest, ASan/UBSan. Ver
+[relatório vigente](../sector-runtime-h0-container-storage-2026-11-09.md).
+Modelos geral 7/distribuições 3/payloads 2/temporários 2. Json, overhead de
+nós/allocator e teto processual continuam pendentes; RAM-01/H0 seguem em 25%.
+
+Próximo trabalho executável: Json compartilhado e bookkeeping/allocator de nós,
 preservando fallback síncrono, ownership único e história de cópias. Estender
 o comparador ao fluxo de candidatos/IDs/prioridades e ao
 streaming real, usando o controle de colisões como gate antes de eliminar cópias.

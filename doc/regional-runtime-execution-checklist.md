@@ -39,7 +39,7 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[listas potenciais, cópia e scratch](sector-runtime-h0-temporary-storage-2026-11-09.md).
+[buckets de nomes e fatores de dano](sector-runtime-h0-container-storage-2026-11-09.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
 corrigido opt-in e VAL-01/02 têm harness sintético inicial, com 26 testes H0
@@ -79,9 +79,15 @@ RAM-01 permanece em 25%; próximo: originais de listas potenciais/scratch,
 Json/privados e buckets do hash. Não é teto hard ou ganho de jogo medido.
 `c4d7ddb3` acompanha originais de listas potenciais após construção, reserva
 previsão antes da cópia de validação e conserva scratch/capacidade até destruir.
-Validação atual: 246 testes, 460 execuções adicionais e dezesseis grupos CTest,
+Validação daquela etapa: 246 testes, 460 execuções adicionais e dezesseis grupos CTest,
 ASan/UBSan; modelo geral 6/temporários 1. RAM-01 segue em 25%; próximo:
 Json/TileDamage privados, buckets/metadados e envelope processual explícito.
+`730e36ba` acrescenta payload completo do vetor de buckets de nomes e pares
+ocupados dos fatores de dano sem mudar layout/allocators/cópias/geração.
+Validação atual: 266 testes, 400 execuções adicionais e dezessete grupos CTest,
+ASan/UBSan; modelos geral 7/distribuições 3/payloads 2/temporários 2.
+RAM-01/H0 seguem em 25%; próximo: Json compartilhado, bookkeeping/allocator
+dos nós e envelope de memória/pressão. Não é teto profundo ou ganho medido.
 Streaming real com assets/mods
 e executor de conclusões ainda pendentes.
 

@@ -2,7 +2,8 @@
 
 Atualização: 09/11/2026. Branch: `Experimental`. Runtime de partida:
 `7ca7ed2a`; recortes de H0: `d72b7239`, `2131ead3`, `5c3c4c8f`, `65bae55c`,
-`803d4cf7`, `739067b1`, `1bd348e6`, `34c76ea3`, `887149c0`, `cad311d1`, `25cecf95` e `c4d7ddb3`;
+`803d4cf7`, `739067b1`, `1bd348e6`, `34c76ea3`, `887149c0`, `cad311d1`, `25cecf95`,
+`c4d7ddb3` e `730e36ba`;
 documentação de arquitetura de partida: `8d3b0ade`.
 
 Este é o **programa principal de desenvolvimento**, adotado pelo usuário em
@@ -60,13 +61,19 @@ e até destruição física, sem alterar cópias/capacidade/seleção. Amplia st
 listas públicas dos seis variants, mantendo Json/privados opacos. São 223 testes,
 380 execuções adicionais e quinze grupos CTest com ASan/UBSan. Modelos geral 5,
 distribuições 2 e payloads 1; sem teto hard completo ou ganho real alegado.
-O [relatório vigente](../sector-runtime-h0-temporary-storage-2026-11-09.md),
+O [recorte dos temporários](../sector-runtime-h0-temporary-storage-2026-11-09.md),
 `c4d7ddb3`, acompanha listas potenciais, cópia de validação e scratch com um
 registro agregado por job. Adota originais após construir, reserva previsão
 antes da cópia e mantém capacidade/ownership nas transferências. São 246
 testes, 460 execuções adicionais e dezesseis grupos CTest com ASan/UBSan;
 modelo geral 6/temporários 1. Preserva seleção; Json/privados e teto completo
 continuam pendentes, sem ganho de jogo medido.
+O [relatório vigente](../sector-runtime-h0-container-storage-2026-11-09.md),
+`730e36ba`, inclui o vetor completo de buckets dos nomes e os pares ocupados
+dos fatores de dano, sem mudar representação, allocators, cópias ou geração.
+São 266 testes, 400 execuções adicionais e dezessete grupos CTest, ASan/UBSan.
+Modelos geral 7/distribuições 3/payloads 2/temporários 2; Json e overhead dos
+nós continuam parciais. RAM-01 permanece em 25%, sem ganho de setores/s medido.
 Orçamento processual completo, benchmark real e equivalência com assets
 continuam pendentes.
 Isso não implementa o executor, a nova WorldThread ou compute GPU.

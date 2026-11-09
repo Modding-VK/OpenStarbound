@@ -67,6 +67,15 @@ predicados e consultas de WorldTemplate não mudaram. O tracker deve sobreviver
 a seus escopos locais; operações não podem reter referências transferidas.
 Replay nativo e testes de falha/lifetime não aprovam todo o streaming com mods.
 
+O [recorte dos containers](../sector-runtime-h0-container-storage-2026-11-09.md)
+adiciona apenas consultas const de capacidade/quantidade. Não troca campos,
+allocators, representação std::map, construtores/cópias, ordem de hash,
+seleção ou serialização de produção. Os pares dos fatores não são tratados
+como o tamanho total dos nós. Testes verificam consulta sem hash/alocação/
+mudança de ordem e bytes do mapa de fatores preservados; não são validação
+completa de save, mods ou multiplayer. Json/overhead de nós permanecem excluídos,
+sem autorizar eliminação de cópias ou maior admissão.
+
 ## MOD-02 — Equivalência e versionamento
 
 Definir inputs que produzem um output: seed, template/layout, geração de

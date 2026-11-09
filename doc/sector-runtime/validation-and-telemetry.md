@@ -95,6 +95,17 @@ capacidade/ordem/IDs/escolhas. Modelo geral 6/temporários 1; adoção inicial
 não é reserva anterior aos originais. Quatro objetos reais e sintaxe Tracy
 de três fontes aprovados; sem linking completo ou benchmark integrado.
 
+O [recorte dos containers](../sector-runtime-h0-container-storage-2026-11-09.md)
+passa **266 testes**, dezessete grupos CTest e 20 novos repetidos vinte vezes
+(400 execuções adicionais), ASan/UBSan. O recorder de teste confronta pedidos
+do std::allocator com payload físico do vetor, incluindo vazios/sentinela e
+alinhamento 64; não altera allocators de produção. Cobre clear/cópia/move,
+normalização, ordem/hash/alocação inalterados ao consultar, fórmulas nativas,
+fatores/bytes do mapa e oito leitores. Modelos geral 7/distribuições 3/payloads 2/
+temporários 2; Json e overhead dos nós continuam opacos. Quatro objetos reais
+e sintaxe Tracy de quatro fontes aprovados; não é linking completo, TSan,
+prova integrada de save/mods ou ganho de jogo medido.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

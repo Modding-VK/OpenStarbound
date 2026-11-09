@@ -213,6 +213,13 @@ inicial, não conclusão do contrato de orçamento processual. Próximas ações
 CPU-01 conserva overflow da seed automática e auditoria de Perlin Uninitialized,
 sem alterar RNG nesta etapa. NPC externo suspenso e Linux Clang adiado.
 
+Continuação em `730e36ba`: o
+[recorte de containers](sector-runtime-h0-container-storage-2026-11-09.md)
+inclui buckets completos de nomes e pares ocupados dos fatores de dano,
+sem trocar layout/allocators/cópias. Json e overhead dos nós seguem fora;
+ver o novo relatório para modelos, testes e próximos passos vigentes.
+As fórmulas, resultados e manifesto acima/abaixo descrevem esta etapa histórica.
+
 ## Manifesto das fontes
 
 Fontes locais coletadas/conferidas em 09/11/2026, nomes relativos ao checkout,

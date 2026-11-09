@@ -66,7 +66,7 @@ grupos CTest com ASan/UBSan; modelos geral 5/distribuições 2/payloads 1.
 Sem teto profundo hard ou ganho real; RAM-01 segue em 25%. Próximo: listas
 potenciais/scratch, Json/TileDamage privados e buckets/metadados do hash,
 mantendo comparador e gates antes de ampliar admissão.
-O [recorte vigente](sector-runtime-h0-temporary-storage-2026-11-09.md), `c4d7ddb3`,
+O [recorte dos temporários](sector-runtime-h0-temporary-storage-2026-11-09.md), `c4d7ddb3`,
 acompanha listas potenciais, cópia por valor e scratch com quatro posições e
 um token agregado por job. Adota originais após construir, reserva previsão
 antes da cópia e preserva a transferência/growth. São 246 testes, 460 execuções
@@ -74,11 +74,18 @@ adicionais e dezesseis grupos CTest, ASan/UBSan; modelo geral 6/temporários 1.
 Sem ganho real ou teto completo; RAM-01 segue em 25%. Próximo: Json/TileDamage
 privados, buckets/metadados do hash e envelope de memória/pressão, mantendo
 baseline integrado e comparador antes de ampliar concorrência.
+O [relatório vigente](sector-runtime-h0-container-storage-2026-11-09.md), `730e36ba`,
+inclui buckets completos de nomes e pares ocupados dos fatores de dano,
+sem mudar layout/allocators/cópias/ordem/geração. São 266 testes, 400 execuções
+adicionais e dezessete grupos CTest, ASan/UBSan. Modelos geral 7/distribuições 3/
+payloads 2/temporários 2. RAM-01/H0 seguem em 25%; próximo: Json compartilhado,
+bookkeeping/allocator dos nós e envelope processual/pressão. Não é teto profundo
+completo nem ganho de setores/s medido; preservar os gates de equivalência.
 Achado de CPU-01: overflow assinado na seed automática de `StarRandom.cpp:197`,
 observado em execução estrita de sanitizers; RNG de produção permanece
 inalterado. A reprodução e a separação dos testes de hash com seeds privadas
 fixas estão no relatório de admissão; não considerar essa pendência resolvida.
-O relatório vigente também registra metadata escalar não inicializada na cópia
+A auditoria anterior também registra metadata escalar não inicializada na cópia
 herdada de Perlin `Uninitialized`; a consulta de bytes só lê ponteiros.
 Auditar antes de novos consumidores dessa metadata em CPU-01.
 Os demais componentes do novo executor continuam pendentes.

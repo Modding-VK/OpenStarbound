@@ -149,6 +149,12 @@ locais e release após destruição/transferência; modelo geral 6/temporários 
 Sem alteração de publicação, admissão ou APIs WorldTemplate; Json/privados e
 controle processual profundo continuam pendentes, sem ganho de jogo medido.
 
+O [recorte dos containers](sector-runtime-h0-container-storage-2026-11-09.md)
+inclui o vetor completo de buckets de nomes e pares ocupados dos fatores de
+dano, sem mudar representação/allocators/cópias/ordem. Modelos geral 7,
+distribuições 3, payloads/temporários 2. Json e overhead dos nós ficam fora;
+não amplia admissão, conclui teto processual ou demonstra ganho de throughput.
+
 ## Diagnóstico
 
 Com `explorationProfiling.enabled`, os contadores fixos são:
