@@ -48,6 +48,14 @@ confirma o estado inválido com dois casos negativos antes da correção e passa
 de inserção, sem forçar OOM real ou dereferenciar o ponteiro inválido; após a
 correção exercita retry, aliases, valores vivos e uso do cache no próximo job.
 
+O [recorte de buffers](../sector-runtime-h0-output-buffers-2026-11-09.md) passa
+**167 testes** e doze grupos CTest. São 23 casos novos repetidos 20 vezes
+(460 execuções adicionais), com ASan/UBSan: reserva anterior ao raw allocator,
+overalignment, realocação/rollback, propagação entre domínios/classes, abandono
+da promise, consumo sem cópia e seleção sintética equivalente. Modelo de
+estimativas 2 separa requests de buffers de heurísticas de heaps internos.
+Sem benchmark do jogo; menos cópia não é por si só um fator de aceleração medido.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

@@ -59,6 +59,14 @@ BlockAllocator (blocos, buckets e metadados de pool), atualizado no fim do job,
 não todo o grafo decodificado ou o pico durante rehash. Não muda cotas/política
 de cache; o custo adicional ainda precisa de benchmark.
 
+O [recorte dos buffers variáveis](../sector-runtime-h0-output-buffers-2026-11-09.md),
+`34c76ea3`, reserva cada pedido dos vetores de candidatos/planos antes de alocar,
+incluindo sobreposição em realocação e retenção até o último consumidor físico.
+Funciona sem profiling e nos dois caminhos. Pré-reserva dos descritores e
+consumo por handle da promise removem realocações de saída e cópia no commit.
+O modelo de estimativas passa a 2 para não cobrar novamente a capacidade do
+buffer; heaps internos de elementos continuam parcialmente fora.
+
 ### Inventário de ownership e cobertura atual
 
 | Produto/recurso | Dono e término da retenção | Contabilidade atual |
@@ -69,9 +77,11 @@ de cache; o custo adicional ainda precisa de benchmark.
 | Template serializado | `TemplateStoreCache` e handles capturados nos jobs, até último tracker | estimativa v1 por backing compartilhado entre handles rastreados; profiling regional |
 | Template privado/cache do worker | entrada de `WorldGenerationWorkerCache` thread-local, até substituição/saída da thread e último uso | objeto + storage solicitado da LRU, modelo próprio v1; sem profiling para cobrança; heaps de layout/biomas/seletores fora |
 | Revisões/distribuições no snapshot e pendências | snapshot assíncrono e registros pendentes, cada cópia com seu lifetime | v1 de representações/capacidades públicas; heaps internos, buckets vazios e caminho síncrono fora |
-| Descritores de planos e strings | promise/resultado assíncrono, até último token/consumo/descarte | v1 após construir output, incluindo capacidade e UTF-8; não reserva antes de crescer nem cobre pré-aquecimento |
+| Vetor intermediário de candidatos | planejamento síncrono/assíncrono, até retorno/unwind | pedido de buffer com header/padding, reservado antes de alocar; realocação mantém os dois buffers cobrados |
+| Vetor de descritores de planos | local síncrono ou payload da promise, até último handle físico | reserva fixa por pedido de buffer; pré-reserva pelo número elegível; sem cópia no consumo |
+| Strings/metadata do resultado assíncrono | token do resultado e referências retidas | estimativa v2 após construir, sem repetir capacidade dos descritores; SSO/heaps internos ainda não são orçamento hard |
 | Decode de tiles salvos | caminhos específicos de `WorldStorage` | fora deste recorte |
-| Tokens, control blocks e allocator | ledger/wrappers/containers | overhead geral fora; somente storage solicitado das famílias BlockAllocator da LRU entra na parcela privada |
+| Tokens, control blocks e allocator | ledger/wrappers/containers | overhead geral fora; entram requests da LRU e header/padding dos buffers rastreados, não control blocks externos |
 
 RAM-01 permanece aberto para o orçamento processual completo e os produtos
 restantes. Não ampliar admissão com base apenas nesta contabilidade parcial.
@@ -80,14 +90,15 @@ SSO pode superestimar; chaves/buckets/allocator omitidos podem subestimar.
 limitado a 32.768 valores; input inteiro é preservado ao truncar a estimativa.
 Json comum/assets/cache privado podem reter backing após o último tracker;
 saldo zero não prova liberação física global. Também faltam custos transitórios
-de construção de outputs e cobertura independente do profiling.
+dos heaps internos dos elementos e cobertura profunda independente do profiling.
 O cache privado pode persistir após mundo/inputs antigos saírem; sua contagem
 não desaparece junto com os trackers de Json. Atualização após job não é reserva
 antes de crescer. A falha de inserção do vetor do pool foi
 [reproduzida/corrigida](../sector-runtime-h0-allocator-exception-2026-11-09.md)
 em `1bd348e6`: seleção só é publicada após o vetor possuir o bloco, com retry
 e contabilidade preservados. Injeção de exceção não conclui ensaios de pressão
-real nem as reservas anteriores ao crescimento de outputs variáveis.
+real. As reservas anteriores ao crescimento agora cobrem os buffers, não todo
+o heap de seus elementos.
 
 ## RAM-02 — Camadas de cache e invalidação
 

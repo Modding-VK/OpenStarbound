@@ -171,3 +171,12 @@ Próximo trabalho executável, ainda em RAM-01/H0:
 O achado específico do pool está corrigido/validado nesse escopo. RAM-01
 completo, gates de H0, executor H1, nova WorldThread autoritativa e GPU
 continuam pendentes. Não ampliar filas com a contabilidade parcial atual.
+
+### Continuação posterior — `34c76ea3`
+
+O [relatório seguinte](sector-runtime-h0-output-buffers-2026-11-09.md) implementa
+reserva dos buffers variáveis antes da alocação, cobertura síncrona e consumo
+sem copiar os planos. O alvo passa a 167 testes e doze grupos CTest, com 23
+casos novos repetidos 20 vezes (460 execuções adicionais). Strings/heaps
+internos e orçamento global ainda estão incompletos. Este relatório conserva
+a evidência de `1bd348e6`; a retomada vigente está no seguinte.

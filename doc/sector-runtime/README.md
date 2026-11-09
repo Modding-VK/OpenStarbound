@@ -2,7 +2,7 @@
 
 Atualização: 09/11/2026. Branch: `Experimental`. Runtime de partida:
 `7ca7ed2a`; recortes de H0: `d72b7239`, `2131ead3`, `5c3c4c8f`, `65bae55c`,
-`803d4cf7`, `739067b1` e `1bd348e6`;
+`803d4cf7`, `739067b1`, `1bd348e6` e `34c76ea3`;
 documentação de arquitetura de partida: `8d3b0ade`.
 
 Este é o **programa principal de desenvolvimento**, adotado pelo usuário em
@@ -31,9 +31,13 @@ vinculadas ao profiling regional e separadas das reservas de arrays. O
 [recorte do cache privado](../sector-runtime-h0-worker-cache-2026-11-09.md), em
 `739067b1`, cobre o template privado/LRU retido por worker, com contagem básica
 independente do profiling; heaps de layout/biomas/seletores permanecem fora.
-O [relatório vigente](../sector-runtime-h0-allocator-exception-2026-11-09.md)
+O [recorte de exceção](../sector-runtime-h0-allocator-exception-2026-11-09.md)
 reproduz/corrige a seleção de bloco não possuído após exceção no pool, em
 `1bd348e6`, e registra os próximos passos de RAM-01.
+O [relatório vigente](../sector-runtime-h0-output-buffers-2026-11-09.md),
+`34c76ea3`, cobre reserva dos buffers variáveis antes de alocar, retenção física
+e consumo dos planos sem cópia, nos caminhos síncrono/assíncrono. Heaps
+aninhados e medição de ganho real ainda estão pendentes.
 Orçamento processual completo, benchmark real e equivalência com assets
 continuam pendentes.
 Isso não implementa o executor, a nova WorldThread ou compute GPU.

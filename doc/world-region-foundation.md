@@ -107,6 +107,12 @@ reproduz o estado inválido e corrige a publicação da seleção, validando ret
 e uso entre jobs. Não conclui pressão real, orçamento global ou equivalência
 com assets/mods.
 
+O [recorte dos buffers variáveis](sector-runtime-h0-output-buffers-2026-11-09.md)
+reserva os pedidos de candidatos/descritores antes de alocar, incluindo buffers
+simultâneos na realocação e retenção na promise. Cobre o caminho síncrono sem
+profiling e evita cópia no consumo pela dona. As estimativas passam a v2 sem
+duplicar capacidade; strings/heaps internos e teto global continuam parciais.
+
 Com workers desligados (`sectorWorkers: 0` no modo `legacy`), o registro não
 é criado: segue o caminho síncrono. Nos modos não legados, zero pode selecionar
 workers automaticamente; não interpretar o zero isolado como desativação.

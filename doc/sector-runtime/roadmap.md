@@ -91,12 +91,23 @@ reproduziu seleção fora dos blocos possuídos após exceção. A publicação 
 `unfilledBlock` agora ocorre depois da inserção bem-sucedida. Oito casos novos,
 144 no total, 800 execuções adicionais e onze grupos CTest passaram com
 ASan/UBSan, incluindo recuperação do pool no próximo job. Ver
-[relatório atual](../sector-runtime-h0-allocator-exception-2026-11-09.md).
+[relatório da etapa](../sector-runtime-h0-allocator-exception-2026-11-09.md).
 Isso não é ensaio de OOM real, ganho de throughput ou aumento de admissão.
 
-Próximo trabalho executável: reserva/crescimento de outputs variáveis e
-caminhos síncronos, falha/cancelamento e retenção física. Depois ampliar a
-cobertura dos heaps de layout/biomas/seletores e metadados excluídos.
+RAM-01, buffers variáveis em `34c76ea3`: pedidos dos vetores de candidatos e
+planos reservados antes do raw allocator, com sobreposição antigo/novo e
+retenção por alocação. Integra caminhos síncrono/assíncrono sem depender de
+profiling. Pré-reserva dos descritores e handle da promise eliminam crescimento
+durante construção e cópia no consumo pela dona; payload preparado é move-only.
+São 23 casos novos, 167 no total, 460 execuções adicionais e doze grupos CTest
+aprovados com ASan/UBSan. Ver
+[relatório atual](../sector-runtime-h0-output-buffers-2026-11-09.md).
+Modelo de estimativas 2 separa buffers reservados de heaps ainda aproximados.
+Não há teto novo ou ganho ponta a ponta medido.
+
+Próximo trabalho executável: heaps aninhados/temporários de nomes, distribuições
+e metadados excluídos, preservando fallback síncrono. Ampliar a cobertura dos
+heaps de layout/biomas/seletores e caches com ownership/storage únicos.
 Definir cobertura sem profiling antes da admissão obrigatória, limites
 processuais por hardware/configuração e reação à pressão.
 O inventário é parcial, não autorização para ampliar filas.
