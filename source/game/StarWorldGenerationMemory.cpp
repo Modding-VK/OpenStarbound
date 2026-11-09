@@ -1,8 +1,10 @@
 #include "StarWorldGenerationMemory.hpp"
+#include "StarWorldGenerationMemoryEnvelope.hpp"
 
 #include <algorithm>
 #include <map>
 #include <mutex>
+#include <stdexcept>
 
 namespace Star {
 namespace {
@@ -52,17 +54,37 @@ void releaseResource(WorldGenerationMemorySnapshot& usage, WorldGenerationMemory
 }
 
 struct WorldGenerationMemoryState {
-  explicit WorldGenerationMemoryState(size_t maximum) : maximumBytes(maximum) {}
+  explicit WorldGenerationMemoryState(size_t maximum, WorldGenerationMemoryPressureLimits limits = {})
+    : maximumBytes(maximum), pressure(limits) {
+    if (limits.enabled && (!(limits.resumeBytes < limits.softBytes && limits.softBytes < limits.hardBytes)
+        || limits.hardBytes > maximum)) throw std::invalid_argument("Invalid scoped generation memory limits");
+    usage.admission.enabled = limits.enabled;
+  }
   std::mutex mutex;
   size_t const maximumBytes;
   WorldGenerationMemorySnapshot usage;
   std::map<SharedKey, SharedEntry, SharedKeyLess> shared;
+  WorldGenerationMemoryPressurePolicy pressure;
+
+  // Caller holds mutex through this check AND the subsequent byte charge.
+  // Disabled ledgers avoid envelope scans and preserve legacy admission.
+  bool admit(size_t additionalBytes, WorldGenerationMemoryDemand demand) {
+    if (!usage.admission.enabled) return true;
+    auto observed = usage;
+    observed.sharedRegistryEntries = shared.size();
+    auto& admission = usage.admission;
+    admission.lastAdvice = pressure.evaluate(worldGenerationMemoryEnvelope(observed), demand, additionalBytes);
+    if (admission.pressureChecks != std::numeric_limits<size_t>::max()) ++admission.pressureChecks;
+    if (!admission.lastAdvice.allowRequest && admission.pressureRefusals != std::numeric_limits<size_t>::max())
+      ++admission.pressureRefusals;
+    return admission.lastAdvice.allowRequest;
+  }
 };
 
 WorldGenerationMemoryReservation::WorldGenerationMemoryReservation(
     std::shared_ptr<WorldGenerationMemoryState> state, WorldGenerationMemoryClass kind, size_t bytes,
-    std::shared_ptr<void const> owner)
-  : m_state(std::move(state)), m_kind(kind), m_bytes(bytes), m_shared(bool(owner)), m_owner(owner) {}
+    WorldGenerationMemoryDemand demand, std::shared_ptr<void const> owner)
+  : m_state(std::move(state)), m_kind(kind), m_bytes(bytes), m_demand(demand), m_shared(bool(owner)), m_owner(owner) {}
 
 WorldGenerationMemoryReservation::~WorldGenerationMemoryReservation() {
   if (!m_active)
@@ -82,6 +104,7 @@ bool WorldGenerationMemoryReservation::resizeEstimate(size_t bytes) {
   if (!m_active || m_shared || arrayClass(m_kind) || worldGenerationBufferClass(m_kind)) return false;
   std::lock_guard<std::mutex> lock(m_state->mutex);
   auto& usage = m_state->usage;
+  if (bytes > m_bytes && !m_state->admit(bytes - m_bytes, m_demand)) return false;
   if (bytes > m_bytes && bytes - m_bytes > m_state->maximumBytes - usage.reservedBytes) return false;
   if (bytes >= m_bytes) chargeBytes(usage, m_kind, bytes - m_bytes);
   else releaseBytes(usage, m_kind, m_bytes - bytes);
@@ -98,6 +121,15 @@ void WorldGenerationMemoryReservation::noteIncompleteEstimate() {
 WorldGenerationMemoryLedger::WorldGenerationMemoryLedger(size_t maximumBytes)
   : m_state(std::make_shared<WorldGenerationMemoryState>(maximumBytes)) {}
 
+WorldGenerationMemoryLedger::WorldGenerationMemoryLedger(size_t maximumBytes, WorldGenerationMemoryPressureLimits limits)
+  : m_state(std::make_shared<WorldGenerationMemoryState>(maximumBytes, limits)) {}
+
+WorldGenerationMemoryLedger WorldGenerationMemoryLedger::withDemand(WorldGenerationMemoryDemand demand) const {
+  if (demand != WorldGenerationMemoryDemand::Visible && demand != WorldGenerationMemoryDemand::Dependency
+      && demand != WorldGenerationMemoryDemand::Speculative) throw std::invalid_argument("Invalid generation memory demand");
+  return WorldGenerationMemoryLedger(m_state, demand);
+}
+
 std::shared_ptr<WorldGenerationMemoryReservation> WorldGenerationMemoryLedger::reserve(
     WorldGenerationMemoryClass kind, size_t bytes) {
   auto index = static_cast<size_t>(kind);
@@ -107,10 +139,11 @@ std::shared_ptr<WorldGenerationMemoryReservation> WorldGenerationMemoryLedger::r
   // Allocate an inactive token before locking. An allocation failure cannot
   // charge the ledger, and a refusal cannot deadlock in the token destructor.
   auto reservation = std::shared_ptr<WorldGenerationMemoryReservation>(
-      new WorldGenerationMemoryReservation(m_state, kind, bytes));
+      new WorldGenerationMemoryReservation(m_state, kind, bytes, m_demand));
   {
     std::lock_guard<std::mutex> lock(m_state->mutex);
     auto& usage = m_state->usage;
+    if (!m_state->admit(bytes, m_demand)) return {};
     if (bytes > m_state->maximumBytes - usage.reservedBytes
         || usage.resources == std::numeric_limits<size_t>::max())
       return {};
@@ -137,7 +170,7 @@ std::shared_ptr<WorldGenerationMemoryReservation> WorldGenerationMemoryLedger::r
   }
   if (existing) return existing->m_bytes == bytes ? existing : nullptr;
   auto reservation = std::shared_ptr<WorldGenerationMemoryReservation>(
-      new WorldGenerationMemoryReservation(m_state, kind, bytes, owner));
+      new WorldGenerationMemoryReservation(m_state, kind, bytes, m_demand, owner));
   {
     std::lock_guard<std::mutex> lock(m_state->mutex);
     SharedKey key{kind, owner};
@@ -149,6 +182,7 @@ std::shared_ptr<WorldGenerationMemoryReservation> WorldGenerationMemoryLedger::r
       m_state->shared.erase(entry);
     }
     auto& usage = m_state->usage;
+    if (!m_state->admit(bytes, m_demand)) return {};
     if (bytes > m_state->maximumBytes - usage.reservedBytes
         || usage.resources == std::numeric_limits<size_t>::max()) return {};
     // Insertion can allocate; charge only after it succeeds.

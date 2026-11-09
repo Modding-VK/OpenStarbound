@@ -1,5 +1,7 @@
 #pragma once
 
+#include "StarWorldGenerationMemoryPressure.hpp"
+
 #include <array>
 #include <cstddef>
 #include <limits>
@@ -46,6 +48,7 @@ struct WorldGenerationMemorySnapshot {
   size_t sharedResources = 0;
   size_t sharedRegistryEntries = 0;
   size_t incompleteEstimateUpdates = 0;
+  WorldGenerationMemoryAdmissionSnapshot admission;
   std::array<size_t, static_cast<size_t>(WorldGenerationMemoryClass::Count)> classBytes{};
   std::array<size_t, static_cast<size_t>(WorldGenerationMemoryClass::Count)> classResources{};
 };
@@ -65,11 +68,13 @@ public:
 private:
   friend class WorldGenerationMemoryLedger;
   WorldGenerationMemoryReservation(std::shared_ptr<WorldGenerationMemoryState> state,
-      WorldGenerationMemoryClass kind, size_t bytes, std::shared_ptr<void const> owner = {});
+      WorldGenerationMemoryClass kind, size_t bytes, WorldGenerationMemoryDemand demand,
+      std::shared_ptr<void const> owner = {});
 
   std::shared_ptr<WorldGenerationMemoryState> m_state;
   WorldGenerationMemoryClass m_kind;
   size_t m_bytes;
+  WorldGenerationMemoryDemand m_demand;
   bool m_active = false;
   bool m_shared = false;
   std::weak_ptr<void const> m_owner;
@@ -80,6 +85,10 @@ public:
   // The runtime singleton observes current usage without imposing a new cap.
   // A finite cap is available for isolated admission/lifecycle tests.
   explicit WorldGenerationMemoryLedger(size_t maximumBytes = std::numeric_limits<size_t>::max());
+  // Opt-in scoped admission, configured before publishing this ledger. The
+  // runtime singleton keeps the existing unlimited/disabled constructor.
+  WorldGenerationMemoryLedger(size_t maximumBytes, WorldGenerationMemoryPressureLimits limits);
+  WorldGenerationMemoryLedger withDemand(WorldGenerationMemoryDemand demand) const;
   std::shared_ptr<WorldGenerationMemoryReservation> reserve(WorldGenerationMemoryClass kind, size_t bytes);
   // Deduplicate immutable Json storage by ownership, not address/content.
   std::shared_ptr<WorldGenerationMemoryReservation> reserveSharedJson(
@@ -88,11 +97,12 @@ public:
 
 private:
   template <typename T> friend class WorldGenerationBufferAllocator;
-  explicit WorldGenerationMemoryLedger(std::shared_ptr<WorldGenerationMemoryState> state)
-    : m_state(std::move(state)) {}
+  WorldGenerationMemoryLedger(std::shared_ptr<WorldGenerationMemoryState> state, WorldGenerationMemoryDemand demand)
+    : m_state(std::move(state)), m_demand(demand) {}
   // Copies are views of the same ledger. Never replace a facade's state and
   // silently forget reservations still owned by outstanding resources.
   std::shared_ptr<WorldGenerationMemoryState> const m_state;
+  WorldGenerationMemoryDemand const m_demand = WorldGenerationMemoryDemand::Visible;
 };
 
 WorldGenerationMemoryLedger& worldGenerationMemoryLedger();

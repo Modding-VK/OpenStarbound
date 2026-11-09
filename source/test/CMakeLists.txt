@@ -120,6 +120,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_tasks_test.cpp
   world_generation_memory_test.cpp
   world_generation_memory_envelope_test.cpp
+  world_generation_memory_admission_test.cpp
   world_generation_estimate_test.cpp
   world_generation_worker_cache_test.cpp
   world_generation_buffer_test.cpp
@@ -148,6 +149,7 @@ FOREACH(world_region_test_suite
     WorldGenerationTasksTest
     WorldGenerationMemoryTest
     WorldGenerationMemoryEnvelopeTest
+    WorldGenerationMemoryAdmissionTest
     WorldGenerationEstimateTest
     WorldGenerationWorkerCacheTest
     WorldGenerationBufferTest

@@ -40,7 +40,7 @@ class WorldGenerationBufferAllocator {
   template <typename Allocate>
   T* allocateWith(size_t count, Allocate rawAllocate) {
     auto bytes = requestBytes(count);
-    WorldGenerationMemoryLedger view(m_state);
+    WorldGenerationMemoryLedger view(m_state, m_demand);
     auto memory = view.reserve(m_kind, bytes);
     if (!memory) throw std::bad_alloc();
     auto raw = static_cast<unsigned char*>(rawAllocate(bytes));
@@ -64,21 +64,21 @@ public:
   // access a process singleton on a worker's destruction path.
   WorldGenerationBufferAllocator() = delete;
   WorldGenerationBufferAllocator(WorldGenerationMemoryLedger const& ledger, WorldGenerationMemoryClass kind)
-    : m_state(ledger.m_state), m_kind(kind) { validate(kind); }
+    : m_state(ledger.m_state), m_kind(kind), m_demand(ledger.m_demand) { validate(kind); }
   WorldGenerationBufferAllocator(WorldGenerationBufferAllocator const&) = default;
   WorldGenerationBufferAllocator& operator=(WorldGenerationBufferAllocator const&) = default;
   // Preserve a usable allocator in moved-from containers as well.
   WorldGenerationBufferAllocator(WorldGenerationBufferAllocator&& other) noexcept
-    : m_state(other.m_state), m_kind(other.m_kind) {}
+    : m_state(other.m_state), m_kind(other.m_kind), m_demand(other.m_demand) {}
   WorldGenerationBufferAllocator& operator=(WorldGenerationBufferAllocator&& other) noexcept {
-    m_state = other.m_state; m_kind = other.m_kind; return *this;
+    m_state = other.m_state; m_kind = other.m_kind; m_demand = other.m_demand; return *this;
   }
   template <typename U>
   WorldGenerationBufferAllocator(WorldGenerationBufferAllocator<U> const& other) noexcept
-    : m_state(other.m_state), m_kind(other.m_kind) {}
+    : m_state(other.m_state), m_kind(other.m_kind), m_demand(other.m_demand) {}
   template <typename U>
   WorldGenerationBufferAllocator(WorldGenerationBufferAllocator<U> const& other, WorldGenerationMemoryClass kind)
-    : m_state(other.m_state), m_kind(kind) { validate(kind); }
+    : m_state(other.m_state), m_kind(kind), m_demand(other.m_demand) { validate(kind); }
 
   static constexpr size_t max_size() noexcept {
     return (std::numeric_limits<size_t>::max() - Prefix) / sizeof(T);
@@ -102,7 +102,7 @@ public:
   }
   template <typename U>
   bool operator==(WorldGenerationBufferAllocator<U> const& other) const noexcept {
-    return m_state == other.m_state && m_kind == other.m_kind;
+    return m_state == other.m_state && m_kind == other.m_kind && m_demand == other.m_demand;
   }
   template <typename U>
   bool operator!=(WorldGenerationBufferAllocator<U> const& other) const noexcept { return !(*this == other); }
@@ -110,6 +110,7 @@ public:
 private:
   std::shared_ptr<WorldGenerationMemoryState> m_state;
   WorldGenerationMemoryClass m_kind;
+  WorldGenerationMemoryDemand m_demand;
 };
 
 }

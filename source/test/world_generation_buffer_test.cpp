@@ -31,6 +31,7 @@ auto const Candidates = WorldGenerationMemoryClass::MicroDungeonCandidateBuffer;
 template <typename T> using Allocator = WorldGenerationBufferAllocator<T>;
 template <typename T> using Buffer = std::vector<T, Allocator<T>>;
 using Access = WorldGenerationBufferAllocatorTestAccess;
+using Demand = WorldGenerationMemoryDemand;
 
 struct CopyProbe {
   CopyProbe(WorldGenerationMemoryLedger& ledger, size_t& observed, unsigned& copies, bool& fail, unsigned value)
@@ -409,4 +410,100 @@ TEST(WorldGenerationBufferTest, BufferArrayAndEstimateTotalsRemainDisjoint) {
   EXPECT_EQ(usage.estimatedBytes, 16u);
   EXPECT_EQ(usage.reservedBytes, 48u + usage.reservedBufferBytes);
   allocator.deallocate(pointer, 8);
+}
+
+TEST(WorldGenerationMemoryAdmissionTest, ScopedAllocatorRefusalHappensBeforeCallingTheRawAllocator) {
+  auto soft = Allocator<unsigned>::requestBytes(4);
+  WorldGenerationMemoryLedger ledger(4096, {true, 0, soft, 4096});
+  auto spec = ledger.withDemand(Demand::Speculative); Allocator<unsigned> allocator(spec, Plans);
+  bool called = false;
+  EXPECT_THROW(Access::beforeAllocation(allocator, 8, [&](size_t) { called = true; }), std::bad_alloc);
+  EXPECT_FALSE(called); EXPECT_EQ(ledger.snapshot().reservedBytes, 0u);
+  EXPECT_EQ(ledger.snapshot().admission.pressureRefusals, 1u);
+}
+
+TEST(WorldGenerationMemoryAdmissionTest, RawAllocatorFailureRollsBackScopedAdmissionAndCanRetry) {
+  auto bytes = Allocator<unsigned>::requestBytes(8);
+  WorldGenerationMemoryLedger ledger(4096, {true, 0, bytes * 2, 4096});
+  auto spec = ledger.withDemand(Demand::Speculative); Allocator<unsigned> allocator(spec, Plans);
+  EXPECT_THROW(Access::beforeAllocation(allocator, 8, [](size_t) { throw std::bad_alloc(); }), std::bad_alloc);
+  EXPECT_EQ(ledger.snapshot().reservedBytes, 0u); EXPECT_EQ(ledger.snapshot().peakReservedBytes, bytes);
+  auto value = allocator.allocate(8); allocator.deallocate(value, 8);
+  EXPECT_EQ(ledger.snapshot().reservedBytes, 0u);
+}
+
+TEST(WorldGenerationMemoryAdmissionTest, RefusedReallocationRetainsOldCapacityAndAllowsDependencyHeadroom) {
+  auto overlap = Allocator<unsigned>::requestBytes(4) + Allocator<unsigned>::requestBytes(8);
+  WorldGenerationMemoryLedger ledger(overlap, {true, 0, overlap - 1, overlap});
+  auto spec = ledger.withDemand(Demand::Speculative), dependency = ledger.withDemand(Demand::Dependency);
+  Buffer<unsigned> values{Allocator<unsigned>(spec, Plans)};
+  values.reserve(4); values.assign(4, 7); auto old = ledger.snapshot().reservedBytes;
+  EXPECT_THROW(values.reserve(8), std::bad_alloc);
+  EXPECT_EQ(values.capacity(), 4u); EXPECT_EQ(values.size(), 4u); EXPECT_EQ(values[0], 7u);
+  EXPECT_EQ(ledger.snapshot().reservedBytes, old);
+  Allocator<unsigned> urgent(dependency, Plans); auto value = urgent.allocate(8);
+  EXPECT_EQ(ledger.snapshot().reservedBytes, old + Allocator<unsigned>::requestBytes(8));
+  urgent.deallocate(value, 8);
+}
+
+TEST(WorldGenerationMemoryAdmissionTest, DependencyReallocationChargesOldAndNewBuffersDuringElementCopies) {
+  auto old = Allocator<CopyProbe>::requestBytes(1), next = Allocator<CopyProbe>::requestBytes(2);
+  WorldGenerationMemoryLedger ledger(old + next, {true, 0, old, old + next});
+  auto dependency = ledger.withDemand(Demand::Dependency);
+  size_t observed = 0; unsigned copies = 0; bool fail = false;
+  {
+    Buffer<CopyProbe> values{Allocator<CopyProbe>(dependency, Candidates)};
+    values.reserve(1); values.emplace_back(ledger, observed, copies, fail, 7);
+    values.reserve(2);
+    EXPECT_EQ(observed, old + next); EXPECT_EQ(ledger.snapshot().reservedBytes, next);
+    EXPECT_EQ(ledger.snapshot().peakReservedBytes, old + next); EXPECT_EQ(values[0].value, 7u);
+  }
+  EXPECT_EQ(ledger.snapshot().reservedBytes, 0u);
+}
+
+TEST(WorldGenerationMemoryAdmissionTest, ThrowingElementCopyRollsBackNewBufferWithoutDroppingOldReservation) {
+  auto old = Allocator<CopyProbe>::requestBytes(1), next = Allocator<CopyProbe>::requestBytes(2);
+  WorldGenerationMemoryLedger ledger(old + next, {true, 0, old, old + next});
+  auto dependency = ledger.withDemand(Demand::Dependency);
+  size_t observed = 0; unsigned copies = 0; bool fail = false;
+  Buffer<CopyProbe> values{Allocator<CopyProbe>(dependency, Candidates)};
+  values.reserve(1); values.emplace_back(ledger, observed, copies, fail, 7);
+  fail = true; EXPECT_THROW(values.reserve(2), std::runtime_error);
+  EXPECT_EQ(observed, old + next); EXPECT_EQ(ledger.snapshot().reservedBytes, old);
+  EXPECT_EQ(values.capacity(), 1u); EXPECT_EQ(values[0].value, 7u);
+  fail = false; EXPECT_NO_THROW(values.reserve(2));
+  EXPECT_EQ(ledger.snapshot().reservedBytes, next);
+}
+
+TEST(WorldGenerationMemoryAdmissionTest, AllocatorCopyMoveRebindAndAssignmentPreserveDemand) {
+  WorldGenerationMemoryLedger ledger(4096, {true, 0, 64, 4096});
+  auto spec = ledger.withDemand(Demand::Speculative), dependency = ledger.withDemand(Demand::Dependency);
+  Allocator<unsigned> original(spec, Plans), copy(original), moved(std::move(copy)), assigned(dependency, Plans);
+  Allocator<char> rebound(moved, Candidates);
+  EXPECT_EQ(original, moved); EXPECT_NE(original, assigned);
+  assigned = std::move(moved);
+  EXPECT_THROW(original.allocate(128), std::bad_alloc);
+  EXPECT_THROW(copy.allocate(128), std::bad_alloc); // Moved-from allocator is still scoped.
+  EXPECT_THROW(assigned.allocate(128), std::bad_alloc);
+  EXPECT_THROW(rebound.allocate(128), std::bad_alloc);
+  EXPECT_EQ(ledger.snapshot().reservedBytes, 0u);
+}
+
+TEST(WorldGenerationMemoryAdmissionTest, VectorMovePropagationDoesNotTurnSpeculationIntoUrgentAllocation) {
+  WorldGenerationMemoryLedger ledger(4096, {true, 0, 64, 4096});
+  auto spec = ledger.withDemand(Demand::Speculative), dependency = ledger.withDemand(Demand::Dependency);
+  Buffer<unsigned> first{Allocator<unsigned>(spec, Plans)}, second{Allocator<unsigned>(dependency, Plans)};
+  first.reserve(4); first.assign(4, 7); second = std::move(first);
+  EXPECT_EQ(second.get_allocator(), Allocator<unsigned>(spec, Plans));
+  EXPECT_THROW(second.reserve(128), std::bad_alloc); EXPECT_EQ(second[0], 7u);
+}
+
+TEST(WorldGenerationMemoryAdmissionTest, ScopedRequestIsChargedBeforePhysicalDependencyAllocation) {
+  WorldGenerationMemoryLedger ledger(4096, {true, 0, 32, 4096});
+  auto dependency = ledger.withDemand(Demand::Dependency); Allocator<unsigned> allocator(dependency, Plans);
+  auto value = Access::beforeAllocation(allocator, 8, [&](size_t bytes) {
+    EXPECT_EQ(ledger.snapshot().reservedBytes, bytes);
+    EXPECT_TRUE(ledger.snapshot().admission.lastAdvice.allowRequest);
+  });
+  allocator.deallocate(value, 8); EXPECT_EQ(ledger.snapshot().reservedBytes, 0u);
 }
