@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <utility>
 
 namespace Star {
@@ -55,6 +56,11 @@ struct WorldGenerationMemorySnapshot {
 
 struct WorldGenerationMemoryState;
 
+struct WorldGenerationMemoryRequest {
+  WorldGenerationMemoryClass kind;
+  size_t bytes;
+};
+
 // Share this token only with references to the same physical resource/group.
 // It owns the ledger state, not a world, task, worker or live-world callback.
 class WorldGenerationMemoryReservation {
@@ -90,6 +96,18 @@ public:
   WorldGenerationMemoryLedger(size_t maximumBytes, WorldGenerationMemoryPressureLimits limits);
   WorldGenerationMemoryLedger withDemand(WorldGenerationMemoryDemand demand) const;
   std::shared_ptr<WorldGenerationMemoryReservation> reserve(WorldGenerationMemoryClass kind, size_t bytes);
+  // One check/charge for every part, or none. Parts describe distinct physical
+  // resources (input reused as output is one part), not subsequent allocations
+  // which would reserve again. Shared Json owners use reserveSharedJson instead.
+  // The fixed-size result adds no intermediate vector allocation. Each token
+  // can be moved to its physical owner and releases independently thereafter.
+  template <size_t N>
+  std::optional<std::array<std::shared_ptr<WorldGenerationMemoryReservation>, N>> reserveBatch(
+      std::array<WorldGenerationMemoryRequest, N> const& requests) {
+    std::array<std::shared_ptr<WorldGenerationMemoryReservation>, N> reservations{};
+    if (!reserveBatch(requests.data(), reservations.data(), N)) return {};
+    return {std::move(reservations)};
+  }
   // Deduplicate immutable Json storage by ownership, not address/content.
   std::shared_ptr<WorldGenerationMemoryReservation> reserveSharedJson(
       std::shared_ptr<void const> const& owner, size_t bytes);
@@ -97,6 +115,13 @@ public:
 
 private:
   template <typename T> friend class WorldGenerationBufferAllocator;
+  template <typename Source, typename Payload> friend class WorldGenerationWorkerCache;
+  bool reserveBatch(WorldGenerationMemoryRequest const* requests,
+      std::shared_ptr<WorldGenerationMemoryReservation>* reservations, size_t count);
+  bool matches(std::shared_ptr<WorldGenerationMemoryReservation> const& reservation,
+      WorldGenerationMemoryClass kind, size_t bytes) const;
+  bool owns(std::shared_ptr<WorldGenerationMemoryReservation> const& reservation,
+      WorldGenerationMemoryClass kind) const noexcept;
   WorldGenerationMemoryLedger(std::shared_ptr<WorldGenerationMemoryState> state, WorldGenerationMemoryDemand demand)
     : m_state(std::move(state)), m_demand(demand) {}
   // Copies are views of the same ledger. Never replace a facade's state and

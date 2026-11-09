@@ -155,6 +155,52 @@ std::shared_ptr<WorldGenerationMemoryReservation> WorldGenerationMemoryLedger::r
   return reservation;
 }
 
+bool WorldGenerationMemoryLedger::reserveBatch(WorldGenerationMemoryRequest const* requests,
+    std::shared_ptr<WorldGenerationMemoryReservation>* reservations, size_t count) {
+  size_t bytes = 0;
+  for (size_t i = 0; i < count; ++i) {
+    auto const& request = requests[i];
+    if (static_cast<size_t>(request.kind) >= static_cast<size_t>(WorldGenerationMemoryClass::Count)
+        || request.kind == WorldGenerationMemoryClass::TemplateJsonEstimate
+        || request.bytes > std::numeric_limits<size_t>::max() - bytes) return false;
+    bytes += request.bytes;
+  }
+  // All potentially throwing allocations precede admission and charging.
+  // These tokens stay inactive until every part fits under the same lock.
+  for (size_t i = 0; i < count; ++i)
+    reservations[i] = std::shared_ptr<WorldGenerationMemoryReservation>(
+        new WorldGenerationMemoryReservation(m_state, requests[i].kind, requests[i].bytes, m_demand));
+  if (!count) return true;
+  std::lock_guard<std::mutex> lock(m_state->mutex);
+  auto& usage = m_state->usage;
+  if (!m_state->admit(bytes, m_demand)
+      || bytes > m_state->maximumBytes - usage.reservedBytes
+      || count > std::numeric_limits<size_t>::max() - usage.resources) return false;
+  // Total bytes/resources bound every class sum, including duplicate classes.
+  // No allocation, callback or throwing operation may occur in this loop.
+  for (size_t i = 0; i < count; ++i) {
+    chargeBytes(usage, requests[i].kind, requests[i].bytes);
+    ++usage.resources;
+    ++usage.classResources[static_cast<size_t>(requests[i].kind)];
+    reservations[i]->m_active = true;
+  }
+  return true;
+}
+
+bool WorldGenerationMemoryLedger::matches(std::shared_ptr<WorldGenerationMemoryReservation> const& reservation,
+    WorldGenerationMemoryClass kind, size_t bytes) const {
+  if (!owns(reservation, kind)) return false;
+  std::lock_guard<std::mutex> lock(m_state->mutex);
+  return reservation->m_active && reservation->m_bytes == bytes;
+}
+
+bool WorldGenerationMemoryLedger::owns(std::shared_ptr<WorldGenerationMemoryReservation> const& reservation,
+    WorldGenerationMemoryClass kind) const noexcept {
+  // These fields never change after token construction; no envelope scan/lock.
+  return reservation && reservation->m_state == m_state && !reservation->m_shared
+      && reservation->m_kind == kind && reservation->m_demand == m_demand;
+}
+
 std::shared_ptr<WorldGenerationMemoryReservation> WorldGenerationMemoryLedger::reserveSharedJson(
     std::shared_ptr<void const> const& owner, size_t bytes) {
   if (!owner) return {};

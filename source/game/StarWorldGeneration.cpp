@@ -135,11 +135,13 @@ void prepareBaseTileArray(WorldTemplatePtr const& planet, MaterialDatabaseConstP
 
 auto workerWorldTemplate(WorldTemplatePtr const& sourceTemplate,
     uint64_t sourceRevision, WorldGenerationJsonSnapshotPtr const& templateStore,
-    WorldGenerationMemoryLedger& ledger) {
+    WorldGenerationMemoryLedger& ledger, std::shared_ptr<WorldGenerationMemoryReservation> preparedMemory = {}) {
   static thread_local WorldGenerationWorkerCache<WorldTemplate, WorldTemplate> cache;
-  auto use = cache.get(sourceTemplate, sourceRevision, ledger, sizeof(WorldTemplate),
-      +[](WorldTemplate const& value) { return value.generationCacheStorageBytes(); },
-      [&] { return make_shared<WorldTemplate>(templateStore->value); });
+  auto measure = +[](WorldTemplate const& value) { return value.generationCacheStorageBytes(); };
+  auto produce = [&] { return make_shared<WorldTemplate>(templateStore->value); };
+  auto use = preparedMemory
+      ? cache.getReserved(sourceTemplate, sourceRevision, ledger, sizeof(WorldTemplate), std::move(preparedMemory), measure, produce)
+      : cache.get(sourceTemplate, sourceRevision, ledger, sizeof(WorldTemplate), measure, produce);
   if (!use) throw StarException("Could not track worker template storage");
   return use;
 }
@@ -1483,14 +1485,19 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
   // preparation destroys its copies before reclaiming the unsubmitted bytes.
   auto sourceTiles = static_cast<ServerTileSectorArray const&>(*tileArray).sectorArray(sector);
   auto sourceTileRevision = tileArray->sectorRevision(sector);
-  auto tilesHolder = makeWorldGenerationTrackedResource<ServerTileSectorArray::ArrayPtr>(
-      worldGenerationMemoryLedger(), WorldGenerationMemoryClass::BaseTilesArray,
-      sizeof(ServerTileSectorArray::Array));
-  if (!tilesHolder) {
+  // BaseTiles mutates its private input in place and returns that same array.
+  // Reserve it once, together with a potential worker-template replacement,
+  // before copying anything. Old worker cache entries remain charged as overlap.
+  auto memoryLedger = worldGenerationMemoryLedger().withDemand(WorldGenerationMemoryDemand::Visible);
+  auto memory = memoryLedger.reserveBatch(std::array<WorldGenerationMemoryRequest, 2>{{
+      {WorldGenerationMemoryClass::BaseTilesArray, sizeof(ServerTileSectorArray::Array)},
+      {WorldGenerationMemoryClass::WorkerTemplateEstimate, sizeof(WorldTemplate)}}});
+  if (!memory) {
     if (profile)
       profile->count("generation.memory.process.admissionDeferred");
     return {false, {}};
   }
+  auto tilesHolder = std::make_shared<WorldGenerationTrackedResource<ServerTileSectorArray::ArrayPtr>>(std::move((*memory)[0]));
   tilesHolder->value = tileArray->copySector(sector);
   starAssert(sourceTiles);
   if (!tilesHolder->value)
@@ -1514,7 +1521,7 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
       tileArray->beginRevisionTracking(sector);
     auto promise = workerPool.addProducer<PreparedBaseTiles>(
       [task, planet, templateRevision, templateStore, materialDatabase, sectorRegion, tilesHolder, scheduledAt,
-          memoryLedger = worldGenerationMemoryLedger()]() mutable {
+          memoryLedger, workerMemory = std::move((*memory)[1])]() mutable {
         if (!task->start())
           throw StarException("Generation task started more than once");
         try {
@@ -1523,7 +1530,7 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
           // Invalidation keeps the reservation until this producer exits. A
           // queued task unloaded in the meantime need not calculate terrain.
           if (task->valid()) {
-            auto workerPlanet = workerWorldTemplate(planet, templateRevision, templateStore, memoryLedger);
+            auto workerPlanet = workerWorldTemplate(planet, templateRevision, templateStore, memoryLedger, std::move(workerMemory));
             prepareBaseTileArray(workerPlanet.value(), materialDatabase, sectorRegion, *tilesHolder->value);
           }
           double completedAt = Time::monotonicTime();

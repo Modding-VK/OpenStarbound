@@ -59,8 +59,30 @@ public:
   Use get(std::shared_ptr<Source> const& source, uint64_t revision,
       WorldGenerationMemoryLedger& ledger, size_t initialBytes,
       size_t (*measure)(Payload const&), Producer producer) {
-    if (!m_entry || m_source.lock() != source || m_revision != revision) {
-      auto memory = ledger.reserve(WorldGenerationMemoryClass::WorkerTemplateEstimate, initialBytes);
+    return getImpl(source, revision, ledger, measure, producer, [&] {
+      return ledger.reserve(WorldGenerationMemoryClass::WorkerTemplateEstimate, initialBytes);
+    });
+  }
+
+  // Consume a pre-dispatch reservation, without a second admission on a miss.
+  // A cache hit releases the unused part; replacement keeps the old entry
+  // charged until its physical owners disappear. Reject unrelated tokens.
+  template <typename Producer>
+  Use getReserved(std::shared_ptr<Source> const& source, uint64_t revision,
+      WorldGenerationMemoryLedger& ledger, size_t initialBytes,
+      std::shared_ptr<WorldGenerationMemoryReservation> memory,
+      size_t (*measure)(Payload const&), Producer producer) {
+    if (!ledger.matches(memory, WorldGenerationMemoryClass::WorkerTemplateEstimate, initialBytes)) return Use({});
+    return getImpl(source, revision, ledger, measure, producer, [&] { return std::move(memory); });
+  }
+
+private:
+  template <typename Producer, typename Reserve>
+  Use getImpl(std::shared_ptr<Source> const& source, uint64_t revision,
+      WorldGenerationMemoryLedger& ledger, size_t (*measure)(Payload const&), Producer& producer, Reserve reserve) {
+    if (!m_entry || m_source.lock() != source || m_revision != revision
+        || !ledger.owns(m_entry->memory, WorldGenerationMemoryClass::WorkerTemplateEstimate)) {
+      auto memory = reserve();
       if (!memory) return Use({});
       auto next = std::make_shared<Entry>();
       next->memory = std::move(memory);
@@ -75,7 +97,6 @@ public:
     return Use(m_entry);
   }
 
-private:
   std::weak_ptr<Source> m_source;
   uint64_t m_revision = 0;
   std::shared_ptr<Entry> m_entry;
