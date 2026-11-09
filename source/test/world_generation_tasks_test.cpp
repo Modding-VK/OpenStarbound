@@ -1,6 +1,7 @@
 #include "StarWorldGenerationTasks.hpp"
 
 #include <limits>
+#include <stdexcept>
 #include <thread>
 
 #include "gtest/gtest.h"
@@ -240,4 +241,164 @@ TEST(WorldGenerationTasksTest, StateTransitionsHaveSingleWinner) {
   d.join();
   EXPECT_EQ(finished.load(), 1u);
   EXPECT_TRUE(tasks.retire(task, WorldGenerationTaskOutcome::Committed));
+}
+
+TEST(WorldGenerationTasksTest, PreparationReservesBeforeCopyAndRollsBackOnReturn) {
+  WorldGenerationTasks tasks(1, partition(), 1, 1024);
+  shared_ptr<WorldGenerationTask> task;
+  {
+    WorldGenerationTaskPreparation preparation(tasks, {0, 0}, BaseTiles, 1024);
+    task = preparation.task();
+    ASSERT_TRUE(task);
+    // This is the boundary at which production may first copy its snapshot.
+    EXPECT_EQ(tasks.reservedBytes(), 1024u);
+    EXPECT_FALSE(tasks.reserve({1, 0}, BaseTiles, 1));
+  }
+  EXPECT_EQ(tasks.reservedBytes(), 0u);
+  EXPECT_EQ(tasks.size(), 0u);
+  EXPECT_EQ(task->state(), WorldGenerationTaskState::Failed);
+  EXPECT_FALSE(task->valid());
+  EXPECT_TRUE(tasks.reserve({0, 0}, BaseTiles, 1024));
+}
+
+TEST(WorldGenerationTasksTest, DeniedPreparationDoesNotCopyOrLeak) {
+  WorldGenerationTasks tasks(1, partition(), 3, 1024);
+  auto first = tasks.reserve({0, 0}, BaseTiles, 1024);
+  ASSERT_TRUE(first);
+  unsigned copies = 0;
+  {
+    WorldGenerationTaskPreparation preparation(tasks, {1, 0}, WorldGenerationTaskStage::MicroDungeonPlan, 1024);
+    if (preparation.task())
+      ++copies;
+  }
+  EXPECT_EQ(copies, 0u);
+  EXPECT_EQ(tasks.reservedBytes(), 1024u);
+  EXPECT_TRUE(tasks.contains(first));
+}
+
+TEST(WorldGenerationTasksTest, PartialSnapshotFailureFreesPayloadBeforeReservation) {
+  WorldGenerationTasks tasks(1, partition(), 1, 1024);
+  struct PartialSnapshot {
+    WorldGenerationTasks& tasks;
+    ~PartialSnapshot() { EXPECT_EQ(tasks.reservedBytes(), 1024u); }
+  };
+  EXPECT_THROW({
+    WorldGenerationTaskPreparation preparation(tasks, {0, 0}, BaseTiles, 1024);
+    ASSERT_TRUE(preparation.task());
+    PartialSnapshot partial{tasks};
+    throw std::runtime_error("controlled snapshot failure");
+  }, std::runtime_error);
+  EXPECT_EQ(tasks.reservedBytes(), 0u);
+  EXPECT_EQ(tasks.size(), 0u);
+}
+
+TEST(WorldGenerationTasksTest, SubmissionFailureReleasesUnsubmittedReservation) {
+  WorldGenerationTasks tasks(1, partition(), 1, 1024);
+  EXPECT_THROW({
+    WorldGenerationTaskPreparation preparation(tasks, {0, 0}, BaseTiles, 1024);
+    ASSERT_TRUE(preparation.task());
+    // A pool refusal throws before accepting/owning the producer.
+    throw std::runtime_error("controlled submission failure");
+  }, std::runtime_error);
+  EXPECT_EQ(tasks.reservedBytes(), 0u);
+  EXPECT_TRUE(tasks.reserve({0, 0}, BaseTiles, 1024));
+}
+
+TEST(WorldGenerationTasksTest, HandoffRetainsBytesThroughCancellationUntilDrain) {
+  WorldGenerationTasks tasks(1, partition(), 1, 1024);
+  shared_ptr<WorldGenerationTask> task;
+  {
+    WorldGenerationTaskPreparation preparation(tasks, {0, 0}, BaseTiles, 1024);
+    task = preparation.task();
+    ASSERT_TRUE(task);
+    preparation.handoff();
+    EXPECT_FALSE(preparation.task());
+  }
+  EXPECT_TRUE(tasks.contains(task));
+  EXPECT_EQ(tasks.reservedBytes(), 1024u);
+  task->invalidate();
+  EXPECT_FALSE(tasks.retire(task, WorldGenerationTaskOutcome::Cancelled));
+  EXPECT_TRUE(task->start());
+  EXPECT_FALSE(tasks.retire(task, WorldGenerationTaskOutcome::Cancelled));
+  EXPECT_EQ(tasks.reservedBytes(), 1024u);
+  EXPECT_TRUE(task->ready());
+  EXPECT_TRUE(tasks.retire(task, WorldGenerationTaskOutcome::Cancelled));
+  EXPECT_EQ(tasks.reservedBytes(), 0u);
+}
+
+TEST(WorldGenerationTasksTest, HandoffRetainsReadyPayloadUntilCommit) {
+  WorldGenerationTasks tasks(1, partition(), 1, 1024);
+  shared_ptr<WorldGenerationTask> task;
+  {
+    WorldGenerationTaskPreparation preparation(tasks, {0, 0}, BaseTiles, 1024);
+    task = preparation.task();
+    ASSERT_TRUE(task);
+    ASSERT_TRUE(task->start());
+    ASSERT_TRUE(task->ready());
+    preparation.handoff();
+  }
+  EXPECT_EQ(tasks.reservedBytes(), 1024u);
+  EXPECT_FALSE(tasks.reserve({1, 0}, BaseTiles, 1));
+  EXPECT_TRUE(tasks.retire(task, WorldGenerationTaskOutcome::Committed));
+  EXPECT_EQ(tasks.reservedBytes(), 0u);
+}
+
+TEST(WorldGenerationTasksTest, HandoffFailureRetainsBytesUntilFailedDrain) {
+  WorldGenerationTasks tasks(1, partition(), 1, 1024);
+  shared_ptr<WorldGenerationTask> task;
+  {
+    WorldGenerationTaskPreparation preparation(tasks, {0, 0}, BaseTiles, 1024);
+    task = preparation.task();
+    ASSERT_TRUE(task);
+    preparation.handoff();
+    ASSERT_TRUE(task->start());
+    ASSERT_TRUE(task->fail());
+  }
+  EXPECT_EQ(tasks.reservedBytes(), 1024u);
+  EXPECT_FALSE(tasks.reserve({1, 0}, BaseTiles, 1));
+  EXPECT_TRUE(tasks.retire(task, WorldGenerationTaskOutcome::Failed));
+  EXPECT_EQ(tasks.reservedBytes(), 0u);
+}
+
+TEST(WorldGenerationTasksTest, PreparationGuardDoesNotRetireAnActiveProducer) {
+  WorldGenerationTasks tasks(1, partition(), 1, 1024);
+  shared_ptr<WorldGenerationTask> task;
+  {
+    WorldGenerationTaskPreparation preparation(tasks, {0, 0}, BaseTiles, 1024);
+    task = preparation.task();
+    ASSERT_TRUE(task);
+    ASSERT_TRUE(task->start());
+    // Defensive case: even a missing handoff must not reclaim Running bytes.
+  }
+  EXPECT_TRUE(tasks.contains(task));
+  EXPECT_EQ(tasks.reservedBytes(), 1024u);
+  EXPECT_TRUE(task->ready());
+  EXPECT_TRUE(tasks.retire(task, WorldGenerationTaskOutcome::Committed));
+}
+
+TEST(WorldGenerationTasksTest, RetiredPreparationCannotAffectItsReplacement) {
+  WorldGenerationTasks tasks(1, partition(), 1, 1024);
+  shared_ptr<WorldGenerationTask> replacement;
+  {
+    WorldGenerationTaskPreparation preparation(tasks, {0, 0}, BaseTiles, 1024);
+    auto original = preparation.task();
+    ASSERT_TRUE(original);
+    ASSERT_TRUE(original->fail());
+    ASSERT_TRUE(tasks.retire(original, WorldGenerationTaskOutcome::Failed));
+    replacement = tasks.reserve({0, 0}, BaseTiles, 1024);
+    ASSERT_TRUE(replacement);
+  }
+  EXPECT_TRUE(tasks.contains(replacement));
+  EXPECT_EQ(tasks.reservedBytes(), 1024u);
+}
+
+TEST(WorldGenerationTasksTest, SnapshotByteProductsRejectOverflow) {
+  auto max = std::numeric_limits<size_t>::max();
+  ASSERT_TRUE(worldGenerationSnapshotBytes(9, 1024));
+  EXPECT_EQ(*worldGenerationSnapshotBytes(9, 1024), 9216u);
+  EXPECT_FALSE(worldGenerationSnapshotBytes(max, 2));
+  EXPECT_FALSE(worldGenerationSnapshotBytes(max / 9 + 1, 9));
+  EXPECT_EQ(*worldGenerationSnapshotBytes(max, 1), max);
+  EXPECT_EQ(*worldGenerationSnapshotBytes(0, max), 0u);
+  EXPECT_EQ(*worldGenerationSnapshotBytes(max, 0), 0u);
 }

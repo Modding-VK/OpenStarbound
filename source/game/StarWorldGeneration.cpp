@@ -31,6 +31,7 @@
 #include "StarXXHash.hpp"
 
 #include <thread>
+#include <type_traits>
 
 namespace Star {
 
@@ -1307,11 +1308,34 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
     return {false, {}};
   }
 
+  auto maximumBytes = worldGenerationSnapshotBytes(pendingLimit,
+      9 * WorldSectorSize * WorldSectorSize * sizeof(ServerTile));
+  if (!maximumBytes)
+    return {false, {}};
+  if (!m_generationTasks) {
+    m_generationTasks = make_unique<WorldGenerationTasks>(m_worldServer->instanceEpoch(),
+        WorldRegionPartition(WorldGeometry(tileArray->size())), pendingLimit, *maximumBytes);
+  }
+  WorldGenerationTaskPreparation preparation(*m_generationTasks, Vec2U(sector),
+      WorldGenerationTaskStage::BaseTiles, sizeof(ServerTileSectorArray::Array));
+  auto task = preparation.task();
+  if (!task) {
+    if (profile)
+      profile->count("generation.tasks.admissionDeferred");
+    return {false, {}};
+  }
+  if (profile) {
+    profile->count("generation.tasks.reserved");
+    profile->recordGenerationTask(task->identity, "reserved", task->reservedBytes);
+  }
+  // The reservation outlives every private input declared below, so failed
+  // preparation destroys its copies before reclaiming the unsubmitted bytes.
   auto sourceTiles = static_cast<ServerTileSectorArray const&>(*tileArray).sectorArray(sector);
   auto sourceTileRevision = tileArray->sectorRevision(sector);
   auto tiles = tileArray->copySector(sector);
   starAssert(sourceTiles);
-  starAssert(tiles);
+  if (!tiles)
+    return {false, {}};
   auto tilesHolder = make_shared<ServerTileSectorArray::ArrayPtr>(std::move(tiles));
   auto sectorRegion = tileArray->sectorRegion(sector);
   auto planet = m_worldServer->worldTemplate();
@@ -1324,25 +1348,15 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
   auto templateStore = m_baseTileTemplateStore;
   auto materialDatabase = Root::singleton().materialDatabase();
   double scheduledAt = profile ? Time::monotonicTime() : now;
-  if (!m_generationTasks) {
-    m_generationTasks = make_unique<WorldGenerationTasks>(m_worldServer->instanceEpoch(),
-        WorldRegionPartition(WorldGeometry(tileArray->size())), pendingLimit,
-        pendingLimit * 9 * WorldSectorSize * WorldSectorSize * sizeof(ServerTile));
-  }
-  auto task = m_generationTasks->reserve(Vec2U(sector), WorldGenerationTaskStage::BaseTiles,
-      sizeof(ServerTileSectorArray::Array));
-  if (!task) {
-    if (profile)
-      profile->count("generation.tasks.admissionDeferred");
-    return {false, {}};
-  }
-  if (profile) {
-    profile->count("generation.tasks.reserved");
-    profile->recordGenerationTask(task->identity, "reserved", task->reservedBytes);
-  }
-  Maybe<WorkerPoolPromise<PreparedBaseTiles>> promise;
   try {
-    promise = workerPool.addProducer<PreparedBaseTiles>(
+    // Allocate the owner record before dispatch: a map allocation after the
+    // pool accepted the producer must not orphan its promise/reservation.
+    auto& pendingRecord = m_pendingBaseTiles[sector];
+    pendingRecord = PendingBaseTiles{task, sourceTiles, sourceTileRevision,
+        planet.get(), templateRevision, scheduledAt, {}};
+    if (profile)
+      tileArray->beginRevisionTracking(sector);
+    auto promise = workerPool.addProducer<PreparedBaseTiles>(
       [task, planet, templateRevision, templateStore, materialDatabase, sectorRegion, tilesHolder, scheduledAt]() mutable {
         if (!task->start())
           throw StarException("Generation task started more than once");
@@ -1365,24 +1379,21 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
           throw;
         }
       });
+    preparation.handoff();
+    // The optional is empty; emplacement only moves a shared promise handle.
+    static_assert(std::is_nothrow_move_constructible<WorkerPoolPromise<PreparedBaseTiles>>::value,
+        "Generation promise handoff must not allocate or throw");
+    pendingRecord.promise.emplace(std::move(promise));
   } catch (...) {
-    // Enqueue failed before a promise was published. No producer can own this
-    // task when addProducer throws; retire the reservation and propagate.
-    task->fail();
-    retireBaseTileTask(task, WorldGenerationTaskOutcome::Failed);
+    if (preparation.task()) {
+      m_pendingBaseTiles.remove(sector);
+      if (profile)
+        tileArray->takeRevisionTracking(sector);
+    }
+    // Unsubmitted inputs unwind before the preparation guard rolls back.
+    // Once handed off, only normal promise completion/drain may retire it.
     throw;
   }
-  if (profile)
-    tileArray->beginRevisionTracking(sector);
-  m_pendingBaseTiles[sector] = PendingBaseTiles{
-    task,
-    sourceTiles,
-    sourceTileRevision,
-    planet.get(),
-    templateRevision,
-    scheduledAt,
-    std::move(promise)
-  };
   if (profile)
     profile->count("generation.baseTiles.scheduled");
   return {false, {}};
@@ -1523,6 +1534,35 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
     if (m_pendingMicroDungeonPlans.size() >= pendingLimit)
       return {false, {}};
     auto tileArray = worldStorage->tileArray();
+    RectI sectorTiles = tileArray->sectorRegion(sector);
+    RectI tileHalo = sectorTiles.padded(WorldSectorSize - 1);
+    auto haloSectors = tileArray->validSectorsFor(tileHalo);
+    // Enumerate/check metadata without allocating the private tile buffers.
+    for (auto const& haloSector : haloSectors) {
+      if (!static_cast<ServerTileSectorArray const&>(*tileArray).sectorArray(haloSector))
+        return {false, {}};
+    }
+    auto bytes = worldGenerationSnapshotBytes(haloSectors.size(), sizeof(ServerTileSectorArray::Array));
+    bool baseTilesDeliveryCapacityPreview = threading.getBool("generationBaseTilesDeliveryCapacityPreview", false);
+    unsigned baseTilesPendingMultiplier = baseTilesDeliveryCapacityPreview
+        ? clamp<unsigned>(threading.getUInt("generationBaseTilesPendingMultiplier", 4), 2, 4)
+        : 2;
+    size_t taskPendingLimit = max(pendingLimit, workerPool.getWorkerCount() * (size_t)baseTilesPendingMultiplier);
+    auto maximumBytes = worldGenerationSnapshotBytes(taskPendingLimit,
+        9 * WorldSectorSize * WorldSectorSize * sizeof(ServerTile));
+    if (!bytes || !maximumBytes)
+      return {false, {}};
+    if (!m_generationTasks)
+      m_generationTasks = make_unique<WorldGenerationTasks>(m_worldServer->instanceEpoch(),
+          WorldRegionPartition(WorldGeometry(tileArray->size())), taskPendingLimit, *maximumBytes);
+    WorldGenerationTaskPreparation preparation(*m_generationTasks, Vec2U(sector),
+        WorldGenerationTaskStage::MicroDungeonPlan, *bytes);
+    auto task = preparation.task();
+    if (!task) {
+      if (profile)
+        profile->count("generation.tasks.admissionDeferred");
+      return {false, {}};
+    }
     auto templateSource = m_worldServer->worldTemplate();
     auto templateRevision = templateSource->generationRevision();
     if (m_microDungeonTemplateSource != templateSource || m_microDungeonTemplateRevision != templateRevision) {
@@ -1530,39 +1570,24 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
       m_microDungeonTemplateRevision = templateRevision;
       m_microDungeonTemplateStore = templateSource->store();
     }
-    RectI sectorTiles = tileArray->sectorRegion(sector);
     MicroDungeonPlanSnapshot snapshot{m_microDungeonTemplateStore, templateRevision, sector,
-        sectorTiles, sectorTiles.padded(WorldSectorSize - 1), {}, {}, {}};
-    size_t bytes = 0;
-    for (auto const& haloSector : tileArray->validSectorsFor(snapshot.tileHalo)) {
+        sectorTiles, tileHalo, {}, {}, {}};
+    for (auto const& haloSector : haloSectors) {
       snapshot.sectorRevisions[haloSector] = tileArray->sectorRevision(haloSector);
       auto tiles = tileArray->copySector(haloSector);
       if (!tiles)
         return {false, {}};
-      bytes += sizeof(*tiles);
       snapshot.haloTiles.append({haloSector, std::move(tiles)});
     }
     for (auto const& entry : m_queuedPlacements.entries())
       snapshot.queuedPlacements.append({entry.second.distributions, entry.first});
-    auto threading = Root::singleton().configuration()->get("worldThreading", JsonObject());
-    bool baseTilesDeliveryCapacityPreview = threading.getBool("generationBaseTilesDeliveryCapacityPreview", false);
-    unsigned baseTilesPendingMultiplier = baseTilesDeliveryCapacityPreview
-        ? clamp<unsigned>(threading.getUInt("generationBaseTilesPendingMultiplier", 4), 2, 4)
-        : 2;
-    size_t taskPendingLimit = max(pendingLimit, workerPool.getWorkerCount() * (size_t)baseTilesPendingMultiplier);
-    if (!m_generationTasks)
-      m_generationTasks = make_unique<WorldGenerationTasks>(m_worldServer->instanceEpoch(),
-          WorldRegionPartition(WorldGeometry(tileArray->size())), taskPendingLimit,
-          taskPendingLimit * 9 * WorldSectorSize * WorldSectorSize * sizeof(ServerTile));
-    auto task = m_generationTasks->reserve(Vec2U(sector), WorldGenerationTaskStage::MicroDungeonPlan, bytes);
-    if (!task)
-      return {false, {}};
     auto revisions = snapshot.sectorRevisions;
     auto templateStore = snapshot.templateStore;
     auto snapshotHolder = make_shared<MicroDungeonPlanSnapshot>(std::move(snapshot));
-    Maybe<WorkerPoolPromise<PreparedMicroDungeonPlan>> promise;
     try {
-      promise = workerPool.addProducer<PreparedMicroDungeonPlan>([task, templateSource, templateRevision, templateStore, snapshotHolder, now]() mutable {
+      auto& pendingRecord = m_pendingMicroDungeonPlans[sector];
+      pendingRecord = PendingMicroDungeonPlan{task, std::move(revisions), templateSource.get(), templateRevision, now, {}};
+      auto promise = workerPool.addProducer<PreparedMicroDungeonPlan>([task, templateSource, templateRevision, templateStore, snapshotHolder, now]() mutable {
         if (!task->start())
           throw StarException("Generation task started more than once");
         try {
@@ -1576,16 +1601,19 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
           return PreparedMicroDungeonPlan{std::move(plans), completed - started, started - now, completed};
         } catch (...) { task->fail(); throw; }
       });
+      preparation.handoff();
+      static_assert(std::is_nothrow_move_constructible<WorkerPoolPromise<PreparedMicroDungeonPlan>>::value,
+          "Generation promise handoff must not allocate or throw");
+      pendingRecord.promise.emplace(std::move(promise));
     } catch (...) {
-      task->fail();
-      retireBaseTileTask(task, WorldGenerationTaskOutcome::Failed);
+      if (preparation.task())
+        m_pendingMicroDungeonPlans.remove(sector);
       throw;
     }
-    m_pendingMicroDungeonPlans[sector] = PendingMicroDungeonPlan{task, std::move(revisions), templateSource.get(), templateRevision, now, std::move(promise)};
     if (profile) {
       profile->count("generation.microDungeonPlan.scheduled");
-      profile->count("generation.microDungeonPlan.snapshotBytes", bytes);
-      profile->recordGenerationTask(task->identity, "reserved", bytes);
+      profile->count("generation.microDungeonPlan.snapshotBytes", *bytes);
+      profile->recordGenerationTask(task->identity, "reserved", *bytes);
     }
     return {false, {}};
   }

@@ -162,4 +162,30 @@ size_t WorldGenerationTasks::reservedBytes() const {
   return m_reservedBytes;
 }
 
+bool WorldGenerationTasks::abandonPreparation(shared_ptr<WorldGenerationTask> const& task) {
+  if (!contains(task))
+    return false;
+  // Never fail/retire a Running or completed producer from a preparation
+  // guard. It must be drained through its promise, even after invalidation.
+  auto expected = WorldGenerationTaskState::Queued;
+  if (!task->m_state.compare_exchange_strong(expected, WorldGenerationTaskState::Failed))
+    return false;
+  return retire(task, WorldGenerationTaskOutcome::Failed);
+}
+
+Maybe<size_t> worldGenerationSnapshotBytes(size_t bufferCount, size_t bufferBytes) {
+  if (bufferBytes && bufferCount > std::numeric_limits<size_t>::max() / bufferBytes)
+    return {};
+  return bufferCount * bufferBytes;
+}
+
+WorldGenerationTaskPreparation::WorldGenerationTaskPreparation(WorldGenerationTasks& tasks,
+    Vec2U const& sector, WorldGenerationTaskStage stage, size_t bytes)
+  : m_tasks(tasks), m_task(tasks.reserve(sector, stage, bytes)) {}
+
+WorldGenerationTaskPreparation::~WorldGenerationTaskPreparation() {
+  if (m_task)
+    m_tasks.abandonPreparation(m_task);
+}
+
 }

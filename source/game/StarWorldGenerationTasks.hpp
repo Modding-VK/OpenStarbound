@@ -115,6 +115,9 @@ public:
   size_t reservedBytes() const;
 
 private:
+  friend class WorldGenerationTaskPreparation;
+  bool abandonPreparation(shared_ptr<WorldGenerationTask> const& task);
+
   using Key = pair<Vec2U, WorldGenerationTaskStage>;
 
   uint64_t const m_worldEpoch;
@@ -124,6 +127,31 @@ private:
   uint64_t m_sequence = 0;
   size_t m_reservedBytes = 0;
   HashMap<Key, shared_ptr<WorldGenerationTask>> m_tasks;
+};
+
+// Checked shallow buffer accounting; this is not a measurement of retained
+// allocator overhead or dynamic data owned/referenced by templates,
+// distributions and producer outputs.
+Maybe<size_t> worldGenerationSnapshotBytes(size_t bufferCount, size_t bufferBytes);
+
+// Owner-thread reservation acquired before any private snapshot is copied.
+// Until handoff, unwinding/early return retires an unsubmitted Queued task.
+// A handed-off producer retains the normal registry reservation until drain.
+class WorldGenerationTaskPreparation {
+public:
+  WorldGenerationTaskPreparation(WorldGenerationTasks& tasks, Vec2U const& sector,
+      WorldGenerationTaskStage stage, size_t bytes);
+  ~WorldGenerationTaskPreparation();
+
+  WorldGenerationTaskPreparation(WorldGenerationTaskPreparation const&) = delete;
+  WorldGenerationTaskPreparation& operator=(WorldGenerationTaskPreparation const&) = delete;
+
+  shared_ptr<WorldGenerationTask> const& task() const { return m_task; }
+  void handoff() noexcept { m_task.reset(); }
+
+private:
+  WorldGenerationTasks& m_tasks;
+  shared_ptr<WorldGenerationTask> m_task;
 };
 
 }
