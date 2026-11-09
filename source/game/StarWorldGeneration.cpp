@@ -1,4 +1,5 @@
 #include "StarWorldGeneration.hpp"
+#include "StarWorldGenerationBaseTileLiquid.hpp"
 #include "StarWorldGenerationMemoryEnvelope.hpp"
 #include "StarWorldGenerationWorkerCache.hpp"
 #include "StarWorldGenerationPayloadBuffer.hpp"
@@ -120,15 +121,8 @@ void prepareBaseTileArray(WorldTemplatePtr const& planet, MaterialDatabaseConstP
         }
       }
 
-      if (tile.foreground != EmptyMaterialId) {
-        tile.liquid = LiquidStore();
-      } else if (blockInfo.oceanLiquid != EmptyLiquidId && y < blockInfo.oceanLiquidLevel) {
-        float pressure = blockInfo.oceanLiquidLevel - y;
-        if (tile.background == EmptyMaterialId)
-          tile.liquid = LiquidStore::endless(blockInfo.oceanLiquid, pressure);
-        else if (blockInfo.encloseLiquids)
-          tile.liquid = LiquidStore::filled(blockInfo.oceanLiquid, 1.0f, pressure);
-      }
+      applyWorldGenerationBaseTileLiquid(tile.liquid, {tile.foreground, tile.background,
+          blockInfo.oceanLiquid, blockInfo.oceanLiquidLevel, blockInfo.encloseLiquids, y});
     }
   }
 }

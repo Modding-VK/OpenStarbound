@@ -2,7 +2,6 @@
 
 #include "StarWorldGenerationMemory.hpp"
 
-#include <cstdint>
 #include <stdexcept>
 
 namespace Star {
@@ -27,7 +26,7 @@ struct WorldGenerationMemoryAttempt {
 template <size_t N>
 class WorldGenerationMemoryRetry {
 public:
-  static constexpr unsigned ModelVersion = 1;
+  static constexpr unsigned ModelVersion = 2;
   using Requests = std::array<WorldGenerationMemoryRequest, N>;
   using Status = WorldGenerationMemoryRetryStatus;
   using Attempt = WorldGenerationMemoryAttempt<N>;
@@ -40,19 +39,20 @@ public:
   WorldGenerationMemoryRetry(WorldGenerationMemoryRetry const&) = delete;
   WorldGenerationMemoryRetry& operator=(WorldGenerationMemoryRetry const&) = delete;
 
-  // Revision belongs to the owner and changes on useful drain/capacity events,
-  // not on every poll/tick. Same-revision pressure refusals do not re-admit.
+  // Release/shrink revisions come from this descriptor's own ledger. Refusal
+  // records the revision from the atomic decision, not a later snapshot which
+  // could swallow a release. A signal permits rechecking, never bypassing caps.
   // Exceptions (including physical bad_alloc) propagate; never become retries.
-  Attempt admit(uint64_t progressRevision) {
+  Attempt admit() {
     if (m_terminal) return result(*m_terminal);
     if (m_active) return result(Status::Active);
     if (m_attempts >= m_maximumAttempts) return finish(Status::Exhausted);
     for (auto const& owner : m_owners) if (!owner.expired()) return result(Status::AwaitRelease);
-    if (m_rejectedRevision && *m_rejectedRevision == progressRevision) return result(Status::AwaitProgress);
+    if (m_rejectedRevision && m_ledger.capacityRevision().canSuppress(*m_rejectedRevision)) return result(Status::AwaitProgress);
     auto admission = m_ledger.tryReserveBatch(m_requests);
     switch (admission.status) {
       case WorldGenerationMemoryBatchStatus::Deferred:
-        m_rejectedRevision = progressRevision;
+        m_rejectedRevision = admission.deferredCapacity;
         return result(Status::Deferred);
       case WorldGenerationMemoryBatchStatus::Impossible: return finish(Status::Impossible);
       case WorldGenerationMemoryBatchStatus::Invalid: return finish(Status::Invalid);
@@ -116,7 +116,7 @@ private:
   size_t m_attempts = 0;
   bool m_active = false;
   std::optional<Status> m_terminal;
-  std::optional<uint64_t> m_rejectedRevision;
+  std::optional<WorldGenerationMemoryCapacityRevision> m_rejectedRevision;
   std::array<std::weak_ptr<WorldGenerationMemoryReservation>, N> m_owners;
 };
 

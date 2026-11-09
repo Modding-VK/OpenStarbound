@@ -4,6 +4,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -36,6 +37,20 @@ constexpr bool worldGenerationBufferClass(WorldGenerationMemoryClass kind) {
       || kind == WorldGenerationMemoryClass::MicroDungeonNameBuffer;
 }
 
+// A hint that declared capacity may have improved, not a permit or a wakeup.
+// Compare only revisions from the same ledger. Saturation conservatively stops
+// suppressing polls instead of wrapping/losing subsequent release events.
+struct WorldGenerationMemoryCapacityRevision {
+  static constexpr unsigned ModelVersion = 1;
+  uint64_t sequence = 0;
+  void advance() noexcept {
+    if (sequence != std::numeric_limits<uint64_t>::max()) ++sequence;
+  }
+  bool canSuppress(WorldGenerationMemoryCapacityRevision previous) const noexcept {
+    return sequence != std::numeric_limits<uint64_t>::max() && sequence == previous.sequence;
+  }
+};
+
 struct WorldGenerationMemorySnapshot {
   size_t reservedBytes = 0;
   size_t peakReservedBytes = 0;
@@ -49,6 +64,7 @@ struct WorldGenerationMemorySnapshot {
   size_t sharedResources = 0;
   size_t sharedRegistryEntries = 0;
   size_t incompleteEstimateUpdates = 0;
+  WorldGenerationMemoryCapacityRevision capacity;
   WorldGenerationMemoryAdmissionSnapshot admission;
   std::array<size_t, static_cast<size_t>(WorldGenerationMemoryClass::Count)> classBytes{};
   std::array<size_t, static_cast<size_t>(WorldGenerationMemoryClass::Count)> classResources{};
@@ -69,6 +85,8 @@ template <size_t N>
 struct WorldGenerationMemoryBatchAdmission {
   WorldGenerationMemoryBatchStatus status = WorldGenerationMemoryBatchStatus::Invalid;
   size_t requestedBytes = 0;
+  // Only Deferred carries a revision, sampled with that decision under lock.
+  std::optional<WorldGenerationMemoryCapacityRevision> deferredCapacity;
   std::optional<std::array<std::shared_ptr<WorldGenerationMemoryReservation>, N>> memory;
 };
 
@@ -123,7 +141,7 @@ public:
   WorldGenerationMemoryBatchAdmission<N> tryReserveBatch(std::array<WorldGenerationMemoryRequest, N> const& requests) {
     WorldGenerationMemoryBatchAdmission<N> result;
     std::array<std::shared_ptr<WorldGenerationMemoryReservation>, N> reservations{};
-    result.status = tryReserveBatch(requests.data(), reservations.data(), N, result.requestedBytes);
+    result.status = tryReserveBatch(requests.data(), reservations.data(), N, result.requestedBytes, result.deferredCapacity);
     if (result.status == WorldGenerationMemoryBatchStatus::Admitted) result.memory.emplace(std::move(reservations));
     return result;
   }
@@ -131,12 +149,15 @@ public:
   std::shared_ptr<WorldGenerationMemoryReservation> reserveSharedJson(
       std::shared_ptr<void const> const& owner, size_t bytes);
   WorldGenerationMemorySnapshot snapshot() const;
+  // Small owner-side query; no envelope conversion, callbacks or allocations.
+  WorldGenerationMemoryCapacityRevision capacityRevision() const;
 
 private:
   template <typename T> friend class WorldGenerationBufferAllocator;
   template <typename Source, typename Payload> friend class WorldGenerationWorkerCache;
   WorldGenerationMemoryBatchStatus tryReserveBatch(WorldGenerationMemoryRequest const* requests,
-      std::shared_ptr<WorldGenerationMemoryReservation>* reservations, size_t count, size_t& requestedBytes);
+      std::shared_ptr<WorldGenerationMemoryReservation>* reservations, size_t count, size_t& requestedBytes,
+      std::optional<WorldGenerationMemoryCapacityRevision>& deferredCapacity);
   bool matches(std::shared_ptr<WorldGenerationMemoryReservation> const& reservation,
       WorldGenerationMemoryClass kind, size_t bytes) const;
   bool owns(std::shared_ptr<WorldGenerationMemoryReservation> const& reservation,

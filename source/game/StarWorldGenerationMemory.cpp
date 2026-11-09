@@ -43,12 +43,14 @@ void releaseBytes(WorldGenerationMemorySnapshot& usage, WorldGenerationMemoryCla
   if (arrayClass(kind)) usage.reservedArrayBytes -= bytes;
   else if (worldGenerationBufferClass(kind)) usage.reservedBufferBytes -= bytes;
   else usage.estimatedBytes -= bytes;
+  if (bytes) usage.capacity.advance();
 }
 void releaseResource(WorldGenerationMemorySnapshot& usage, WorldGenerationMemoryClass kind, size_t bytes, bool shared) {
   releaseBytes(usage, kind, bytes);
   --usage.resources;
   --usage.classResources[static_cast<size_t>(kind)];
   if (shared) --usage.sharedResources;
+  if (!bytes) usage.capacity.advance(); // A zero-byte token still used a resource slot.
 }
 
 }
@@ -157,7 +159,8 @@ std::shared_ptr<WorldGenerationMemoryReservation> WorldGenerationMemoryLedger::r
 }
 
 WorldGenerationMemoryBatchStatus WorldGenerationMemoryLedger::tryReserveBatch(WorldGenerationMemoryRequest const* requests,
-    std::shared_ptr<WorldGenerationMemoryReservation>* reservations, size_t count, size_t& requestedBytes) {
+    std::shared_ptr<WorldGenerationMemoryReservation>* reservations, size_t count, size_t& requestedBytes,
+    std::optional<WorldGenerationMemoryCapacityRevision>& deferredCapacity) {
   using Status = WorldGenerationMemoryBatchStatus;
   size_t bytes = 0;
   for (size_t i = 0; i < count; ++i) {
@@ -184,7 +187,10 @@ WorldGenerationMemoryBatchStatus WorldGenerationMemoryLedger::tryReserveBatch(Wo
       : m_demand == WorldGenerationMemoryDemand::Speculative ? limits.softBytes : limits.hardBytes;
   if (bytes > capacity) return Status::Impossible;
   if (!allowed || bytes > m_state->maximumBytes - usage.reservedBytes
-      || count > std::numeric_limits<size_t>::max() - usage.resources) return Status::Deferred;
+      || count > std::numeric_limits<size_t>::max() - usage.resources) {
+    deferredCapacity = usage.capacity;
+    return Status::Deferred;
+  }
   // Total bytes/resources bound every class sum, including duplicate classes.
   // No allocation, callback or throwing operation may occur in this loop.
   for (size_t i = 0; i < count; ++i) {
@@ -249,6 +255,11 @@ std::shared_ptr<WorldGenerationMemoryReservation> WorldGenerationMemoryLedger::r
     reservation->m_active = true;
   }
   return reservation;
+}
+
+WorldGenerationMemoryCapacityRevision WorldGenerationMemoryLedger::capacityRevision() const {
+  std::lock_guard<std::mutex> lock(m_state->mutex);
+  return m_state->usage.capacity;
 }
 
 WorldGenerationMemorySnapshot WorldGenerationMemoryLedger::snapshot() const {
