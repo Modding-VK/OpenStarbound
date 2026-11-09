@@ -39,13 +39,21 @@ síncrono/assíncrono e consumo dos planos sem cópia. São 167 testes, 460
 execuções adicionais e doze grupos CTest aprovados. Não há ganho de jogo medido;
 próximo: heaps aninhados/temporários, cobertura de caches e gates de
 MOD-01/VAL-01/02 antes de maior admissão. O
-[recorte vigente](sector-runtime-h0-distribution-bundles-2026-11-09.md), `887149c0`,
+[recorte dos inputs](sector-runtime-h0-distribution-bundles-2026-11-09.md), `887149c0`,
 compartilha inputs de distribuição após uma cópia snapshot-equivalente e cobra
 o backing conhecido uma vez. São 185 testes, 360 execuções adicionais e treze
 grupos CTest com ASan/UBSan, incluindo sampler real e leitores concorrentes.
 Modelo de estimativas 3, sem ganho real medido ou cota ampliada. Próximo:
 nomes de saída/temporários, variants opacos e layout/biomas/seletores; benchmark
 real e equivalência continuam gates para a ampliação do pipeline.
+O [recorte vigente](sector-runtime-h0-planning-storage-2026-11-09.md), `cad311d1`,
+compartilha nomes de saída por planejamento e reutiliza scratch sem inputs
+MicroDungeonNames. Preserva o histórico de cópias nos casos micro: controle
+negativo de hash com wrap reproduz seleção diferente sem proteção. São 204
+testes, 380 execuções adicionais e catorze grupos CTest com ASan/UBSan, modelo
+4. Sem ganho real medido; nomes curtos/únicos podem custar mais. Próximo:
+payloads de candidatos/temporários, variants opacos, comparador de candidatos/
+IDs/prioridades e streaming real, antes de maior admissão.
 Achado de CPU-01: overflow assinado na seed automática de `StarRandom.cpp:197`,
 observado em execução estrita de sanitizers; RNG de produção permanece
 inalterado. A reprodução e a separação dos testes de hash com seeds privadas

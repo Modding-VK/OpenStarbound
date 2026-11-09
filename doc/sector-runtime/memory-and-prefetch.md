@@ -74,6 +74,13 @@ Perlin/vetores/nomes rastreados sem profiling; pedidos do objeto/control block
 e vetor do bundle reservados antes de alocar. Modelo geral de estimativas 3;
 não é limite superior dos heaps profundos nem medição de ganho no jogo.
 
+O [recorte de saída/temporários](../sector-runtime-h0-planning-storage-2026-11-09.md),
+`cad311d1`, compartilha uma string imutável por nome distinto na invocação.
+O índice temporário e objetos usam allocator rastreado; backing de String é
+estimado/reconciliado uma vez por dono, mesmo sem profiling. Modelo geral 4.
+Scratch só conserva capacidade sem inputs MicroDungeonNames, pois cópias
+durante crescimento podem alterar escolhas. Não é cache global ou teto hard.
+
 ### Inventário de ownership e cobertura atual
 
 | Produto/recurso | Dono e término da retenção | Contabilidade atual |
@@ -88,9 +95,12 @@ não é limite superior dos heaps profundos nem medição de ganho no jogo.
 | Bundle imutável de distribuição enfileirada | fila, snapshots e worker; até último consumidor físico | pedidos do objeto/control block/vetor reservados antes de alocar; backing conhecido único estimado/reconciliado, sem profiling; Perlin/vetores/nomes, não buckets vazios ou internals opacos |
 | Vetor intermediário de candidatos | planejamento síncrono/assíncrono, até retorno/unwind | pedido de buffer com header/padding, reservado antes de alocar; realocação mantém os dois buffers cobrados |
 | Vetor de descritores de planos | local síncrono ou payload da promise, até último handle físico | reserva fixa por pedido de buffer; pré-reserva pelo número elegível; sem cópia no consumo |
-| Strings/metadata do resultado assíncrono | token do resultado e referências retidas | fórmula de v2 mantida no modelo 3, após construir, sem repetir capacidade dos descritores; SSO/heaps internos ainda não são orçamento hard |
+| Nomes de saída compartilhados | handles const dos descritores; até último consumidor físico | modelo 4: backing de String estimado antes da cópia/reconciliado; objeto/control block reservado pelo allocator; não repetido por plano, SSO pode superestimar |
+| Índice de nomes | local ao planejamento; destruído ao retornar | nodes/buckets reservados antes do raw allocator; keys apontam para strings possuídas, sem cópia da chave textual |
+| Metadata do resultado assíncrono | token do resultado e referências retidas | modelo 4 mantém objeto preparado após construir, com profiling regional; nomes e capacidade dos descritores cobrados separadamente |
+| Scratch de itens válidos/listas potenciais | local ao planejamento/consulta; elementos limpos após captura | capacidade não micro reutilizada; inputs micro preservam crescimento/cópias legados; scratch e heaps internos ainda fora da reserva profunda |
 | Decode de tiles salvos | caminhos específicos de `WorldStorage` | fora deste recorte |
-| Tokens, control blocks e allocator | ledger/wrappers/containers | overhead geral fora; entram requests da LRU, buffers e control block do bundle alocado com allocator rastreado, não demais control blocks externos |
+| Tokens, control blocks e allocator | ledger/wrappers/containers | overhead geral fora; entram requests da LRU, buffers e control blocks de bundles/nomes alocados com allocator rastreado, não demais control blocks externos |
 
 RAM-01 permanece aberto para o orçamento processual completo e os produtos
 restantes. Não ampliar admissão com base apenas nesta contabilidade parcial.

@@ -120,6 +120,13 @@ bundle antes de alocar, sem profiling, com modelo geral de estimativas 3.
 Variants opacos, temporários e teto global permanecem parciais. Não altera
 admissão nem comprova ganho real de entrega.
 
+O [recorte de nomes/temporários](sector-runtime-h0-planning-storage-2026-11-09.md)
+acrescenta strings de saída compartilhadas por planejamento, reserva do índice/
+objetos e backing estimado independente do profiling, modelo 4. Scratch só
+reutiliza capacidade sem inputs MicroDungeonNames: evitar cópias no crescimento
+pode mudar seleção. Mantém publicação serial; temporários/limites globais e
+benchmark real continuam abertos.
+
 Com workers desligados (`sectorWorkers: 0` no modo `legacy`), o registro não
 é criado: segue o caminho síncrono. Nos modos não legados, zero pode selecionar
 workers automaticamente; não interpretar o zero isolado como desativação.

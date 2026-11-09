@@ -264,3 +264,12 @@ bytes e SHA-256. Não há novos artefatos de execução do usuário nesta etapa.
 Manter fallback síncrono, limites existentes e publicação serial. Não adiar
 todo H1 até medir cada heap do motor, mas explicitar lacunas e seu limite antes
 de ampliar admissão. Gates de equivalência e benchmark continuam abertos.
+
+## Continuação em 09/11/2026
+
+O [recorte seguinte](sector-runtime-h0-planning-storage-2026-11-09.md),
+`cad311d1`, compartilha nomes de saída e protege a reutilização de scratch
+contra mudanças de cópias/ordem de hash. Modelo 4, 204 testes e catorze grupos
+CTest aprovados. Este relatório mantém os resultados/manifesto históricos;
+retomar pelo seguinte e pelo roadmap, sem presumir cobertura integral de
+temporários ou ganho de jogo.

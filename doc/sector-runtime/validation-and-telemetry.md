@@ -66,6 +66,16 @@ completa de variants ou benchmark do jogo. `sharedSnapshots` conta referências,
 não setores/s. Sete objetos reais e sintaxe Tracy de oito fontes aprovados;
 sem linking completo, TSan ou validação de mods/mundos.
 
+O [recorte de nomes/scratch](../sector-runtime-h0-planning-storage-2026-11-09.md)
+passa **204 testes**, catorze grupos CTest e 19 casos novos repetidos 20 vezes
+(380 execuções adicionais), com ASan/UBSan. Inclui 4.096 combinações de
+predicados contra referência herdada, nomes compartilhados/lifecycle/recusa,
+oito leitores e WorkerPool real. Controle negativo de hash com wrap confirma
+que capacidade aquecida pode mudar escolhas: inputs MicroDungeonNames usam
+storage fresco para preservar cópias. Modelo 4; dois objetos reais e sintaxe
+Tracy de três fontes aprovados. Sem benchmark, linking completo ou equivalência
+integrada de streaming/mods; scratch/heaps profundos continuam parciais.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

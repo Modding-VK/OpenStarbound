@@ -46,6 +46,13 @@ Preserva uma cópia inicial porque a normalização do hash set pode afetar a
 escolha estática. Sampler real e ordem foram comparados sem assets; isso não
 aprova todos os variants, callbacks ou equivalência com mods/multiplayer.
 
+O [recorte seguinte](../sector-runtime-h0-planning-storage-2026-11-09.md) demonstra
+que normalização de hash com wrap pode não ser idempotente: suprimir cópias
+durante realocação muda escolhas. A reutilização de scratch mantém storage
+fresco quando há MicroDungeonNames; compartilhar o nome escolhido acontece
+somente depois da seleção. Não remover cópias ou filtrar candidatos antes do
+sort sem comparador explícito de ordem/IDs/seleção. A auditoria segue parcial.
+
 ## MOD-02 — Equivalência e versionamento
 
 Definir inputs que produzem um output: seed, template/layout, geração de

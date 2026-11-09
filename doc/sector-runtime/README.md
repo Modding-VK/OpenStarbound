@@ -2,7 +2,7 @@
 
 Atualização: 09/11/2026. Branch: `Experimental`. Runtime de partida:
 `7ca7ed2a`; recortes de H0: `d72b7239`, `2131ead3`, `5c3c4c8f`, `65bae55c`,
-`803d4cf7`, `739067b1`, `1bd348e6`, `34c76ea3` e `887149c0`;
+`803d4cf7`, `739067b1`, `1bd348e6`, `34c76ea3`, `887149c0` e `cad311d1`;
 documentação de arquitetura de partida: `8d3b0ade`.
 
 Este é o **programa principal de desenvolvimento**, adotado pelo usuário em
@@ -38,12 +38,18 @@ O [recorte dos buffers](../sector-runtime-h0-output-buffers-2026-11-09.md),
 `34c76ea3`, cobre reserva dos buffers variáveis antes de alocar, retenção física
 e consumo dos planos sem cópia, nos caminhos síncrono/assíncrono. Heaps
 aninhados e medição de ganho real ainda estão pendentes.
-O [relatório vigente](../sector-runtime-h0-distribution-bundles-2026-11-09.md),
+O [recorte dos inputs](../sector-runtime-h0-distribution-bundles-2026-11-09.md),
 `887149c0`, compartilha inputs imutáveis de distribuições enfileiradas após uma
 única cópia snapshot-equivalente, preservando a seleção e cobrando o backing
 conhecido uma vez. São 185 testes, 360 execuções adicionais e treze grupos
 CTest aprovados com ASan/UBSan. Modelo de estimativas 3; variants opacos,
 temporários e heaps de layout/biomas/seletores permanecem parcialmente fora.
+O [relatório vigente](../sector-runtime-h0-planning-storage-2026-11-09.md),
+`cad311d1`, compartilha nomes de saída dentro de cada planejamento e reutiliza
+scratch somente sem inputs MicroDungeonNames. O fallback preserva as cópias
+que afetam ordem/seleção, com controle negativo de colisões de hash. São 204
+testes, 380 execuções adicionais e catorze grupos CTest com ASan/UBSan; modelo
+de estimativas 4. Não é ganho de jogo medido nem cobertura integral de temporários.
 Orçamento processual completo, benchmark real e equivalência com assets
 continuam pendentes.
 Isso não implementa o executor, a nova WorldThread ou compute GPU.

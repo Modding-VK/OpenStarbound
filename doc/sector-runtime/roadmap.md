@@ -112,12 +112,24 @@ sem profiling; buffers do bundle reservados antes de alocar. Estimativas 3,
 sem teto hard para heaps profundos. São 18 casos novos, 185 no total, 360
 execuções adicionais e treze grupos CTest com ASan/UBSan, incluindo sampler
 real aleatório/periódico e oito leitores concorrentes. Ver
-[relatório vigente](../sector-runtime-h0-distribution-bundles-2026-11-09.md).
+[relatório da etapa](../sector-runtime-h0-distribution-bundles-2026-11-09.md).
 MOD-01 recebe auditoria restrita dos leitores desse bundle, não aprovação de
 todo o caminho com assets/mods. Sem ganho no jogo medido.
 
-Próximo trabalho executável: nomes de saída, heaps temporários de candidatos,
-variants opacos e metadados excluídos, preservando fallback síncrono.
+RAM-01, nomes de saída/temporários em `cad311d1`: nomes imutáveis compartilhados
+por planejamento, com índice/objetos reservados e backing estimado independente
+do profiling. Scratch reutilizado somente sem MicroDungeonNames; controle
+negativo confirma que evitar cópias de realocação pode mudar escolhas em
+clusters de hash com wrap. Modelo 4, 19 casos novos, 204 no total, 380 execuções
+adicionais e catorze grupos CTest aprovados com ASan/UBSan. Ver
+[relatório vigente](../sector-runtime-h0-planning-storage-2026-11-09.md).
+Não conclui temporários, MOD-01 ou benchmark: nomes curtos/únicos podem pagar
+mais overhead, e inputs micro preservam o crescimento legado por compatibilidade.
+
+Próximo trabalho executável: heaps de payloads de candidatos/temporários,
+variants opacos e metadados excluídos, preservando fallback síncrono e história
+de cópias. Estender o comparador ao fluxo de candidatos/IDs/prioridades e ao
+streaming real, usando o controle de colisões como gate antes de eliminar cópias.
 Auditar metadata do Perlin não inicializado antes de novos consumidores em
 CPU-01; RNG de produção não foi alterado. Ampliar a cobertura dos
 heaps de layout/biomas/seletores e caches com ownership/storage únicos.

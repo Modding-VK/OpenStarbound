@@ -35,7 +35,7 @@ os contratos por subsistema. O [roadmap detalhado](sector-runtime/roadmap.md)
 relaciona tarefas, dependências, propósito e critérios de conclusão; ele é a
 entrada operacional para a implementação; documentos antigos são apoio e
 histórico, sem outra fila de prioridades. Frente ativa: H0. O relatório atual é
-[inputs de distribuição compartilhados](sector-runtime-h0-distribution-bundles-2026-11-09.md).
+[nomes de saída e scratch protegido](sector-runtime-h0-planning-storage-2026-11-09.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
 corrigido opt-in e VAL-01/02 têm harness sintético inicial, com 26 testes H0
@@ -58,10 +58,15 @@ cópia dos planos no consumo. Validação daquela etapa: 167 testes, 460 execuç
 adicionais e doze grupos CTest, com ASan/UBSan. Modelo de estimativas 2, sem
 novo teto ou ganho de throughput alegado. `887149c0` compartilha distribuições
 enfileiradas após uma única cópia equivalente, preservando seleção e lifetime;
-conta o backing conhecido uma vez, sem depender de profiling. Validação atual:
+conta o backing conhecido uma vez, sem depender de profiling. Validação da etapa:
 185 testes, 360 execuções adicionais e treze grupos CTest, com ASan/UBSan.
-Modelo de estimativas 3, sem ganho de jogo medido. Próximo: nomes de saída,
-temporários, variants opacos e caches excluídos antes de cotas globais.
+Modelo de estimativas 3, sem ganho de jogo medido. `cad311d1` compartilha nomes
+de saída e reutiliza scratch somente sem inputs MicroDungeonNames, preservando
+cópias que afetam seleção. Validação atual: 204 testes, 380 execuções adicionais
+e catorze grupos CTest, ASan/UBSan; modelo 4. Controle negativo de hash com wrap
+reproduz escolha diferente sem proteção. Próximo: payloads de candidatos e
+temporários, variants opacos, comparador completo e streaming real; sem cotas
+ampliadas ou ganho de jogo alegado.
 Streaming real com assets/mods
 e executor de conclusões ainda pendentes.
 
