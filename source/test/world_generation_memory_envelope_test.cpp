@@ -221,6 +221,9 @@ TEST(WorldGenerationMemoryEnvelopeTest, IncoherentEnvelopeCannotRecommendAdmissi
 TEST(WorldGenerationMemoryEnvelopeTest, InvalidDemandCannotSilentlyBecomeUrgentWork) {
   Policy policy(Limits); auto advice = policy.evaluate(envelope(0), static_cast<Demand>(255), 1);
   EXPECT_EQ(advice.reason, Reason::InvalidDemand); EXPECT_FALSE(advice.allowRequest);
+  EXPECT_EQ(policy.evaluate(envelope(150), Demand::Visible, 0).pressure, Pressure::Soft);
+  EXPECT_EQ(policy.evaluate(envelope(90), static_cast<Demand>(255), 1).reason, Reason::InvalidDemand);
+  EXPECT_EQ(policy.evaluate(envelope(90), Demand::Speculative, 1).pressure, Pressure::Soft);
 }
 
 TEST(WorldGenerationMemoryEnvelopeTest, VisibleAndDependencyWorkCanUseTheDeclaredHardHeadroom) {
@@ -297,10 +300,15 @@ TEST(WorldGenerationMemoryEnvelopeTest, NearSizeMaxHeadroomChecksNeverOverflowOr
   EXPECT_EQ(policy.evaluate(envelope(max), Demand::Visible, 0).pressure, Pressure::Hard);
 }
 
-TEST(WorldGenerationMemoryEnvelopeTest, InvalidObservationDoesNotPermanentlyLatchPressure) {
+TEST(WorldGenerationMemoryEnvelopeTest, InvalidObservationPreservesValidHysteresisWithoutPermanentlyLatching) {
   Policy policy(Limits); auto bad = envelope(0); bad.coherent = false;
   EXPECT_EQ(policy.evaluate(bad, Demand::Visible, 1).pressure, Pressure::Invalid);
   EXPECT_EQ(policy.evaluate(envelope(0), Demand::Speculative, 1).pressure, Pressure::Normal);
+  EXPECT_EQ(policy.evaluate(envelope(150), Demand::Visible, 0).pressure, Pressure::Soft);
+  EXPECT_EQ(policy.evaluate(bad, Demand::Visible, 1).pressure, Pressure::Invalid);
+  auto recovering = policy.evaluate(envelope(90), Demand::Speculative, 1);
+  EXPECT_EQ(recovering.pressure, Pressure::Soft); EXPECT_FALSE(recovering.allowRequest);
+  EXPECT_EQ(policy.evaluate(envelope(80), Demand::Speculative, 1).pressure, Pressure::Normal);
 }
 
 TEST(WorldGenerationMemoryEnvelopeTest, AdviceGridPreservesSoftHardAndDrainInvariants) {

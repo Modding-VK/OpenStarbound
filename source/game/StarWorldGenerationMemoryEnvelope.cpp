@@ -78,16 +78,13 @@ WorldGenerationMemoryAdvice WorldGenerationMemoryPressurePolicy::evaluate(WorldG
     return {m_pressure, Reason::Disabled, true};
   }
   if (!(m_limits.resumeBytes < m_limits.softBytes && m_limits.softBytes < m_limits.hardBytes)) {
-    m_pressure = Pressure::Invalid;
-    return {m_pressure, Reason::InvalidLimits, false};
+    return {Pressure::Invalid, Reason::InvalidLimits, false};
   }
   if (!usage.coherent) {
-    m_pressure = Pressure::Invalid;
-    return {m_pressure, Reason::InvalidEnvelope, false};
+    return {Pressure::Invalid, Reason::InvalidEnvelope, false};
   }
   if (demand != Demand::Visible && demand != Demand::Dependency && demand != Demand::Speculative) {
-    m_pressure = Pressure::Invalid;
-    return {m_pressure, Reason::InvalidDemand, false};
+    return {Pressure::Invalid, Reason::InvalidDemand, false};
   }
   auto bytes = usage.trackedBytes;
   bool recovering = m_pressure == Pressure::Soft || m_pressure == Pressure::Hard;

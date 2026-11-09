@@ -70,6 +70,7 @@ public:
 
 private:
   WorldGenerationMemoryPressureLimits m_limits;
+  // Invalid input rejects this advice, but cannot erase valid recovery state.
   WorldGenerationMemoryPressure m_pressure = WorldGenerationMemoryPressure::Unrestricted;
 };
 
