@@ -21,6 +21,7 @@ enum class WorldGenerationMemoryClass : size_t {
   MicroDungeonDistributionEstimate,
   MicroDungeonNameBuffer,
   MicroDungeonNameEstimate,
+  MicroDungeonCandidateEstimate,
   Count
 };
 

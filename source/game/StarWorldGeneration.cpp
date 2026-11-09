@@ -1,5 +1,6 @@
 #include "StarWorldGeneration.hpp"
 #include "StarWorldGenerationWorkerCache.hpp"
+#include "StarWorldGenerationPayloadBuffer.hpp"
 #include "StarWorldServer.hpp"
 #include "StarExplorationProfile.hpp"
 #include "StarMaterialItem.hpp"
@@ -46,6 +47,13 @@ struct DistributionBackingSizer {
     WorldGenerationBackingEstimate result;
     for (auto const& distribution : values) result.add(distribution.generationBackingEstimate());
     return result;
+  }
+};
+
+struct CandidateBackingSizer {
+  template <typename Candidate>
+  WorldGenerationBackingEstimate operator()(Candidate const& value) const noexcept {
+    return estimateBiomeItemGenerationBacking(value.first.item);
   }
 };
 
@@ -1082,6 +1090,8 @@ void WorldGenerator::profileGenerationMemory(double now) {
   profile->count("generation.memory.process.sampledDistributionEstimateTotal", usage.classBytes[9]);
   profile->count("generation.memory.process.sampledNameBufferRequestBytesTotal", usage.classBytes[10]);
   profile->count("generation.memory.process.sampledNameEstimateTotal", usage.classBytes[11]);
+  profile->count("generation.memory.process.sampledCandidatePayloadEstimateTotal", usage.classBytes[12]);
+  profile->maximum("generation.memory.candidatePayloads.modelVersion", 1);
   profile->count("generation.memory.process.sampledBufferResourcesTotal",
       usage.classResources[6] + usage.classResources[7] + usage.classResources[8] + usage.classResources[10]);
   profile->maximum("generation.memory.names.modelVersion", 1);
@@ -1200,7 +1210,7 @@ List<WorldGenerator::QueuedMicroDungeonPlacementSnapshot> WorldGenerator::queued
     result.append({distributions, id});
     if (profile) {
       profile->count("generation.memory.distributions.sharedSnapshots");
-      profile->maximum("generation.memory.distributions.modelVersion", 1);
+      profile->maximum("generation.memory.distributions.modelVersion", 2);
       if (first) {
         profile->count("generation.memory.distributions.frozenBundles");
         profile->count("generation.memory.distributions.items", distributions->values().size());
@@ -1816,15 +1826,16 @@ WorldGenerator::MicroDungeonPlans WorldGenerator::planMicroDungeons(WorldTemplat
   starAssert(templateSource);
   RectI bounds = snapshot.sectorTiles.padded(WorldSectorSize - 1);
   using Candidate = pair<BiomeItemPlacement, Maybe<WorldGenerationPlacementId>>;
-  std::vector<Candidate, WorldGenerationBufferAllocator<Candidate>> candidates(
-      WorldGenerationBufferAllocator<Candidate>(allocator, WorldGenerationMemoryClass::MicroDungeonCandidateBuffer));
+  WorldGenerationPayloadBuffer<Candidate, CandidateBackingSizer> candidates(ledger, CandidateBackingSizer{});
   List<BiomeItemPlacement> validItems;
   for (int x = snapshot.sectorTiles.xMin(); x < snapshot.sectorTiles.xMax(); ++x) {
     for (int y = snapshot.sectorTiles.yMin(); y < snapshot.sectorTiles.yMax(); ++y) {
       auto potential = templateSource->potentialBiomeItemsAt(x, y);
       templateSource->validBiomeItemsInto(x, y, potential, validItems);
       for (auto const& placement : validItems)
-        candidates.push_back({placement, {}});
+        candidates.append(estimateBiomeItemGenerationBacking(placement.item), [&] {
+          return Candidate{placement, {}};
+        });
       validItems.clear(); // Release payloads, retaining only scratch capacity.
       for (auto const& queued : snapshot.queuedPlacements) {
         WorldTemplate::PotentialBiomeItems queuedItems;
@@ -1835,12 +1846,14 @@ WorldGenerator::MicroDungeonPlans WorldGenerator::planMicroDungeons(WorldTemplat
             distributions.data(), distributions.size(), BiomePlacementArea::Underground);
         templateSource->validBiomeItemsInto(x, y, queuedItems, validItems);
         for (auto placement : validItems)
-          candidates.push_back({std::move(placement), queued.queuedPlacementId});
+          candidates.append(estimateBiomeItemGenerationBacking(placement.item), [&] {
+            return Candidate{std::move(placement), queued.queuedPlacementId};
+          });
         validItems.clear();
       }
     }
   }
-  sort(candidates);
+  candidates.sort();
   MicroDungeonPlans plans(allocator);
   auto planCount = std::count_if(candidates.begin(), candidates.end(), [](Candidate const& candidate) {
     return candidate.first.item.is<MicroDungeonNames>();

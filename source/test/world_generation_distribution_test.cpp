@@ -41,7 +41,7 @@ struct BiomeItemDistributionTestAccess {
     BiomeItemDistribution result;
     result.m_blockProbability = 1;
     result.m_blockSeed = 17;
-    result.m_randomItems.append(BiomeItem{TreasureBoxSet(String("opaque treasure name"))});
+    result.m_randomItems.append(BiomeItem{ObjectPool{}});
     return result;
   }
 };
@@ -276,8 +276,7 @@ TEST(WorldGenerationDistributionTest, OpaqueItemsAreReportedWithoutDroppingKnown
   auto frozen = makeWorldGenerationImmutableArray<BiomeItemDistribution>(ledger, source, DistributionSizer{});
   auto sampled = frozen->values()[0].itemToPlace(4, 7);
   ASSERT_TRUE(bool(sampled));
-  EXPECT_TRUE(sampled->item.is<TreasureBoxSet>());
-  EXPECT_EQ(String(sampled->item.get<TreasureBoxSet>()), String("opaque treasure name"));
+  EXPECT_TRUE(sampled->item.is<ObjectPool>());
   EXPECT_EQ(frozen->opaqueItems(), 1u);
 }
 

@@ -7,10 +7,10 @@
 
 namespace Star {
 
-// Version 4 counts output names by immutable owner, not by plan descriptor.
+// Version 5 adds known candidate backing and public value-variant storage.
 // It is neither allocator accounting nor an upper bound on retained heap.
 struct WorldGenerationSizeEstimate {
-  static constexpr unsigned ModelVersion = 4;
+  static constexpr unsigned ModelVersion = 5;
   size_t bytes = 0;
   bool complete = true;
 

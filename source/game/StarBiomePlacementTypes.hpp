@@ -23,6 +23,9 @@ typedef WeightedPool<pair<String, Json>> ObjectPool;
 strong_typedef(String, TreasureBoxSet);
 strong_typedef(StringSet, MicroDungeonNames);
 typedef Variant<GrassVariant, BushVariant, TreePair, ObjectPool, TreasureBoxSet, MicroDungeonNames> BiomeItem;
+// Read-only, allocation-free known backing model; Json/private internals stay opaque.
+// Excludes the BiomeItem object already charged in its containing buffer.
+WorldGenerationBackingEstimate estimateBiomeItemGenerationBacking(BiomeItem const& item) noexcept;
 BiomeItem variantToBiomeItem(Json const& store);
 Json variantFromBiomeItem(BiomeItem const& biomeItem);
 

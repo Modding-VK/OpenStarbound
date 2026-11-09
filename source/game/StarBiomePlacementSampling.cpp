@@ -64,25 +64,63 @@ Maybe<BiomeItemPlacement> BiomeItemDistribution::itemToPlace(int x, int y) const
   return {};
 }
 
+WorldGenerationBackingEstimate estimateBiomeItemGenerationBacking(BiomeItem const& value) noexcept {
+  WorldGenerationBackingEstimate result;
+  auto strings = [&](StringList const& values) {
+    result.storage.add(values.capacity(), sizeof(String));
+    for (auto const& item : values) result.storage.stringCapacity(item);
+  };
+  auto tree = [&](TreeVariant const& variant) {
+    result.storage.stringCapacity(variant.stemName);
+    result.storage.stringCapacity(variant.foliageName);
+    result.storage.stringCapacity(variant.stemDirectory);
+    result.storage.stringCapacity(variant.foliageDirectory);
+  };
+  if (auto names = value.ptr<MicroDungeonNames>()) {
+    result.storage.add(names->size(), sizeof(String));
+    for (auto const& name : *names) result.storage.stringCapacity(name);
+  } else if (auto treasure = value.ptr<TreasureBoxSet>()) {
+    result.storage.stringCapacity(*treasure);
+  } else if (auto grass = value.ptr<GrassVariant>()) {
+    result.storage.stringCapacity(grass->name);
+    result.storage.stringCapacity(grass->directory);
+    strings(grass->images);
+    result.opaqueItems = 1;
+  } else if (auto bush = value.ptr<BushVariant>()) {
+    result.storage.stringCapacity(bush->bushName);
+    result.storage.stringCapacity(bush->modName);
+    result.storage.stringCapacity(bush->directory);
+    result.storage.add(bush->shapes.capacity(), sizeof(BushVariant::BushShape));
+    for (auto const& shape : bush->shapes) {
+      result.storage.stringCapacity(shape.image);
+      strings(shape.mods);
+    }
+    result.opaqueItems = 1;
+  } else if (auto trees = value.ptr<TreePair>()) {
+    tree(trees->first);
+    tree(trees->second);
+    result.opaqueItems = 1;
+  } else if (auto objects = value.ptr<ObjectPool>()) {
+    result.storage.add(objects->items().capacity(), sizeof(ObjectPool::ItemsType));
+    for (auto const& item : objects->items()) result.storage.stringCapacity(item.second.first);
+    result.opaqueItems = 1;
+  } else {
+    // Preserve unknown/valueless items; never turn incomplete sizing into a
+    // filter. Json, TileDamage internals, hash metadata and SSO remain caveats.
+    result.opaqueItems = 1;
+  }
+  return result;
+}
+
 WorldGenerationBackingEstimate BiomeItemDistribution::generationBackingEstimate() const {
   WorldGenerationBackingEstimate result;
   result.storage.add(m_densityFunction.allocatedStorageBytes());
   result.storage.add(m_modulusDistortion.allocatedStorageBytes());
   result.storage.add(m_randomItems.capacity(), sizeof(BiomeItem));
   result.storage.add(m_weightedItems.capacity(), sizeof(pair<BiomeItem, PerlinF>));
-  auto item = [&](BiomeItem const& value) {
-    if (auto names = value.ptr<MicroDungeonNames>()) {
-      result.storage.add(names->size(), sizeof(String));
-      for (auto const& name : *names) result.storage.stringCapacity(name);
-    } else {
-      // Plants/object pools/treasure internals remain explicitly outside this
-      // model. Inline representations are in the containing vector already.
-      ++result.opaqueItems;
-    }
-  };
-  for (auto const& value : m_randomItems) item(value);
+  for (auto const& value : m_randomItems) result.add(estimateBiomeItemGenerationBacking(value));
   for (auto const& weighted : m_weightedItems) {
-    item(weighted.first);
+    result.add(estimateBiomeItemGenerationBacking(weighted.first));
     result.storage.add(weighted.second.allocatedStorageBytes());
   }
   return result;
