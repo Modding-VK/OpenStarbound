@@ -15,8 +15,15 @@ enum class WorldGenerationMemoryClass : size_t {
   SnapshotMetadataEstimate,
   MicroDungeonPlanEstimate,
   WorkerTemplateEstimate,
+  MicroDungeonPlanBuffer,
+  MicroDungeonCandidateBuffer,
   Count
 };
+
+constexpr bool worldGenerationBufferClass(WorldGenerationMemoryClass kind) {
+  return kind == WorldGenerationMemoryClass::MicroDungeonPlanBuffer
+      || kind == WorldGenerationMemoryClass::MicroDungeonCandidateBuffer;
+}
 
 struct WorldGenerationMemorySnapshot {
   size_t reservedBytes = 0;
@@ -26,6 +33,8 @@ struct WorldGenerationMemorySnapshot {
   size_t estimatedBytes = 0;
   size_t peakReservedArrayBytes = 0;
   size_t peakEstimatedBytes = 0;
+  size_t reservedBufferBytes = 0;
+  size_t peakReservedBufferBytes = 0;
   size_t sharedResources = 0;
   size_t sharedRegistryEntries = 0;
   size_t incompleteEstimateUpdates = 0;
@@ -70,6 +79,9 @@ public:
   WorldGenerationMemorySnapshot snapshot() const;
 
 private:
+  template <typename T> friend class WorldGenerationBufferAllocator;
+  explicit WorldGenerationMemoryLedger(std::shared_ptr<WorldGenerationMemoryState> state)
+    : m_state(std::move(state)) {}
   // Copies are views of the same ledger. Never replace a facade's state and
   // silently forget reservations still owned by outstanding resources.
   std::shared_ptr<WorldGenerationMemoryState> const m_state;

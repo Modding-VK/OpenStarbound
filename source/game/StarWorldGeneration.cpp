@@ -1066,6 +1066,12 @@ void WorldGenerator::profileGenerationMemory(double now) {
   profile->count("generation.memory.process.sampledWorkerTemplateEstimateTotal", usage.classBytes[5]);
   profile->count("generation.memory.process.sampledWorkerTemplatesTotal", usage.classResources[5]);
   profile->maximum("generation.memory.process.lifetimeIncompleteEstimateUpdates", usage.incompleteEstimateUpdates);
+  profile->count("generation.memory.process.sampledReservedBufferBytesTotal", usage.reservedBufferBytes);
+  profile->count("generation.memory.process.sampledPlanBufferRequestBytesTotal", usage.classBytes[6]);
+  profile->count("generation.memory.process.sampledCandidateBufferRequestBytesTotal", usage.classBytes[7]);
+  profile->count("generation.memory.process.sampledBufferResourcesTotal", usage.classResources[6] + usage.classResources[7]);
+  profile->maximum("generation.memory.process.lifetimePeakReservedBufferBytes", usage.peakReservedBufferBytes);
+  profile->maximum("generation.memory.buffers.modelVersion", 1);
   profile->maximum("generation.memory.process.lifetimePeakEstimatedBytes", usage.peakEstimatedBytes);
   profile->maximum("generation.memory.estimates.modelVersion", WorldGenerationSizeEstimate::ModelVersion);
   profile->maximum("generation.memory.estimates.workerCacheModelVersion", 1);
@@ -1563,7 +1569,12 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
         return {false, {}};
       }
     }
-    PreparedMicroDungeonPlan result = std::move(*preparedResult);
+    // Keep the ready payload alive through owner callbacks without copying
+    // its vectors/strings or destructively consuming it before apply succeeds.
+    auto resultOwner = *pending->promise;
+    auto const& result = resultOwner.get();
+    auto task = pending->task;
+    bool dependencyPrepared = pending->dependencyPrepared;
     if (profile && !result.memoryEstimateComplete)
       profile->count("generation.memory.estimates.planIncomplete");
     if (profile && result.memoryEstimateSeconds > 0)
@@ -1575,8 +1586,7 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
     for (auto const& plan : result.plans)
       applyMicroDungeonPlan(worldStorage, plan, facade, profile, planPreview);
     plansTiming.stop();
-    bool dependencyPrepared = pending->dependencyPrepared;
-    retireBaseTileTask(pending->task, WorldGenerationTaskOutcome::Committed);
+    retireBaseTileTask(task, WorldGenerationTaskOutcome::Committed);
     m_pendingMicroDungeonPlans.remove(sector);
     Maybe<double> readyAt;
     if (auto ready = m_readyMicroDungeonPlans.ptr(sector))
@@ -1669,19 +1679,20 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
     bool measurePlan = profile && profile->regionalDetailsEnabled();
     auto planMemory = measurePlan
         ? trackMemoryEstimate(WorldGenerationMemoryClass::MicroDungeonPlanEstimate, {}) : nullptr;
+    MicroDungeonPlanAllocator planAllocator(worldGenerationMemoryLedger(), WorldGenerationMemoryClass::MicroDungeonPlanBuffer);
     try {
       auto& pendingRecord = m_pendingMicroDungeonPlans[sector];
       pendingRecord = PendingMicroDungeonPlan{pendingMemory, task, std::move(revisions), templateSource.get(), templateRevision, now, {}};
-      auto promise = workerPool.addProducer<PreparedMicroDungeonPlan>([task, templateSource, templateRevision, templateStore, snapshotHolder, planMemory, measurePlan, now,
+      auto promise = workerPool.addProducer<PreparedMicroDungeonPlan>([task, templateSource, templateRevision, templateStore, snapshotHolder, planMemory, planAllocator, measurePlan, now,
           memoryLedger = worldGenerationMemoryLedger()]() mutable {
         if (!task->start())
           throw StarException("Generation task started more than once");
         try {
           double started = Time::monotonicTime();
-          List<MicroDungeonPlan> plans;
+          MicroDungeonPlans plans(planAllocator);
           if (task->valid()) {
             auto workerPlanet = workerWorldTemplate(templateSource, templateRevision, templateStore, memoryLedger);
-            plans = planMicroDungeons(workerPlanet.value(), snapshotHolder->value);
+            plans = planMicroDungeons(workerPlanet.value(), snapshotHolder->value, planAllocator);
           }
           bool estimateComplete = true;
           double estimateSeconds = 0;
@@ -1689,7 +1700,7 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
             double sizingStarted = Time::monotonicTime();
             WorldGenerationSizeEstimate estimate;
             estimate.add(sizeof(PreparedMicroDungeonPlan));
-            estimate.add(plans.capacity(), sizeof(MicroDungeonPlan));
+            // Descriptor capacity is already charged by the buffer allocator.
             for (auto const& plan : plans) estimate.stringCapacity(plan.dungeonName);
             estimateComplete = estimate.complete && planMemory && planMemory->resizeEstimate(estimate.bytes);
             estimateSeconds = Time::monotonicTime() - sizingStarted;
@@ -1738,7 +1749,8 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
     snapshot.queuedPlacements.append({entry.second.distributions, entry.first});
 
   phase.next("generation.microDungeonPlan.describe");
-  auto plans = planMicroDungeons(templateSource, snapshot);
+  auto plans = planMicroDungeons(templateSource, snapshot,
+      MicroDungeonPlanAllocator(worldGenerationMemoryLedger(), WorldGenerationMemoryClass::MicroDungeonPlanBuffer));
 
   if (profile && planPreview) {
     profile->count("generation.microDungeonPlan.candidates", plans.size());
@@ -1759,28 +1771,34 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
   return {true, {}};
 }
 
-List<WorldGenerator::MicroDungeonPlan> WorldGenerator::planMicroDungeons(WorldTemplatePtr const& templateSource,
-    MicroDungeonPlanSnapshot const& snapshot) {
+WorldGenerator::MicroDungeonPlans WorldGenerator::planMicroDungeons(WorldTemplatePtr const& templateSource,
+    MicroDungeonPlanSnapshot const& snapshot, MicroDungeonPlanAllocator const& allocator) {
   STAR_TRACE_ZONE("Microdungeon plan candidates");
   starAssert(templateSource);
   RectI bounds = snapshot.sectorTiles.padded(WorldSectorSize - 1);
-  List<pair<BiomeItemPlacement, Maybe<WorldGenerationPlacementId>>> candidates;
+  using Candidate = pair<BiomeItemPlacement, Maybe<WorldGenerationPlacementId>>;
+  std::vector<Candidate, WorldGenerationBufferAllocator<Candidate>> candidates(
+      WorldGenerationBufferAllocator<Candidate>(allocator, WorldGenerationMemoryClass::MicroDungeonCandidateBuffer));
   for (int x = snapshot.sectorTiles.xMin(); x < snapshot.sectorTiles.xMax(); ++x) {
     for (int y = snapshot.sectorTiles.yMin(); y < snapshot.sectorTiles.yMax(); ++y) {
       auto potential = templateSource->potentialBiomeItemsAt(x, y);
       for (auto const& placement : templateSource->validBiomeItems(x, y, potential))
-        candidates.append({placement, {}});
+        candidates.push_back({placement, {}});
       for (auto const& queued : snapshot.queuedPlacements) {
         WorldTemplate::PotentialBiomeItems queuedItems;
         templateSource->addPotentialBiomeItems(x, y, queuedItems, queued.distributions, BiomePlacementArea::Surface);
         templateSource->addPotentialBiomeItems(x, y, queuedItems, queued.distributions, BiomePlacementArea::Underground);
         for (auto placement : templateSource->validBiomeItems(x, y, queuedItems))
-          candidates.append({std::move(placement), queued.queuedPlacementId});
+          candidates.push_back({std::move(placement), queued.queuedPlacementId});
       }
     }
   }
   sort(candidates);
-  List<MicroDungeonPlan> plans;
+  MicroDungeonPlans plans(allocator);
+  auto planCount = std::count_if(candidates.begin(), candidates.end(), [](Candidate const& candidate) {
+    return candidate.first.item.is<MicroDungeonNames>();
+  });
+  plans.reserve(planCount);
   for (auto const& candidate : candidates) {
     auto const& placement = candidate.first;
     if (!placement.item.is<MicroDungeonNames>())
@@ -1788,7 +1806,7 @@ List<WorldGenerator::MicroDungeonPlan> WorldGenerator::planMicroDungeons(WorldTe
     auto seed = templateSource->seedFor(placement.position[0], placement.position[1]);
     auto const& dungeonName = staticRandomFrom(placement.item.get<MicroDungeonNames>(), seed);
     starAssert(!dungeonName.empty());
-    plans.append(MicroDungeonPlan{bounds, placement.position, seed, dungeonName, candidate.second});
+    plans.push_back(MicroDungeonPlan{bounds, placement.position, seed, dungeonName, candidate.second});
   }
   return plans;
 }

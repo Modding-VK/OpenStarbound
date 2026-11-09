@@ -7,10 +7,10 @@
 
 namespace Star {
 
-// Version 1 counts declared container representations and public capacities.
+// Version 2 keeps allocator-backed buffers separate from nested estimates.
 // It is neither allocator accounting nor an upper bound on retained heap.
 struct WorldGenerationSizeEstimate {
-  static constexpr unsigned ModelVersion = 1;
+  static constexpr unsigned ModelVersion = 2;
   size_t bytes = 0;
   bool complete = true;
 

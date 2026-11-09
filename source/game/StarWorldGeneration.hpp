@@ -10,8 +10,11 @@
 #include "StarWorkerPool.hpp"
 #include "StarWorldGenerationTasks.hpp"
 #include "StarWorldGenerationMemory.hpp"
+#include "StarWorldGenerationBufferAllocator.hpp"
 #include "StarWorldGenerationMemoryEstimate.hpp"
 #include "StarWorldGenerationPlacementQueue.hpp"
+
+#include <vector>
 
 namespace Star {
 
@@ -159,6 +162,8 @@ private:
     String dungeonName;
     Maybe<WorldGenerationPlacementId> queuedPlacementId;
   };
+  using MicroDungeonPlanAllocator = WorldGenerationBufferAllocator<MicroDungeonPlan>;
+  using MicroDungeonPlans = std::vector<MicroDungeonPlan, MicroDungeonPlanAllocator>;
 
   // Copy-only input for the future MicroDungeonPlan producer. It deliberately
   // excludes WorldServer, a live WorldTemplate, entities, Lua state and
@@ -182,8 +187,16 @@ private:
   };
 
   struct PreparedMicroDungeonPlan {
+    PreparedMicroDungeonPlan(shared_ptr<WorldGenerationMemoryReservation> memory, MicroDungeonPlans&& plans,
+        double elapsed, double queue, double completed, bool complete, double sizing)
+      : memory(std::move(memory)), plans(std::move(plans)), elapsedSeconds(elapsed),
+        queueSeconds(queue), completedAt(completed), memoryEstimateComplete(complete), memoryEstimateSeconds(sizing) {}
+    PreparedMicroDungeonPlan(PreparedMicroDungeonPlan const&) = delete;
+    PreparedMicroDungeonPlan& operator=(PreparedMicroDungeonPlan const&) = delete;
+    PreparedMicroDungeonPlan(PreparedMicroDungeonPlan&&) = default;
+    PreparedMicroDungeonPlan& operator=(PreparedMicroDungeonPlan&&) = default;
     shared_ptr<WorldGenerationMemoryReservation> memory;
-    List<MicroDungeonPlan> plans;
+    MicroDungeonPlans plans;
     double elapsedSeconds;
     double queueSeconds;
     double completedAt;
@@ -254,8 +267,8 @@ private:
   void retireBaseTileTask(shared_ptr<WorldGenerationTask> const& task, WorldGenerationTaskOutcome outcome);
   SectorGenerationResult prepareTilesAsync(WorldStorage* worldStorage, Sector const& sector, bool allowAsync);
   SectorGenerationResult generateMicroDungeons(WorldStorage* worldStorage, Sector const& sector, bool allowAsync);
-  static List<MicroDungeonPlan> planMicroDungeons(WorldTemplatePtr const& templateSource,
-      MicroDungeonPlanSnapshot const& snapshot);
+  static MicroDungeonPlans planMicroDungeons(WorldTemplatePtr const& templateSource,
+      MicroDungeonPlanSnapshot const& snapshot, MicroDungeonPlanAllocator const& allocator);
   void applyMicroDungeonPlan(WorldStorage* worldStorage, MicroDungeonPlan const& plan,
       DungeonGeneratorWorldPtr const& facade, ExplorationProfile* profile, bool planPreview);
   void generateCaveLiquid(WorldStorage* worldStorage, Sector const& sector);

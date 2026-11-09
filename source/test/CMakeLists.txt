@@ -118,6 +118,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_memory_test.cpp
   world_generation_estimate_test.cpp
   world_generation_worker_cache_test.cpp
+  world_generation_buffer_test.cpp
   block_allocator_exception_test.cpp
   world_region_coordinator_test.cpp)
 IF(STAR_ENABLE_TRACY)
@@ -138,6 +139,7 @@ FOREACH(world_region_test_suite
     WorldGenerationMemoryTest
     WorldGenerationEstimateTest
     WorldGenerationWorkerCacheTest
+    WorldGenerationBufferTest
     BlockAllocatorExceptionTest
     WorldRegionCoordinatorTest
     WorldRegionObservationTest)

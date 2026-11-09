@@ -28,15 +28,18 @@ void chargeBytes(WorldGenerationMemorySnapshot& usage, WorldGenerationMemoryClas
   usage.reservedBytes += bytes;
   usage.classBytes[static_cast<size_t>(kind)] += bytes;
   if (arrayClass(kind)) usage.reservedArrayBytes += bytes;
+  else if (worldGenerationBufferClass(kind)) usage.reservedBufferBytes += bytes;
   else usage.estimatedBytes += bytes;
   usage.peakReservedBytes = std::max(usage.peakReservedBytes, usage.reservedBytes);
   usage.peakReservedArrayBytes = std::max(usage.peakReservedArrayBytes, usage.reservedArrayBytes);
   usage.peakEstimatedBytes = std::max(usage.peakEstimatedBytes, usage.estimatedBytes);
+  usage.peakReservedBufferBytes = std::max(usage.peakReservedBufferBytes, usage.reservedBufferBytes);
 }
 void releaseBytes(WorldGenerationMemorySnapshot& usage, WorldGenerationMemoryClass kind, size_t bytes) {
   usage.reservedBytes -= bytes;
   usage.classBytes[static_cast<size_t>(kind)] -= bytes;
   if (arrayClass(kind)) usage.reservedArrayBytes -= bytes;
+  else if (worldGenerationBufferClass(kind)) usage.reservedBufferBytes -= bytes;
   else usage.estimatedBytes -= bytes;
 }
 void releaseResource(WorldGenerationMemorySnapshot& usage, WorldGenerationMemoryClass kind, size_t bytes, bool shared) {
@@ -76,7 +79,7 @@ WorldGenerationMemoryReservation::~WorldGenerationMemoryReservation() {
 }
 
 bool WorldGenerationMemoryReservation::resizeEstimate(size_t bytes) {
-  if (!m_active || m_shared || arrayClass(m_kind)) return false;
+  if (!m_active || m_shared || arrayClass(m_kind) || worldGenerationBufferClass(m_kind)) return false;
   std::lock_guard<std::mutex> lock(m_state->mutex);
   auto& usage = m_state->usage;
   if (bytes > m_bytes && bytes - m_bytes > m_state->maximumBytes - usage.reservedBytes) return false;
