@@ -226,13 +226,23 @@ revisão do ledger, capturada com a recusa e consumida por admit sem argumento
 escalar de líquido modelo 1 é usado em BaseTiles e comparado à lógica anterior;
 não versiona todo o produtor. São 32 novos casos, 484 no total, 1.280 execuções
 adicionais e 25 grupos CTest com ASan/UBSan. Ver
-[relatório vigente](../sector-runtime-h0-capacity-kernel-2026-11-09.md).
+[relatório daquela etapa](../sector-runtime-h0-capacity-kernel-2026-11-09.md).
 Pressão desligada, RAM-01/H0 em 25%; os contratos amplos continuam parciais.
 
-Próximo trabalho executável: identidade versionada do produto/contexto BaseTiles
-e comparador dos campos completos, incluindo líquido anterior em Keep e revisões
-de mundo/tiles/template. Estender pureza para materiais/mods/biomas sem antecipar
-consultas ou alterar cópias/RNG; ligar demanda ao interesse real antes de replay.
+Identidade/comparação em `f7785963`: BaseTiles real devolve ticket com task,
+revisões, geometria e versões, mantendo guards vivos antes de publicar. Comparador
+diagnóstico cobre 25 grupos de campos dos tiles inicializados, inclusive dano
+privado/derivado e modos explícitos de cache; limita a leitura às bordas válidas.
+São 40 casos novos, 524 no total, 800 execuções adicionais e 26 grupos CTest com
+ASan/UBSan. Ver [relatório vigente](../sector-runtime-h0-base-tiles-identity-2026-11-09.md)
+e [contrato](../sector-runtime-base-tiles-contract.md). Ticket não é conteúdo ou
+contexto puro completo; não há scan completo no commit. biomeTransition herdado
+não inicializado/copiado foi registrado para auditoria, não corrigido. H0 em 25%.
+
+Próximo trabalho executável: inputs explícitos de materiais/mods/biomas e comparador
+do produtor sem antecipar consultas ou alterar cópias/RNG. Auditar biomeTransition
+antes de normalizar snapshots; versionar contexto profundo/assets e ligar demanda
+ao interesse real antes de replay/cache de produtos.
 Não repetir callbacks/Lua/mundo vivo por uma exceção.
 Depois, provider processual único configurável, promoção de demanda,
 fairness entre mundos e pressão externa/limites de hardware. Manter exclusões;

@@ -205,6 +205,16 @@ com ASan/UBSan. Próximo: identidade/contexto e comparador de campos completos,
 incluindo líquido anterior em Keep e revisões, antes de ampliar pureza/replay.
 Pressão desligada, RAM-01 parcial; não é ganho de setores/s demonstrado.
 
+O [recorte identidade/comparação](sector-runtime-h0-base-tiles-identity-2026-11-09.md),
+`f7785963`, acrescenta ticket do produto BaseTiles no retorno do worker e mantém
+guards vivos antes de publicar. Comparador diagnóstico de ServerTile reais
+cobre campos inicializados, inclusive dano privado/cache com modo explícito.
+[Contrato](sector-runtime-base-tiles-contract.md): não é content key/contexto puro,
+nem scan no hot path; bordas inválidas não são lidas. 524 testes/26 grupos CTest
+com ASan/UBSan. Novo contador de código: generation.baseTiles.staleProductIdentity.
+Próximo: materiais/mods/biomas explícitos/comparador do produtor; biomeTransition
+default/cópias herdado permanece pendente. Sem retry/pressão real ou ganho alegado.
+
 ## Diagnóstico
 
 Com `explorationProfiling.enabled`, os contadores fixos são:

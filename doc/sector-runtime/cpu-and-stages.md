@@ -38,6 +38,15 @@ particionadas coincidem com a referência anterior. Keep depende do líquido
 anterior; futura identidade de output deve conservá-lo. Isto não extrai o
 contexto completo de WorldTemplate, nem resolve CPU-01 ou concede novo marco.
 
+Em `f7785963`, [ticket/comparador BaseTiles](../sector-runtime-h0-base-tiles-identity-2026-11-09.md)
+inclui revisões/geometria/versões, conservando bindings vivos. Isso é identidade
+por admissão, não contexto puro/content key ou PreparedSector concluído. O
+[contrato](../sector-runtime-base-tiles-contract.md) cobre todos os campos
+inicializados de tiles válidos para diagnóstico. Auditoria adicional: WorldTile
+default/cópia não inicializa/copia biomeTransition; BaseTiles o sobrescreve nos
+tiles válidos. Não corrigido, não causa de crash estabelecida. Auditar os demais
+consumidores e compatibilidade antes de mudar snapshots ou eliminar cópias.
+
 Aceitação: execução concorrente não alcança template vivo, callbacks ou RNG
 global; comparador de outputs cobre a mudança de contexto e de worker.
 

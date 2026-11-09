@@ -1,11 +1,11 @@
 # Progressão do projeto — percentuais e ordem das tarefas
 
 Atualizado em **09/11/2026**. Branch: `Experimental`.
-Estado inspecionado: `8e190742712e932d895e673fc008ee229a608d81`;
-última implementação: `8e190742`.
+Estado inspecionado: `f7785963cf70efa6d8703807e44ceaba2da3fc7c`;
+última implementação: `f7785963`.
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h0-capacity-kernel-2026-11-09.md)
+· [Último relatório técnico](../sector-runtime-h0-base-tiles-identity-2026-11-09.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -22,7 +22,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **3,1%** — 6 marcos verificados de 196 |
 | Contratos com avanço registrado | **6 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | 484 testes, 1.280 execuções adicionais e 25 grupos CTest, ASan/UBSan |
+| Última evidência de testes | 524 testes, 800 execuções adicionais e 26 grupos CTest, ASan/UBSan |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,1% não significam que o jogo esteja só 3,1% pronto.** O runtime anterior
@@ -91,16 +91,16 @@ autoritativa. GPU é opcional, com fallback CPU completo.
 
 ## Próximas ações — fila imediata
 
-1. **RAM-01 com MOD-01/VAL-02, em execução:** `8e190742` liga revisão de capacidade
-   do ledger à retomada no próximo poll (retry 2), sem revisão manual ou sinal
-   perdido após a recusa. O subkernel escalar de líquido é usado em BaseTiles e
-   comparado à lógica anterior; não extrai/versiona todo o produtor. Retry ainda
-   sem consumidor no jogo, sem mailbox/wakeup e pressão desligada. Próximo:
-   identidade/contexto versionado de BaseTiles e comparador dos campos completos,
-   incluindo líquido anterior em Keep e revisões de mundo/tiles/template. Depois
-   ampliar pureza/demanda real antes de replay, provider, promoção/fairness e
-   pressão externa. [Cobertura](../sector-runtime-memory-envelope.md) não é heap
-   completo; não ampliar filas/defaults por teste controlado.
+1. **H0: DAG-01/RAM-01 com MOD-01/VAL-02:** `f7785963` acrescenta ticket versionado
+   no resultado BaseTiles, mantendo guards vivos, e comparador dos campos
+   inicializados de tiles reais. [Contrato](../sector-runtime-base-tiles-contract.md):
+   ticket por admissão não é conteúdo/contexto profundo. Comparador fora do hot
+   path; retry/pressão real desligados. Próximo: materiais/mods/biomas explícitos
+   e comparação do produtor sem mudar consultas/cópias/RNG. Auditar biomeTransition
+   default/cópia antes de normalizar snapshots. Depois contexto/assets/demanda
+   reais, mailbox/DAG, provider, promoção/fairness e pressão externa. A
+   [cobertura de memória](../sector-runtime-memory-envelope.md) não é heap completo;
+   não ampliar filas/defaults por teste controlado.
 2. **VAL-02, próxima entrega e apoio à primeira:** ampliar o comparador para
    candidatos, IDs, prioridades, ordem e outputs completos. Manter os controles
    de colisões de hash como gate de qualquer eliminação de cópias.
@@ -129,10 +129,10 @@ de todas as implementações antigas para conceder crédito retroativo.
 
 | Ordem | Entrada | ID / contrato | Tarefa | Progresso | Próxima entrega ou lacuna principal |
 | ---: | --- | --- | --- | ---: | --- |
-| 1 | H0 | [DAG-01](dependency-scheduler.md) | Identidades estáveis | 25% | Completar identidade/versionamento e comparação integrada; IDs de colocações já testados |
+| 1 | H0 | [DAG-01](dependency-scheduler.md) | Identidades estáveis | 25% | IDs de colocações e ticket BaseTiles testados; contexto profundo/integração geral pendentes |
 | 2 | H0 | [DAG-04](dependency-scheduler.md) | Conclusões e progresso dentro da passagem | 25% | Mailbox executiva/reação a conclusões; continuação/avanço já corrigidos no recorte |
-| 3 | H0 | [RAM-01](memory-and-prefetch.md) | Reserva e contabilização de bytes | 25% | Sinal do ledger alimenta retry controlado; identidade/contexto e consumidor real, demanda/provider/fairness pendentes |
-| 4 | H0 | [VAL-02](validation-and-telemetry.md) | Comparador de outputs e produtores controlados | 25% | Fluxo completo de candidatos/outputs e dependências reais |
+| 3 | H0 | [RAM-01](memory-and-prefetch.md) | Reserva e contabilização de bytes | 25% | Sinal/retry controlado e ticket BaseTiles; contexto/consumidor real, demanda/provider/fairness pendentes |
+| 4 | H0 | [VAL-02](validation-and-telemetry.md) | Comparador de outputs e produtores controlados | 25% | Campos de tiles inicializados cobertos; fluxo de produtor/outputs/dependências reais pendente |
 | 5 | H0 | [MOD-01](compatibility.md) | Classificar operações por efeito | 25% | Auditoria completa do escopo que ganhará concorrência |
 | 6 | H0 | [VAL-01](validation-and-telemetry.md) | Benchmark de streaming | 25% | Rota/save/config fixos, streaming real e A/B equivalente |
 | 7 | H1 | [DAG-02](dependency-scheduler.md) | Grafo persistente e demanda compartilhada | 0% | Grafo executivo em sombra, separado das dependências de publicação |
@@ -183,14 +183,14 @@ de todas as implementações antigas para conceder crédito retroativo.
 
 | Contrato | Evidência que sustenta 25% | Por que não recebe 50% ou mais |
 | --- | --- | --- |
-| DAG-01 | `d72b7239`, [identidades de colocações](../sector-runtime-h0-placement-identities-2026-11-08.md) | Recorte de colocações, não todo o contrato de identidade/integração |
+| DAG-01 | `d72b7239`, [identidades de colocações](../sector-runtime-h0-placement-identities-2026-11-08.md) e [ticket BaseTiles](../sector-runtime-base-tiles-contract.md), `f7785963` | Não cobre contexto profundo/assets nem todo o contrato de identidade/integração |
 | DAG-04 | `2131ead3`, [passagem/continuação](../sector-runtime-h0-streaming-pass-2026-11-09.md) | Não implementa a mailbox executiva nem reação a conclusões na mesma passagem |
-| RAM-01 | Recortes `5c3c4c8f` a `8e190742`, [inventário](memory-and-prefetch.md), [envelope](../sector-runtime-memory-envelope.md) e [último relatório](../sector-runtime-h0-capacity-kernel-2026-11-09.md) | Sinal/retry controlado e primeiro subkernel real; faltam identidade/contexto e consumidor completo, demanda, provider/fairness, qualidade/pressão externa; nota não sobe por testes |
-| VAL-02 | [Harness inicial](../sector-runtime-h0-streaming-pass-2026-11-09.md), [controles de hash](../sector-runtime-h0-planning-storage-2026-11-09.md) e [comparador do subkernel](../sector-runtime-h0-capacity-kernel-2026-11-09.md) | Comparação ainda não cobre os campos completos/streaming/mundo |
-| MOD-01 | [Leitores imutáveis](../sector-runtime-h0-distribution-bundles-2026-11-09.md), [proteção da seleção](../sector-runtime-h0-planning-storage-2026-11-09.md) e [fronteira escalar](../sector-runtime-h0-capacity-kernel-2026-11-09.md) | Auditoria restrita, não de todos os efeitos/inicializadores ou produtor completo |
+| RAM-01 | Recortes `5c3c4c8f` a `f7785963`, [inventário](memory-and-prefetch.md), [envelope](../sector-runtime-memory-envelope.md) e [último relatório](../sector-runtime-h0-base-tiles-identity-2026-11-09.md) | Sinal/retry controlado e ticket; faltam contexto profundo/consumidor completo, demanda, provider/fairness, qualidade/pressão externa; nota não sobe por testes |
+| VAL-02 | [Harness inicial](../sector-runtime-h0-streaming-pass-2026-11-09.md), [controles de hash](../sector-runtime-h0-planning-storage-2026-11-09.md) e [comparador de tiles](../sector-runtime-h0-base-tiles-identity-2026-11-09.md) | Campos inicializados cobertos, não fluxo completo de produtor/streaming/mundo |
+| MOD-01 | [Leitores imutáveis](../sector-runtime-h0-distribution-bundles-2026-11-09.md), [proteção da seleção](../sector-runtime-h0-planning-storage-2026-11-09.md) e [fronteira/inicialização](../sector-runtime-h0-base-tiles-identity-2026-11-09.md) | Auditoria restrita, não de todos os efeitos/inicializadores ou produtor completo |
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 
-Os 484 testes e demais números do resumo provêm do **último relatório técnico**,
+Os 524 testes e demais números do resumo provêm do **último relatório técnico**,
 no cenário NoAssets, não de streaming integrado. A criação original do painel
 foi documental; os avanços posteriores de runtime estão associados aos commits/
 relatórios do histórico. Atualizar este painel não acrescenta uma medição de
@@ -226,6 +226,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 09/11/2026 | Implementação `dd59f3b4` | RAM-01: batch e BaseTiles com array/template inicial antes do dispatch; cache sem recobrança e isolado por ledger/demanda. 420 testes/22 grupos; saída variável/progresso real pendentes, pressão desligada. Sem novo marco completo, RAM-01/H0 em 25% | 3,1% |
 | 09/11/2026 | Implementação `8b68ab6a` | RAM-01: status atômicos e retry limitado de produtores puros, com fences físicas e dois jobs/resultados retidos. 452 testes/23 grupos; falta integração/eventos/demanda real, pressão desligada. Sem novo marco completo, RAM-01/H0 em 25% | 3,1% |
 | 09/11/2026 | Implementação `8e190742` | RAM-01/MOD-01/VAL-02: sinal de capacidade com marker atômico e retry 2, subkernel de líquido real comparado à lógica anterior. 484 testes/25 grupos; identidade/contexto e consumidor completo pendentes, pressão desligada. Sem novo marco completo, H0 em 25% | 3,1% |
+| 09/11/2026 | Implementação `f7785963` | H0: ticket BaseTiles no fluxo real e comparador dos campos inicializados de tiles, com guards vivos preservados. 524 testes/26 grupos; contexto profundo/produtor completo pendentes e biomeTransition/default/cópia herdado registrado, não corrigido. Sem novo marco completo, H0 em 25% | 3,1% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

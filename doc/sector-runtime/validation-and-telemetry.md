@@ -170,6 +170,17 @@ cobre 7.560 combinações de campos/float bits e 1.024 decisões particionadas,
 não setores completos. Cinco objetos e sintaxe Tracy de seis fontes aprovados,
 sem linking completo; sem novas séries no profiling ou throughput demonstrado.
 
+O [recorte identidade/comparação](../sector-runtime-h0-base-tiles-identity-2026-11-09.md)
+passa **524 testes**, 26 grupos CTest e 40 novos repetidos vinte vezes (**800
+execuções adicionais**), ASan/UBSan. Tipos reais ServerTile/TileDamageStatus em
+NoAssets; 25 grupos de campos, dano privado/derivado, geometria ativa e políticas
+de cache, bits float, bordas válidas, tickets/versões/resultados tardios e lifetime
+físico. [Contrato](../sector-runtime-base-tiles-contract.md) exige campos inicializados:
+não lê biomeTransition indefinido nem padding. Sete objetos reais e sintaxe Tracy
+de seis fontes aprovados, sem linking completo do jogo. Comparator não roda no
+hot path. Novo contador de código: generation.baseTiles.staleProductIdentity;
+não há nova run que o tenha observado, throughput ou equivalência integrada.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

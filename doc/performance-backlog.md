@@ -131,7 +131,7 @@ ou evento automático; exceções continuam erros. Próximo: eventos úteis no o
 adaptador puro/versionado com demanda real e MOD-01/VAL-02 antes de replay.
 Provider/fairness/configuração e benchmark integrado seguem gates. RAM-01/H0
 em 25%, pressão padrão desligada, sem ganho de throughput alegado.
-O [relatório vigente](sector-runtime-h0-capacity-kernel-2026-11-09.md), `8e190742`,
+O [recorte de capacidade/kernel](sector-runtime-h0-capacity-kernel-2026-11-09.md), `8e190742`,
 liga a revisão do ledger ao retry 2 com marker atômico, sem evento manual ou
 callback/wakeup. Isola decisão escalar de líquido usada em BaseTiles, modelo 1,
 com 7.560 combinações equivalentes e 1.024 decisões particionadas, não setores
@@ -140,6 +140,20 @@ ASan/UBSan. Não otimiza simulação de oceanos/clima, nem ativa limite ou retry
 Próximo: identidade/contexto versionado e comparador dos campos completos de
 BaseTiles, incluindo líquido anterior em Keep e revisões, antes de ampliar
 pureza/demanda e replay. RAM-01/H0 em 25%, sem ganho de setores/s demonstrado.
+O [relatório vigente](sector-runtime-h0-base-tiles-identity-2026-11-09.md), `f7785963`,
+entrega ticket por admissão no resultado BaseTiles e comparador de campos
+inicializados de ServerTile reais. Guards vivos permanecem; ticket não é conteúdo
+ou contexto profundo. [Contrato](sector-runtime-base-tiles-contract.md) explicita
+25 grupos de campos/cache/bordas. São 524 testes, 800 execuções adicionais e 26
+grupos CTest com ASan/UBSan, sem scan de tiles no commit, retry/limite real ou ganho
+alegado. Próximo: materiais/mods/biomas explícitos e comparador do produtor,
+mantendo consultas/cópias/RNG e auditoria do flag herdado abaixo. H0 em 25%.
+
+Achado adicional de inicialização/cópia, não corrigido: WorldTile não inicializa/
+copia biomeTransition no construtor/operador; BaseTiles sobrescreve o flag nos
+tiles válidos. Auditar demais snapshots/consumidores antes de corrigir a cópia
+ou inferir causa de crash. Comparador exige campos inicializados e não lê bordas
+fora do mundo. ASan/UBSan não substituem MSan. Nenhum formato persistido foi mudado.
 Achado de CPU-01: overflow assinado na seed automática de `StarRandom.cpp:197`,
 observado em execução estrita de sanitizers; RNG de produção permanece
 inalterado. A reprodução e a separação dos testes de hash com seeds privadas

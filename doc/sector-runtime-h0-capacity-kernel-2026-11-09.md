@@ -9,6 +9,9 @@ Implementação: `8e190742712e932d895e673fc008ee229a608d81`.
 · [CPU](sector-runtime/cpu-and-stages.md)
 · [Etapa anterior](sector-runtime-h0-variable-memory-2026-11-09.md)
 
+Continuação: [identidade/comparador BaseTiles](sector-runtime-h0-base-tiles-identity-2026-11-09.md),
+`f7785963`. Os resultados e manifesto abaixo permanecem os desta etapa histórica.
+
 ## Objetivo e resultado
 
 Substituir o evento manual de capacidade no protocolo de retry por uma revisão

@@ -163,6 +163,14 @@ sem wrap. Ainda não existe consumidor de retry no jogo, provider ou limite novo
 O subkernel escalar de líquido real prepara a fronteira de equivalência;
 identidade/contexto completo e demanda real seguem pendentes.
 
+O [ticket/comparador BaseTiles](../sector-runtime-h0-base-tiles-identity-2026-11-09.md),
+`f7785963`, mantém o array físico e as revisões como guards vivos, além da identidade
+por admissão. Não usa hash/cópia do payload no hot path. O Pending/resultado/capture
+carrega mais metadata; sizeof(PendingBaseTiles) reflete isso na estimativa existente.
+Comparator diagnóstico cobre campos inicializados, não força registro de bytes
+ou teto novo. [Contrato](../sector-runtime-base-tiles-contract.md): ticket não
+é contexto profundo/cache key; Keep conserva a dependência do líquido anterior.
+
 ### Inventário de ownership e cobertura atual
 
 | Produto/recurso | Dono e término da retenção | Contabilidade atual |
@@ -217,9 +225,10 @@ não foi removida. A floresta retém handles, não cópias profundas, e seu over
 diagnóstico ainda é excluído. Consolidar envelope/exclusões/pressão para o
 escopo antes de ampliar admissão; não exigir cada heap para H1 em sombra.
 O envelope consolidado expõe essas fronteiras, não remove as exclusões. Próximo:
-identidade/contexto do produto BaseTiles e comparador de campos completos,
-incluindo líquido anterior em Keep; ampliar pureza/demanda real com MOD-01/VAL-02
-antes de replay. O sinal do ledger já substitui a revisão manual; o protocolo de
+materiais/mods/biomas explícitos e comparador do produtor, sem antecipar consultas
+ou alterar cópias/RNG. Ticket/comparador de campos já foram entregues, não o
+contexto profundo; auditar biomeTransition antes de normalizar snapshots e
+ampliar pureza/demanda real com MOD-01/VAL-02 antes de replay. O protocolo de
 saída variável continua validado em jobs controlados, não no produtor completo.
 Batch de BaseTiles já evita admissão parcial do array/parcela inicial do template,
 mas não garante seu crescimento completo nem progresso de todo DAG. A pressão

@@ -135,6 +135,16 @@ LiquidStore à lógica anterior; não altera simulação de líquidos ou oceanos
 Isso não prova equivalência de todo tile/setor, assets/mods/saves/multiplayer
 ou segurança de replay do produtor completo; esses gates continuam abertos.
 
+O [ticket/comparador BaseTiles](../sector-runtime-h0-base-tiles-identity-2026-11-09.md)
+leva task/revisões/geometria/versões no resultado, sem remover guards do mundo
+vivo. [Contrato](../sector-runtime-base-tiles-contract.md): ticket por admissão,
+não conteúdo/contexto profundo; não usar como autorização ou cache key. Comparador
+diagnóstico cobre campos inicializados, inclusive dano privado, com modos de cache
+explícitos e sem mudar o objeto. Constructor/reset de dano movidos sem alterar
+corpos; codecs e layout de TileDamageStatus permanecem iguais. biomeTransition
+herdado não inicializado/copiado foi registrado, não corrigido nem atribuído a
+crashes. Assets/mods/saves/multiplayer e replay completo continuam não validados.
+
 ## MOD-02 — Equivalência e versionamento
 
 Definir inputs que produzem um output: seed, template/layout, geração de

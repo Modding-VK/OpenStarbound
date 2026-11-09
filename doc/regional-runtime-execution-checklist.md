@@ -39,7 +39,7 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[capacidade do ledger/subkernel BaseTiles](sector-runtime-h0-capacity-kernel-2026-11-09.md), com
+[identidade/comparador BaseTiles](sector-runtime-h0-base-tiles-identity-2026-11-09.md), com
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
@@ -131,10 +131,17 @@ MOD-01/VAL-02 antes de replay real; depois provider/config/fairness processuais.
 `8e190742` substitui revisão manual por sinal release/shrink do ledger, capturado
 atomicamente na recusa e consumido no próximo poll (retry 2). Não é wakeup/mailbox
 nem retry real. Subkernel escalar de líquido modelo 1 usado em BaseTiles e
-comparado à lógica anterior. Validação atual: 484 testes, 1.280 execuções
+comparado à lógica anterior. Validação daquela etapa: 484 testes, 1.280 execuções
 adicionais e 25 grupos CTest com ASan/UBSan. Pressão desligada; RAM-01/H0 em 25%.
 Próximo: identidade/contexto do produto BaseTiles e comparador dos campos completos,
 incluindo estado anterior em Keep e revisões, antes de ampliar pureza/demanda/replay.
+`f7785963` entrega ticket versionado devolvido pelo worker, sem substituir guards
+vivos, e comparador diagnóstico dos campos completos inicializados de tiles reais.
+[Contrato](sector-runtime-base-tiles-contract.md) separa identidade/conteúdo,
+cache normalizado e bordas válidas. Validação atual: 524 testes, 800 execuções
+adicionais e 26 grupos CTest com ASan/UBSan. Comparador fora do hot path; retry/
+pressão real desligados. H0 em 25%. Próximo: materiais/mods/biomas explícitos e
+comparador do produtor; auditar biomeTransition/default/cópias antes de normalizar.
 Streaming real com assets/mods
 e executor de conclusões ainda pendentes.
 
