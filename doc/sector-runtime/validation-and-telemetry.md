@@ -134,6 +134,14 @@ fórmulas anteriores. Dois objetos reais e sintaxe Tracy de três fontes aprovad
 Runtime só amostra o envelope; não executa decisões de admissão, não houve
 emissão em jogo ou benchmark integrado. Ver [escopo/exclusões](../sector-runtime-memory-envelope.md).
 
+O [recorte de reserva atômica](../sector-runtime-h0-atomic-memory-2026-11-09.md)
+passa **388 testes**, 21 grupos CTest e 34 novos repetidos vinte vezes
+(680 execuções adicionais), ASan/UBSan. Inclui oito disputantes soft/hard,
+conselhos obsoletos recusados atomicamente, sharing Json, demanda em tokens/
+allocators, overlap e rollback real. Cinco objetos de produção e sintaxe Tracy
+de cinco fontes aprovados, sem linking completo. Admissão modelo 1; singleton
+continua desligado. Não é prova de progresso de todo DAG, TSan ou throughput.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

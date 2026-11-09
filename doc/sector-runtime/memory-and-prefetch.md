@@ -129,6 +129,14 @@ com histerese protege headroom urgente nas recomendações; não é chamado pela
 admissão do jogo. Só a amostragem do envelope está integrada ao profiling.
 Envelope modelo 1, fórmulas/limites anteriores mantidos, RAM-01 parcial.
 
+O [recorte de admissão atômica](../sector-runtime-h0-atomic-memory-2026-11-09.md),
+`4b5aed18`, integra política ao ledger opt-in sob o mesmo mutex da cobrança.
+reserve/Json novo/delta positivo e requests de allocator preservam demanda e
+headroom; reuso/shrink/liberação não fingem crescimento. Fachadas compartilham
+estado, não cotas independentes. Singleton do jogo continua desligado, sem
+limites/defaults novos. Admissão modelo 1; falta reserva composta e progresso
+dos jobs antes de provider/configuração/fairness processuais.
+
 ### Inventário de ownership e cobertura atual
 
 | Produto/recurso | Dono e término da retenção | Contabilidade atual |
@@ -183,8 +191,9 @@ não foi removida. A floresta retém handles, não cópias profundas, e seu over
 diagnóstico ainda é excluído. Consolidar envelope/exclusões/pressão para o
 escopo antes de ampliar admissão; não exigir cada heap para H1 em sombra.
 O envelope consolidado expõe essas fronteiras, não remove as exclusões. Próximo:
-reserva atômica do escopo, overlap/rollback e prova de progresso de dependências,
-antes de usar recomendações para admissão. Não há teto RSS ou orçamento finito
+contrato de demanda e reserva composta do job antes do dispatch, com rollback
+e prova de progresso de dependências. O backend opt-in já serializa check/charge
+e overlap individual, mas não foi ativado no jogo. Não há teto RSS ou orçamento finito
 padrão; controlador processual/fairness e pressão externa ainda faltam.
 
 ## RAM-02 — Camadas de cache e invalidação

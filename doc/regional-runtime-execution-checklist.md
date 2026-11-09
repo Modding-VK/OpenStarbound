@@ -39,7 +39,7 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[envelope e pressão isolada](sector-runtime-h0-memory-envelope-2026-11-09.md), com
+[reserva atômica opt-in](sector-runtime-h0-atomic-memory-2026-11-09.md), com
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
@@ -105,10 +105,16 @@ Próximo: consolidar envelope/exclusões e pressão antes de limites por hardwar
 Json ambiental/privado e nós seguem parciais. Sem ganho de setores/s medido.
 `ada755bf`/`0915af25` consolida schema das 14 classes e envelope verificado. Há modelo
 isolado de pressão/histerese, mas runtime só amostra métricas; não há limite
-finito novo ou consumidor de admissão. Validação atual: 354 testes, 680 execuções
+finito novo ou consumidor de admissão. Validação daquela etapa: 354 testes, 680 execuções
 adicionais e vinte grupos CTest, ASan/UBSan. Envelope modelo 1, fórmulas mantidas.
 RAM-01/H0 em 25%; próximo: reserva atômica do escopo, overlap/rollback e
 headroom/progresso de dependências, depois controlador/fairness e limites externos.
+`4b5aed18` integra pressão ao ledger opt-in sob o mesmo mutex da cobrança, com
+demanda preservada em fachadas/tokens/allocators. Testes verificam disputas,
+headroom, overlap e rollback; o singleton do jogo continua desligado, sem config
+nova. Validação atual: 388 testes, 680 execuções adicionais e 21 grupos CTest,
+ASan/UBSan; admissão modelo 1. RAM-01/H0 em 25%; próximo: demanda por produtor,
+reserva composta antes do dispatch e prova de progresso antes de provider/config.
 Streaming real com assets/mods
 e executor de conclusões ainda pendentes.
 

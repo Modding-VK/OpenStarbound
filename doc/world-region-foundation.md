@@ -173,6 +173,12 @@ Só métricas observacionais estão no runtime, sem novo controle de admissão o
 limites padrão. O [contrato](sector-runtime-memory-envelope.md) fixa o escopo e
 as exclusões antes de reserva atômica, headroom e controle processual futuros.
 
+O [recorte de reserva atômica](sector-runtime-h0-atomic-memory-2026-11-09.md)
+integra a política a ledgers explicitamente configurados, com uma trava para
+check/charge e demanda preservada nos consumidores. O singleton do jogo mantém
+pressão desligada. Testa overlap/rollback e margem de dependências, não progresso
+de todo DAG ou cota completa de RSS; falta contrato/reserva composta de jobs.
+
 ## Diagnóstico
 
 Com `explorationProfiling.enabled`, os contadores fixos são:

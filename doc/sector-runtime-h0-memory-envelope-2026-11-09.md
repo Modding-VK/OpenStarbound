@@ -186,6 +186,13 @@ Mods/saves/multiplayer e fallback CPU são essenciais. NPC externo suspenso e
 Linux Clang adiado; achados CPU-01 de seed automática/Perlin Uninitialized
 continuam abertos, sem mudança de RNG nesta etapa.
 
+Continuação em `4b5aed18`: o
+[recorte de reserva atômica](sector-runtime-h0-atomic-memory-2026-11-09.md)
+integra pressão a ledgers opt-in, com check/charge sob o mesmo mutex e demanda
+preservada nos tokens/allocators. O singleton do jogo continua desligado. Ver o
+novo relatório para estado/validações e próximos passos; este arquivo preserva
+o resultado e manifesto da etapa histórica do modelo isolado.
+
 ## Manifesto das fontes
 
 Fontes locais de 09/11/2026, nomes relativos ao checkout, bytes e SHA-256.

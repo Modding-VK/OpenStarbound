@@ -2,7 +2,7 @@
 
 Estado: H0 / RAM-01, `Experimental`, 09/11/2026.
 [Programa](sector-runtime/README.md) · [Inventário de ownership](sector-runtime/memory-and-prefetch.md)
-· [Roadmap](sector-runtime/roadmap.md) · [Relatório da entrega](sector-runtime-h0-memory-envelope-2026-11-09.md)
+· [Roadmap](sector-runtime/roadmap.md) · [Relatório da entrega](sector-runtime-h0-atomic-memory-2026-11-09.md)
 
 Este contrato delimita o **subconjunto privado de geração contabilizado**.
 Não redefine RAM-01 como orçamento de todo o motor e não transforma estimativa
@@ -82,12 +82,13 @@ podem superestimar e exclusões podem subestimar. Um saldo zero do ledger não
 prova RSS zero nem desalocação global. Nenhuma margem ou teto total é inferido
 automaticamente dessas parcelas.
 
-## Modelo de pressão implementado, isolado da admissão
+## Modelo de pressão e admissão opt-in do ledger
 
-WorldGenerationMemoryPressurePolicy é um modelo owner-local, sem callbacks,
-locks, alocação, relógio, SO ou modelo de CPU. Não há consumidor de admissão no
-runtime nesta entrega: o jogo **não** pausa/cancela trabalho por suas decisões.
-Não há chaves novas de config, orçamento finito padrão ou ajuste de workers.
+WorldGenerationMemoryPressurePolicy continua um modelo sem callbacks, locks,
+alocação, relógio, SO ou modelo de CPU. O ledger agora pode usá-lo de forma
+opt-in, sob seu mutex, conforme o [relatório de reserva atômica](sector-runtime-h0-atomic-memory-2026-11-09.md).
+O singleton do jogo continua usando o construtor anterior, com pressão desligada:
+não há chaves novas de config, orçamento finito padrão ou ajuste de workers.
 
 O chamador futuro fornece limites explícitos de um escopo declarado:
 `resumeBytes < softBytes < hardBytes`. Por padrão o modelo está desligado,
@@ -116,15 +117,53 @@ consumo nem aumenta pressão por si só. Pedidos aceitos podem chegar exatamente
 ao limite correspondente; o próximo snapshot refletirá a fronteira atingida.
 Comparações usam headroom por subtração verificada, sem soma que possa dar wrap.
 
-## Fronteira para a próxima integração
+## Reserva atômica implementada no escopo
 
-Uma recomendação de snapshot **não é reserva atômica**. Outro worker pode
-alocar entre observação e uso. Antes de impor um limite real:
+O construtor tipado do ledger aceita maximumBytes e limites explícitos; quando
+ativados, exige resume < soft < hard <= maximumBytes. A sobrecarga antiga conserva
+seu teto finito de teste, independente da pressão. Limites desligados não ativam
+scan do envelope nem checks da política em cada reserva.
 
-1. Delimitar quais reservas/produtos o limite governa e testar a admissão sob
-   o lock/ownership processual apropriado, incluindo overlap e rollback.
-2. Preservar headroom e progresso de dependências/consumo: soft/hard sozinhos
-   não provam ausência de deadlock com resultados bloqueados e caches retidas.
+`withDemand(Visible/Dependency/Speculative)` produz uma fachada do mesmo estado,
+não outro orçamento. Checagem do envelope, decisão e cobrança ocorrem sob o
+mesmo mutex em reserve, nova reserva Json e crescimento positivo de estimativa.
+Governa a soma contabilizada, não heap omitido/RSS. Dois ledgers independentes
+ainda são dois escopos: a integração futura precisa usar uma raiz processual.
+
+O token conserva a demanda de criação para crescimentos posteriores. Não há API
+de promoção de token ou ajuste dinâmico de limites nesta etapa. Json com owner
+já rastreado é reuso sem novos bytes; modelo conflitante continua recusado.
+Shrink, destruição e liberação não precisam de nova admissão.
+
+Allocators conservam demanda em copy/move/rebind e propagação de containers.
+Demanda diferente participa de sua igualdade. No runtime legado, todos seguem
+a demanda padrão anterior, com pressão desligada; não se altera a sequência
+de cópias/crescimento dos elementos. O request integral continua reservado antes
+do raw allocator, com buffers velho/novo cobrados juntos na realocação.
+
+Recusa não cobra bytes nem constrói payload; reserva retorna nulo, resize retorna
+false e allocator mantém sua exceção bad_alloc. Falha física/cópia lançante libera
+o novo request, sem liberar o buffer antigo ainda vivo. Isso não implementa retry
+de scheduler nem autoriza tratar a exceção como resultado de geração vazio.
+
+`snapshot().admission` expõe enabled, pressureChecks, pressureRefusals e lastAdvice,
+modelo próprio 1. Checks contam avaliações da política, inclusive reservas zero,
+não todos os motivos possíveis de recusa. Reuso Json, shrink e resize sem mudança
+não contam novo crescimento. LastAdvice é a observação anterior à cobrança, não
+pressão atual recalculada após toda liberação. Counters saturam em size_t máximo;
+não há nova série desses dados no profiling do jogo nesta entrega.
+
+## Fronteira para a próxima integração de tarefas
+
+Uma recomendação de snapshot **não é reserva atômica**. O caminho opt-in acima
+resolve essa janela no ledger, não em um conselho consumido fora dele. Antes
+de ativar um orçamento para tarefas reais:
+
+1. Vincular demandas aos produtores e definir reserva composta de inputs/outputs/
+   overlap antes do dispatch, incluindo rollback de grupos parcialmente admitidos.
+2. Preservar headroom e progresso de dependências/consumo: os testes preservam
+   a margem soft→hard e o overlap real, não provam ausência de deadlock em todo
+   grafo com resultados bloqueados e caches retidas.
 3. Usar controlador processual único e fairness/cotas explícitas entre mundos;
    não multiplicar o orçamento por WorldGenerator ou instância de policy.
 4. Definir pressão externa, limites do usuário/hardware e memória unificada

@@ -101,6 +101,14 @@ não é reserva atômica nem permissão para alterar o mundo; sua integração f
 exige escopo, progresso e os gates de equivalência. O
 [contrato](../sector-runtime-memory-envelope.md) mantém explícitas essas exclusões.
 
+O [backend atômico opt-in](../sector-runtime-h0-atomic-memory-2026-11-09.md)
+conserva o construtor anterior do singleton desligado. Sob configuração tipada,
+uma única trava protege checagem/cobrança e fachadas não duplicam a cota.
+Demanda acompanha tokens/allocators; não é promoção automática de prioridade.
+Runtime legado usa a demanda padrão, mantendo cópias/crescimento e formatos
+persistidos. Recusa de allocator é exceção, não resultado vazio; integração
+futura precisa de contrato de jobs, retry/progresso e gates de equivalência.
+
 ## MOD-02 — Equivalência e versionamento
 
 Definir inputs que produzem um output: seed, template/layout, geração de

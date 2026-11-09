@@ -97,7 +97,7 @@ adicionais e dezenove grupos CTest, ASan/UBSan; modelos geral 9/Json 2/Json
 enfileirado 1. Coleta diagnóstica, Json ambiental/privado e nós ainda parciais.
 RAM-01/H0 em 25%; próximo: consolidar envelope/exclusões/pressão para o escopo
 antes de limites por hardware e maior admissão; benchmark/comparador mantidos.
-O [relatório vigente](sector-runtime-h0-memory-envelope-2026-11-09.md), `ada755bf`/`0915af25`,
+O [recorte do envelope](sector-runtime-h0-memory-envelope-2026-11-09.md), `ada755bf`/`0915af25`,
 consolida schema/envelope das 14 classes e modelo isolado de pressão/histerese.
 O [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md) distingue
 arrays, requests e estimativas. Runtime só amostra o envelope; nenhuma decisão
@@ -105,6 +105,13 @@ de admissão/cancelamento mudou. São 354 testes, 680 execuções adicionais e v
 grupos CTest, ASan/UBSan; envelope modelo 1, fórmulas anteriores mantidas.
 RAM-01/H0 em 25%; próximo: reserva atômica do escopo, overlap/rollback e progresso
 de dependências antes de controlador processual/fairness e limites externos.
+O [relatório vigente](sector-runtime-h0-atomic-memory-2026-11-09.md), `4b5aed18`,
+implementa ledger opt-in com decisão/cobrança atômicas, headroom e demanda
+preservada em tokens/allocators. São 388 testes, 680 execuções adicionais e 21
+grupos CTest, ASan/UBSan. Singleton do jogo ainda desligado, sem limite novo;
+admissão modelo 1. RAM-01/H0 em 25%; próximo: contrato de demanda por produtor,
+reserva composta/rollback antes do dispatch e progresso do DAG, depois provider
+processual/configuração/fairness. Headroom individual não conclui todo o contrato.
 Achado de CPU-01: overflow assinado na seed automática de `StarRandom.cpp:197`,
 observado em execução estrita de sanitizers; RNG de produção permanece
 inalterado. A reprodução e a separação dos testes de hash com seeds privadas

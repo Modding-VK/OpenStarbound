@@ -183,17 +183,27 @@ RAM-01, envelope em `ada755bf`/`0915af25`: schema das 14 classes, somas/coerênc
 e política isolada de pressão com histerese/headroom por demanda. Runtime só
 amostra o envelope, sem usar a política para admitir/cancelar tarefas. São 34
 casos novos, 354 no total, 680 execuções adicionais e vinte grupos CTest,
-ASan/UBSan. Ver [relatório vigente](../sector-runtime-h0-memory-envelope-2026-11-09.md)
+ASan/UBSan. Ver [relatório da etapa](../sector-runtime-h0-memory-envelope-2026-11-09.md)
 e [contrato de cobertura/exclusões](../sector-runtime-memory-envelope.md).
 Entradas inválidas preservam a última pressão válida após dois controles de
 regressão. Envelope modelo 1, fórmulas anteriores mantidas. RAM-01/H0 seguem em 25%:
 não é orçamento hard do motor, governador processual ativo ou ganho medido.
 
-Próximo trabalho executável: contrato/reserva atômica do escopo processual,
-incluindo overlap/rollback e headroom/progresso de dependências. Depois,
-controlador único/fairness entre mundos e pressão externa/limites por hardware
-e configuração. Manter as exclusões declaradas; não exigir cada heap para H1
-em sombra nem ampliar filas com a política isolada. Preservar fallback síncrono,
+RAM-01, admissão atômica em `4b5aed18`: novo ledger opt-in verifica/cobra sob
+o mesmo mutex em reserve, Json novo e crescimento de estimativas. Fachadas
+compartilham orçamento/histerese; tokens/allocators preservam demanda. São 34
+casos novos, 388 no total, 680 execuções adicionais e 21 grupos CTest, ASan/UBSan,
+incluindo disputas soft/hard, conselho obsoleto, overlap e rollback. Ver
+[relatório vigente](../sector-runtime-h0-atomic-memory-2026-11-09.md).
+Singleton do jogo continua com pressão desligada, sem config/defaults novos;
+admissão modelo 1, RAM-01/H0 em 25%. Headroom testado não prova todo DAG.
+
+Próximo trabalho executável: contrato de demanda por produtor e reserva composta
+de inputs/saída/overlap antes do dispatch, com rollback parcial e prova de
+progresso. Depois, provider processual único configurável, promoção de demanda,
+fairness entre mundos e pressão externa/limites de hardware. Manter exclusões;
+não exigir cada heap para H1 em sombra nem ativar orçamento de jogo só pela
+existência do backend. Preservar fallback síncrono,
 ownership único e história de cópias. Estender
 o comparador ao fluxo de candidatos/IDs/prioridades e ao
 streaming real, usando o controle de colisões como gate antes de eliminar cópias.
