@@ -7,10 +7,11 @@
 
 namespace Star {
 
-// Version 7 includes complete bucket-vector payloads and damage-factor values.
+// Version 8 includes Json object buckets/keys with bounded canonical sizing.
 // It is neither allocator accounting nor an upper bound on retained heap.
 struct WorldGenerationSizeEstimate {
-  static constexpr unsigned ModelVersion = 7;
+  static constexpr unsigned ModelVersion = 8;
+  static constexpr unsigned JsonModelVersion = 2;
   size_t bytes = 0;
   bool complete = true;
 
@@ -38,6 +39,10 @@ struct WorldGenerationJsonSnapshot {
   bool measured = false;
   bool complete = false;
   size_t visitedValues = 0;
+  size_t sizedObjectKeys = 0;
+  // No partial byte model is registered for an object whose keys do not fit
+  // the traversal allowance. Another capture can measure that owner fully.
+  size_t omittedObjects = 0;
 };
 
 using WorldGenerationJsonSnapshotPtr = std::shared_ptr<WorldGenerationJsonSnapshot const>;

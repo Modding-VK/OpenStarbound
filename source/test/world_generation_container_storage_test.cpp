@@ -69,6 +69,7 @@ struct CountHash {
   size_t operator()(String const& value) const { if (calls) ++*calls; return hash<String>{}(value); }
 };
 using RecordedSet = FlatHashSet<String, CountHash, std::equal_to<String>, RecordingAllocator<String>>;
+using RecordedMap = FlatHashMap<String, Json, CountHash, std::equal_to<String>, RecordingAllocator<String>>;
 struct alignas(64) AlignedKey {
   unsigned value;
   bool operator==(AlignedKey const& other) const { return value == other.value; }
@@ -300,4 +301,74 @@ TEST(WorldGenerationContainerStorageTest, ConcurrentReadOnlyQueriesDoNotMutateSt
   });
   for (auto& reader : readers) reader.join();
   EXPECT_EQ(failed.load(), 0u); EXPECT_EQ(requests->allocations, allocations);
+}
+
+TEST(WorldGenerationContainerStorageTest, MapDefaultAndReservedEmptyMatchAllocatorRequests) {
+  RecordingFamily family; auto requests = family.requests;
+  { RecordedMap values{RecordingAllocator<String>(requests)};
+    static_assert(noexcept(values.bucketStorageBytes()), "Map query cannot throw");
+    EXPECT_EQ(values.bucketStorageBytes(), 0u);
+    values.reserve(257);
+    EXPECT_TRUE(values.empty());
+    EXPECT_EQ(values.bucketStorageBytes(), requests->bytes);
+    EXPECT_GT(values.bucketStorageBytes(), 257 * sizeof(RecordedMap::value_type)); }
+  EXPECT_EQ(requests->bytes, 0u);
+}
+
+TEST(WorldGenerationContainerStorageTest, MapGrowthAndClearReportRetainedBucketPayload) {
+  RecordingFamily family; auto requests = family.requests;
+  RecordedMap values{RecordingAllocator<String>(requests)};
+  for (unsigned i = 0; i < 256; ++i) {
+    values.emplace(toString(i), Json(i));
+    EXPECT_EQ(values.bucketStorageBytes(), requests->bytes);
+  }
+  auto bytes = values.bucketStorageBytes();
+  values.erase(String("0")); values.clear();
+  EXPECT_EQ(values.bucketStorageBytes(), bytes);
+  EXPECT_EQ(values.bucketStorageBytes(), requests->bytes);
+}
+
+TEST(WorldGenerationContainerStorageTest, MapCopyAndMoveKeepIndependentPhysicalRequests) {
+  RecordingFamily family; auto requests = family.requests;
+  RecordedMap values{RecordingAllocator<String>(requests)};
+  values.reserve(257); values.emplace("one", Json(1));
+  auto original = values.bucketStorageBytes();
+  RecordedMap copy(values);
+  EXPECT_LT(copy.bucketStorageBytes(), original);
+  auto copied = copy.bucketStorageBytes();
+  RecordedMap moved(std::move(copy));
+  EXPECT_EQ(copy.bucketStorageBytes(), 0u);
+  EXPECT_EQ(moved.bucketStorageBytes(), copied);
+  EXPECT_EQ(requests->bytes, original + copied);
+}
+
+TEST(WorldGenerationContainerStorageTest, MapQueryDoesNotHashAllocateOrReorderEntries) {
+  RecordingFamily family; auto requests = family.requests; unsigned calls = 0;
+  RecordedMap values(0, CountHash{&calls}, std::equal_to<String>{}, RecordingAllocator<String>(requests));
+  values.emplace("one", Json(1)); values.emplace("two", Json(2));
+  std::vector<RecordedMap::value_type> before(values.begin(), values.end());
+  auto hashes = calls; auto allocations = requests->allocations;
+  RecordedMap const& readonly = values;
+  for (unsigned i = 0; i < 1000; ++i) EXPECT_EQ(readonly.bucketStorageBytes(), requests->bytes);
+  EXPECT_EQ(calls, hashes); EXPECT_EQ(requests->allocations, allocations);
+  EXPECT_EQ(std::vector<RecordedMap::value_type>(values.begin(), values.end()), before);
+}
+
+TEST(WorldGenerationContainerStorageTest, MapBucketPayloadExcludesNestedKeysAndJsonHeaps) {
+  RecordingFamily family; auto requests = family.requests;
+  RecordedMap shortValue{RecordingAllocator<String>(requests)}, longValue{RecordingAllocator<String>(requests)};
+  shortValue.emplace("a", Json(1));
+  longValue.emplace(String(std::string(8192, 'k')), Json(std::string(16384, 'v')));
+  EXPECT_EQ(shortValue.bucketStorageBytes(), longValue.bucketStorageBytes());
+  EXPECT_EQ(requests->bytes, shortValue.bucketStorageBytes() + longValue.bucketStorageBytes());
+}
+
+TEST(WorldGenerationContainerStorageTest, MapOveralignedBucketsIncludePaddingAndSentinel) {
+  RecordingFamily family; auto requests = family.requests;
+  using Map = FlatHashMap<AlignedKey, unsigned, HashAligned, std::equal_to<AlignedKey>, RecordingAllocator<AlignedKey>>;
+  Map values{RecordingAllocator<AlignedKey>(requests)};
+  values.reserve(100); values.emplace(AlignedKey{7}, 11u);
+  EXPECT_EQ(values.bucketStorageBytes(), requests->bytes);
+  EXPECT_GT(values.bucketStorageBytes(), 100 * sizeof(Map::value_type));
+  EXPECT_EQ(values.bucketStorageBytes() % alignof(AlignedKey), 0u);
 }

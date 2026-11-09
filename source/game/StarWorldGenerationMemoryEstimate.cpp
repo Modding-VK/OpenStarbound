@@ -32,6 +32,7 @@ WorldGenerationJsonSnapshotPtr captureWorldGenerationJson(WorldGenerationMemoryL
     pending.pop_back();
     ++snapshot->visitedValues;
     std::shared_ptr<void const> owner;
+    JsonObjectConstPtr object;
     WorldGenerationSizeEstimate estimate;
     switch (node.type()) {
       case Json::Type::String:
@@ -45,19 +46,16 @@ WorldGenerationJsonSnapshotPtr captureWorldGenerationJson(WorldGenerationMemoryL
         estimate.add(node.arrayPtr()->capacity(), sizeof(Json));
         break;
       case Json::Type::Object:
-        owner = node.objectPtr();
+        object = node.objectPtr();
+        owner = object;
         estimate.add(sizeof(JsonObject));
-        // FlatHashMap does not expose bucket capacity. Count occupied
-        // representations only; key heap storage/unused buckets are excluded.
-        estimate.add(node.objectPtr()->size(), sizeof(JsonObject::value_type));
+        // Includes inline keys/values, empty/sentinel slots and padding.
+        estimate.add(object->bucketStorageBytes());
         break;
       default:
         continue;
     }
     if (!visited.insert(owner).second) continue;
-    auto memory = estimate.complete ? ledger.reserveSharedJson(owner, estimate.bytes) : nullptr;
-    if (memory) snapshot->accounting.push_back(std::move(memory));
-    else snapshot->complete = false;
     auto enqueue = [&](Json const& child) {
       if (pending.size() >= maximumValues - snapshot->visitedValues) {
         snapshot->complete = false;
@@ -68,9 +66,27 @@ WorldGenerationJsonSnapshotPtr captureWorldGenerationJson(WorldGenerationMemoryL
     };
     if (node.isType(Json::Type::Array)) {
       for (auto const& child : *node.arrayPtr()) if (!enqueue(child)) break;
-    } else if (node.isType(Json::Type::Object)) {
-      for (auto const& entry : *node.objectPtr()) if (!enqueue(entry.second)) break;
+    } else if (object && !object->empty()) {
+      // Each key accompanies one child already subject to the traversal bound.
+      // Never register a limit-dependent partial byte count for a shared owner:
+      // reserveSharedJson requires one canonical model across all captures.
+      bool keysFit = object->size() <= maximumValues - snapshot->visitedValues - pending.size();
+      if (keysFit) {
+        for (auto const& entry : *object) {
+          estimate.stringCapacity(entry.first);
+          enqueue(entry.second);
+        }
+        snapshot->sizedObjectKeys += object->size();
+      } else {
+        ++snapshot->omittedObjects;
+        snapshot->complete = false;
+        for (auto const& entry : *object) if (!enqueue(entry.second)) break;
+        continue;
+      }
     }
+    auto memory = estimate.complete ? ledger.reserveSharedJson(owner, estimate.bytes) : nullptr;
+    if (memory) snapshot->accounting.push_back(std::move(memory));
+    else snapshot->complete = false;
   }
   if (!pending.empty()) snapshot->complete = false;
   return snapshot;

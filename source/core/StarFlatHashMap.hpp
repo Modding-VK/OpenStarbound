@@ -152,6 +152,8 @@ public:
 
   void reserve(size_t capacity);
   size_t allocatorStorageBytes() const;
+  // Bucket-vector payload only; excludes nested values and allocator overhead.
+  size_t bucketStorageBytes() const noexcept;
 
   bool operator==(FlatHashMap const& rhs) const;
   bool operator!=(FlatHashMap const& rhs) const;
@@ -533,6 +535,11 @@ void FlatHashMap<Key, Mapped, Hash, Equals, Allocator>::reserve(size_t capacity)
 template <typename Key, typename Mapped, typename Hash, typename Equals, typename Allocator>
 size_t FlatHashMap<Key, Mapped, Hash, Equals, Allocator>::allocatorStorageBytes() const {
   return m_table.allocatorStorageBytes();
+}
+
+template <typename Key, typename Mapped, typename Hash, typename Equals, typename Allocator>
+size_t FlatHashMap<Key, Mapped, Hash, Equals, Allocator>::bucketStorageBytes() const noexcept {
+  return m_table.bucketStorageBytes();
 }
 
 template <typename Key, typename Mapped, typename Hash, typename Equals, typename Allocator>

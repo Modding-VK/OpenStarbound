@@ -1122,7 +1122,10 @@ WorldGenerationJsonSnapshotPtr WorldGenerator::templateStoreSnapshot(TemplateSto
   cache.revision = revision;
   cache.store = std::move(store);
   if (measure) {
+    profile->maximum("generation.memory.estimates.jsonModelVersion", WorldGenerationSizeEstimate::JsonModelVersion);
     profile->count("generation.memory.estimates.templateMeasurements");
+    profile->count("generation.memory.estimates.templateObjectKeys", cache.store->sizedObjectKeys);
+    profile->count("generation.memory.estimates.templateOmittedObjects", cache.store->omittedObjects);
     if (!cache.store->complete) profile->count("generation.memory.estimates.templateIncomplete");
   }
   return cache.store;

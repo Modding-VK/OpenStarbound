@@ -126,6 +126,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_payload_test.cpp
   world_generation_temporary_test.cpp
   world_generation_container_storage_test.cpp
+  world_generation_json_storage_test.cpp
   block_allocator_exception_test.cpp
   world_region_coordinator_test.cpp)
 IF(STAR_ENABLE_TRACY)
@@ -152,6 +153,7 @@ FOREACH(world_region_test_suite
     WorldGenerationPayloadTest
     WorldGenerationTemporaryTest
     WorldGenerationContainerStorageTest
+    WorldGenerationJsonStorageTest
     BlockAllocatorExceptionTest
     WorldRegionCoordinatorTest
     WorldRegionObservationTest)
