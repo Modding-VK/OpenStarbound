@@ -11,6 +11,9 @@ namespace Star {
 enum class WorldGenerationMemoryClass : size_t {
   BaseTilesArray,
   MicroDungeonHalo,
+  TemplateJsonEstimate,
+  SnapshotMetadataEstimate,
+  MicroDungeonPlanEstimate,
   Count
 };
 
@@ -18,6 +21,12 @@ struct WorldGenerationMemorySnapshot {
   size_t reservedBytes = 0;
   size_t peakReservedBytes = 0;
   size_t resources = 0;
+  size_t reservedArrayBytes = 0;
+  size_t estimatedBytes = 0;
+  size_t peakReservedArrayBytes = 0;
+  size_t peakEstimatedBytes = 0;
+  size_t sharedResources = 0;
+  size_t sharedRegistryEntries = 0;
   std::array<size_t, static_cast<size_t>(WorldGenerationMemoryClass::Count)> classBytes{};
   std::array<size_t, static_cast<size_t>(WorldGenerationMemoryClass::Count)> classResources{};
 };
@@ -31,16 +40,19 @@ public:
   ~WorldGenerationMemoryReservation();
   WorldGenerationMemoryReservation(WorldGenerationMemoryReservation const&) = delete;
   WorldGenerationMemoryReservation& operator=(WorldGenerationMemoryReservation const&) = delete;
+  bool resizeEstimate(size_t bytes);
 
 private:
   friend class WorldGenerationMemoryLedger;
   WorldGenerationMemoryReservation(std::shared_ptr<WorldGenerationMemoryState> state,
-      WorldGenerationMemoryClass kind, size_t bytes);
+      WorldGenerationMemoryClass kind, size_t bytes, std::shared_ptr<void const> owner = {});
 
   std::shared_ptr<WorldGenerationMemoryState> m_state;
   WorldGenerationMemoryClass m_kind;
   size_t m_bytes;
   bool m_active = false;
+  bool m_shared = false;
+  std::weak_ptr<void const> m_owner;
 };
 
 class WorldGenerationMemoryLedger {
@@ -49,6 +61,9 @@ public:
   // A finite cap is available for isolated admission/lifecycle tests.
   explicit WorldGenerationMemoryLedger(size_t maximumBytes = std::numeric_limits<size_t>::max());
   std::shared_ptr<WorldGenerationMemoryReservation> reserve(WorldGenerationMemoryClass kind, size_t bytes);
+  // Deduplicate immutable Json storage by ownership, not address/content.
+  std::shared_ptr<WorldGenerationMemoryReservation> reserveSharedJson(
+      std::shared_ptr<void const> const& owner, size_t bytes);
   WorldGenerationMemorySnapshot snapshot() const;
 
 private:
@@ -74,6 +89,7 @@ public:
   WorldGenerationTrackedResource& operator=(WorldGenerationTrackedResource const&) = delete;
 
   Payload value{};
+  bool resizeEstimate(size_t bytes) { return m_memory->resizeEstimate(bytes); }
 };
 
 // Acquire before allocating/default-constructing the payload. The local token

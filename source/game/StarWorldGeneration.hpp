@@ -10,6 +10,7 @@
 #include "StarWorkerPool.hpp"
 #include "StarWorldGenerationTasks.hpp"
 #include "StarWorldGenerationMemory.hpp"
+#include "StarWorldGenerationMemoryEstimate.hpp"
 #include "StarWorldGenerationPlacementQueue.hpp"
 
 namespace Star {
@@ -169,7 +170,8 @@ private:
   };
 
   struct MicroDungeonPlanSnapshot {
-    Json templateStore;
+    shared_ptr<WorldGenerationMemoryReservation> metadataMemory;
+    WorldGenerationJsonSnapshotPtr templateStore;
     uint64_t templateRevision;
     Sector sector;
     RectI sectorTiles;
@@ -180,10 +182,13 @@ private:
   };
 
   struct PreparedMicroDungeonPlan {
+    shared_ptr<WorldGenerationMemoryReservation> memory;
     List<MicroDungeonPlan> plans;
     double elapsedSeconds;
     double queueSeconds;
     double completedAt;
+    bool memoryEstimateComplete = true;
+    double memoryEstimateSeconds = 0;
   };
 
   struct PreparedBaseTiles {
@@ -194,6 +199,7 @@ private:
   };
 
   struct PendingBaseTiles {
+    shared_ptr<WorldGenerationMemoryReservation> metadataMemory;
     shared_ptr<WorldGenerationTask> task;
     ServerTileSectorArray::Array const* sourceTiles;
     uint64_t sourceTileRevision;
@@ -222,6 +228,7 @@ private:
   // The owning region keeps this record until the producer has returned and
   // its template and sector revisions have been revalidated.
   struct PendingMicroDungeonPlan {
+    shared_ptr<WorldGenerationMemoryReservation> metadataMemory;
     shared_ptr<WorldGenerationTask> task;
     HashMap<Sector, uint64_t> sourceSectorRevisions;
     WorldTemplate const* sourceTemplate;
@@ -235,6 +242,15 @@ private:
 
   void prepareTiles(WorldStorage* worldStorage, Sector const& sector);
   void profileGenerationMemory(double now);
+  struct TemplateStoreCache {
+    WorldTemplatePtr source;
+    uint64_t revision = 0;
+    WorldGenerationJsonSnapshotPtr store;
+  };
+  WorldGenerationJsonSnapshotPtr templateStoreSnapshot(TemplateStoreCache& cache,
+      WorldTemplatePtr const& source, uint64_t revision);
+  shared_ptr<WorldGenerationMemoryReservation> trackMemoryEstimate(
+      WorldGenerationMemoryClass kind, WorldGenerationSizeEstimate const& estimate);
   void retireBaseTileTask(shared_ptr<WorldGenerationTask> const& task, WorldGenerationTaskOutcome outcome);
   SectorGenerationResult prepareTilesAsync(WorldStorage* worldStorage, Sector const& sector, bool allowAsync);
   SectorGenerationResult generateMicroDungeons(WorldStorage* worldStorage, Sector const& sector, bool allowAsync);
@@ -268,12 +284,8 @@ private:
   unique_ptr<WorldGenerationTasks> m_generationTasks;
   double m_lastPoolProfileTime = 0;
   double m_lastGenerationMemoryProfileTime = 0;
-  WorldTemplatePtr m_baseTileTemplateSource;
-  uint64_t m_baseTileTemplateRevision = 0;
-  Json m_baseTileTemplateStore;
-  WorldTemplatePtr m_microDungeonTemplateSource;
-  uint64_t m_microDungeonTemplateRevision = 0;
-  Json m_microDungeonTemplateStore;
+  TemplateStoreCache m_baseTileTemplateCache;
+  TemplateStoreCache m_microDungeonTemplateCache;
 };
 
 }

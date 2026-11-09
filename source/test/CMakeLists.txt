@@ -105,6 +105,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   ../game/StarWorldGenerationDependency.cpp
   ../game/StarWorldGenerationTasks.cpp
   ../game/StarWorldGenerationMemory.cpp
+  ../game/StarWorldGenerationMemoryEstimate.cpp
   ../game/StarWorldRegionCoordinator.cpp
   gtest/gtest-all.cc
   core_tests_main.cpp
@@ -115,6 +116,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_placement_queue_test.cpp
   world_generation_tasks_test.cpp
   world_generation_memory_test.cpp
+  world_generation_estimate_test.cpp
   world_region_coordinator_test.cpp)
 IF(STAR_ENABLE_TRACY)
   TARGET_LINK_LIBRARIES(world_generation_contract_tests PRIVATE ${STAR_EXT_LIBS} Tracy::TracyClient)
@@ -132,6 +134,7 @@ FOREACH(world_region_test_suite
     WorldGenerationPlacementQueueTest
     WorldGenerationTasksTest
     WorldGenerationMemoryTest
+    WorldGenerationEstimateTest
     WorldRegionCoordinatorTest
     WorldRegionObservationTest)
   ADD_TEST(NAME world_generation_contract_${world_region_test_suite}

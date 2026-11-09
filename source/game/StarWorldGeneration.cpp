@@ -113,14 +113,14 @@ void prepareBaseTileArray(WorldTemplatePtr const& planet, MaterialDatabaseConstP
 }
 
 WorldTemplatePtr workerWorldTemplate(WorldTemplatePtr const& sourceTemplate,
-    uint64_t sourceRevision, Json const& templateStore) {
+    uint64_t sourceRevision, WorldGenerationJsonSnapshotPtr const& templateStore) {
   static thread_local weak_ptr<WorldTemplate> cachedSourceTemplate;
   static thread_local uint64_t cachedSourceRevision = 0;
   static thread_local WorldTemplatePtr cachedWorkerTemplate;
 
   if (!cachedWorkerTemplate || cachedSourceTemplate.lock() != sourceTemplate
       || cachedSourceRevision != sourceRevision) {
-    auto workerTemplate = make_shared<WorldTemplate>(templateStore);
+    auto workerTemplate = make_shared<WorldTemplate>(templateStore->value);
     cachedSourceTemplate = sourceTemplate;
     cachedSourceRevision = sourceRevision;
     cachedWorkerTemplate = std::move(workerTemplate);
@@ -1055,14 +1055,52 @@ void WorldGenerator::profileGenerationMemory(double now) {
   m_lastGenerationMemoryProfileTime = now;
   auto usage = worldGenerationMemoryLedger().snapshot();
   profile->count("generation.memory.process.samples");
-  profile->count("generation.memory.process.sampledReservedArrayBytesTotal", usage.reservedBytes);
-  profile->count("generation.memory.process.sampledResourcesTotal", usage.resources);
+  profile->count("generation.memory.process.sampledReservedArrayBytesTotal", usage.reservedArrayBytes);
+  profile->count("generation.memory.process.sampledResourcesTotal", usage.classResources[0] + usage.classResources[1]);
   profile->count("generation.memory.process.sampledBaseTilesArrayBytesTotal",
       usage.classBytes[static_cast<size_t>(WorldGenerationMemoryClass::BaseTilesArray)]);
   profile->count("generation.memory.process.sampledMicroDungeonHaloArrayBytesTotal",
       usage.classBytes[static_cast<size_t>(WorldGenerationMemoryClass::MicroDungeonHalo)]);
-  profile->maximum("generation.memory.process.sampleMaximumReservedArrayBytes", usage.reservedBytes);
-  profile->maximum("generation.memory.process.lifetimePeakReservedArrayBytes", usage.peakReservedBytes);
+  profile->maximum("generation.memory.process.sampleMaximumReservedArrayBytes", usage.reservedArrayBytes);
+  profile->maximum("generation.memory.process.lifetimePeakReservedArrayBytes", usage.peakReservedArrayBytes);
+  profile->count("generation.memory.process.sampledEstimatedBytesTotal", usage.estimatedBytes);
+  profile->count("generation.memory.process.sampledSharedJsonNodesTotal", usage.sharedResources);
+  profile->count("generation.memory.process.sampledTemplateJsonEstimateTotal", usage.classBytes[2]);
+  profile->count("generation.memory.process.sampledMetadataEstimateTotal", usage.classBytes[3]);
+  profile->count("generation.memory.process.sampledPlanEstimateTotal", usage.classBytes[4]);
+  profile->maximum("generation.memory.process.lifetimePeakEstimatedBytes", usage.peakEstimatedBytes);
+  profile->maximum("generation.memory.estimates.modelVersion", WorldGenerationSizeEstimate::ModelVersion);
+  if (profile->regionalDetailsEnabled()) profile->count("generation.memory.estimates.enabledSamples");
+}
+
+WorldGenerationJsonSnapshotPtr WorldGenerator::templateStoreSnapshot(TemplateStoreCache& cache,
+    WorldTemplatePtr const& source, uint64_t revision) {
+  auto profile = m_worldServer->explorationProfile();
+  bool measure = profile && profile->regionalDetailsEnabled();
+  bool changed = cache.source != source || cache.revision != revision || !cache.store;
+  if (!changed && (!measure || cache.store->measured)) return cache.store;
+  auto value = changed ? source->store() : cache.store->value;
+  ExplorationProfile::Scope sizing(measure ? profile : nullptr, "generation.memory.estimates.templateSizing");
+  auto store = captureWorldGenerationJson(worldGenerationMemoryLedger(), std::move(value), measure);
+  // Publish cache identity only after capture succeeds. A failed allocation
+  // must not tag an old/empty store as the new revision.
+  cache.source = source;
+  cache.revision = revision;
+  cache.store = std::move(store);
+  if (measure) {
+    profile->count("generation.memory.estimates.templateMeasurements");
+    if (!cache.store->complete) profile->count("generation.memory.estimates.templateIncomplete");
+  }
+  return cache.store;
+}
+
+shared_ptr<WorldGenerationMemoryReservation> WorldGenerator::trackMemoryEstimate(
+    WorldGenerationMemoryClass kind, WorldGenerationSizeEstimate const& estimate) {
+  auto profile = m_worldServer->explorationProfile();
+  if (!profile || !profile->regionalDetailsEnabled()) return {};
+  auto memory = estimate.complete ? worldGenerationMemoryLedger().reserve(kind, estimate.bytes) : nullptr;
+  if (!memory) profile->count("generation.memory.estimates.reservationIncomplete");
+  return memory;
 }
 
 void WorldGenerator::retireBaseTileTask(shared_ptr<WorldGenerationTask> const& task, WorldGenerationTaskOutcome outcome) {
@@ -1365,19 +1403,17 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
   auto sectorRegion = tileArray->sectorRegion(sector);
   auto planet = m_worldServer->worldTemplate();
   auto templateRevision = planet->generationRevision();
-  if (m_baseTileTemplateSource != planet || m_baseTileTemplateRevision != templateRevision) {
-    m_baseTileTemplateSource = planet;
-    m_baseTileTemplateRevision = templateRevision;
-    m_baseTileTemplateStore = planet->store();
-  }
-  auto templateStore = m_baseTileTemplateStore;
+  auto templateStore = templateStoreSnapshot(m_baseTileTemplateCache, planet, templateRevision);
   auto materialDatabase = Root::singleton().materialDatabase();
   double scheduledAt = profile ? Time::monotonicTime() : now;
   try {
     // Allocate the owner record before dispatch: a map allocation after the
     // pool accepted the producer must not orphan its promise/reservation.
     auto& pendingRecord = m_pendingBaseTiles[sector];
-    pendingRecord = PendingBaseTiles{task, sourceTiles, sourceTileRevision,
+    WorldGenerationSizeEstimate metadata;
+    metadata.add(sizeof(PendingBaseTiles));
+    pendingRecord = PendingBaseTiles{trackMemoryEstimate(WorldGenerationMemoryClass::SnapshotMetadataEstimate, metadata),
+        task, sourceTiles, sourceTileRevision,
         planet.get(), templateRevision, scheduledAt, {}};
     if (profile)
       tileArray->beginRevisionTracking(sector);
@@ -1528,6 +1564,10 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
       }
     }
     PreparedMicroDungeonPlan result = std::move(*preparedResult);
+    if (profile && !result.memoryEstimateComplete)
+      profile->count("generation.memory.estimates.planIncomplete");
+    if (profile && result.memoryEstimateSeconds > 0)
+      profile->record("generation.memory.estimates.planSizing", result.memoryEstimateSeconds);
     ExplorationProfile::Scope facadeTiming(profile, "generation.microDungeonPlan.apply.facade");
     auto facade = make_shared<DungeonGeneratorWorld>(m_worldServer, false);
     facadeTiming.stop();
@@ -1597,13 +1637,9 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
     }
     auto templateSource = m_worldServer->worldTemplate();
     auto templateRevision = templateSource->generationRevision();
-    if (m_microDungeonTemplateSource != templateSource || m_microDungeonTemplateRevision != templateRevision) {
-      m_microDungeonTemplateSource = templateSource;
-      m_microDungeonTemplateRevision = templateRevision;
-      m_microDungeonTemplateStore = templateSource->store();
-    }
+    auto templateStore = templateStoreSnapshot(m_microDungeonTemplateCache, templateSource, templateRevision);
     auto& snapshot = snapshotHolder->value;
-    snapshot = MicroDungeonPlanSnapshot{m_microDungeonTemplateStore, templateRevision, sector,
+    snapshot = MicroDungeonPlanSnapshot{{}, templateStore, templateRevision, sector,
         sectorTiles, tileHalo, {}, {}, {}};
     for (auto const& haloSector : haloSectors) {
       snapshot.sectorRevisions[haloSector] = tileArray->sectorRevision(haloSector);
@@ -1614,12 +1650,29 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
     }
     for (auto const& entry : m_queuedPlacements.entries())
       snapshot.queuedPlacements.append({entry.second.distributions, entry.first});
+    if (profile && profile->regionalDetailsEnabled()) {
+      ExplorationProfile::Scope sizing(profile, "generation.memory.estimates.snapshotSizing");
+      WorldGenerationSizeEstimate metadata;
+      metadata.add(sizeof(MicroDungeonPlanSnapshot));
+      metadata.add(snapshot.sectorRevisions.size(), sizeof(decltype(snapshot.sectorRevisions)::value_type));
+      metadata.add(snapshot.haloTiles.capacity(), sizeof(decltype(snapshot.haloTiles)::value_type));
+      metadata.add(snapshot.queuedPlacements.capacity(), sizeof(QueuedMicroDungeonPlacementSnapshot));
+      for (auto const& placement : snapshot.queuedPlacements)
+        metadata.add(placement.distributions.capacity(), sizeof(BiomeItemDistribution));
+      snapshot.metadataMemory = trackMemoryEstimate(WorldGenerationMemoryClass::SnapshotMetadataEstimate, metadata);
+    }
     auto revisions = snapshot.sectorRevisions;
-    auto templateStore = snapshot.templateStore;
+    WorldGenerationSizeEstimate pendingMetadata;
+    pendingMetadata.add(sizeof(PendingMicroDungeonPlan));
+    pendingMetadata.add(revisions.size(), sizeof(decltype(revisions)::value_type));
+    auto pendingMemory = trackMemoryEstimate(WorldGenerationMemoryClass::SnapshotMetadataEstimate, pendingMetadata);
+    bool measurePlan = profile && profile->regionalDetailsEnabled();
+    auto planMemory = measurePlan
+        ? trackMemoryEstimate(WorldGenerationMemoryClass::MicroDungeonPlanEstimate, {}) : nullptr;
     try {
       auto& pendingRecord = m_pendingMicroDungeonPlans[sector];
-      pendingRecord = PendingMicroDungeonPlan{task, std::move(revisions), templateSource.get(), templateRevision, now, {}};
-      auto promise = workerPool.addProducer<PreparedMicroDungeonPlan>([task, templateSource, templateRevision, templateStore, snapshotHolder, now]() mutable {
+      pendingRecord = PendingMicroDungeonPlan{pendingMemory, task, std::move(revisions), templateSource.get(), templateRevision, now, {}};
+      auto promise = workerPool.addProducer<PreparedMicroDungeonPlan>([task, templateSource, templateRevision, templateStore, snapshotHolder, planMemory, measurePlan, now]() mutable {
         if (!task->start())
           throw StarException("Generation task started more than once");
         try {
@@ -1627,10 +1680,22 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
           List<MicroDungeonPlan> plans;
           if (task->valid())
             plans = planMicroDungeons(workerWorldTemplate(templateSource, templateRevision, templateStore), snapshotHolder->value);
+          bool estimateComplete = true;
+          double estimateSeconds = 0;
+          if (measurePlan) {
+            double sizingStarted = Time::monotonicTime();
+            WorldGenerationSizeEstimate estimate;
+            estimate.add(sizeof(PreparedMicroDungeonPlan));
+            estimate.add(plans.capacity(), sizeof(MicroDungeonPlan));
+            for (auto const& plan : plans) estimate.stringCapacity(plan.dungeonName);
+            estimateComplete = estimate.complete && planMemory && planMemory->resizeEstimate(estimate.bytes);
+            estimateSeconds = Time::monotonicTime() - sizingStarted;
+          }
           double completed = Time::monotonicTime();
           if (!task->ready())
             throw StarException("Generation task completed in an invalid state");
-          return PreparedMicroDungeonPlan{std::move(plans), completed - started, started - now, completed};
+          return PreparedMicroDungeonPlan{planMemory, std::move(plans), completed - started,
+              started - now, completed, estimateComplete, estimateSeconds};
         } catch (...) { task->fail(); throw; }
       });
       preparation.handoff();
@@ -1655,14 +1720,10 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
 
   auto templateSource = m_worldServer->worldTemplate();
   auto templateRevision = templateSource->generationRevision();
-  if (m_microDungeonTemplateSource != templateSource || m_microDungeonTemplateRevision != templateRevision) {
-    m_microDungeonTemplateSource = templateSource;
-    m_microDungeonTemplateRevision = templateRevision;
-    m_microDungeonTemplateStore = templateSource->store();
-  }
+  auto templateStore = templateStoreSnapshot(m_microDungeonTemplateCache, templateSource, templateRevision);
   auto tileArray = worldStorage->tileArray();
   RectI sectorTiles = tileArray->sectorRegion(sector);
-  MicroDungeonPlanSnapshot snapshot{m_microDungeonTemplateStore, templateRevision, sector,
+  MicroDungeonPlanSnapshot snapshot{{}, templateStore, templateRevision, sector,
       sectorTiles, sectorTiles.padded(WorldSectorSize - 1), {}, {}, {}};
   // Planning does not inspect tiles yet, but the captured halo and revisions
   // establish the revalidation footprint required before moving it to a
