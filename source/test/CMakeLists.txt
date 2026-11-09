@@ -109,6 +109,8 @@ ADD_EXECUTABLE(world_generation_contract_tests
   core_tests_main.cpp
   world_region_partition_test.cpp
   world_generation_dependency_test.cpp
+  world_generation_pass_test.cpp
+  StarWorldGenerationPassHarness.hpp
   world_generation_placement_queue_test.cpp
   world_generation_tasks_test.cpp
   world_region_coordinator_test.cpp)
@@ -124,6 +126,7 @@ ENDIF()
 FOREACH(world_region_test_suite
     WorldRegionPartitionTest
     WorldGenerationDependencyTest
+    WorldGenerationPassTest
     WorldGenerationPlacementQueueTest
     WorldGenerationTasksTest
     WorldRegionCoordinatorTest

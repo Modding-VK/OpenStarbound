@@ -1,6 +1,7 @@
 #include "StarWorldStorage.hpp"
 #include "StarWorldGeneration.hpp"
 #include "StarWorldGenerationDependency.hpp"
+#include "StarWorldGenerationPass.hpp"
 #include "StarTrace.hpp"
 #include "StarFile.hpp"
 #include "StarCompression.hpp"
@@ -1325,8 +1326,8 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     // existing deadline and this remains bounded by generationDeadline.
     double readyResultDeadline = generationDeadline;
     if (fairnessReservedSector && fairnessReserveMilliseconds > 0) {
-      readyResultDeadline = max(Time::monotonicTime(),
-          generationDeadline - fairnessReserveMilliseconds / 1000.0);
+      readyResultDeadline = worldGenerationReadyResultDeadline(Time::monotonicTime(),
+          generationDeadline, true, fairnessReserveMilliseconds);
       if (m_explorationProfile) {
         m_explorationProfile->count("generation.fairness.reservePasses");
         if (expiryRiskReservedSector)
@@ -1574,12 +1575,25 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
     bool fairnessReservedAttempted = false;
     bool expiryRiskReservedAttempted = false;
     bool visibleChainContinuationReservedAttempted = false;
-    unsigned visibleBlockedCandidates = 0;
+    WorldGenerationPass<Sector> pass(visibleBlockedAdvancePreview, visibleBlockedCandidateLimit);
+    size_t repeatedCandidates = 0;
     while (!m_generationQueue.empty()) {
       if ((sectorGenerationLevelLimit && *sectorGenerationLevelLimit == 0) || Time::monotonicTime() >= generationDeadline)
         break;
 
       auto sector = m_generationQueue.firstKey();
+      if (!pass.tryVisit(sector)) {
+        m_generationQueue.toBack(sector);
+        if (m_explorationProfile)
+          m_explorationProfile->count("generation.visibleBlockedAdvance.repeatedCandidateSkipped");
+        if (++repeatedCandidates >= m_generationQueue.size()) {
+          if (m_explorationProfile)
+            m_explorationProfile->count("generation.visibleBlockedAdvance.distinctCandidatesExhausted");
+          break;
+        }
+        continue;
+      }
+      repeatedCandidates = 0;
       bool dependencyTarget = !schedulingOnly && dependencyPriority && !dependencyPriorityAttempted
           && sector == Sector(dependencyPriority->sector[0], dependencyPriority->sector[1]);
       bool fairnessReservedTarget = !schedulingOnly && fairnessReservedSector && !fairnessReservedAttempted
@@ -1664,13 +1678,18 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
           && m_generationQueue.contains(sector);
       if (scheduleVisibleChainContinuation) {
         if (auto request = m_generationRequests.ptr(sector)) {
-          m_generationVisibleChainContinuation = PersistentGenerationPriority{sector, request->sequence};
-          if (m_explorationProfile) {
-            m_explorationProfile->count("generation.visibleChainContinuation.scheduled");
-            recordGenerationRequest(sector, "visibleChainContinuationScheduled");
+          // Advancing other roots must not replace the first chain that
+          // earned the next pass's reserved follow-up.
+          if (pass.reserveContinuation()) {
+            m_generationVisibleChainContinuation = PersistentGenerationPriority{sector, request->sequence};
+            if (m_explorationProfile) {
+              m_explorationProfile->count("generation.visibleChainContinuation.scheduled");
+              recordGenerationRequest(sector, "visibleChainContinuationScheduled");
+            }
           }
         }
       }
+      bool stopForContinuation = false;
       if (!schedulingOnly && targetLevel == SectorGenerationLevel::Complete && p.first) {
         ++completedThisPass;
         // generateSectorToLevel can reach code that reprioritizes the queue.
@@ -1706,16 +1725,18 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
         // request alive, then return to normal distance ordering next pass.
         m_generationQueue.toBack(sector);
       } else if (!schedulingOnly) {
-        bool continueVisible = visibleBlockedAdvancePreview
-            && targetLevel == SectorGenerationLevel::Complete
-            && visibleBlockedCandidates++ < visibleBlockedCandidateLimit;
-        if (continueVisible) {
+        auto decision = pass.afterBlockedVisible(targetLevel == SectorGenerationLevel::Complete,
+            scheduleVisibleChainContinuation);
+        stopForContinuation = decision.stopForContinuation;
+        if (decision.continueVisible) {
           // Do not immediately retry the same blocked sector. Scan the next
           // ordered visible candidate, bounded above, so a ready independent
           // chain can use the remaining owner-thread budget.
           m_generationQueue.toBack(sector);
           if (m_explorationProfile)
             m_explorationProfile->count("generation.visibleBlockedAdvance.continued");
+          if (scheduleVisibleChainContinuation && !stopForContinuation && m_explorationProfile)
+            m_explorationProfile->count("generation.visibleBlockedAdvance.continuedWithContinuation");
         } else {
           // Preserve ordered processing of higher generation levels. Once the
           // first requested sector blocks on asynchronous base tiles, later
@@ -1736,10 +1757,9 @@ void WorldStorage::generateQueue(Maybe<size_t> sectorGenerationLevelLimit, doubl
       if (sectorGenerationLevelLimit)
         *sectorGenerationLevelLimit -= p.second;
       levelsAdvancedThisPass += p.second;
-      // Leave the continuation at the front for the next owner-thread pass.
-      // Continuing this loop would immediately consume the same sector through
-      // the BaseTiles-only tail and defeat the one-follow-up-attempt bound.
-      if (scheduleVisibleChainContinuation)
+      // Stop only when policy requires it; a visible advance may use other
+      // distinct roots without consuming this chain's reserved follow-up.
+      if (stopForContinuation)
         break;
       if (schedulingOnly && ++visitedSectors >= m_generationQueue.size())
         break;
