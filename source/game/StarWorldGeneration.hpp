@@ -9,6 +9,7 @@
 #include "StarBiomePlacement.hpp"
 #include "StarWorkerPool.hpp"
 #include "StarWorldGenerationTasks.hpp"
+#include "StarWorldGenerationBaseTiles.hpp"
 #include "StarWorldGenerationMemory.hpp"
 #include "StarWorldGenerationBufferAllocator.hpp"
 #include "StarWorldGenerationImmutableArray.hpp"
@@ -208,6 +209,7 @@ private:
 
   struct PreparedBaseTiles {
     shared_ptr<WorldGenerationTrackedResource<ServerTileSectorArray::ArrayPtr>> tiles;
+    WorldGenerationBaseTilesIdentity identity;
     double elapsedSeconds;
     double queueSeconds;
     double completedAt;
@@ -217,9 +219,8 @@ private:
     shared_ptr<WorldGenerationMemoryReservation> metadataMemory;
     shared_ptr<WorldGenerationTask> task;
     ServerTileSectorArray::Array const* sourceTiles;
-    uint64_t sourceTileRevision;
     WorldTemplate const* sourceTemplate;
-    uint64_t sourceTemplateRevision;
+    WorldGenerationBaseTilesIdentity identity;
     double scheduledAt;
     Maybe<WorkerPoolPromise<PreparedBaseTiles>> promise;
   };

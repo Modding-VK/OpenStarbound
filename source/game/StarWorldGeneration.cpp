@@ -1363,10 +1363,13 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
     bool taskCurrent = m_generationTasks->contains(pending->task) && pending->task->valid()
         && pending->task->identity.worldEpoch == m_worldServer->instanceEpoch();
     bool tilesCurrent = taskCurrent && pending->sourceTiles && static_cast<ServerTileSectorArray const&>(*worldStorage->tileArray()).sectorArray(sector) == pending->sourceTiles;
-    bool revisionCurrent = worldStorage->tileArray()->sectorRevision(sector) == pending->sourceTileRevision;
+    bool revisionCurrent = worldStorage->tileArray()->sectorRevision(sector) == pending->identity.tileRevision;
     bool templateCurrent = m_worldServer->worldTemplate().get() == pending->sourceTemplate;
-    bool templateRevisionCurrent = m_worldServer->worldTemplate()->generationRevision() == pending->sourceTemplateRevision;
-    bool snapshotStillCurrent = tilesCurrent && revisionCurrent && templateCurrent && templateRevisionCurrent;
+    bool templateRevisionCurrent = m_worldServer->worldTemplate()->generationRevision() == pending->identity.templateRevision;
+    bool productCurrent = pending->identity.matches(result.identity) && pending->identity.task == pending->task->identity
+        && pending->identity.worldSize == worldStorage->tileArray()->size()
+        && pending->identity.tileRegion == worldStorage->tileArray()->sectorRegion(sector);
+    bool snapshotStillCurrent = tilesCurrent && revisionCurrent && templateCurrent && templateRevisionCurrent && productCurrent;
     if (profile) {
       auto revisions = worldStorage->tileArray()->takeRevisionTracking(sector);
       profile->count("generation.baseTiles.resultsReady");
@@ -1381,10 +1384,12 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
         profile->count("generation.baseTiles.staleTemplate");
       if (!templateRevisionCurrent)
         profile->count("generation.baseTiles.staleTemplateRevision");
+      if (!productCurrent)
+        profile->count("generation.baseTiles.staleProductIdentity");
       if (!snapshotStillCurrent) {
         auto currentRevision = worldStorage->tileArray()->sectorRevision(sector);
         profile->recordBaseTileOutcome(Vec2I((int)sector[0], (int)sector[1]), true,
-            currentRevision - pending->sourceTileRevision,
+            currentRevision - pending->identity.tileRevision,
             revisionReasonJson(revisions, profile, true), now - pending->scheduledAt);
       }
     }
@@ -1499,6 +1504,7 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
   auto sectorRegion = tileArray->sectorRegion(sector);
   auto planet = m_worldServer->worldTemplate();
   auto templateRevision = planet->generationRevision();
+  WorldGenerationBaseTilesIdentity identity{task->identity, sourceTileRevision, templateRevision, tileArray->size(), sectorRegion};
   auto templateStore = templateStoreSnapshot(m_baseTileTemplateCache, planet, templateRevision);
   auto materialDatabase = Root::singleton().materialDatabase();
   double scheduledAt = profile ? Time::monotonicTime() : now;
@@ -1509,12 +1515,11 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
     WorldGenerationSizeEstimate metadata;
     metadata.add(sizeof(PendingBaseTiles));
     pendingRecord = PendingBaseTiles{trackMemoryEstimate(WorldGenerationMemoryClass::SnapshotMetadataEstimate, metadata),
-        task, sourceTiles, sourceTileRevision,
-        planet.get(), templateRevision, scheduledAt, {}};
+        task, sourceTiles, planet.get(), identity, scheduledAt, {}};
     if (profile)
       tileArray->beginRevisionTracking(sector);
     auto promise = workerPool.addProducer<PreparedBaseTiles>(
-      [task, planet, templateRevision, templateStore, materialDatabase, sectorRegion, tilesHolder, scheduledAt,
+      [task, planet, templateRevision, templateStore, materialDatabase, sectorRegion, tilesHolder, identity, scheduledAt,
           memoryLedger, workerMemory = std::move((*memory)[1])]() mutable {
         if (!task->start())
           throw StarException("Generation task started more than once");
@@ -1528,7 +1533,7 @@ SectorGenerationResult WorldGenerator::prepareTilesAsync(WorldStorage* worldStor
             prepareBaseTileArray(workerPlanet.value(), materialDatabase, sectorRegion, *tilesHolder->value);
           }
           double completedAt = Time::monotonicTime();
-          PreparedBaseTiles result{tilesHolder, completedAt - start, start - scheduledAt, completedAt};
+          PreparedBaseTiles result{tilesHolder, identity, completedAt - start, start - scheduledAt, completedAt};
           if (!task->ready())
             throw StarException("Generation task completed in an invalid state");
           return result;

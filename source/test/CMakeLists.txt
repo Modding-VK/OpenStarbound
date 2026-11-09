@@ -106,6 +106,9 @@ ADD_EXECUTABLE(world_generation_contract_tests
   ../game/StarWorldGenerationTasks.cpp
   ../game/StarWorldGenerationMemory.cpp
   ../game/StarLiquidTypes.cpp
+  ../game/StarWorldGenerationBaseTiles.cpp
+  ../game/StarTileDamageState.cpp
+  ../game/StarWorldTiles.cpp
   ../game/StarWorldGenerationMemoryEnvelope.cpp
   ../game/StarWorldGenerationMemoryEstimate.cpp
   ../game/StarBiomePlacementSampling.cpp
@@ -126,6 +129,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_memory_retry_test.cpp
   world_generation_memory_capacity_test.cpp
   world_generation_base_tile_liquid_test.cpp
+  world_generation_base_tiles_test.cpp
   world_generation_estimate_test.cpp
   world_generation_worker_cache_test.cpp
   world_generation_buffer_test.cpp
@@ -159,6 +163,7 @@ FOREACH(world_region_test_suite
     WorldGenerationMemoryRetryTest
     WorldGenerationMemoryCapacityTest
     WorldGenerationBaseTileLiquidTest
+    WorldGenerationBaseTilesTest
     WorldGenerationEstimateTest
     WorldGenerationWorkerCacheTest
     WorldGenerationBufferTest

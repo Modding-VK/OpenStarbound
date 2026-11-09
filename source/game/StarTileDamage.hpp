@@ -84,6 +84,8 @@ private:
 };
 
 class TileDamageStatus {
+  friend struct WorldGenerationBaseTileComparisonAccess;
+  friend struct TileDamageStatusTestAccess;
 public:
   TileDamageStatus();
 

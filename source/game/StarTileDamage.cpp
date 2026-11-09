@@ -160,19 +160,6 @@ DataStream& operator<<(DataStream& ds, TileDamageParameters const& tileDamage) {
   return ds;
 }
 
-TileDamageStatus::TileDamageStatus() {
-  reset();
-}
-
-void TileDamageStatus::reset() {
-  m_damagePercentage = 0.0f;
-  m_damageEffectTimeFactor = 0.0f;
-  m_harvested = false;
-  m_damageSourcePosition = Vec2F();
-  m_damageType = TileDamageType::Protected;
-  m_damageEffectPercentage = 0.0f;
-}
-
 void TileDamageStatus::damage(TileDamageParameters const& damageParameters, Vec2F const& sourcePosition, TileDamage const& damage) {
   auto percentageDelta = damageParameters.damageDone(damage) / damageParameters.totalHealth();
   m_damagePercentage = min(1.0f, m_damagePercentage + percentageDelta);
