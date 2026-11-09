@@ -204,6 +204,18 @@ com resolver trivial, logo fita diagnóstica fora do hot path. Três fontes com
 sintaxe Tracy aprovadas, sete objetos reais existentes conferidos sem reconstrução
 forçada e link NoAssets aprovado; não é linking completo do jogo/Tracy.
 
+O [catálogo compacto](../sector-runtime-h0-base-tile-lookup-context-2026-11-09.md)
+passa **601 testes**, 29 grupos CTest e 117 casos afetados repetidos vinte vezes
+(**2.340 execuções adicionais**), ASan/UBSan; 26 novos normativos. 4.096 branches
+comparam catálogo/fita/corpo anterior e trace de captura/referência. Scope, chaves
+limítrofes, capacidade sem inserção parcial, deduplicação/conflitos e recusa da
+última chave antes de writes são exercitados; fallback escolhido pelo chamador
+mantém a falha/estado parcial legados. Um catálogo serve 1.024 tiles distintos em
+quatro workers. Microcusto novo DISABLED executado à parte, não dentro dos 601
+ou CTest; dois experimentos ficam desativados por padrão. Sem jogo/assets/reload
+ou throughput integrado; sintaxe Tracy de três fontes e objetos reais existentes
+conferidos como na etapa anterior, não link completo. H0 continua parcial.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

@@ -182,8 +182,14 @@ já congelam retornos, não o contexto profundo. Storage fixo de 176 bytes/tile
 nesta ABI: 176 KiB por setor cheio, excluindo origem/output/containers. Nenhum
 registro é alocado/retido pelo produtor normal e nenhum byte é adicionado
 implicitamente ao ledger. Não adotar fita residente como cache; futura integração
-precisa reservar seu escopo antes de alocar. Próximo: contexto compartilhado/
-compacto por chaves/versão/revisão de assets, com custo/bytes e equivalência.
+precisa reservar seu escopo antes de alocar.
+O [catálogo compartilhado](../sector-runtime-h0-base-tile-lookup-context-2026-11-09.md)
+usa oito bytes por chave única e backing fixo explícito: Context<32> tem 320 bytes
+totais nesta ABI, 256 reservados de entradas, 48 ativos no cenário de seis chaves.
+Não retém fita por tile e não aloca internamente. Não confundir bytes ativos com
+reserva; futura admissão inclui objeto/donos e não recobra backing por leitor.
+Fora do produtor normal, sem nova classe/fórmula/limite no ledger. Próximo:
+gerações/lifetime e leitores reais, cobertura/misses, antes de sombra com bytes.
 
 ### Inventário de ownership e cobertura atual
 
@@ -239,9 +245,9 @@ não foi removida. A floresta retém handles, não cópias profundas, e seu over
 diagnóstico ainda é excluído. Consolidar envelope/exclusões/pressão para o
 escopo antes de ampliar admissão; não exigir cada heap para H1 em sombra.
 O envelope consolidado expõe essas fronteiras, não remove as exclusões. Próximo:
-contexto compartilhado/compacto de consultas por chaves/versão, usando a fita
-diagnóstica como referência. Vincular revisão/assets e recusar cobertura ausente
-antes de aplicar; comparar outputs/custo/bytes antes de sombra por setor/cache.
+gerações/lifetime reais de assets/material em reload/hotReload e comparação do
+catálogo com os leitores do motor, com cobertura/misses, antes de sombra por
+setor/cache com admissão/bytes. O scope do protótipo ainda é declarado.
 Inputs escalares, adaptador, observações e comparador já foram entregues,
 não o contexto profundo; não antecipar consultas ou alterar cópias/RNG. Auditar
 biomeTransition antes de normalizar snapshots e

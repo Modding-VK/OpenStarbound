@@ -5,7 +5,7 @@ Estado: H0 / RAM-01, `Experimental`, 09/11/2026.
 · [Roadmap](sector-runtime/roadmap.md) · [Relatório da entrega](sector-runtime-h0-capacity-kernel-2026-11-09.md)
 
 Continuidade de identidade/equivalência: [contrato BaseTiles](sector-runtime-base-tiles-contract.md)
-e [último relatório](sector-runtime-h0-base-tile-observations-2026-11-09.md).
+e [último relatório](sector-runtime-h0-base-tile-lookup-context-2026-11-09.md).
 
 Este contrato delimita o **subconjunto privado de geração contabilizado**.
 Não redefine RAM-01 como orçamento de todo o motor e não transforma estimativa
@@ -248,9 +248,11 @@ de ativar um orçamento para tarefas reais:
    puro completo. Inputs escalares de materiais/mods/biomas já têm adaptador sem
    heap; observações diagnósticas congeladas não são contexto profundo ou replay
    integrado. Fita fora do produtor normal, 176 bytes/tile nesta ABI; não está
-   implicitamente no ledger. Construir contexto compartilhado/compacto com revisão/
+   implicitamente no ledger. Catálogo compacto de capacidade fixa já foi testado,
+   não integrado: scope ainda declarado. Ligar gerações/lifetime/leitores reais,
    assets/cobertura e demanda, MOD-01/VAL-02, antes de integrar replay. Contabilizar
-   qualquer novo storage antes de alocar. Não reutilizar tiles parciais após exceção.
+   objeto/backing reservado/donos antes de alocar, não só entradas ativas nem por
+   leitor. Não reutilizar tiles parciais após exceção.
    Auditar biomeTransition/default/cópias. Estender tokens
    sem recobrança; não reexecutar callbacks/Lua/mundo vivo por capturar exceção.
 2. Preservar headroom e progresso de dependências/consumo: os testes preservam

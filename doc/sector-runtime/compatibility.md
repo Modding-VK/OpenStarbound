@@ -163,6 +163,15 @@ integridade ou autoridade de commit; campos intocados passam intactos. API fora
 do produtor normal, sem novo default, codec, RNG, cópia ou replay de tarefa.
 Fechar revisão/assets/cobertura antes de qualquer fallback ou consumidor real.
 
+O [catálogo de consultas](../sector-runtime-h0-base-tile-lookup-context-2026-11-09.md)
+aplica só após cobertura integral e scope equivalente; miss não escreve e permite
+escolher o legado intacto, inclusive sua exceção/estado parcial. Conflitos de
+resposta por chave invalidam o builder, mas amostras consistentes não certificam
+resolver arbitrário puro. Scope declara gerações: reload/assets/material reais
+ainda não ligados. Catálogo não é guard de snapshot original ou autorização de
+retry; ownership/revisões vivos permanecem gates. Fora do produtor normal, sem
+mudança de cópia/RNG/Lua/save e sem validação integrada de mods/multiplayer.
+
 ## MOD-02 — Equivalência e versionamento
 
 Definir inputs que produzem um output: seed, template/layout, geração de

@@ -154,14 +154,19 @@ e 27 grupos CTest, ASan/UBSan. Não há contexto puro completo/novo orçamento o
 ganho demonstrado; H0 em 25%.
 Não antecipar consultas, reaproveitar tile parcial ou alterar cópias/RNG; manter
 auditoria do flag herdado abaixo e os gates com assets/mods/saves/multiplayer.
-O [relatório vigente](sector-runtime-h0-base-tile-observations-2026-11-09.md),
+O [recorte de observações](sector-runtime-h0-base-tile-observations-2026-11-09.md),
 `abfc3834`, entrega observações congeladas e replay com preflight completo,
 diagnósticos fora do produtor normal. 575 testes, 1.820 execuções adicionais e
 28 grupos CTest com ASan/UBSan; experimento opt-in mostrou overhead com resolver
 trivial e 176 bytes/tile. Não adotar como cache residente ou alegar ganho no jogo.
-Próximo: contexto compartilhado/compacto por chaves/versão, vínculo a revisão/
-assets e recusa de cobertura ausente antes da aplicação. Comparar outputs/custo/
-bytes antes de sombra por setor ou retry; RAM-01/H0 mantidos em 25%.
+RAM-01/H0 mantidos em 25%.
+O [relatório vigente](sector-runtime-h0-base-tile-lookup-context-2026-11-09.md),
+`4e5cc6c1`, acrescenta catálogo/scope modelo 1, sem heap e oito bytes por resposta
+única. Preflight completo de cobertura, deduplicação e conflito fail-closed.
+601 testes, 2.340 execuções adicionais e 29 grupos CTest, ASan/UBSan. Protótipo
+fora do jogo: gerações ainda declaradas, não ligadas a reload real. Próximo:
+gerações/lifetime de assets/material e leitores reais antes de sombra por setor,
+com admissão/bytes. Custos/storage sintéticos não são ganho de setores/s.
 
 Achado adicional de inicialização/cópia, não corrigido: WorldTile não inicializa/
 copia biomeTransition no construtor/operador; BaseTiles sobrescreve o flag nos

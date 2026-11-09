@@ -254,13 +254,22 @@ de escrever; falhas incompletas não podem ser replayadas. 27 testes novos, 575 
 total, 1.820 execuções adicionais e 28 grupos CTest com ASan/UBSan. Microexperimento
 opt-in separado mostrou overhead com resolver trivial e 176 bytes/tile; manter
 fora do produtor normal, não adotar como cache residente. Ver
-[relatório vigente](../sector-runtime-h0-base-tile-observations-2026-11-09.md).
+[relatório da etapa](../sector-runtime-h0-base-tile-observations-2026-11-09.md).
 Não fecha blockInfo/WorldTemplate/assets, demanda ou retry real; H0 em 25%.
 
-Próximo trabalho executável: contexto compartilhado/compacto de consultas por
-chaves/versão explícita, usando a fita como referência. Vincular revisão/assets e
-recusar cobertura ausente antes da aplicação; comparar outputs/ordem/exceções e
-custo/bytes antes de sombra por setor/cache/retry. Não antecipar consultas,
+Catálogo/scope modelo 1 em `4e5cc6c1`: respostas únicas de oito bytes sem heap,
+capacidade explícita, deduplicação/conflitos e seal. Preflight de cobertura antes
+de qualquer write; não confundir catálogo com guard de tile original. 26 casos
+novos, 601 no total, 2.340 execuções adicionais e 29 grupos CTest com ASan/UBSan;
+microexperimento separado de custo/storage. Ver
+[relatório vigente](../sector-runtime-h0-base-tile-lookup-context-2026-11-09.md).
+Fora do produtor normal; scope declara gerações, não detecta reload real. Não
+fecha CPU-01/produtor completo nem demonstra setores/s; H0 em 25%.
+
+Próximo trabalho executável: gerações/lifetime reais de assets/material em reload/
+hotReload, epoch/revisão de template e auditoria de mutações. Comparar catálogo
+aos leitores reais com cobertura/misses antes de sombra por setor, com admissão/
+bytes e outputs equivalentes. Não antecipar consultas,
 assumir resolver arbitrário puro ou alterar cópias/RNG. Auditar biomeTransition
 antes de normalizar snapshots; versionar contexto profundo/assets e ligar demanda
 ao interesse real antes de replay/cache de produtos.

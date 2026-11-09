@@ -3,7 +3,7 @@
 Estado: H0, `Experimental`, 09/11/2026.
 [Programa](sector-runtime/README.md) · [Roadmap](sector-runtime/roadmap.md)
 · [Memória](sector-runtime-memory-envelope.md)
-· [Relatório](sector-runtime-h0-base-tile-observations-2026-11-09.md)
+· [Relatório](sector-runtime-h0-base-tile-lookup-context-2026-11-09.md)
 
 ## Identidade não é autorização de commit nem chave de conteúdo
 
@@ -98,6 +98,32 @@ o microcusto Debug/ASan com resolver trivial mostrou overhead, não aceleração
 Fica como referência de equivalência, não fita residente ou custo novo no hot path.
 Produto/ticket/input/líquido e demais modelos anteriores permanecem inalterados.
 
+## Catálogo compartilhado de consultas, protótipo modelo 1
+
+WorldGenerationBaseTileLookupContext<Capacity> guarda respostas únicas em palavras
+de 8 bytes ordenadas por chave injetiva tipo/biome/material/mod, sem hash ou heap
+interno. Capacity é explícita por dono, não default do jogo. Amostras completas
+são deduplicadas antes de inserir; recusa por escopo/capacidade/amostra inválida
+não insere parcialmente. Conflito de valor para a mesma chave invalida o builder.
+Após seal há apenas leitura compartilhada; lifetime/publicação são do chamador.
+
+WorldGenerationBaseTileLookupScope exige epoch e gerações de assets/material
+não zero, revisão de template (zero permitido) e versões de scope/input/líquido.
+Os sete campos são conferidos em add/apply. **Gerações ainda declaradas pelo
+chamador**: não ligadas aos eventos reais de reload/hotReload; não são hash de
+conteúdo, detecção automática de obsolescência ou prova de pureza por amostragem.
+
+apply resolve uma vez todas as chaves condicionais antes de qualquer write e
+usa seis bytes locais no adaptador existente. Miss, inclusive no último hue,
+recusa com tile intacto para escolha do caminho legado. Não há callback/resolver
+vivo, fallback interno ou tape por tile. Diferente do replay diagnóstico, aplica
+ao tile privado **atual**: não inclui guard de 14 campos originais ou autoriza
+retry de estado parcial. Ownership/revisões/guards vivos continuam necessários.
+
+Fora do produtor normal. No teste Context<32> ocupa 320 bytes, 256 reservados em
+entries e 48 ativos para seis chaves; não é dimensão garantida para todo mundo.
+Microcusto sintético não demonstra aceleração de setores ou de WorldTemplate.
+
 ## Comparação de campos, modelo 1
 
 O comparador recebe referências const de ServerTile reais. Não serializa, aloca
@@ -154,10 +180,10 @@ puras de constructor/reset de TileDamageStatus foram movidas sem mudança de
 corpo para permitir esses testes sem ligar Root/assets; dano/recovery/codec não
 mudaram. CMake registra a nova unidade no jogo e no alvo NoAssets.
 
-Próximo: contexto compartilhado e compacto de consultas por chaves/versão,
-usando a fita como referência. Vincular revisão/assets e recusar cobertura ausente
-antes da aplicação; comparar outputs/ordem/exceções e custo/bytes antes de sombra
-por setor ou cache/retry. Não antecipar consultas nem reaproveitar tile parcial.
+Próximo: gerações e lifetime reais de assets/material nas fronteiras de reload/
+hotReload, epoch/revisão de template e auditoria das mutações. Comparar catálogo
+de leitores reais/cobertura/misses antes de sombra por setor, com admissão/bytes
+e comparação. Não antecipar consultas nem reaproveitar tile parcial.
 Auditar biomeTransition antes de normalizar snapshots; versionar assets/contexto
 profundo e ligar demanda ao interesse real. Preservar gates MOD-01/VAL-02,
 baseline integrado, revisão independente e fallback CPU.

@@ -58,9 +58,13 @@ As [observações congeladas](../sector-runtime-h0-base-tile-observations-2026-1
 `abfc3834`, permitem replay diagnóstico sem resolver vivo, com preflight de todas
 as consultas/input/estado relevante antes de escrever. Não são chamadas no
 produtor normal; custo sintético/176 bytes por tile desaconselham fita residente.
-Próximo: contexto imutável compartilhado/compacto por chaves/versão, vínculo a
-revisão/assets e recusa de cobertura ausente antes da aplicação; comparar
-outputs/ordem/exceções e custo/bytes antes de sombra por setor/cache/retry.
+O [catálogo compartilhado](../sector-runtime-h0-base-tile-lookup-context-2026-11-09.md),
+`4e5cc6c1`, deduplica chaves em oito bytes, sela e confere scope/cobertura antes
+de escrever. Não retém fita ou input por tile; não guarda o estado inicial de
+um tile específico. Protótipo fora do produtor normal, sem heap interno; scope
+de assets/material ainda declarado. Próximo: gerações/lifetime reais em reload/
+hotReload e comparação com os leitores do motor antes de sombra por setor,
+com admissão/bytes. CPU-01 completo e ganho de WorldTemplate continuam pendentes.
 
 Aceitação: execução concorrente não alcança template vivo, callbacks ou RNG
 global; comparador de outputs cobre a mudança de contexto e de worker.

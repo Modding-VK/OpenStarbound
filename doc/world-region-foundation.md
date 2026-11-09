@@ -221,9 +221,13 @@ biomeTransition default/cópias herdado permanece pendente. RAM-01/H0 em 25%.
 O [recorte de observações](sector-runtime-h0-base-tile-observations-2026-11-09.md),
 `abfc3834`, congela consultas e compara replay protegido sem resolver vivo.
 575 testes/28 grupos CTest, ASan/UBSan. API diagnóstica fora do produtor normal;
-microcusto com resolver trivial mostrou overhead e 176 bytes/tile. Próximo:
-contexto compartilhado/compacto por chaves/versão, revisão/assets e recusa antes
-de aplicar quando faltar cobertura, não fita residente como cache por bloco.
+microcusto com resolver trivial mostrou overhead e 176 bytes/tile.
+O [catálogo compartilhado](sector-runtime-h0-base-tile-lookup-context-2026-11-09.md),
+`4e5cc6c1`, deduplica oito bytes por chave, sela e recusa scope/cobertura divergentes
+antes de escrever. 601 testes/29 grupos CTest, ASan/UBSan. Protótipo fora do jogo;
+scope de assets/material declarado, não ligado a reload. Próximo: gerações/
+lifetime/leitores reais antes de sombra por setor com admissão/bytes. Não há
+ganho de setores/s demonstrado ou mudança de autoridade/publicação.
 
 ## Diagnóstico
 

@@ -10,6 +10,10 @@ Implementação: `abfc383462ed07dfc62e6bdd2ec40b77dd0473a4`.
 · [Memória](sector-runtime-memory-envelope.md)
 · [Etapa anterior](sector-runtime-h0-base-tile-inputs-2026-11-09.md)
 
+Continuação vigente: [catálogo compartilhado de consultas](sector-runtime-h0-base-tile-lookup-context-2026-11-09.md).
+Este relatório preserva evidências/manifesto de `abfc3834`; estado e próximo
+trabalho atuais estão na continuação e no roadmap.
+
 ## Objetivo, entrega e decisão
 
 Congelar resultados das consultas do adaptador BaseTiles para comparar aplicação

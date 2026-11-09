@@ -39,7 +39,7 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[observações e replay diagnóstico BaseTiles](sector-runtime-h0-base-tile-observations-2026-11-09.md), com
+[catálogo compartilhado de consultas BaseTiles](sector-runtime-h0-base-tile-lookup-context-2026-11-09.md), com
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
@@ -149,9 +149,13 @@ ASan/UBSan. Resolver ainda não fecha template/assets.
 de consultas/input/estado inicial, sem chamar resolver vivo. 575 testes, 1.820
 execuções adicionais e 28 grupos CTest aprovados, ASan/UBSan; microexperimento
 separado executado. API fora do produtor normal, fita com overhead/176 bytes por
-tile: não é cache/retry integrado ou ganho de entrega. Próximo: contexto compacto
-compartilhado por chaves/versão e vínculo a revisão/assets, com recusa de cobertura
-ausente antes de aplicar. Não antecipar consultas/reaproveitar tile parcial;
+tile: não é cache/retry integrado ou ganho de entrega.
+`4e5cc6c1` entrega catálogo selado de respostas únicas, capacidade explícita e
+scope/checagem de cobertura antes dos writes. 601 testes, 2.340 execuções adicionais
+e 29 grupos CTest, ASan/UBSan. Oito bytes/chave, sem heap ou fita por tile; escopo
+de assets/material ainda declarado, sem produtor de gerações/reload real. Não
+ativado no jogo. Próximo: gerações/lifetime e leitores reais antes de sombra por
+setor com admissão/bytes. Não antecipar consultas/reaproveitar tile parcial;
 auditar biomeTransition/default/cópias antes de normalizar. RAM-01/H0 em 25%,
 programa 3,1% inalterados. Streaming real com assets/mods e executor de conclusões
 ainda pendentes.
