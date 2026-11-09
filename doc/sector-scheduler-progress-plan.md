@@ -10,6 +10,10 @@ Os contratos executáveis propostos estão organizados no
 adotado em 08/11/2026; centraliza dependências, estado e aceitação. A sequência
 histórica deste documento não concorre com essa prioridade.
 
+Para percentuais e ordem atual das tarefas, usar o
+[painel de progressão do programa principal](sector-runtime/progress.md).
+Este documento histórico não é o painel de acompanhamento vigente.
+
 A revisão [orientada ao hardware](sector-generation-hardware-design-2026-11-08.md)
 define o desenho vigente: grafo comum para backends CPU/GPU, controle global
 de execução/memória, resultados residentes e antecipação da rota. O cenário

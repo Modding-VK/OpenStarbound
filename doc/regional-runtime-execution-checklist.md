@@ -34,7 +34,11 @@ O [programa principal de setores](sector-runtime/README.md), adotado em
 os contratos por subsistema. O [roadmap detalhado](sector-runtime/roadmap.md)
 relaciona tarefas, dependências, propósito e critérios de conclusão; ele é a
 entrada operacional para a implementação; documentos antigos são apoio e
-histórico, sem outra fila de prioridades. Frente ativa: H0. O relatório atual é
+histórico, sem outra fila de prioridades. O
+[painel de progressão](sector-runtime/progress.md) consolida percentuais por
+marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
+entrega material, mesmo quando o percentual continuar igual.
+Frente ativa: H0. O relatório atual é
 [nomes de saída e scratch protegido](sector-runtime-h0-planning-storage-2026-11-09.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço

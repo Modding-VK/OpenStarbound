@@ -8,6 +8,10 @@ propósito, melhoria esperada, dependências e aceitação. Por decisão do usu�
 esse é o **programa principal**, não uma proposta alternativa. Usar o roadmap
 como fonte de estado e sequência; manter aqui a prioridade consolidada.
 
+O [painel de progressão](sector-runtime/progress.md) registra os percentuais
+auditáveis, ordem das 49 tarefas, fila imediata e evidências. Sua contagem é do
+novo programa, não da conclusão do jogo ou de um ganho de desempenho medido.
+
 Frente ativa: H0. A identidade das colocações já tem o primeiro recorte
 implementado, com [relatório e testes](sector-runtime-h0-placement-identities-2026-11-08.md).
 O [recorte seguinte](sector-runtime-h0-streaming-pass-2026-11-09.md) já

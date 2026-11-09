@@ -58,6 +58,16 @@ continuing. Older plans and backlog entries supply evidence and history, not
 competing implementation priorities. Record any deliberate change of priority
 in the roadmap and link it from the operational checklist.
 
+Maintain [`doc/sector-runtime/progress.md`](doc/sector-runtime/progress.md) as
+the canonical progress dashboard for this program. After a material delivery
+or scope/priority change, update its ordered task inventory, evidence, next
+steps, date and history alongside the roadmap/report/checklist. Percentages
+must follow its cumulative milestone rubric and use the current unique
+contract denominator; never infer completion from commit/test counts, CPU
+utilization or estimated hours. Partial work may leave the percentage
+unchanged. Reconcile totals and IDs, and distinguish baseline functionality,
+implementation progress, integrated validation and measured performance.
+
 Prioritize substantially faster delivery of ordinary sectors, making useful
 use of available CPU, RAM and optional GPU without assuming a CPU model or
 core count. Start with H0 invariants and reproducible streaming validation;

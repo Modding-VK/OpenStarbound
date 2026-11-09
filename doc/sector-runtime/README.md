@@ -13,6 +13,10 @@ Nenhum componente futuro é considerado implementado apenas por estar aqui.
 
 ## Execução vigente
 
+O [painel de progressão](progress.md) apresenta percentuais auditáveis, ordem
+das 49 tarefas, fila imediata, evidências e regra de atualização. Percentuais
+medem marcos de maturidade do novo programa, não tempo restante ou ganho de CPU.
+
 O [roadmap H0–H5/R1–R2](roadmap.md) governa a sequência de implementação;
 planos anteriores permanecem como apoio e histórico. A frente ativa é H0,
 começando por identidade estável e validação acelerada antes de ampliar
@@ -83,6 +87,7 @@ na execução da simulação regional. Hoje, o mundo vivo continua pertencendo
 | [Compatibilidade](compatibility.md) | Quais invariantes bloqueiam a adoção de uma otimização? |
 | [Validação e telemetria](validation-and-telemetry.md) | Como provar ganho, equivalência e capacidade de recuperação? |
 | [Roadmap e retomada](roadmap.md) | Qual entrega vem primeiro, de que depende e quando termina? |
+| [Progressão e percentuais](progress.md) | Em que ponto estamos, qual a ordem das 49 tarefas e como o avanço é calculado? |
 
 Cada módulo possui IDs de trabalho. O roadmap referencia esses IDs em vez de
 criar listas de tarefas diferentes para o mesmo contrato. Uma mudança de escopo

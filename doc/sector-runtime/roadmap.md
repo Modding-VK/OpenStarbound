@@ -2,6 +2,10 @@
 
 [Índice](README.md) · [Baseline](baseline.md) · [Validação](validation-and-telemetry.md)
 
+O [painel de progressão](progress.md) mantém os percentuais, a ordem das 49
+tarefas, a fila imediata e suas evidências. Sua escala de marcos não substitui
+os critérios técnicos/dependências deste roadmap nem mede horas ou aceleração.
+
 ## Estado e regra de progresso
 
 Este é o **plano principal de execução**, adotado em 08/11/2026. H0 é a frente
@@ -260,7 +264,8 @@ inteiro concluído ao concluir apenas uma tarefa H.
    módulo antes de editar.
 3. Executar o primeiro item pendente cujas dependências estejam satisfeitas.
 4. Rodar verificações apropriadas ao risco e registrar o escopo real.
-5. Atualizar contrato se necessário, estado do item, relatório e checklist.
+5. Atualizar contrato se necessário, estado do item, relatório, checklist e
+   painel de progressão; recalcular notas somente com evidência de novo marco.
 6. Informar commit e limitações; manter Actions manuais e revisão antes de main.
 
 Retomar pelo andamento de H0 e pelo relatório vinculado acima. A prioridade
