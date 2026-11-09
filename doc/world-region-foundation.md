@@ -97,6 +97,13 @@ com profiling regional. Essas parcelas são separadas dos arrays e não tornam
 a reserva local profunda: caches privados/allocator e outros produtos seguem
 fora. Nenhuma cota foi ampliada e o teto processual continua pendente.
 
+O [recorte posterior do cache privado](sector-runtime-h0-worker-cache-2026-11-09.md)
+acrescenta objeto/LRU do worker, com storage solicitado do BlockAllocator e
+retenção até saída da thread. A cobrança básica independe do profiling, mas não
+cobre todo o layout/biomas/seletores ou picos entre atualizações de job.
+O relatório também registra um risco antigo de exceção no crescimento do
+vetor do pool, ainda não reproduzido/corrigido, antes dos ensaios de pressão.
+
 Com workers desligados (`sectorWorkers: 0` no modo `legacy`), o registro não
 é criado: segue o caminho síncrono. Nos modos não legados, zero pode selecionar
 workers automaticamente; não interpretar o zero isolado como desativação.

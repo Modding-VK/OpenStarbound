@@ -52,6 +52,13 @@ rastreados; metadados e planos variáveis acompanham seus donos. Essa coleta
 exige profiling regional; não altera admissão nem mede todo o heap. O relatório
 detalha fórmulas, limites e custo diagnóstico ainda sem benchmark.
 
+O [quarto recorte](../sector-runtime-h0-worker-cache-2026-11-09.md), `739067b1`,
+acompanha o template privado/LRU por worker até a saída da thread, sem depender
+do profiling para a cobrança básica. Soma objeto e storage solicitado do
+BlockAllocator (blocos, buckets e metadados de pool), atualizado no fim do job,
+não todo o grafo decodificado ou o pico durante rehash. Não muda cotas/política
+de cache; o custo adicional ainda precisa de benchmark.
+
 ### Inventário de ownership e cobertura atual
 
 | Produto/recurso | Dono e término da retenção | Contabilidade atual |
@@ -60,11 +67,11 @@ detalha fórmulas, limites e custo diagnóstico ainda sem benchmark.
 | Halo do planejador | wrapper do snapshot, incluindo capturas da closure; não é parte da lista de planos | quantidade de arrays × `sizeof(Array)`; grupo único |
 | Arrays autoritativos após publicação | `WorldStorage`/`TileSectorArray`, até unload | fora do ledger privado; não foram liberados fisicamente ao publicar |
 | Template serializado | `TemplateStoreCache` e handles capturados nos jobs, até último tracker | estimativa v1 por backing compartilhado entre handles rastreados; profiling regional |
-| Template privado/cache do worker | `cachedWorkerTemplate` thread-local, até troca de revisão ou saída da thread | fora; pode sobreviver ao job/mundo, chave fonte é weak_ptr |
+| Template privado/cache do worker | entrada de `WorldGenerationWorkerCache` thread-local, até substituição/saída da thread e último uso | objeto + storage solicitado da LRU, modelo próprio v1; sem profiling para cobrança; heaps de layout/biomas/seletores fora |
 | Revisões/distribuições no snapshot e pendências | snapshot assíncrono e registros pendentes, cada cópia com seu lifetime | v1 de representações/capacidades públicas; heaps internos, buckets vazios e caminho síncrono fora |
 | Descritores de planos e strings | promise/resultado assíncrono, até último token/consumo/descarte | v1 após construir output, incluindo capacidade e UTF-8; não reserva antes de crescer nem cobre pré-aquecimento |
 | Decode de tiles salvos | caminhos específicos de `WorldStorage` | fora deste recorte |
-| Tokens, control blocks e allocator | ledger/wrappers/containers | fora dos bytes declarados; há overhead por grupo, não por tile |
+| Tokens, control blocks e allocator | ledger/wrappers/containers | overhead geral fora; somente storage solicitado das famílias BlockAllocator da LRU entra na parcela privada |
 
 RAM-01 permanece aberto para o orçamento processual completo e os produtos
 restantes. Não ampliar admissão com base apenas nesta contabilidade parcial.
@@ -74,6 +81,10 @@ limitado a 32.768 valores; input inteiro é preservado ao truncar a estimativa.
 Json comum/assets/cache privado podem reter backing após o último tracker;
 saldo zero não prova liberação física global. Também faltam custos transitórios
 de construção de outputs e cobertura independente do profiling.
+O cache privado pode persistir após mundo/inputs antigos saírem; sua contagem
+não desaparece junto com os trackers de Json. Atualização após job não é reserva
+antes de crescer. Auditar a falha de inserção do vetor do pool indicada no
+relatório atual antes de testar pressão ou ampliar admissão.
 
 ## RAM-02 — Camadas de cache e invalidação
 

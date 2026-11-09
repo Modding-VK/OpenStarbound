@@ -17,13 +17,20 @@ com mundo/mods continuam pendentes. O [recorte inicial de RAM-01](sector-runtime
 reserva arrays antes de copiar inputs, faz rollback pré-dispatch e preserva a
 reserva após handoff. O [ledger processual seguinte](sector-runtime-h0-process-memory-2026-11-09.md)
 já agrega reservas de arrays privados com lifetime independente do mundo.
-O [recorte atual de estimativas v1](sector-runtime-h0-retained-estimates-2026-11-09.md)
+O [recorte de estimativas v1](sector-runtime-h0-retained-estimates-2026-11-09.md)
 mede templates compartilhados entre handles rastreados, metadados e resultados
 variáveis, condicionado a profiling regional e separado das reservas de arrays.
 São 115 testes de contratos e nove grupos CTest aprovados, sem ganho de runtime
 alegado. Próximo: caches privados, containers excluídos, crescimento de outputs
 e cobertura independente do profiling, antes de limites processuais
 configuráveis; preservar MOD-01 e não ampliar admissão com números parciais.
+O [recorte vigente](sector-runtime-h0-worker-cache-2026-11-09.md), `739067b1`,
+acompanha o template privado/LRU sobrevivente ao job/mundo; 136 testes e dez
+grupos CTest aprovados, sem ganho de runtime alegado. A próxima reprodução é
+o risco de publicação antecipada do ponteiro do pool quando a inserção do
+vetor falha, encontrado por inspeção; depois outputs variáveis e heaps de
+layout/biomas/seletores ainda fora. Não confundir falha inferida com crash
+reproduzido ou corrigido.
 Achado de CPU-01: overflow assinado na seed automática de `StarRandom.cpp:197`,
 observado em execução estrita de sanitizers; RNG de produção permanece
 inalterado. A reprodução e a separação dos testes de hash com seeds privadas

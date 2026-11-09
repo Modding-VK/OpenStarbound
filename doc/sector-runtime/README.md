@@ -1,7 +1,8 @@
 # Programa de geração e runtime de setores
 
 Atualização: 09/11/2026. Branch: `Experimental`. Runtime de partida:
-`7ca7ed2a`; recortes de H0: `d72b7239`, `2131ead3`, `5c3c4c8f`, `65bae55c` e `803d4cf7`;
+`7ca7ed2a`; recortes de H0: `d72b7239`, `2131ead3`, `5c3c4c8f`, `65bae55c`,
+`803d4cf7` e `739067b1`;
 documentação de arquitetura de partida: `8d3b0ade`.
 
 Este é o **programa principal de desenvolvimento**, adotado pelo usuário em
@@ -24,9 +25,12 @@ O [recorte de admissão](../sector-runtime-h0-memory-admission-2026-11-09.md)
 registra a reserva antes de copiar inputs em RAM-01. O
 [ledger processual](../sector-runtime-h0-process-memory-2026-11-09.md) cobre arrays
 privados, inclusive após o fechamento do mundo. O
-[relatório atual](../sector-runtime-h0-retained-estimates-2026-11-09.md) acrescenta
+[recorte de estimativas](../sector-runtime-h0-retained-estimates-2026-11-09.md) acrescenta
 estimativas v1 de templates compartilhados, metadados e resultados variáveis,
-vinculadas ao profiling regional e separadas das reservas de arrays.
+vinculadas ao profiling regional e separadas das reservas de arrays. O
+[relatório vigente](../sector-runtime-h0-worker-cache-2026-11-09.md), em
+`739067b1`, cobre o template privado/LRU retido por worker, com contagem básica
+independente do profiling; heaps de layout/biomas/seletores permanecem fora.
 Orçamento processual completo, benchmark real e equivalência com assets
 continuam pendentes.
 Isso não implementa o executor, a nova WorldThread ou compute GPU.

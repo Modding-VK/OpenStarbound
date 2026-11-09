@@ -73,16 +73,26 @@ RAM-01, terceiro recorte em `803d4cf7`: estimativas v1 de Json compartilhado,
 metadados e resultados variáveis implementadas, com deduplicação por dono do
 storage entre handles rastreados. A coleta adicional exige profiling regional;
 não é RSS, cobertura integral nem reserva antes do crescimento do output.
-Ver [relatório atual](../sector-runtime-h0-retained-estimates-2026-11-09.md).
+Ver [relatório da etapa](../sector-runtime-h0-retained-estimates-2026-11-09.md).
 São 20 testes novos, 115 no total, 400 execuções adicionais e nove grupos
 CTest aprovados com ASan/UBSan; objeto real de geração compilado.
 Nenhum limite, default, seed ou regra de publicação mudou.
 
-Próximo trabalho executável: RAM-01, auditar templates privados/cache por
-worker e containers excluídos; definir capacidade/allocator e cobertura sem
-profiling antes da admissão obrigatória. Cobrir crescimento de outputs e
-caminhos síncronos antes de limites processuais por hardware/configuração e
-reação à pressão. O inventário v1 é parcial, não autorização para ampliar filas.
+RAM-01, quarto recorte em `739067b1`: cache privado por worker rastreado até
+substituição/saída da thread, com reserva do objeto e atualização do storage
+solicitado da LRU nas fronteiras de job, mesmo sem profiling. Inclui buckets,
+blocos retidos e bookkeeping do pool, não todo o grafo do template nem picos
+transitórios. São 21 casos novos, 136 no total, 420 execuções adicionais e
+dez grupos CTest com ASan/UBSan; dois objetos reais compilados. Ver
+[relatório atual](../sector-runtime-h0-worker-cache-2026-11-09.md).
+
+Próximo trabalho executável: reproduzir/corrigir a publicação antecipada de
+`unfilledBlock` em falha de inserção do vetor do BlockAllocator, achado estático
+da auditoria de RAM-01, antes de ensaios de pressão. Depois cobrir crescimento
+de outputs/caminhos síncronos e heaps de layout/biomas/seletores excluídos.
+Definir cobertura sem profiling antes da admissão obrigatória, limites
+processuais por hardware/configuração e reação à pressão.
+O inventário é parcial, não autorização para ampliar filas.
 Manter MOD-01 explícito antes de mudar admissão ou ownership.
 Estender o harness para dependências reais e o baseline com rota/save/config
 fixos. Não ampliar admissão nem ligar previews por padrão antes desses gates.

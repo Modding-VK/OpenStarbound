@@ -246,3 +246,11 @@ Próxima sequência executável, ainda em H0:
 Não ampliar admissão com a estimativa parcial. O inventário e o roadmap
 governam a retomada; executor H1, nova WorldThread autoritativa e GPU continuam
 entregas futuras, não consequências desta instrumentação.
+
+### Continuação posterior — `739067b1`
+
+O [relatório seguinte](sector-runtime-h0-worker-cache-2026-11-09.md) registra
+o cache privado/LRU por worker com atualização independente do profiling e
+limites do grafo ainda excluído. São 136 testes e dez grupos CTest no alvo
+atual. Este relatório preserva a evidência histórica de `803d4cf7`; a coleta
+profunda descrita aqui continua vinculada ao profiling regional.

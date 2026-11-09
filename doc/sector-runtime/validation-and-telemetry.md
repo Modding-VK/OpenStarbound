@@ -33,6 +33,14 @@ O objeto real de geração compilou; sintaxe Tracy passou, sem linking completo.
 As estimativas exigem profiling regional e não medem toda a RAM. Custos da
 coleta e throughput ainda exigem A/B real; não há ganho presumido por teste verde.
 
+O [recorte do cache privado](../sector-runtime-h0-worker-cache-2026-11-09.md)
+amplia para **136 testes**, dez grupos CTest e 21 casos novos repetidos 20 vezes
+(420 execuções adicionais). Inclui allocator/LRU reais, retenção thread-local
+e oito workers simultâneos com gates controlados e saldo final zero. Objetos
+reais de geração/template e sintaxe Tracy aprovados, sem linking completo.
+Teste de falha multi-elemento não valida a falha de inserção do vetor do pool:
+esse risco estático permanece explícito para a próxima reprodução/correção.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,
