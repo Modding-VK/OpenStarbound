@@ -41,7 +41,7 @@ public:
   // resources.
   BlockAllocator(BlockAllocator const& other) = default;
   BlockAllocator(BlockAllocator&& other) = default;
-  // Copy constructed BlockAllocators of different type share no resources
+  // Rebound types share the family, with a separate pool per element type.
   template <class U>
   BlockAllocator(BlockAllocator<U, BlockSize> const& other);
 
@@ -61,7 +61,7 @@ public:
   void construct(pointer p, Args&&... args) const;
   void destroy(pointer p) const;
 
-  // BlockAllocator will always be != to any other BlockAllocator instance
+  // Allocators compare equal when they share the same family.
   template <class U>
   bool operator==(BlockAllocator<U, BlockSize> const& rhs) const;
   template <class U>
@@ -70,6 +70,7 @@ public:
 private:
   template <typename OtherT, size_t OtherBlockSize>
   friend class BlockAllocator;
+  friend struct BlockAllocatorFailureTestAccess;
 
   using ChunkIndex =
     std::conditional_t<BlockSize <= std::numeric_limits<uint8_t>::max(), uint8_t,
@@ -112,6 +113,11 @@ private:
 
   static Data* getAllocatorData(BlockAllocatorFamily& family);
 
+  // Compile-time seam for the two throwing steps. Production supplies the
+  // normal make_unique/vector insert; fault injectors exist only in tests.
+  template <typename Producer, typename Inserter>
+  void addBlock(Producer produce, Inserter insert);
+
   shared_ptr<BlockAllocatorFamily> m_family;
   Data* m_data;
 };
@@ -143,12 +149,10 @@ T* BlockAllocator<T, BlockSize>::allocate(size_t n) {
       }
 
       if (!m_data->unfilledBlock) {
-        auto block = make_unique<Block>();
-        m_data->unfilledBlock = block.get();
-        auto sortedPosition = std::lower_bound(m_data->blocks.begin(), m_data->blocks.end(), block.get(), [](std::unique_ptr<Block> const& a, Block* b) {
-            return a.get() < b;
-          });
-        m_data->blocks.insert(sortedPosition, std::move(block));
+        addBlock([] { return make_unique<Block>(); },
+            [](auto& blocks, auto position, auto&& block) {
+              blocks.insert(position, std::move(block));
+            });
       }
     }
 
@@ -161,6 +165,20 @@ T* BlockAllocator<T, BlockSize>::allocate(size_t n) {
     m_data->multiBytes += n * sizeof(T);
     return allocated;
   }
+}
+
+template <typename T, size_t BlockSize>
+template <typename Producer, typename Inserter>
+void BlockAllocator<T, BlockSize>::addBlock(Producer produce, Inserter insert) {
+  auto block = produce();
+  auto newBlock = block.get();
+  auto sortedPosition = std::lower_bound(m_data->blocks.begin(), m_data->blocks.end(), block.get(), [](std::unique_ptr<Block> const& a, Block* b) {
+      return a.get() < b;
+    });
+  insert(m_data->blocks, sortedPosition, std::move(block));
+  // Publish only after the vector owns the block. If either throwing step
+  // fails, the local owner frees it without leaving a dangling selection.
+  m_data->unfilledBlock = newBlock;
 }
 
 template <typename T, size_t BlockSize>
