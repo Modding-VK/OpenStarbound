@@ -2,7 +2,7 @@
 
 Estado: H0 / RAM-01, `Experimental`, 09/11/2026.
 [Programa](sector-runtime/README.md) · [Inventário de ownership](sector-runtime/memory-and-prefetch.md)
-· [Roadmap](sector-runtime/roadmap.md) · [Relatório da entrega](sector-runtime-h0-atomic-memory-2026-11-09.md)
+· [Roadmap](sector-runtime/roadmap.md) · [Relatório da entrega](sector-runtime-h0-composite-memory-2026-11-09.md)
 
 Este contrato delimita o **subconjunto privado de geração contabilizado**.
 Não redefine RAM-01 como orçamento de todo o motor e não transforma estimativa
@@ -153,14 +153,54 @@ não contam novo crescimento. LastAdvice é a observação anterior à cobrança
 pressão atual recalculada após toda liberação. Counters saturam em size_t máximo;
 não há nova série desses dados no profiling do jogo nesta entrega.
 
+## Reserva composta antes do dispatch
+
+`reserveBatch(array<Request, N>)` admite todas as parcelas não compartilhadas sob
+um único lock/check da política, ou nenhuma. Soma e classes são validadas antes
+de criar os tokens inativos; todas as alocações dos tokens precedem a cobrança.
+O resultado é optional de array fixo, sem vetor intermediário. Recusa retorna
+optional vazio e não altera bytes/picos; falha de alocação pode lançar. Batch
+vazio é sucesso sem check; parcelas zero ainda são recursos distintos. Classes
+repetidas representam recursos diferentes; Json compartilhado é recusado aqui
+e continua exigindo seu registro por owner. Cada token transfere/libera sua
+parcela independentemente depois da admissão conjunta. Não é uma transação
+entre o ledger processual e o registro owner-thread de tasks.
+
+O primeiro consumidor real é BaseTiles assíncrono: demanda explícita Visible,
+igual à classificação padrão anterior, e duas parcelas antes de copySector:
+um sizeof(Array) e uma estimativa inicial sizeof(WorldTemplate). O array privado
+é modificado e devolvido **in place**: input e output são o mesmo backing,
+não duas cobranças. Estado autoritativo antigo permanece fora desse ledger.
+O template antigo do worker continua cobrado enquanto vivo; sua possível
+substituição já tem a parcela inicial reservada. O cache consome o token sem
+nova admissão, ou libera a previsão se houver hit. Tokens de ledger/demanda/
+classe/tamanho incorretos são recusados. A identidade do cache também considera
+ledger/demanda para não reutilizar uma entrada cobrada em outro escopo.
+
+Guarda de task e owners locais preservam rollback antes de aceitar o produtor;
+após handoff, invalidação/retirada lógica não liberam owners físicos ainda vivos.
+O wrapper destrói o payload antes do token. O caminho do planejador, metadados
+e Json não passaram a ter reserva composta. Não há classificação dinâmica de
+interesse/dependência/especulação, promoção ou alteração de prioridades/TTL.
+
+A reserva inicial do template **não é previsão completa de crescimento** de
+LRU/layout/biomas. Refresh continua observacional e pode marcar incompletude;
+o teste negativo em hard demonstra isso. A prova de conclusão em hard usa um
+produtor limitado ao contrato declarado, não demonstra progresso do jogo/DAG
+inteiro. Não ativar orçamento finito real com base nesse teste. Contadores
+atuais passam a incluir previsões de templates enfileirados; não interpretar
+essa antecipação como aumento medido de RSS ou somar input/output in place.
+Modelos de envelope/admissão e fórmulas profundas permanecem inalterados.
+
 ## Fronteira para a próxima integração de tarefas
 
 Uma recomendação de snapshot **não é reserva atômica**. O caminho opt-in acima
 resolve essa janela no ledger, não em um conselho consumido fora dele. Antes
 de ativar um orçamento para tarefas reais:
 
-1. Vincular demandas aos produtores e definir reserva composta de inputs/outputs/
-   overlap antes do dispatch, incluindo rollback de grupos parcialmente admitidos.
+1. Estender o contrato composto além do primeiro produtor BaseTiles e resolver
+   crescimento posterior/saídas variáveis com retry/progresso explícitos; vincular
+   demanda ao interesse real sem promover especulação por cópia de fachada.
 2. Preservar headroom e progresso de dependências/consumo: os testes preservam
    a margem soft→hard e o overlap real, não provam ausência de deadlock em todo
    grafo com resultados bloqueados e caches retidas.

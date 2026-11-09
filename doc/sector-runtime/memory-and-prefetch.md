@@ -134,8 +134,15 @@ O [recorte de admissão atômica](../sector-runtime-h0-atomic-memory-2026-11-09.
 reserve/Json novo/delta positivo e requests de allocator preservam demanda e
 headroom; reuso/shrink/liberação não fingem crescimento. Fachadas compartilham
 estado, não cotas independentes. Singleton do jogo continua desligado, sem
-limites/defaults novos. Admissão modelo 1; falta reserva composta e progresso
-dos jobs antes de provider/configuração/fairness processuais.
+limites/defaults novos. Admissão modelo 1; aquele recorte antecede a reserva composta.
+
+O [recorte composto](../sector-runtime-h0-composite-memory-2026-11-09.md), `dd59f3b4`,
+admite todas as parcelas do batch ou nenhuma sob o mesmo mutex. Primeiro produtor:
+BaseTiles declara Visible (demanda padrão anterior), array input/output in place
+cobrado uma vez e sizeof(WorldTemplate) inicial antes do dispatch. Cache consome
+o token ou devolve previsão no hit, mantendo entrada antiga no overlap. Ledger/
+demanda entram na identidade do cache. Crescimento interno continua estimado;
+metadados, Json e planejador não migrados. Pressão padrão desligada; RAM-01 parcial.
 
 ### Inventário de ownership e cobertura atual
 
@@ -145,7 +152,7 @@ dos jobs antes de provider/configuração/fairness processuais.
 | Halo do planejador | wrapper do snapshot, incluindo capturas da closure; não é parte da lista de planos | quantidade de arrays × `sizeof(Array)`; grupo único |
 | Arrays autoritativos após publicação | `WorldStorage`/`TileSectorArray`, até unload | fora do ledger privado; não foram liberados fisicamente ao publicar |
 | Template serializado | `TemplateStoreCache` e handles capturados nos jobs, até último tracker | Json v2: objeto + buckets completos + texto das chaves, arrays/strings com fórmulas anteriores; owner único entre handles rastreados; profiling regional; objeto truncado omitido explicitamente |
-| Template privado/cache do worker | entrada de `WorldGenerationWorkerCache` thread-local, até substituição/saída da thread e último uso | objeto + storage solicitado da LRU, modelo próprio v1; sem profiling para cobrança; heaps de layout/biomas/seletores fora |
+| Template privado/cache do worker | previsão enfileirada de BaseTiles, depois entrada de `WorldGenerationWorkerCache` thread-local até substituição/saída da thread e último uso | sizeof(WorldTemplate) antes do dispatch BaseTiles; token consumido sem recobrança ou liberado no hit; objeto + LRU observados nas fronteiras; layout/biomas/seletores fora |
 | Revisões/referências no snapshot e pendências | snapshot assíncrono e registros pendentes, cada metadado com seu lifetime | representações/capacidades públicas com profiling regional; bundle compartilhado não é repetido por referência |
 | Input de distribuição ainda não capturado | pedido enfileirado, até primeiro freeze ou retirada | estimativa do original já construído, incluindo container; não é reserva anterior à construção pelo chamador |
 | Json dos variants enfileirados | handle da entrada original transferido ao bundle; até último consumidor físico | floresta diagnóstica na classe 2, owner único inclusive com templates; campos grass/bush/árvores/ObjectPool, sem cobrança duplicada em classes 9/12/13; Json ambiental/privado fora |
@@ -191,9 +198,11 @@ não foi removida. A floresta retém handles, não cópias profundas, e seu over
 diagnóstico ainda é excluído. Consolidar envelope/exclusões/pressão para o
 escopo antes de ampliar admissão; não exigir cada heap para H1 em sombra.
 O envelope consolidado expõe essas fronteiras, não remove as exclusões. Próximo:
-contrato de demanda e reserva composta do job antes do dispatch, com rollback
-e prova de progresso de dependências. O backend opt-in já serializa check/charge
-e overlap individual, mas não foi ativado no jogo. Não há teto RSS ou orçamento finito
+contrato de saída variável/retry/drenagem e dois jobs com resultados retidos,
+sem espera indefinida por bytes de saída; classificar demanda pelo interesse real.
+Batch de BaseTiles já evita admissão parcial do array/parcela inicial do template,
+mas não garante seu crescimento completo nem progresso de todo DAG. A pressão
+opt-in não foi ativada no jogo. Não há teto RSS ou orçamento finito
 padrão; controlador processual/fairness e pressão externa ainda faltam.
 
 ## RAM-02 — Camadas de cache e invalidação

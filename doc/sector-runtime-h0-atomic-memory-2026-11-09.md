@@ -9,6 +9,9 @@ Implementação: `4b5aed18a14e81a58f46e6b1d1028251a365b67b`.
 · [Inventário](sector-runtime/memory-and-prefetch.md)
 · [Etapa anterior](sector-runtime-h0-memory-envelope-2026-11-09.md)
 
+Continuação: [reserva composta de BaseTiles](sector-runtime-h0-composite-memory-2026-11-09.md),
+`dd59f3b4`. Os resultados/manifesto abaixo permanecem os desta etapa histórica.
+
 ## Objetivo e resultado
 
 Remover a janela entre observar pressão e cobrar bytes, no escopo do ledger,

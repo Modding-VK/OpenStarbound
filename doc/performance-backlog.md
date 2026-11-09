@@ -105,13 +105,22 @@ de admissão/cancelamento mudou. São 354 testes, 680 execuções adicionais e v
 grupos CTest, ASan/UBSan; envelope modelo 1, fórmulas anteriores mantidas.
 RAM-01/H0 em 25%; próximo: reserva atômica do escopo, overlap/rollback e progresso
 de dependências antes de controlador processual/fairness e limites externos.
-O [relatório vigente](sector-runtime-h0-atomic-memory-2026-11-09.md), `4b5aed18`,
+O [recorte atômico](sector-runtime-h0-atomic-memory-2026-11-09.md), `4b5aed18`,
 implementa ledger opt-in com decisão/cobrança atômicas, headroom e demanda
 preservada em tokens/allocators. São 388 testes, 680 execuções adicionais e 21
 grupos CTest, ASan/UBSan. Singleton do jogo ainda desligado, sem limite novo;
 admissão modelo 1. RAM-01/H0 em 25%; próximo: contrato de demanda por produtor,
 reserva composta/rollback antes do dispatch e progresso do DAG, depois provider
 processual/configuração/fairness. Headroom individual não conclui todo o contrato.
+O [relatório vigente](sector-runtime-h0-composite-memory-2026-11-09.md), `dd59f3b4`,
+entrega batch atômico e primeiro produtor BaseTiles: array input/output in place
+e estimativa inicial de template reservados antes do dispatch. Cache consome
+tokens/libera previsão no hit e isola ledger/demanda. São 420 testes, 640
+execuções adicionais e 22 grupos CTest, ASan/UBSan. Pressão padrão desligada;
+crescimento real continua estimado. Próximo: saída variável/retry/drenagem,
+fixture de dois jobs/resultados retidos sem espera indefinida por bytes e demanda
+real, depois provider processual/fairness/configuração. RAM-01/H0 em 25%, sem
+ganho medido ou garantia de progresso de todo DAG. Não ampliar filas/defaults.
 Achado de CPU-01: overflow assinado na seed automática de `StarRandom.cpp:197`,
 observado em execução estrita de sanitizers; RNG de produção permanece
 inalterado. A reprodução e a separação dos testes de hash com seeds privadas

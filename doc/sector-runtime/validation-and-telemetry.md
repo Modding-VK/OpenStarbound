@@ -142,6 +142,16 @@ allocators, overlap e rollback real. Cinco objetos de produção e sintaxe Tracy
 de cinco fontes aprovados, sem linking completo. Admissão modelo 1; singleton
 continua desligado. Não é prova de progresso de todo DAG, TSan ou throughput.
 
+O [recorte composto](../sector-runtime-h0-composite-memory-2026-11-09.md) passa
+**420 testes**, 22 grupos CTest e 32 novos repetidos vinte vezes (**640 execuções
+adicionais**), ASan/UBSan. Batch sem prefixo cobrado, oito disputantes, cache
+hit/miss/overlap/rollback, isolamento ledger/demanda, lifetime após cancelamento
+e conclusão em hard com parcelas limitadas. Controle negativo demonstra que
+crescimento não previsto continua incompleto; não é prova de progresso real
+do jogo/DAG. Cinco objetos de produção e sintaxe Tracy de cinco fontes aprovados,
+sem linking completo. Não há novas séries; a reserva antecipada de templates
+enfileirados muda o saldo observado, não comprova RSS/throughput maiores.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

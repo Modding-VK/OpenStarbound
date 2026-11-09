@@ -194,13 +194,24 @@ o mesmo mutex em reserve, Json novo e crescimento de estimativas. Fachadas
 compartilham orçamento/histerese; tokens/allocators preservam demanda. São 34
 casos novos, 388 no total, 680 execuções adicionais e 21 grupos CTest, ASan/UBSan,
 incluindo disputas soft/hard, conselho obsoleto, overlap e rollback. Ver
-[relatório vigente](../sector-runtime-h0-atomic-memory-2026-11-09.md).
+[relatório daquela etapa](../sector-runtime-h0-atomic-memory-2026-11-09.md).
 Singleton do jogo continua com pressão desligada, sem config/defaults novos;
 admissão modelo 1, RAM-01/H0 em 25%. Headroom testado não prova todo DAG.
 
-Próximo trabalho executável: contrato de demanda por produtor e reserva composta
-de inputs/saída/overlap antes do dispatch, com rollback parcial e prova de
-progresso. Depois, provider processual único configurável, promoção de demanda,
+RAM-01, reserva composta em `dd59f3b4`: batch atômico sem prefixo admitido e
+primeiro consumidor BaseTiles, com array in place + parcela inicial do template
+antes do dispatch. Cache consome reserva, libera previsão no hit e mantém overlap
+do antigo; ledger/demanda fazem parte de sua identidade. São 32 casos novos,
+420 no total, 640 execuções adicionais e 22 grupos CTest com ASan/UBSan. Ver
+[relatório vigente](../sector-runtime-h0-composite-memory-2026-11-09.md).
+Conclusão em hard provada somente para produtor controlado com demanda limitada;
+controle negativo expõe crescimento não previsto. Singleton desligado, modelos
+mantidos e RAM-01/H0 em 25%; não é garantia de progresso do BaseTiles real/DAG.
+
+Próximo trabalho executável: saída variável com adiar/repetir/drenar explícitos,
+fixture de dois jobs/resultados retidos sem espera indefinida por bytes de saída,
+e demanda ligada ao interesse real. Estender parcelas transferíveis ao planejador
+sem alterar cópias. Depois, provider processual único configurável, promoção de demanda,
 fairness entre mundos e pressão externa/limites de hardware. Manter exclusões;
 não exigir cada heap para H1 em sombra nem ativar orçamento de jogo só pela
 existência do backend. Preservar fallback síncrono,

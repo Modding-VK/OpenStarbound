@@ -109,6 +109,15 @@ Runtime legado usa a demanda padrão, mantendo cópias/crescimento e formatos
 persistidos. Recusa de allocator é exceção, não resultado vazio; integração
 futura precisa de contrato de jobs, retry/progresso e gates de equivalência.
 
+A [reserva composta de BaseTiles](../sector-runtime-h0-composite-memory-2026-11-09.md)
+antecipa cobrança do array e parcela inicial do template, sem novo limite ou
+classificação dinâmica. Mesmo input/output in place, mesma cópia de tiles e
+publicação serial; sem cópias extras de elementos para diagnóstico. O cache
+consome tokens e isola ledger/demanda. O planejador mantém o caminho anterior.
+Previsões enfileiradas mudam os saldos observados, não o formato persistido.
+Progresso em hard foi testado com produtor limitado, não com todo heap real;
+assets/mods/saves/multiplayer e retry de crescimento variável seguem gates abertos.
+
 ## MOD-02 — Equivalência e versionamento
 
 Definir inputs que produzem um output: seed, template/layout, geração de

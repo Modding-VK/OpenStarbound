@@ -179,6 +179,14 @@ check/charge e demanda preservada nos consumidores. O singleton do jogo mantém
 pressão desligada. Testa overlap/rollback e margem de dependências, não progresso
 de todo DAG ou cota completa de RSS; falta contrato/reserva composta de jobs.
 
+O [recorte composto](sector-runtime-h0-composite-memory-2026-11-09.md), `dd59f3b4`,
+acrescenta batch atômico e primeira integração: BaseTiles reserva o array in place
+e o template inicial antes do dispatch; cache consome sem recobrança, mantém
+overlap e isola ledger/demanda. 420 testes/22 grupos CTest com ASan/UBSan.
+Não prevê todo crescimento real, não ativa pressão padrão nem conclui RAM-01.
+Próximo: saída variável com retry/drenagem, dois jobs/resultados retidos sem
+espera indefinida por bytes e classificação de demanda pelo interesse real.
+
 ## Diagnóstico
 
 Com `explorationProfiling.enabled`, os contadores fixos são:
