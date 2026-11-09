@@ -215,15 +215,25 @@ evitam reconsultar Deferred a cada poll, sem esperar por budget no worker.
 Fixture de dois jobs com resultados retidos progride e preserva bytes de saída;
 exceções continuam falhas. São 32 novos casos, 452 no total, 640 execuções
 adicionais e 23 grupos CTest com ASan/UBSan. Ver
-[relatório vigente](../sector-runtime-h0-variable-memory-2026-11-09.md).
+[relatório daquela etapa](../sector-runtime-h0-variable-memory-2026-11-09.md).
 Retry ainda sem consumidor real, sem evento automático ou allocator de crédito;
 modelo do protocolo 1, anteriores mantidos. Pressão padrão desligada; RAM-01/H0
 em 25%. Progresso do produtor controlado não prova todo DAG ou kernel real.
 
-Próximo trabalho executável: eventos úteis de drain/capacidade no owner e
-adaptador do primeiro produtor puro/versionado, com demanda real e comparador
-MOD-01/VAL-02 antes de replay real. Estender tokens transferíveis sem recobrança
-ou mudança de cópias; não repetir callbacks/Lua/mundo vivo por uma exceção.
+RAM-01/MOD-01/VAL-02, capacidade/subkernel em `8e190742`: release/shrink sinalizam
+revisão do ledger, capturada com a recusa e consumida por admit sem argumento
+(retry modelo 2). Sem wakeup/mailbox ou consumidor real de retry. Subkernel
+escalar de líquido modelo 1 é usado em BaseTiles e comparado à lógica anterior;
+não versiona todo o produtor. São 32 novos casos, 484 no total, 1.280 execuções
+adicionais e 25 grupos CTest com ASan/UBSan. Ver
+[relatório vigente](../sector-runtime-h0-capacity-kernel-2026-11-09.md).
+Pressão desligada, RAM-01/H0 em 25%; os contratos amplos continuam parciais.
+
+Próximo trabalho executável: identidade versionada do produto/contexto BaseTiles
+e comparador dos campos completos, incluindo líquido anterior em Keep e revisões
+de mundo/tiles/template. Estender pureza para materiais/mods/biomas sem antecipar
+consultas ou alterar cópias/RNG; ligar demanda ao interesse real antes de replay.
+Não repetir callbacks/Lua/mundo vivo por uma exceção.
 Depois, provider processual único configurável, promoção de demanda,
 fairness entre mundos e pressão externa/limites de hardware. Manter exclusões;
 não exigir cada heap para H1 em sombra nem ativar orçamento de jogo só pela

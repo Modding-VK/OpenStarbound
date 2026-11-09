@@ -9,6 +9,10 @@ Implementação: `8b68ab6ae03984cf24e9a1c251023767472f109c`.
 · [Inventário](sector-runtime/memory-and-prefetch.md)
 · [Etapa anterior](sector-runtime-h0-composite-memory-2026-11-09.md)
 
+Continuação: [capacidade do ledger e subkernel BaseTiles](sector-runtime-h0-capacity-kernel-2026-11-09.md),
+`8e190742`. Modelo 2 substitui a revisão manual por marker do ledger; os resultados
+e manifesto abaixo permanecem os desta etapa histórica (modelo 1).
+
 ## Objetivo e resultado
 
 Tratar uma previsão insuficiente sem deixar workers segurando input enquanto

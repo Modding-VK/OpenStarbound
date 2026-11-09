@@ -39,7 +39,7 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[saída variável/retry limitado](sector-runtime-h0-variable-memory-2026-11-09.md), com
+[capacidade do ledger/subkernel BaseTiles](sector-runtime-h0-capacity-kernel-2026-11-09.md), com
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
@@ -123,11 +123,18 @@ retry/drenagem e dois jobs/resultados retidos sem espera indefinida por bytes,
 demanda ligada ao interesse real; depois provider/config/fairness processuais.
 `8b68ab6a` entrega status atômicos e retry limitado para produtores puros,
 sem espera por budget no worker; duas produções/resultados retidos progridem
-na fixture com fences físicas e bytes equivalentes. Validação atual: 452 testes,
+na fixture com fences físicas e bytes equivalentes. Validação daquela etapa: 452 testes,
 640 execuções adicionais e 23 grupos CTest com ASan/UBSan. Retry sem consumidor
 real/evento automático; pressão padrão desligada. RAM-01/H0 em 25%; próximo:
 eventos úteis no owner, adaptador puro/versionado, demanda real e comparação
 MOD-01/VAL-02 antes de replay real; depois provider/config/fairness processuais.
+`8e190742` substitui revisão manual por sinal release/shrink do ledger, capturado
+atomicamente na recusa e consumido no próximo poll (retry 2). Não é wakeup/mailbox
+nem retry real. Subkernel escalar de líquido modelo 1 usado em BaseTiles e
+comparado à lógica anterior. Validação atual: 484 testes, 1.280 execuções
+adicionais e 25 grupos CTest com ASan/UBSan. Pressão desligada; RAM-01/H0 em 25%.
+Próximo: identidade/contexto do produto BaseTiles e comparador dos campos completos,
+incluindo estado anterior em Keep e revisões, antes de ampliar pureza/demanda/replay.
 Streaming real com assets/mods
 e executor de conclusões ainda pendentes.
 

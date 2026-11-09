@@ -29,6 +29,15 @@ de hash usam fontes privadas de seed fixa e não validam a inicialização
 automática. Incluir esse defeito na auditoria de CPU-01 antes de mudar seeds,
 ordem de inicialização ou reconstrução de contexto dos workers.
 
+Fronteira preparatória de H0 em `8e190742`: o
+[subkernel escalar de líquido de BaseTiles](../sector-runtime-h0-capacity-kernel-2026-11-09.md)
+recebe materiais/oceano/y já resolvidos e devolve decisão modelo 1; adapter atua
+só em LiquidStore privado. Usado no loop real sem antecipar consultas, Root,
+RNG, alocar buffers ou copiar ServerTile. 7.560 combinações e 1.024 decisões
+particionadas coincidem com a referência anterior. Keep depende do líquido
+anterior; futura identidade de output deve conservá-lo. Isto não extrai o
+contexto completo de WorldTemplate, nem resolve CPU-01 ou concede novo marco.
+
 Aceitação: execução concorrente não alcança template vivo, callbacks ou RNG
 global; comparador de outputs cobre a mudança de contexto e de worker.
 

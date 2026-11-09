@@ -3,7 +3,7 @@
 Atualização: 09/11/2026. Branch: `Experimental`. Runtime de partida:
 `7ca7ed2a`; recortes de H0: `d72b7239`, `2131ead3`, `5c3c4c8f`, `65bae55c`,
 `803d4cf7`, `739067b1`, `1bd348e6`, `34c76ea3`, `887149c0`, `cad311d1`, `25cecf95`,
-`c4d7ddb3`, `730e36ba`, `45db2402`, `49a12fbf`, `ada755bf`, `0915af25`, `4b5aed18`, `dd59f3b4` e `8b68ab6a`;
+`c4d7ddb3`, `730e36ba`, `45db2402`, `49a12fbf`, `ada755bf`, `0915af25`, `4b5aed18`, `dd59f3b4`, `8b68ab6a` e `8e190742`;
 documentação de arquitetura de partida: `8d3b0ade`.
 
 Este é o **programa principal de desenvolvimento**, adotado pelo usuário em
@@ -106,7 +106,7 @@ São 420 testes, 640 execuções adicionais e 22 grupos CTest com ASan/UBSan.
 Pressão padrão segue desligada; crescimento real do template permanece estimado,
 não há prova de progresso do DAG completo ou ganho medido. Próximo: saída
 variável/retry/drenagem e demanda ligada ao interesse real. RAM-01/H0 em 25%.
-O [relatório vigente](../sector-runtime-h0-variable-memory-2026-11-09.md), `8b68ab6a`,
+O [recorte variável](../sector-runtime-h0-variable-memory-2026-11-09.md), `8b68ab6a`,
 acrescenta status atômico e protocolo limitado de retry para produtores puros,
 sem espera por budget no worker e com fence de liberação física. Dois jobs e
 resultados retidos progridem na fixture; exceções não viram retry genérico.
@@ -114,6 +114,15 @@ São 452 testes, 640 execuções adicionais e 23 grupos CTest com ASan/UBSan.
 Retry não está conectado à geração real; pressão padrão desligada. Próximo:
 eventos úteis no owner e adaptador de produtor puro/versionado com demanda real
 e comparador MOD-01/VAL-02. RAM-01/H0 seguem em 25%, sem ganho de setores/s medido.
+O [relatório vigente](../sector-runtime-h0-capacity-kernel-2026-11-09.md), `8e190742`,
+liga sinais de release/shrink ao protocolo (modelo 2), com marker atômico e sem
+revisão manual. Extrai o subkernel escalar de líquido usado em BaseTiles, modelo
+1, mantendo branches/construtores. São 484 testes, 1.280 execuções adicionais e
+25 grupos CTest com ASan/UBSan; 7.560 combinações comparadas ao caminho anterior.
+Sinal não é wakeup/mailbox; retry ainda não usado no jogo e pressão desligada.
+Próximo: identidade/contexto de BaseTiles e comparador dos campos completos,
+incluindo estado anterior em Keep, antes de estender pureza/demanda e replay real.
+RAM-01/H0 seguem em 25%; não é ganho medido ou conclusão do produtor completo.
 Orçamento processual completo, benchmark real e equivalência com assets
 continuam pendentes.
 Isso não implementa o executor, a nova WorldThread ou compute GPU.

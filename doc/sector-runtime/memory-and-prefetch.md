@@ -154,6 +154,15 @@ Fixture com dois workers/resultados retidos progride e confere bytes; não prova
 progresso do jogo. Retry/allocator de crédito ainda não ligados aos produtores
 reais. Ledger/demanda fixos; exceções não viram saída vazia ou retry automático.
 
+O [recorte de capacidade](../sector-runtime-h0-capacity-kernel-2026-11-09.md), `8e190742`,
+substitui o evento manual por revisão release/shrink do próprio ledger, capturada
+atomicamente em Deferred. Retry modelo 2 consulta esse sinal no próximo poll,
+sem callbacks/wakeup e sem ignorar fences físicas. Sinal é capacidade declarada,
+inclusive estimativas, não RAM/RSS livre. Saturação deixa de suprimir consultas,
+sem wrap. Ainda não existe consumidor de retry no jogo, provider ou limite novo.
+O subkernel escalar de líquido real prepara a fronteira de equivalência;
+identidade/contexto completo e demanda real seguem pendentes.
+
 ### Inventário de ownership e cobertura atual
 
 | Produto/recurso | Dono e término da retenção | Contabilidade atual |
@@ -208,9 +217,10 @@ não foi removida. A floresta retém handles, não cópias profundas, e seu over
 diagnóstico ainda é excluído. Consolidar envelope/exclusões/pressão para o
 escopo antes de ampliar admissão; não exigir cada heap para H1 em sombra.
 O envelope consolidado expõe essas fronteiras, não remove as exclusões. Próximo:
-eventos úteis no owner e adaptador do primeiro produtor puro/versionado com
-demanda real e comparação MOD-01/VAL-02, antes de replay real. O protocolo de
-saída variável já foi testado em dois jobs controlados, não no kernel do jogo.
+identidade/contexto do produto BaseTiles e comparador de campos completos,
+incluindo líquido anterior em Keep; ampliar pureza/demanda real com MOD-01/VAL-02
+antes de replay. O sinal do ledger já substitui a revisão manual; o protocolo de
+saída variável continua validado em jobs controlados, não no produtor completo.
 Batch de BaseTiles já evita admissão parcial do array/parcela inicial do template,
 mas não garante seu crescimento completo nem progresso de todo DAG. A pressão
 opt-in não foi ativada no jogo. Não há teto RSS ou orçamento finito

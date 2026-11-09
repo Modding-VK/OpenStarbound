@@ -126,6 +126,15 @@ A API anterior de batch mantém o optional; só a resposta detalhada é nova.
 MOD-01/VAL-02 precisam delimitar produtor versionado e comparar outputs antes
 de replay real. Sem novas configs/defaults, alteração de formatos ou ganho alegado.
 
+O [recorte de capacidade/subkernel](../sector-runtime-h0-capacity-kernel-2026-11-09.md)
+mantém pressão desligada e retry sem consumidor real. Modelo 2 elimina a revisão
+manual interna; não é chave Lua/config nem mudança persistida. O kernel escalar
+de líquido é usado em BaseTiles na mesma posição, com materiais já resolvidos;
+Keep não atribui e preserva o líquido anterior. Compara todos os campos de
+LiquidStore à lógica anterior; não altera simulação de líquidos ou oceanos.
+Isso não prova equivalência de todo tile/setor, assets/mods/saves/multiplayer
+ou segurança de replay do produtor completo; esses gates continuam abertos.
+
 ## MOD-02 — Equivalência e versionamento
 
 Definir inputs que produzem um output: seed, template/layout, geração de

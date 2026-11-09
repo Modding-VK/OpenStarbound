@@ -121,7 +121,7 @@ crescimento real continua estimado. Próximo: saída variável/retry/drenagem,
 fixture de dois jobs/resultados retidos sem espera indefinida por bytes e demanda
 real, depois provider processual/fairness/configuração. RAM-01/H0 em 25%, sem
 ganho medido ou garantia de progresso de todo DAG. Não ampliar filas/defaults.
-O [relatório vigente](sector-runtime-h0-variable-memory-2026-11-09.md), `8b68ab6a`,
+O [recorte variável](sector-runtime-h0-variable-memory-2026-11-09.md), `8b68ab6a`,
 entrega admissão tipada e retry limitado owner-thread de produtores puros:
 aguarda liberação física sem bloquear worker, evita nova consulta no mesmo
 evento de pressão e encerra pedidos impossíveis/tentativas esgotadas. Dois jobs
@@ -131,6 +131,15 @@ ou evento automático; exceções continuam erros. Próximo: eventos úteis no o
 adaptador puro/versionado com demanda real e MOD-01/VAL-02 antes de replay.
 Provider/fairness/configuração e benchmark integrado seguem gates. RAM-01/H0
 em 25%, pressão padrão desligada, sem ganho de throughput alegado.
+O [relatório vigente](sector-runtime-h0-capacity-kernel-2026-11-09.md), `8e190742`,
+liga a revisão do ledger ao retry 2 com marker atômico, sem evento manual ou
+callback/wakeup. Isola decisão escalar de líquido usada em BaseTiles, modelo 1,
+com 7.560 combinações equivalentes e 1.024 decisões particionadas, não setores
+completos. São 484 testes, 1.280 execuções adicionais e 25 grupos CTest com
+ASan/UBSan. Não otimiza simulação de oceanos/clima, nem ativa limite ou retry real.
+Próximo: identidade/contexto versionado e comparador dos campos completos de
+BaseTiles, incluindo líquido anterior em Keep e revisões, antes de ampliar
+pureza/demanda e replay. RAM-01/H0 em 25%, sem ganho de setores/s demonstrado.
 Achado de CPU-01: overflow assinado na seed automática de `StarRandom.cpp:197`,
 observado em execução estrita de sanitizers; RNG de produção permanece
 inalterado. A reprodução e a separação dos testes de hash com seeds privadas

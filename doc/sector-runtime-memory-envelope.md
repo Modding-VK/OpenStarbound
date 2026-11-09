@@ -2,7 +2,7 @@
 
 Estado: H0 / RAM-01, `Experimental`, 09/11/2026.
 [Programa](sector-runtime/README.md) · [Inventário de ownership](sector-runtime/memory-and-prefetch.md)
-· [Roadmap](sector-runtime/roadmap.md) · [Relatório da entrega](sector-runtime-h0-variable-memory-2026-11-09.md)
+· [Roadmap](sector-runtime/roadmap.md) · [Relatório da entrega](sector-runtime-h0-capacity-kernel-2026-11-09.md)
 
 Este contrato delimita o **subconjunto privado de geração contabilizado**.
 Não redefine RAM-01 como orçamento de todo o motor e não transforma estimativa
@@ -202,16 +202,22 @@ especulativa, hard o de visível/dependência; desligado vale o máximo legado.
 `reserveBatch` delega e conserva seu optional anterior. Não inferir o motivo
 lendo lastAdvice após liberar o mutex: outra thread já pode tê-lo atualizado.
 
-`WorldGenerationMemoryRetry<N>` é protocolo owner-thread, modelo 1, ainda **sem
+`WorldGenerationMemoryRetry<N>` é protocolo owner-thread, modelo 2, ainda **sem
 consumidor na geração real**. Exige produtor puro/reexecutável e parcelas físicas
 com tokens. A tentativa aceita um descritor de crescimento estrito, abandona os
 dados parciais antes de alocar a saída maior e só pode readmitir depois que todas
 as weak refs dos tokens anteriores expirarem. Fence não libera payload nem cobre
 backing que escapou sem token. O ledger e a demanda ficam vinculados ao descritor.
 
-Deferred exige evento útil de drain/capacidade do owner: na mesma revisão retorna
-AwaitProgress sem nova admissão. O protocolo não produz o evento nem avalia se o
-chamador incrementou a revisão por motivo útil. Não incrementar em cada tick.
+Deferred carrega deferredCapacity da própria decisão sob lock. O ledger avança
+capacityRevision em shrink positivo/release ativo, inclusive recurso zero; reuso,
+carga/crescimento/recusa inativa não sinalizam capacidade. admit não recebe mais
+revisão manual: compara o marker com a revisão do ledger vinculado e retorna
+AwaitProgress sem criar tokens/reavaliar pressão enquanto puder suprimir o poll.
+Uma liberação depois da recusa não se perde em snapshot posterior. Não há callback
+ou wakeup: o owner ainda deve chamar admit, e um sinal não garante que o pedido
+inteiro caiba. É capacidade declarada, não RSS. Saturação uint64 deixa de suprimir
+consultas, sem wrap. Modelo do sinal 1; consulta pequena usa o mutex existente.
 Tentativa ativa não duplica dispatch; respostas stale não mudam a nova tentativa.
 Planos crescem conservadoramente, mantendo classes/nenhuma parcela menor, sem
 buscar footprint mínimo. Limite explícito de tentativas admitidas e Impossible/
@@ -234,10 +240,11 @@ Uma recomendação de snapshot **não é reserva atômica**. O caminho opt-in ac
 resolve essa janela no ledger, não em um conselho consumido fora dele. Antes
 de ativar um orçamento para tarefas reais:
 
-1. Ligar eventos úteis ao owner e delimitar adaptador do primeiro produtor puro/
-   versionado, com comparação de outputs MOD-01/VAL-02 e demanda real, antes de
-   usar retry na geração. Estender tokens transferíveis sem recobrança; não
-   reexecutar callbacks/Lua/mundo vivo por capturar exceção.
+1. O sinal já alimenta o protocolo; falta mailbox/integração real. Versionar
+   identidade/contexto do produto BaseTiles e comparar os campos completos,
+   com MOD-01/VAL-02 e demanda real antes de replay. O subkernel escalar de
+   líquido é o primeiro adaptador real, não todo o produtor. Estender tokens
+   sem recobrança; não reexecutar callbacks/Lua/mundo vivo por capturar exceção.
 2. Preservar headroom e progresso de dependências/consumo: os testes preservam
    a margem soft→hard e o overlap real, não provam ausência de deadlock em todo
    grafo com resultados bloqueados e caches retidas.

@@ -196,6 +196,15 @@ automático, sem retry genérico de exceções. Próximo: owner/adaptador puro e
 versionado, demanda real e MOD-01/VAL-02 antes de replay. Pressão padrão
 desligada e RAM-01 parcial; não prova progresso do mundo/DAG inteiro.
 
+O [recorte capacidade/subkernel](sector-runtime-h0-capacity-kernel-2026-11-09.md),
+`8e190742`, liga liberação/shrink do ledger à retomada sem revisão manual;
+marker vem da decisão atômica (retry 2), sem callback/wakeup ou consumidor real.
+Decisão escalar de líquido é usada em BaseTiles, comparada à lógica anterior;
+não versiona todo o produto ou muda a simulação. 484 testes/25 grupos CTest
+com ASan/UBSan. Próximo: identidade/contexto e comparador de campos completos,
+incluindo líquido anterior em Keep e revisões, antes de ampliar pureza/replay.
+Pressão desligada, RAM-01 parcial; não é ganho de setores/s demonstrado.
+
 ## Diagnóstico
 
 Com `explorationProfiling.enabled`, os contadores fixos são:

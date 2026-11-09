@@ -161,6 +161,15 @@ reais e sintaxe Tracy de cinco fontes aprovados, sem linking completo. Retry
 sem consumidor real; revisão útil do owner e cobertura física são pré-condições,
 não eventos/heap completo inferidos. Não é TSan, benchmark ou prova de todo DAG.
 
+O [recorte capacidade/subkernel](../sector-runtime-h0-capacity-kernel-2026-11-09.md)
+passa **484 testes**, 25 grupos CTest e 64 casos afetados repetidos vinte vezes
+(**1.280 execuções adicionais**), ASan/UBSan. São 32 casos novos. Capacidade cobre
+marker da recusa, lost-signal negativo, release por worker, aliases, shrink,
+escopo e saturação; retry modelo 2 usa o sinal do ledger. Kernel escalar real
+cobre 7.560 combinações de campos/float bits e 1.024 decisões particionadas,
+não setores completos. Cinco objetos e sintaxe Tracy de seis fontes aprovados,
+sem linking completo; sem novas séries no profiling ou throughput demonstrado.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,
