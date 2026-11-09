@@ -1,7 +1,7 @@
 # Programa de geração e runtime de setores
 
 Atualização: 09/11/2026. Branch: `Experimental`. Runtime de partida:
-`7ca7ed2a`; recortes de H0: `d72b7239` e `2131ead3`;
+`7ca7ed2a`; recortes de H0: `d72b7239`, `2131ead3` e `5c3c4c8f`;
 documentação de arquitetura de partida: `8d3b0ade`.
 
 Este é o **programa principal de desenvolvimento**, adotado pelo usuário em
@@ -18,9 +18,11 @@ começando por identidade estável e validação acelerada antes de ampliar
 admissão e concorrência. O primeiro recorte de DAG-01 troca índices de
 colocações por IDs monotônicos e possui
 [relatório próprio](../sector-runtime-h0-placement-identities-2026-11-08.md).
-O [relatório atual](../sector-runtime-h0-streaming-pass-2026-11-09.md) registra
-o harness controlado e a correção de continuação/avanço em DAG-04. O próximo
-recorte é RAM-01; benchmark real e equivalência com assets continuam pendentes.
+O [recorte de streaming](../sector-runtime-h0-streaming-pass-2026-11-09.md)
+registra o harness controlado e a correção de continuação/avanço em DAG-04.
+O [relatório atual](../sector-runtime-h0-memory-admission-2026-11-09.md) registra
+a reserva de arrays antes de copiar inputs em RAM-01. Contabilidade processual,
+benchmark real e equivalência com assets continuam pendentes.
 Isso não implementa o executor, a nova WorldThread ou compute GPU.
 
 ## Objetivo e decisões vigentes

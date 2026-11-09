@@ -26,6 +26,21 @@ RAM e VRAM têm contabilidade separada em GPU dedicada. Em memória unificada,
 os buffers GPU também ocupam o orçamento do sistema. Não contar o mesmo
 buffer duas vezes nem presumir que VRAM anunciada esteja toda livre.
 
+Primeiro recorte de H0 implementado: `WorldGenerationTaskPreparation` reserva
+chave/bytes antes das cópias de BaseTiles/halo e desfaz uma preparação ainda
+não submetida no retorno antecipado ou exceção. O registro da pendência é
+alocado antes do dispatch; o handoff preserva a reserva normal até o drain.
+O produto quantidade × tamanho é verificado contra overflow, sem alterar
+os limites de tarefas/bytes existentes. Ver
+[relatório e escopo](../sector-runtime-h0-memory-admission-2026-11-09.md).
+
+O recorte contabiliza objetos `Array` completos, inclusive campos inline,
+mas não allocator, templates/caches, distribuições, índices ou saída variável
+do planejador. O teto ainda é por mundo, não processual. Destruir o mundo
+invalida tickets sobreviventes, mas não mantém um ledger global das cópias
+ainda retidas por workers. RAM-01 permanece aberto para essas fronteiras;
+não ampliar admissão com base apenas nesta correção de ordem.
+
 ## RAM-02 — Camadas de cache e invalidação
 
 | Camada | Chave mínima conceitual | Evento que invalida |

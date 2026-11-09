@@ -179,6 +179,10 @@ deste commit. Binários temporários ficam fora do repositório.
 
 ## Limites, riscos e próximo trabalho
 
+Continuação deste handoff: [RAM-01, reserva antes das cópias](sector-runtime-h0-memory-admission-2026-11-09.md).
+O relatório seguinte e o roadmap registram o próximo trabalho vigente; as
+pendências abaixo preservam o estado desta entrega.
+
 O harness não instancia `WorldStorage` completo: seu construtor e carregamento
 dependem de `Root` e assets. O fixture não executa o gerador recursivo 3×3,
 TTL, IO, Lua, mods, multiplayer ou apresentação no cliente. Não constitui o

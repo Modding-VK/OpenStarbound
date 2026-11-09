@@ -73,15 +73,22 @@ existente. Não foi introduzida uma barreira que espere todas as regiões.
 
 ## Limites e custo
 
-Não há novo pool. A reserva usa o pool compartilhado `WorldSectorGeneration`
-existente e o limite anterior de duas tarefas por worker por mundo (até 16).
+Não há novo pool. No recorte original, a reserva usava o pool compartilhado
+`WorldSectorGeneration` e duas tarefas por worker por mundo (até 16 na
+configuração daquela etapa). Os previews posteriores têm limites próprios;
+RAM-01 mantém os valores vigentes, sem ampliá-los.
 O registro também aplica um teto de bytes equivalente aos arrays reservados.
 Essa contabilidade é **rasa**: `sizeof(ServerTileSectorArray::Array)` por tarefa;
 não inclui buffers internos dos tiles, template, caches, allocator ou outros
-mundos. A cópia e o template são preparados antes da reserva. O orçamento global
-de memória/pools e a admissão por interesse continuam pendentes em WRG-04/06.
+mundos. Na implementação inicial, a cópia e o template eram preparados antes
+da reserva. O [recorte RAM-01 de 09/11](sector-runtime-h0-memory-admission-2026-11-09.md)
+corrige essa ordem para os arrays de BaseTiles/halo e acrescenta rollback
+pré-submissão; o orçamento global de memória/pools, custos dinâmicos e a
+admissão por interesse continuam pendentes.
 
-Com `sectorWorkers: 0`, o registro não é criado: segue o caminho síncrono.
+Com workers desligados (`sectorWorkers: 0` no modo `legacy`), o registro não
+é criado: segue o caminho síncrono. Nos modos não legados, zero pode selecionar
+workers automaticamente; não interpretar o zero isolado como desativação.
 Com workers ativos, há um pequeno mapa de reservas e algumas operações
 atômicas por tarefa. Não há varredura de entidades nem cópia adicional de tiles
 para obter a região. Este marco estabelece contratos; não aumenta o número de

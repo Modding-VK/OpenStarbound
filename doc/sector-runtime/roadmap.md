@@ -50,8 +50,18 @@ Ver [relatório e limites](../sector-runtime-h0-streaming-pass-2026-11-09.md).
 Isso não conclui VAL-01/02 nem a mailbox executiva de DAG-04: falta executar
 o streaming real de `WorldStorage`, comparar outputs de mundo/mods e medir A/B.
 
-Próximo trabalho executável: RAM-01, começando por reservar antes das cópias
-de BaseTiles/halo e testar retenção/liberação/overflow; manter MOD-01 explícito.
+RAM-01, recorte inicial em `5c3c4c8f`: reserva antes das cópias de BaseTiles/halo,
+rollback de preparação e registro da pendência antes do dispatch implementados.
+Os limites anteriores são mantidos; bytes de arrays não representam toda
+a RAM do pipeline. A build CMake dos contratos passou 75 testes, além de sete
+casos de hash selecionados e sete grupos CTest, com sanitizers estritos.
+Uma sentinela nula inválida foi corrigida; o overflow do RNG automático foi
+registrado para CPU-01, não corrigido. Ver
+[relatório atual e limites](../sector-runtime-h0-memory-admission-2026-11-09.md).
+
+Próximo trabalho executável: RAM-01, inventário/contabilidade processual dos
+produtos e recursos compartilhados, inclusive sobreviventes ao fechamento
+do mundo; manter MOD-01 explícito antes de mudar admissão ou ownership.
 Estender o harness para dependências reais e o baseline com rota/save/config
 fixos. Não ampliar admissão nem ligar previews por padrão antes desses gates.
 

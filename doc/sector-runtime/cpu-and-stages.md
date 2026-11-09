@@ -21,6 +21,14 @@ pura deve resolver essas dependências em uma fronteira autoritativa e
 preservar a ordem/número de escolhas que a compatibilidade exigir. Apenas
 copiar o ponteiro ou tornar um método `const` não comprova pureza.
 
+Achado em 09/11/2026: a validação ampliada de RAM-01 observou overflow
+assinado em `Random::produceRandomSeed` (`StarRandom.cpp:197`) ao inicializar
+a fonte automática/global. O [relatório](../sector-runtime-h0-memory-admission-2026-11-09.md)
+registra reprodução e escopo. O RNG de produção não foi alterado; os testes
+de hash usam fontes privadas de seed fixa e não validam a inicialização
+automática. Incluir esse defeito na auditoria de CPU-01 antes de mudar seeds,
+ordem de inicialização ou reconstrução de contexto dos workers.
+
 Aceitação: execução concorrente não alcança template vivo, callbacks ou RNG
 global; comparador de outputs cobre a mudança de contexto e de worker.
 
