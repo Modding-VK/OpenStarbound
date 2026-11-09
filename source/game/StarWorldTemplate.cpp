@@ -1,4 +1,5 @@
 #include "StarWorldTemplate.hpp"
+#include "StarBiomeItemSelection.hpp"
 #include "StarJsonExtra.hpp"
 #include "StarInterpolation.hpp"
 #include "StarIterator.hpp"
@@ -579,36 +580,28 @@ WorldTemplate::PotentialBiomeItems WorldTemplate::potentialBiomeItemsAt(int x, i
 }
 
 List<BiomeItemPlacement> WorldTemplate::validBiomeItems(int x, int y, PotentialBiomeItems potentialBiomeItems) const {
+  List<BiomeItemPlacement> output;
+  validBiomeItemsInto(x, y, std::move(potentialBiomeItems), output);
+  return output;
+}
+
+void WorldTemplate::validBiomeItemsInto(int x, int y, PotentialBiomeItems potentialBiomeItems,
+    List<BiomeItemPlacement>& output) const {
+  resetBiomeItemSelectionOutput(potentialBiomeItems, output);
   if (y <= 0 || y >= (int)m_geometry.height() - 1)
-    return {};
+    return;
 
   x = m_geometry.xwrap(x);
 
   auto block = getBlockInfo(x, y);
 
   if (block.biomeTransition)
-    return {};
-  List<BiomeItemPlacement> biomeItems;
+    return;
 
   auto blockAbove = getBlockInfo(x, y + 1);
   auto blockBelow = getBlockInfo(x, y - 1);
 
-  if (!blockBelow.biomeTransition && blockBelow.terrain && !block.terrain && !blockBelow.foregroundCave)
-    biomeItems.appendAll(std::move(potentialBiomeItems.surfaceBiomeItems));
-
-  if (!blockBelow.biomeTransition && blockBelow.terrain && block.terrain && !blockBelow.foregroundCave && block.foregroundCave)
-    biomeItems.appendAll(std::move(potentialBiomeItems.caveSurfaceBiomeItems));
-
-  if (!blockAbove.biomeTransition && blockAbove.terrain && block.terrain && !blockAbove.foregroundCave && block.foregroundCave)
-    biomeItems.appendAll(std::move(potentialBiomeItems.caveCeilingBiomeItems));
-
-  if (block.terrain && block.foregroundCave && !block.backgroundCave)
-    biomeItems.appendAll(std::move(potentialBiomeItems.caveBackgroundBiomeItems));
-
-  if (block.oceanLiquid != EmptyLiquidId && y == block.oceanLiquidLevel)
-    biomeItems.appendAll(std::move(potentialBiomeItems.oceanItems));
-
-  return biomeItems;
+  appendSelectedBiomeItems(y, block, blockAbove, blockBelow, potentialBiomeItems, output);
 }
 
 float WorldTemplate::gravity() const {

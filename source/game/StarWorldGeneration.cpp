@@ -1080,8 +1080,11 @@ void WorldGenerator::profileGenerationMemory(double now) {
   profile->count("generation.memory.process.sampledCandidateBufferRequestBytesTotal", usage.classBytes[7]);
   profile->count("generation.memory.process.sampledDistributionBufferRequestBytesTotal", usage.classBytes[8]);
   profile->count("generation.memory.process.sampledDistributionEstimateTotal", usage.classBytes[9]);
+  profile->count("generation.memory.process.sampledNameBufferRequestBytesTotal", usage.classBytes[10]);
+  profile->count("generation.memory.process.sampledNameEstimateTotal", usage.classBytes[11]);
   profile->count("generation.memory.process.sampledBufferResourcesTotal",
-      usage.classResources[6] + usage.classResources[7] + usage.classResources[8]);
+      usage.classResources[6] + usage.classResources[7] + usage.classResources[8] + usage.classResources[10]);
+  profile->maximum("generation.memory.names.modelVersion", 1);
   profile->maximum("generation.memory.process.lifetimePeakReservedBufferBytes", usage.peakReservedBufferBytes);
   profile->maximum("generation.memory.buffers.modelVersion", 1);
   profile->maximum("generation.memory.process.lifetimePeakEstimatedBytes", usage.peakEstimatedBytes);
@@ -1586,7 +1589,7 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
           auto const& plan = preparedResult->plans[pending->definitionPrewarmNextPlan++];
           DungeonDefinitionLoadTiming definitionTiming;
           double started = Time::monotonicTime();
-          Root::singleton().dungeonDefinitions()->get(plan.dungeonName, &definitionTiming);
+          Root::singleton().dungeonDefinitions()->get(plan.dungeonName->value(), &definitionTiming);
           double elapsed = Time::monotonicTime() - started;
           if (profile) {
             profile->count("generation.microDungeonDefinitionPrewarm.attempted");
@@ -1728,7 +1731,7 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
           MicroDungeonPlans plans(planAllocator);
           if (task->valid()) {
             auto workerPlanet = workerWorldTemplate(templateSource, templateRevision, templateStore, memoryLedger);
-            plans = planMicroDungeons(workerPlanet.value(), snapshotHolder->value, planAllocator);
+            plans = planMicroDungeons(workerPlanet.value(), snapshotHolder->value, planAllocator, memoryLedger);
           }
           bool estimateComplete = true;
           double estimateSeconds = 0;
@@ -1736,8 +1739,7 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
             double sizingStarted = Time::monotonicTime();
             WorldGenerationSizeEstimate estimate;
             estimate.add(sizeof(PreparedMicroDungeonPlan));
-            // Descriptor capacity is already charged by the buffer allocator.
-            for (auto const& plan : plans) estimate.stringCapacity(plan.dungeonName);
+            // Descriptor buffers and unique names already have their own tokens.
             estimateComplete = estimate.complete && planMemory && planMemory->resizeEstimate(estimate.bytes);
             estimateSeconds = Time::monotonicTime() - sizingStarted;
           }
@@ -1785,7 +1787,8 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
 
   phase.next("generation.microDungeonPlan.describe");
   auto plans = planMicroDungeons(templateSource, snapshot,
-      MicroDungeonPlanAllocator(worldGenerationMemoryLedger(), WorldGenerationMemoryClass::MicroDungeonPlanBuffer));
+      MicroDungeonPlanAllocator(worldGenerationMemoryLedger(), WorldGenerationMemoryClass::MicroDungeonPlanBuffer),
+      worldGenerationMemoryLedger());
 
   if (profile && planPreview) {
     profile->count("generation.microDungeonPlan.candidates", plans.size());
@@ -1807,18 +1810,22 @@ SectorGenerationResult WorldGenerator::generateMicroDungeons(WorldStorage* world
 }
 
 WorldGenerator::MicroDungeonPlans WorldGenerator::planMicroDungeons(WorldTemplatePtr const& templateSource,
-    MicroDungeonPlanSnapshot const& snapshot, MicroDungeonPlanAllocator const& allocator) {
+    MicroDungeonPlanSnapshot const& snapshot, MicroDungeonPlanAllocator const& allocator,
+    WorldGenerationMemoryLedger& ledger) {
   STAR_TRACE_ZONE("Microdungeon plan candidates");
   starAssert(templateSource);
   RectI bounds = snapshot.sectorTiles.padded(WorldSectorSize - 1);
   using Candidate = pair<BiomeItemPlacement, Maybe<WorldGenerationPlacementId>>;
   std::vector<Candidate, WorldGenerationBufferAllocator<Candidate>> candidates(
       WorldGenerationBufferAllocator<Candidate>(allocator, WorldGenerationMemoryClass::MicroDungeonCandidateBuffer));
+  List<BiomeItemPlacement> validItems;
   for (int x = snapshot.sectorTiles.xMin(); x < snapshot.sectorTiles.xMax(); ++x) {
     for (int y = snapshot.sectorTiles.yMin(); y < snapshot.sectorTiles.yMax(); ++y) {
       auto potential = templateSource->potentialBiomeItemsAt(x, y);
-      for (auto const& placement : templateSource->validBiomeItems(x, y, potential))
+      templateSource->validBiomeItemsInto(x, y, potential, validItems);
+      for (auto const& placement : validItems)
         candidates.push_back({placement, {}});
+      validItems.clear(); // Release payloads, retaining only scratch capacity.
       for (auto const& queued : snapshot.queuedPlacements) {
         WorldTemplate::PotentialBiomeItems queuedItems;
         auto const& distributions = queued.distributions->values();
@@ -1826,8 +1833,10 @@ WorldGenerator::MicroDungeonPlans WorldGenerator::planMicroDungeons(WorldTemplat
             distributions.data(), distributions.size(), BiomePlacementArea::Surface);
         templateSource->addPotentialBiomeItemsFromArray(x, y, queuedItems,
             distributions.data(), distributions.size(), BiomePlacementArea::Underground);
-        for (auto placement : templateSource->validBiomeItems(x, y, queuedItems))
+        templateSource->validBiomeItemsInto(x, y, queuedItems, validItems);
+        for (auto placement : validItems)
           candidates.push_back({std::move(placement), queued.queuedPlacementId});
+        validItems.clear();
       }
     }
   }
@@ -1837,6 +1846,7 @@ WorldGenerator::MicroDungeonPlans WorldGenerator::planMicroDungeons(WorldTemplat
     return candidate.first.item.is<MicroDungeonNames>();
   });
   plans.reserve(planCount);
+  WorldGenerationNamePool names(ledger);
   for (auto const& candidate : candidates) {
     auto const& placement = candidate.first;
     if (!placement.item.is<MicroDungeonNames>())
@@ -1844,7 +1854,7 @@ WorldGenerator::MicroDungeonPlans WorldGenerator::planMicroDungeons(WorldTemplat
     auto seed = templateSource->seedFor(placement.position[0], placement.position[1]);
     auto const& dungeonName = staticRandomFrom(placement.item.get<MicroDungeonNames>(), seed);
     starAssert(!dungeonName.empty());
-    plans.push_back(MicroDungeonPlan{bounds, placement.position, seed, dungeonName, candidate.second});
+    plans.push_back(MicroDungeonPlan{bounds, placement.position, seed, names.intern(dungeonName), candidate.second});
   }
   return plans;
 }
@@ -1862,7 +1872,7 @@ void WorldGenerator::applyMicroDungeonPlan(WorldStorage* worldStorage, MicroDung
   ExplorationProfile::Scope factoryTiming(profile, "generation.microDungeonPlan.apply.factory");
   double factoryStarted = profile ? Time::monotonicTime() : 0.0;
   MicroDungeonFactory::GenerationTiming factoryDetails;
-  auto generateResult = m_microDungeonFactory->generate(plan.bounds, plan.dungeonName, plan.position,
+  auto generateResult = m_microDungeonFactory->generate(plan.bounds, plan.dungeonName->value(), plan.position,
       plan.seed, m_worldServer->threatLevel(), facade, false,
       profile && profile->regionalDetailsEnabled() ? &factoryDetails : nullptr);
   factoryTiming.stop();
@@ -1880,7 +1890,7 @@ void WorldGenerator::applyMicroDungeonPlan(WorldStorage* worldStorage, MicroDung
     Vec2I sector(-1, -1);
     if (auto planSector = worldStorage->sectorForPosition(plan.position))
       sector = Vec2I((int)(*planSector)[0], (int)(*planSector)[1]);
-    profile->recordSlowMicroDungeonFactory(xxHash3(plan.dungeonName), sector,
+    profile->recordSlowMicroDungeonFactory(xxHash3(plan.dungeonName->value()), sector,
         generateResult ? generateResult->second.size() : 0, bool(generateResult), factorySeconds,
         factoryDetails.definitionSeconds, factoryDetails.definitionCacheLookupSeconds,
         factoryDetails.definitionPathResolveSeconds, factoryDetails.definitionReadAndBuildSeconds,

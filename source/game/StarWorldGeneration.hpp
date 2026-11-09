@@ -12,6 +12,7 @@
 #include "StarWorldGenerationMemory.hpp"
 #include "StarWorldGenerationBufferAllocator.hpp"
 #include "StarWorldGenerationImmutableArray.hpp"
+#include "StarWorldGenerationNamePool.hpp"
 #include "StarWorldGenerationMemoryEstimate.hpp"
 #include "StarWorldGenerationPlacementQueue.hpp"
 
@@ -160,7 +161,7 @@ private:
     RectI bounds;
     Vec2I position;
     uint64_t seed;
-    String dungeonName;
+    WorldGenerationName dungeonName;
     Maybe<WorldGenerationPlacementId> queuedPlacementId;
   };
   using MicroDungeonPlanAllocator = WorldGenerationBufferAllocator<MicroDungeonPlan>;
@@ -270,7 +271,8 @@ private:
   SectorGenerationResult prepareTilesAsync(WorldStorage* worldStorage, Sector const& sector, bool allowAsync);
   SectorGenerationResult generateMicroDungeons(WorldStorage* worldStorage, Sector const& sector, bool allowAsync);
   static MicroDungeonPlans planMicroDungeons(WorldTemplatePtr const& templateSource,
-      MicroDungeonPlanSnapshot const& snapshot, MicroDungeonPlanAllocator const& allocator);
+      MicroDungeonPlanSnapshot const& snapshot, MicroDungeonPlanAllocator const& allocator,
+      WorldGenerationMemoryLedger& ledger);
   void applyMicroDungeonPlan(WorldStorage* worldStorage, MicroDungeonPlan const& plan,
       DungeonGeneratorWorldPtr const& facade, ExplorationProfile* profile, bool planPreview);
   void generateCaveLiquid(WorldStorage* worldStorage, Sector const& sector);

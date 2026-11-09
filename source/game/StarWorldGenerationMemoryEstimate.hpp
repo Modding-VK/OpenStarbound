@@ -7,10 +7,10 @@
 
 namespace Star {
 
-// Version 3 counts shared distribution backing once, not per snapshot.
+// Version 4 counts output names by immutable owner, not by plan descriptor.
 // It is neither allocator accounting nor an upper bound on retained heap.
 struct WorldGenerationSizeEstimate {
-  static constexpr unsigned ModelVersion = 3;
+  static constexpr unsigned ModelVersion = 4;
   size_t bytes = 0;
   bool complete = true;
 

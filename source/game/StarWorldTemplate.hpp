@@ -188,6 +188,11 @@ public:
 
   // Return only the potential items that can spawn at the given block.
 	List<BiomeItemPlacement> validBiomeItems(int x, int y, PotentialBiomeItems potentialBiomeItems) const;
+  // Distinct entry point preserves the existing API and its element-copy
+  // semantics. Non-micro candidates may reuse capacity; microdungeon inputs
+  // retain fresh storage so vector growth cannot change hash-copy history.
+  void validBiomeItemsInto(int x, int y, PotentialBiomeItems potentialBiomeItems,
+      List<BiomeItemPlacement>& output) const;
 
   float gravity() const;
   float threatLevel() const;
