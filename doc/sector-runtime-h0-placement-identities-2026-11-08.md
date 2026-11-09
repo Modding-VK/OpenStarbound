@@ -135,6 +135,10 @@ permanecem fora do repositório.
 
 ## Estado e próxima implementação
 
+Continuação em 09/11: [harness e correção de continuação/avanço](sector-runtime-h0-streaming-pass-2026-11-09.md).
+O estado e próximo trabalho atuais estão nesse relatório e no roadmap; a
+sequência abaixo preserva o handoff original desta entrega.
+
 H0 está ativo. O recorte de identidade de DAG-01 foi implementado; o item
 maior continua aberto para validação integrada. Os demais itens não são
 considerados concluídos por essa correção.

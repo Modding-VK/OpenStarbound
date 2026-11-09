@@ -99,6 +99,17 @@ continuar candidatos distintos quando elegíveis e houver orçamento. Impor
 limite de tentativas sem progresso e impedir retentativa infinita da mesma
 raiz. A oportunidade reservada de justiça não pode ser consumida pelo drain.
 
+Recorte implementado em `2131ead3`: `WorldGenerationPass` centraliza a decisão
+de avançar/parar, a visita única de candidatos externos e a primeira reserva
+de continuação. Com `generationVisibleBlockedAdvancePreview=true`, uma
+continuação não interrompe o avanço autorizado para outras raízes. Ao atingir
+o limite, preserva-se a parada por continuação ou o tail BaseTiles existente.
+O recorte usa o mesmo deadline e a mesma quota de etapas; o modo desligado
+preserva a seleção legada. Ver [testes e limitações](../sector-runtime-h0-streaming-pass-2026-11-09.md).
+Não impede visitas recursivas de pré-requisitos, não cria uma mailbox e não
+revisita uma raiz na mesma passagem quando um worker fica pronto depois;
+reação a novas conclusões depende do executor futuro.
+
 Não fazer um worker aguardar uma tarefa que só pode começar na mesma pool
 ocupada. A dona também não espera um produtor individual enquanto houver
 outro caminho executável.

@@ -8,6 +8,17 @@ Reduzir a dependência de testes manuais sucessivos e provar que maior uso de
 hardware melhora a entrega real. Automatizar invariantes e reproduções
 curtas, mantendo testes em jogo para as fronteiras que exigem assets/mods.
 
+## Primeiro recorte executável de H0 — 09/11/2026
+
+`WorldGenerationPassTest` usa a política real de `WorldStorage` em um harness
+de passagens com relógio virtual, estágios/produtos sintéticos e disponibilidade
+controlada de produtores. São 18 testes, incluindo 192 combinações de limites
+e modos; junto aos oito testes de identidade, 26 passaram com ASan/UBSan.
+Ver [reprodução, comandos e limites](../sector-runtime-h0-streaming-pass-2026-11-09.md).
+Esse recorte de VAL-01/02 não é benchmark do jogo: não executa o gerador
+recursivo 3×3, assets, TTL, IO, Lua ou rede. A comparação sintética não valida
+equivalência de mundos/mods nem permite declarar fator de aceleração.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

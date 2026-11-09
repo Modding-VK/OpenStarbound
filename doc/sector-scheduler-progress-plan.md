@@ -1,6 +1,6 @@
 # Progresso da geração e contratos para threads por setor
 
-## Direção atual — 08/11/2026
+## Direção atual — 09/11/2026
 
 Os contratos executáveis propostos estão organizados no
 [programa de setores](sector-runtime/README.md), especialmente
@@ -22,9 +22,10 @@ persistente, candidatos de MicroDungeons sem snapshots de tiles não usados e
 preparação desacoplada da publicação. A run 29 demonstra espera relevante
 entre trabalho pronto e commit, com orçamento sobrando.
 
-O preview `7ca7ed2a` ainda não foi validado por essa run e conserva um
-encerramento do loop quando é criada uma continuação de cadeia. Revisar essa
-interação antes de ampliar tentativas. IDs de colocações pendentes já recebem
+O preview `7ca7ed2a` não foi validado pela run 29 e conservava um encerramento
+do loop quando era criada uma continuação de cadeia. O recorte `2131ead3`
+[reproduz e corrige essa interação](sector-runtime-h0-streaming-pass-2026-11-09.md),
+com 26 testes H0 aprovados, mas sem A/B em jogo ainda. IDs de colocações pendentes já recebem
 o [primeiro recorte de H0](sector-runtime-h0-placement-identities-2026-11-08.md),
 validado sem assets, ainda sem ampliação de planos simultâneos. Detalhes,
 limites de equivalência e sequência de implementação estão na auditoria.
@@ -680,6 +681,16 @@ Medir `generation.visibleBlockedAdvance.continued` e `.limitReached` junto de
 `sectorsCompleted`, `sectorsExpired`, `sectorWait`, bloqueadores visíveis e
 p99 da WorldThread. Permanecer desligado até uma rota comparativa confirmar
 que o ganho de entrega não prejudica justiça ou compatibilidade.
+
+Desde `2131ead3`, avanço e continuação podem coexistir na mesma passagem:
+mantém-se o primeiro follow-up reservado e tentam-se outros candidatos sem
+repetição da raiz no loop externo. A ordem entre raízes pode mudar, como
+previsto no preview; etapas e efeitos de cada geração continuam na dona.
+Novos contadores fixos: `.continuedWithContinuation`,
+`.repeatedCandidateSkipped` e `.distinctCandidatesExhausted`, sob o prefixo
+`generation.visibleBlockedAdvance`. Atingir o limite ainda encerra a passagem
+se houver continuação; sem ela, conserva o tail BaseTiles. Reações a conclusões
+novas na mesma passagem e comparação real de outputs permanecem pendentes.
 
 ## Primeiro recorte implementado
 

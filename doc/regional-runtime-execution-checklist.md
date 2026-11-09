@@ -35,10 +35,12 @@ os contratos por subsistema. O [roadmap detalhado](sector-runtime/roadmap.md)
 relaciona tarefas, dependências, propósito e critérios de conclusão; ele é a
 entrada operacional para a implementação; documentos antigos são apoio e
 histórico, sem outra fila de prioridades. Frente ativa: H0. O relatório atual é
-[identidades de colocações e adoção do programa](sector-runtime-h0-placement-identities-2026-11-08.md).
+[harness de passagens e continuação/avanço](sector-runtime-h0-streaming-pass-2026-11-09.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
-integrada permanece pendente. Próximo passo: harness VAL-01/02 e reprodução
-da interação continuação/avanço de DAG-04.
+integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
+corrigido opt-in e VAL-01/02 têm harness sintético inicial, com 26 testes H0
+aprovados. Próximo passo: RAM-01, reserva antes de cópias e contabilidade;
+streaming real com assets/mods e executor de conclusões ainda pendentes.
 
 A proposta vigente foi retrabalhada para aproveitar CPU, RAM e GPU:
 [sector-generation-hardware-design-2026-11-08.md](sector-generation-hardware-design-2026-11-08.md).
@@ -76,6 +78,7 @@ auditadas em
 | Regiões lógicas em sombra | Implementado para observação e métricas |
 | Planejador de microdungeon por snapshot | Seleção extraída; caminho síncrono e worker opt-in disponíveis |
 | Identidade de colocações pendentes | IDs monotônicos no plano e registro pela dona; testes sem assets aprovados, validação integrada pendente |
+| Continuação/avanço de setores visíveis | Correção opt-in e visita única por passagem; harness sintético aprovado, A/B real pendente |
 | `MicroDungeonPlan` task | Planejador em worker opt-in; publicação ainda serial |
 | Ativação inicial com workers | Preview opt-in; aguarda conclusão e preserva contrato síncrono |
 | Entrega orientada à CPU | Modos `legacy`/`adaptive`/`aggressive`/`dynamic`: pool automática inicial nos modos não legados, orçamento por backlog e recuo conforme a política; sem redimensionamento em execução ainda |

@@ -1,6 +1,6 @@
 # Backlog de desempenho da exploração
 
-## Prioridade de implementação — 08/11/2026
+## Prioridade de implementação — 09/11/2026
 
 O trabalho está detalhado na [coleção do runtime de setores](sector-runtime/README.md),
 com [roadmap H0–H5/R1–R2](sector-runtime/roadmap.md), IDs por subsistema,
@@ -10,7 +10,11 @@ como fonte de estado e sequência; manter aqui a prioridade consolidada.
 
 Frente ativa: H0. A identidade das colocações já tem o primeiro recorte
 implementado, com [relatório e testes](sector-runtime-h0-placement-identities-2026-11-08.md).
-Seguir com VAL-01/02 e a reprodução de DAG-04 antes de ampliar concorrência.
+O [recorte seguinte](sector-runtime-h0-streaming-pass-2026-11-09.md) já
+reproduz/corrige a interação de DAG-04 e inicia VAL-01/02 com um harness de
+passagens sintéticas. São 26 testes de H0 aprovados; ganho real e equivalência
+com mundo/mods continuam pendentes. Próximo recorte: RAM-01, reserva antes de
+copiar inputs e cobertura da retenção/liberação, sem ampliar admissão ainda.
 Os demais componentes do novo executor continuam pendentes.
 
 A direção de arquitetura vigente é o

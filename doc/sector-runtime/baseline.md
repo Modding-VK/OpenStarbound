@@ -54,8 +54,10 @@ stutter de estruturas; não substitui a análise de throughput dos setores comun
 
 ## Pendências estabelecidas pela inspeção
 
-- A continuação de cadeia ainda encerra o loop, inclusive quando o preview de
-  avanço tentou prosseguir. Ver [agendador](dependency-scheduler.md).
+- Na base auditada, a continuação encerrava o loop mesmo quando o preview de
+  avanço tentava prosseguir. `2131ead3` corrige esse recorte em modo opt-in;
+  ver [testes e limites](../sector-runtime-h0-streaming-pass-2026-11-09.md).
+  A run 29 continua anterior à correção e não mede seu ganho.
 - Na base auditada, índices de colocações pendentes podiam sobreviver à
   compactação da lista. O primeiro recorte de H0 substitui-os por IDs estáveis;
   ver [validação e pendências](../sector-runtime-h0-placement-identities-2026-11-08.md).

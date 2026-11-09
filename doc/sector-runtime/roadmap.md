@@ -39,10 +39,21 @@ assets/mods e integrar o comparador de outputs. Ver
 [relatório e limites](../sector-runtime-h0-placement-identities-2026-11-08.md).
 Não há nova API de cancelamento de colocações ou executor de grafo nesta entrega.
 
-Próximo trabalho: VAL-01/02, com harness de streaming e produtores controláveis,
-reproduzindo a interação continuação/avanço/encerramento de DAG-04. Fixar o
-baseline antes de alterar a política de avanço; não aumentar concorrência
-apenas por a correção de identidade já estar presente.
+DAG-04, recorte de continuação/avanço: **implementado e validado sem assets**
+em `2131ead3`. A continuação deixa de interromper um avanço visível permitido;
+cada candidato externo é tentado no máximo uma vez por passagem com o preview
+ativo, e a primeira continuação preserva seu follow-up. O caminho legado
+continua sem a nova seleção. VAL-01/02 recebem um harness determinístico de
+passagens com produtos sintéticos, relógio virtual e produtores controlados:
+18 testes novos, incluindo 192 combinações; 26 testes de H0 aprovados no total.
+Ver [relatório e limites](../sector-runtime-h0-streaming-pass-2026-11-09.md).
+Isso não conclui VAL-01/02 nem a mailbox executiva de DAG-04: falta executar
+o streaming real de `WorldStorage`, comparar outputs de mundo/mods e medir A/B.
+
+Próximo trabalho executável: RAM-01, começando por reservar antes das cópias
+de BaseTiles/halo e testar retenção/liberação/overflow; manter MOD-01 explícito.
+Estender o harness para dependências reais e o baseline com rota/save/config
+fixos. Não ampliar admissão nem ligar previews por padrão antes desses gates.
 
 Saída: baseline executável, pendências de identidade cobertas e causas de
 espera reproduzíveis. Não depende de uma nova amostra TMX para começar.
