@@ -138,6 +138,8 @@ public:
   pair<const_iterator, const_iterator> equal_range(key_type const& key) const;
 
   void reserve(size_t capacity);
+  // Bucket-vector payload only; no mutation, allocation or allocator query.
+  size_t bucketStorageBytes() const noexcept;
 
   bool operator==(FlatHashSet const& rhs) const;
   bool operator!=(FlatHashSet const& rhs) const;
@@ -479,6 +481,11 @@ auto FlatHashSet<Key, Hash, Equals, Allocator>::equal_range(key_type const& key)
 template <typename Key, typename Hash, typename Equals, typename Allocator>
 void FlatHashSet<Key, Hash, Equals, Allocator>::reserve(size_t capacity) {
   m_table.reserve(capacity);
+}
+
+template <typename Key, typename Hash, typename Equals, typename Allocator>
+size_t FlatHashSet<Key, Hash, Equals, Allocator>::bucketStorageBytes() const noexcept {
+  return m_table.bucketStorageBytes();
 }
 
 template <typename Key, typename Hash, typename Equals, typename Allocator>

@@ -75,9 +75,11 @@ WorldGenerationBackingEstimate estimateBiomeItemGenerationBacking(BiomeItem cons
     result.storage.stringCapacity(variant.foliageName);
     result.storage.stringCapacity(variant.stemDirectory);
     result.storage.stringCapacity(variant.foliageDirectory);
+    result.storage.add(variant.tileDamageParameters.damageFactorPayloadBytes());
   };
   if (auto names = value.ptr<MicroDungeonNames>()) {
-    result.storage.add(names->size(), sizeof(String));
+    // Includes occupied String objects: do not add sizeof(String) again.
+    result.storage.add(names->bucketStorageBytes());
     for (auto const& name : *names) result.storage.stringCapacity(name);
   } else if (auto treasure = value.ptr<TreasureBoxSet>()) {
     result.storage.stringCapacity(*treasure);
@@ -85,6 +87,7 @@ WorldGenerationBackingEstimate estimateBiomeItemGenerationBacking(BiomeItem cons
     result.storage.stringCapacity(grass->name);
     result.storage.stringCapacity(grass->directory);
     strings(grass->images);
+    result.storage.add(grass->tileDamageParameters.damageFactorPayloadBytes());
     result.opaqueItems = 1;
   } else if (auto bush = value.ptr<BushVariant>()) {
     result.storage.stringCapacity(bush->bushName);
@@ -95,6 +98,7 @@ WorldGenerationBackingEstimate estimateBiomeItemGenerationBacking(BiomeItem cons
       result.storage.stringCapacity(shape.image);
       strings(shape.mods);
     }
+    result.storage.add(bush->tileDamageParameters.damageFactorPayloadBytes());
     result.opaqueItems = 1;
   } else if (auto trees = value.ptr<TreePair>()) {
     tree(trees->first);
@@ -106,7 +110,7 @@ WorldGenerationBackingEstimate estimateBiomeItemGenerationBacking(BiomeItem cons
     result.opaqueItems = 1;
   } else {
     // Preserve unknown/valueless items; never turn incomplete sizing into a
-    // filter. Json, TileDamage internals, hash metadata and SSO remain caveats.
+    // filter. Json, map node bookkeeping/malloc overhead and SSO remain caveats.
     result.opaqueItems = 1;
   }
   return result;

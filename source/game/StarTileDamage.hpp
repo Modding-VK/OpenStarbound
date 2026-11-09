@@ -61,6 +61,12 @@ public:
   float maximumEffectTime() const;
   float totalHealth() const;
 
+  // Occupied factor payload, not red-black node bookkeeping/malloc overhead.
+  // Read-only and allocation-free; the map representation/ordering is unchanged.
+  size_t damageFactorPayloadBytes() const noexcept {
+    return m_damages.size() * sizeof(decltype(m_damages)::value_type);
+  }
+
   TileDamageParameters sum(TileDamageParameters const& other) const;
 
   Json toJson() const;
@@ -69,6 +75,7 @@ public:
   friend DataStream& operator<<(DataStream& ds, TileDamageParameters const& tileDamage);
 
 private:
+  friend struct TileDamageParametersTestAccess;
   Map<TileDamageType, float> m_damages;
   float m_damageRecoveryPerSecond;
   float m_maximumEffectTime;

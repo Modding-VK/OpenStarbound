@@ -1093,9 +1093,9 @@ void WorldGenerator::profileGenerationMemory(double now) {
   profile->count("generation.memory.process.sampledNameBufferRequestBytesTotal", usage.classBytes[10]);
   profile->count("generation.memory.process.sampledNameEstimateTotal", usage.classBytes[11]);
   profile->count("generation.memory.process.sampledCandidatePayloadEstimateTotal", usage.classBytes[12]);
-  profile->maximum("generation.memory.candidatePayloads.modelVersion", 1);
+  profile->maximum("generation.memory.candidatePayloads.modelVersion", 2);
   profile->count("generation.memory.process.sampledTemporaryEstimateTotal", usage.classBytes[13]);
-  profile->maximum("generation.memory.temporaries.modelVersion", 1);
+  profile->maximum("generation.memory.temporaries.modelVersion", 2);
   profile->count("generation.memory.process.sampledBufferResourcesTotal",
       usage.classResources[6] + usage.classResources[7] + usage.classResources[8] + usage.classResources[10]);
   profile->maximum("generation.memory.names.modelVersion", 1);
@@ -1214,7 +1214,7 @@ List<WorldGenerator::QueuedMicroDungeonPlacementSnapshot> WorldGenerator::queued
     result.append({distributions, id});
     if (profile) {
       profile->count("generation.memory.distributions.sharedSnapshots");
-      profile->maximum("generation.memory.distributions.modelVersion", 2);
+      profile->maximum("generation.memory.distributions.modelVersion", 3);
       if (first) {
         profile->count("generation.memory.distributions.frozenBundles");
         profile->count("generation.memory.distributions.items", distributions->values().size());

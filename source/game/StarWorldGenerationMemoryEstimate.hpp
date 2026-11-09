@@ -7,10 +7,10 @@
 
 namespace Star {
 
-// Version 6 adds retained potential/validation/scratch list estimates.
+// Version 7 includes complete bucket-vector payloads and damage-factor values.
 // It is neither allocator accounting nor an upper bound on retained heap.
 struct WorldGenerationSizeEstimate {
-  static constexpr unsigned ModelVersion = 6;
+  static constexpr unsigned ModelVersion = 7;
   size_t bytes = 0;
   bool complete = true;
 
