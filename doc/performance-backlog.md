@@ -58,7 +58,7 @@ testes, 380 execuções adicionais e catorze grupos CTest com ASan/UBSan, modelo
 4. Sem ganho real medido; nomes curtos/únicos podem custar mais. Próximo:
 payloads de candidatos/temporários, variants opacos, comparador de candidatos/
 IDs/prioridades e streaming real, antes de maior admissão.
-O [recorte vigente](sector-runtime-h0-candidate-payloads-2026-11-09.md), `25cecf95`,
+O [recorte de payloads](sector-runtime-h0-candidate-payloads-2026-11-09.md), `25cecf95`,
 acompanha backing conhecido de candidatos antes da factory/crescimento e até
 destruição física; amplia campos públicos dos seis variants e preserva
 cópias/capacidade/seleção. São 223 testes, 380 execuções adicionais e quinze
@@ -66,6 +66,14 @@ grupos CTest com ASan/UBSan; modelos geral 5/distribuições 2/payloads 1.
 Sem teto profundo hard ou ganho real; RAM-01 segue em 25%. Próximo: listas
 potenciais/scratch, Json/TileDamage privados e buckets/metadados do hash,
 mantendo comparador e gates antes de ampliar admissão.
+O [recorte vigente](sector-runtime-h0-temporary-storage-2026-11-09.md), `c4d7ddb3`,
+acompanha listas potenciais, cópia por valor e scratch com quatro posições e
+um token agregado por job. Adota originais após construir, reserva previsão
+antes da cópia e preserva a transferência/growth. São 246 testes, 460 execuções
+adicionais e dezesseis grupos CTest, ASan/UBSan; modelo geral 6/temporários 1.
+Sem ganho real ou teto completo; RAM-01 segue em 25%. Próximo: Json/TileDamage
+privados, buckets/metadados do hash e envelope de memória/pressão, mantendo
+baseline integrado e comparador antes de ampliar concorrência.
 Achado de CPU-01: overflow assinado na seed automática de `StarRandom.cpp:197`,
 observado em execução estrita de sanitizers; RNG de produção permanece
 inalterado. A reprodução e a separação dos testes de hash com seeds privadas

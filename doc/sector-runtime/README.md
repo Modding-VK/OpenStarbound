@@ -2,7 +2,7 @@
 
 Atualização: 09/11/2026. Branch: `Experimental`. Runtime de partida:
 `7ca7ed2a`; recortes de H0: `d72b7239`, `2131ead3`, `5c3c4c8f`, `65bae55c`,
-`803d4cf7`, `739067b1`, `1bd348e6`, `34c76ea3`, `887149c0`, `cad311d1` e `25cecf95`;
+`803d4cf7`, `739067b1`, `1bd348e6`, `34c76ea3`, `887149c0`, `cad311d1`, `25cecf95` e `c4d7ddb3`;
 documentação de arquitetura de partida: `8d3b0ade`.
 
 Este é o **programa principal de desenvolvimento**, adotado pelo usuário em
@@ -54,12 +54,19 @@ scratch somente sem inputs MicroDungeonNames. O fallback preserva as cópias
 que afetam ordem/seleção, com controle negativo de colisões de hash. São 204
 testes, 380 execuções adicionais e catorze grupos CTest com ASan/UBSan; modelo
 de estimativas 4. Não é ganho de jogo medido nem cobertura integral de temporários.
-O [relatório vigente](../sector-runtime-h0-candidate-payloads-2026-11-09.md),
+O [recorte de payloads](../sector-runtime-h0-candidate-payloads-2026-11-09.md),
 `25cecf95`, acompanha backing conhecido de candidatos antes da factory/crescimento
 e até destruição física, sem alterar cópias/capacidade/seleção. Amplia strings/
 listas públicas dos seis variants, mantendo Json/privados opacos. São 223 testes,
 380 execuções adicionais e quinze grupos CTest com ASan/UBSan. Modelos geral 5,
 distribuições 2 e payloads 1; sem teto hard completo ou ganho real alegado.
+O [relatório vigente](../sector-runtime-h0-temporary-storage-2026-11-09.md),
+`c4d7ddb3`, acompanha listas potenciais, cópia de validação e scratch com um
+registro agregado por job. Adota originais após construir, reserva previsão
+antes da cópia e mantém capacidade/ownership nas transferências. São 246
+testes, 460 execuções adicionais e dezesseis grupos CTest com ASan/UBSan;
+modelo geral 6/temporários 1. Preserva seleção; Json/privados e teto completo
+continuam pendentes, sem ganho de jogo medido.
 Orçamento processual completo, benchmark real e equivalência com assets
 continuam pendentes.
 Isso não implementa o executor, a nova WorldThread ou compute GPU.

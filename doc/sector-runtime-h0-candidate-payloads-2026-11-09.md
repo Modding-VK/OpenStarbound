@@ -222,6 +222,14 @@ metadata do Perlin Uninitialized; RNG não alterado. NPC externo suspenso e
 Linux Clang adiado. Não é necessário novo teste manual para validar este
 recorte local; equivalência/desempenho integrados continuam gates posteriores.
 
+## Continuação em 09/11/2026
+
+O [recorte seguinte](sector-runtime-h0-temporary-storage-2026-11-09.md),
+`c4d7ddb3`, acompanha listas potenciais/cópia/scratch com escopos físicos e
+previsão antes da cópia, sem suprimir cópias/seleção. Modelo geral 6, 246 testes
+e dezesseis grupos CTest. Este relatório mantém resultados/manifesto históricos;
+retomar pelo seguinte e pelo roadmap. Json/privados e teto completo seguem abertos.
+
 ## Manifesto das fontes
 
 Fontes locais coletadas/conferidas em 09/11/2026, nomes relativos ao checkout,

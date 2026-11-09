@@ -86,6 +86,15 @@ Modelos geral 5/distribuições 2/payloads 1; backing parcial, sem teto hard.
 Dois objetos reais e sintaxe Tracy de três fontes aprovados; sem streaming
 integrado, linking completo ou ganho de jogo medido.
 
+O [recorte dos temporários](../sector-runtime-h0-temporary-storage-2026-11-09.md)
+passa **246 testes**, dezesseis grupos CTest e 23 novos repetidos 20 vezes
+(460 execuções adicionais), com ASan/UBSan. Inclui quatro donos simultâneos,
+pré-reserva antes da cópia, transferência/capacidade, exceções e recusas com
+rollback, WorkerPool e oito jobs. Reprodução nativa de 432 candidatos mantém
+capacidade/ordem/IDs/escolhas. Modelo geral 6/temporários 1; adoção inicial
+não é reserva anterior aos originais. Quatro objetos reais e sintaxe Tracy
+de três fontes aprovados; sem linking completo ou benchmark integrado.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

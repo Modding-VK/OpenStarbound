@@ -60,6 +60,13 @@ Sizing lê campos públicos sem Root/Json traversal; opacidade não filtra itens
 Essa prova local não substitui comparação de mundo/mods, nem autoriza escrita
 concorrente, eliminação de cópias ou ampliação de admissão.
 
+O [recorte dos temporários](../sector-runtime-h0-temporary-storage-2026-11-09.md)
+preserva a cópia por valor dos cinco containers de entrada. A cópia privada é
+movida para o parâmetro do mesmo validador sem nova cópia de elementos; APIs,
+predicados e consultas de WorldTemplate não mudaram. O tracker deve sobreviver
+a seus escopos locais; operações não podem reter referências transferidas.
+Replay nativo e testes de falha/lifetime não aprovam todo o streaming com mods.
+
 ## MOD-02 — Equivalência e versionamento
 
 Definir inputs que produzem um output: seed, template/layout, geração de

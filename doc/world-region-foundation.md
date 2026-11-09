@@ -142,6 +142,13 @@ atômicas por tarefa. Não há varredura de entidades nem cópia adicional de ti
 para obter a região. Este marco estabelece contratos; não aumenta o número de
 estágios paralelos nem comprova redução de latência nas vilas.
 
+O [recorte dos temporários](sector-runtime-h0-temporary-storage-2026-11-09.md)
+acompanha originais de listas potenciais após construção, a cópia de validação
+com previsão anterior e a capacidade retida do scratch. Mantém quatro donos
+locais e release após destruição/transferência; modelo geral 6/temporários 1.
+Sem alteração de publicação, admissão ou APIs WorldTemplate; Json/privados e
+controle processual profundo continuam pendentes, sem ganho de jogo medido.
+
 ## Diagnóstico
 
 Com `explorationProfiling.enabled`, os contadores fixos são:

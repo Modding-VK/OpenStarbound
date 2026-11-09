@@ -88,6 +88,13 @@ sort, sem pré-reserva/cópia extra de elementos. Amplia strings/listas pública
 dos seis variants; Json e privados permanecem opacos. Modelos geral 5,
 distribuições 2 e payloads 1. É estimativa, não orçamento hard completo.
 
+O [recorte de temporários](../sector-runtime-h0-temporary-storage-2026-11-09.md),
+`c4d7ddb3`, acompanha cinco listas potenciais por entrada, sua cópia de validação
+e scratch com quatro posições e um registro agregado por job. Originais são
+adotados após construir; previsão de saída/cópia vem antes da cópia. Release
+segue destruição física, inclusive capacidade retida após clear e transferência
+para o parâmetro/saída. Modelos geral 6/temporários 1; não é teto profundo hard.
+
 ### Inventário de ownership e cobertura atual
 
 | Produto/recurso | Dono e término da retenção | Contabilidade atual |
@@ -103,10 +110,12 @@ distribuições 2 e payloads 1. É estimativa, não orçamento hard completo.
 | Vetor intermediário de candidatos | planejamento síncrono/assíncrono, até retorno/unwind | pedido de buffer com header/padding, reservado antes de alocar; realocação mantém os dois buffers cobrados |
 | Backing conhecido de candidatos/temporário da factory | token agregado no container; elementos destruídos antes do token | classe 12 estimada antes da factory/crescimento e reconciliada; strings/listas públicas, não Json/privados; independe do profiling e não é teto profundo hard |
 | Vetor de descritores de planos | local síncrono ou payload da promise, até último handle físico | reserva fixa por pedido de buffer; pré-reserva pelo número elegível; sem cópia no consumo |
-| Nomes de saída compartilhados | handles const dos descritores; até último consumidor físico | fórmula de v4 mantida no modelo 5: backing de String estimado antes da cópia/reconciliado; objeto/control block reservado pelo allocator; não repetido por plano, SSO pode superestimar |
+| Nomes de saída compartilhados | handles const dos descritores; até último consumidor físico | fórmula de v4 mantida no modelo 6: backing de String estimado antes da cópia/reconciliado; objeto/control block reservado pelo allocator; não repetido por plano, SSO pode superestimar |
 | Índice de nomes | local ao planejamento; destruído ao retornar | nodes/buckets reservados antes do raw allocator; keys apontam para strings possuídas, sem cópia da chave textual |
-| Metadata do resultado assíncrono | token do resultado e referências retidas | fórmula de v4 mantida no modelo 5: objeto preparado após construir, com profiling regional; nomes e capacidade dos descritores cobrados separadamente |
-| Scratch de itens válidos/listas potenciais | local ao planejamento/consulta; elementos limpos após captura | capacidade não micro reutilizada; inputs micro preservam crescimento/cópias legados; scratch e heaps internos ainda fora da reserva profunda |
+| Metadata do resultado assíncrono | token do resultado e referências retidas | fórmula de v4 mantida no modelo 6: objeto preparado após construir, com profiling regional; nomes e capacidade dos descritores cobrados separadamente |
+| Listas potenciais ambientais/enfileiradas | escopos distintos locais ao ponto/colocação; destruição antes de liberar parcela | classe 13: capacidades e backing conhecido adotados após construção/população; não mede pico anterior à adoção |
+| Cópia de validação | escopo privado e parâmetro movido do validador, dentro da operação | classe 13: previsão antes da cópia, uma cópia de elementos preservada; saída prevista cobre ponte de transferência |
+| Scratch de itens válidos | escopo Output local ao planejamento; elementos limpos após captura, buffer no fim do job | classe 13 estimada: capacidade permanece cobrada após clear; inputs micro conservam crescimento/cópias legados; Json/privados e raw allocator ainda não são reserva hard |
 | Decode de tiles salvos | caminhos específicos de `WorldStorage` | fora deste recorte |
 | Tokens, control blocks e allocator | ledger/wrappers/containers | overhead geral fora; entram requests da LRU, buffers e control blocks de bundles/nomes alocados com allocator rastreado, não demais control blocks externos |
 

@@ -136,12 +136,21 @@ destruir o vetor. Não muda crescimento, comparator ou cópias; comparação nat
 com clusters de hash com wrap preserva escolhas. Amplia campos públicos dos
 seis variants sem percorrer Json/privados. São 19 casos novos, 223 no total,
 380 execuções adicionais e quinze grupos CTest, ASan/UBSan. Ver
-[relatório vigente](../sector-runtime-h0-candidate-payloads-2026-11-09.md).
+[relatório da etapa](../sector-runtime-h0-candidate-payloads-2026-11-09.md).
 Modelos geral 5/distribuições 2/payloads 1; incompletude de reconciliação é
 diagnóstico, não um teto hard profundo. RAM-01 segue em 25% no painel.
 
-Próximo trabalho executável: listas potenciais/scratch e cópia por valor da
-validação, Json compartilhado/internals TileDamage e buckets/metadados do hash,
+RAM-01, temporários em `c4d7ddb3`: listas potenciais originais adotadas após
+construção/população, previsão da cópia/saída antes da cópia e scratch retido
+até sua destruição. Um tracker local de quatro posições conserva os donos
+ambiental/enfileirado e o lifetime na transferência. São 23 casos novos,
+246 no total, 460 execuções adicionais e dezesseis grupos CTest, ASan/UBSan;
+432 candidatos nativos comparados com o caminho anterior. Ver
+[relatório vigente](../sector-runtime-h0-temporary-storage-2026-11-09.md).
+Modelos geral 6/temporários 1; demais fórmulas mantidas. RAM-01 segue em 25%:
+não é reserva inicial de todos os originais, teto hard profundo ou benchmark.
+
+Próximo trabalho executável: Json compartilhado/internals TileDamage e buckets/metadados do hash,
 preservando fallback síncrono, ownership único e história de cópias. Estender
 o comparador ao fluxo de candidatos/IDs/prioridades e ao
 streaming real, usando o controle de colisões como gate antes de eliminar cópias.

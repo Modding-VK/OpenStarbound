@@ -39,7 +39,7 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[backing conhecido dos candidatos](sector-runtime-h0-candidate-payloads-2026-11-09.md).
+[listas potenciais, cópia e scratch](sector-runtime-h0-temporary-storage-2026-11-09.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
 corrigido opt-in e VAL-01/02 têm harness sintético inicial, com 26 testes H0
@@ -73,10 +73,15 @@ temporários, variants opacos, comparador completo e streaming real; sem cotas
 ampliadas ou ganho de jogo alegado.
 `25cecf95` acompanha backing conhecido antes da factory/crescimento dos
 candidatos e até destruir o vetor; amplia campos públicos dos seis variants
-sem trocar cópias/seleção. Validação atual: 223 testes, 380 execuções adicionais
+sem trocar cópias/seleção. Validação daquela etapa: 223 testes, 380 execuções adicionais
 e quinze grupos CTest, ASan/UBSan; modelos geral 5/distribuições 2/payloads 1.
 RAM-01 permanece em 25%; próximo: originais de listas potenciais/scratch,
 Json/privados e buckets do hash. Não é teto hard ou ganho de jogo medido.
+`c4d7ddb3` acompanha originais de listas potenciais após construção, reserva
+previsão antes da cópia de validação e conserva scratch/capacidade até destruir.
+Validação atual: 246 testes, 460 execuções adicionais e dezesseis grupos CTest,
+ASan/UBSan; modelo geral 6/temporários 1. RAM-01 segue em 25%; próximo:
+Json/TileDamage privados, buckets/metadados e envelope processual explícito.
 Streaming real com assets/mods
 e executor de conclusões ainda pendentes.
 
