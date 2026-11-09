@@ -105,6 +105,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   ../game/StarWorldGenerationDependency.cpp
   ../game/StarWorldGenerationTasks.cpp
   ../game/StarWorldGenerationMemory.cpp
+  ../game/StarWorldGenerationMemoryEnvelope.cpp
   ../game/StarWorldGenerationMemoryEstimate.cpp
   ../game/StarBiomePlacementSampling.cpp
   ../game/StarBiomePlacementDefaults.cpp
@@ -118,6 +119,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_placement_queue_test.cpp
   world_generation_tasks_test.cpp
   world_generation_memory_test.cpp
+  world_generation_memory_envelope_test.cpp
   world_generation_estimate_test.cpp
   world_generation_worker_cache_test.cpp
   world_generation_buffer_test.cpp
@@ -145,6 +147,7 @@ FOREACH(world_region_test_suite
     WorldGenerationPlacementQueueTest
     WorldGenerationTasksTest
     WorldGenerationMemoryTest
+    WorldGenerationMemoryEnvelopeTest
     WorldGenerationEstimateTest
     WorldGenerationWorkerCacheTest
     WorldGenerationBufferTest

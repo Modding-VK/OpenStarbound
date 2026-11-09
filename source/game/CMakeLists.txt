@@ -174,6 +174,7 @@ SET (star_game_HEADERS
     StarWorldGeneration.hpp
     StarWorldGenerationDependency.hpp
     StarWorldGenerationMemory.hpp
+    StarWorldGenerationMemoryEnvelope.hpp
     StarWorldGenerationBufferAllocator.hpp
     StarWorldGenerationImmutableArray.hpp
     StarWorldGenerationNamePool.hpp
@@ -469,6 +470,7 @@ SET (star_game_SOURCES
     StarWorldGeneration.cpp
     StarWorldGenerationDependency.cpp
     StarWorldGenerationMemory.cpp
+    StarWorldGenerationMemoryEnvelope.cpp
     StarWorldGenerationMemoryEstimate.cpp
     StarWorldGenerationTasks.cpp
     StarWorldRegionPartition.cpp

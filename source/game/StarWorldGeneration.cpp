@@ -1,4 +1,5 @@
 #include "StarWorldGeneration.hpp"
+#include "StarWorldGenerationMemoryEnvelope.hpp"
 #include "StarWorldGenerationWorkerCache.hpp"
 #include "StarWorldGenerationPayloadBuffer.hpp"
 #include "StarWorldGenerationTemporaryMemory.hpp"
@@ -1068,6 +1069,19 @@ void WorldGenerator::profileGenerationMemory(double now) {
     return;
   m_lastGenerationMemoryProfileTime = now;
   auto usage = worldGenerationMemoryLedger().snapshot();
+  auto envelope = worldGenerationMemoryEnvelope(usage);
+  profile->maximum("generation.memory.envelope.modelVersion", WorldGenerationMemoryEnvelope::ModelVersion);
+  profile->count("generation.memory.envelope.samples");
+  profile->count("generation.memory.envelope.partialHeapSamples");
+  if (envelope.coherent) {
+    profile->count("generation.memory.envelope.coherentSamples");
+    profile->count("generation.memory.envelope.sampledArrayPayloadBytesTotal", envelope.arrayPayloadBytes);
+    profile->count("generation.memory.envelope.sampledAllocatorRequestBytesTotal", envelope.allocatorRequestBytes);
+    profile->count("generation.memory.envelope.sampledEstimatedBytesTotal", envelope.estimatedBytes);
+    profile->count("generation.memory.envelope.sampledAlwaysEstimatedBytesTotal", envelope.alwaysEstimatedBytes);
+    profile->count("generation.memory.envelope.sampledProfilingEstimatedBytesTotal", envelope.profilingEstimatedBytes);
+    profile->count("generation.memory.envelope.sampledTrackedBytesTotal", envelope.trackedBytes);
+  } else profile->count("generation.memory.envelope.incoherentSamples");
   profile->count("generation.memory.process.samples");
   profile->count("generation.memory.process.sampledReservedArrayBytesTotal", usage.reservedArrayBytes);
   profile->count("generation.memory.process.sampledResourcesTotal", usage.classResources[0] + usage.classResources[1]);
