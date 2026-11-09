@@ -52,6 +52,7 @@
 #include "StarSpawnTypeDatabase.hpp"
 #include "StarRadioMessageDatabase.hpp"
 #include "StarCollectionDatabase.hpp"
+#include "StarWorldGenerationLookupSources.hpp"
 
 namespace Star {
 
@@ -164,6 +165,7 @@ Root::Root(Settings settings) : RootBase() {
 }
 
 Root::~Root() {
+  m_generationSources->retire();
   Logger::info("Root: Shutting down Root");
 
   {
@@ -182,6 +184,7 @@ Root::~Root() {
 
 void Root::reload() {
   Logger::info("Root: Reloading from disk");
+  auto generationChange = m_generationSources->change();
 
   {
     // We need to lock all the mutexes to reset everything to cause it to be
@@ -304,9 +307,11 @@ void Root::reload() {
   }
 
   m_reloadListeners.trigger();
+  generationChange.complete();
 }
 
 void Root::loadMods(StringList modDirectories, bool _reload) {
+  auto generationChange = m_generationSources->change();
   // Need to clear mod directories because there was an update for UGC, which have been added already as it assumes an update isn't needed.  
   if (_reload)
     m_modDirectories.clear();
@@ -316,6 +321,7 @@ void Root::loadMods(StringList modDirectories, bool _reload) {
   
   if (_reload)
     reload();
+  generationChange.complete();
 }
 
 void Root::fullyLoad() {
@@ -382,8 +388,19 @@ void Root::registerReloadListener(ListenerWeakPtr reloadListener) {
 }
 
 void Root::hotReload() {
+  auto generationChange = m_generationSources->change();
   assets()->hotReload();
   m_reloadListeners.trigger();
+  generationChange.complete();
+}
+
+WorldGenerationLookupSources<Assets, MaterialDatabase> Root::worldGenerationLookupSources() {
+  uint64_t version = m_generationSources->current();
+  if (!version) return {};
+  auto assetSources = assets();
+  auto materials = materialDatabase();
+  return WorldGenerationLookupSources<Assets, MaterialDatabase>::capture(m_generationSources, version,
+      std::move(assetSources), std::move(materials));
 }
 
 String Root::toStoragePath(String const& path) const {

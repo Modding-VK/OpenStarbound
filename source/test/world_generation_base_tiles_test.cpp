@@ -890,7 +890,7 @@ TEST(WorldGenerationBaseTileObservationTest, DISABLED_SyntheticObservationCosts)
 namespace {
 using LookupScope = WorldGenerationBaseTileLookupScope;
 using LookupContext = WorldGenerationBaseTileLookupContext<32>;
-LookupScope lookupScope() { return {1, 7, 3, 5}; }
+LookupScope lookupScope() { return {1, 7, 3, 5, 9}; }
 template <typename Resolver>
 Observation lookupSample(TileInput input, unsigned missingLayers, Resolver const& resolver) {
   ServerTile tile; populate(tile);
@@ -907,9 +907,9 @@ TEST(WorldGenerationBaseTileLookupContextTest, ContextMustBeSealedBeforeItCanWri
 }
 
 TEST(WorldGenerationBaseTileLookupContextTest, ExplicitScopeRejectsMissingGenerationsAndUnsupportedVersions) {
-  std::array<std::function<void(LookupScope&)>, 6> changes{{
+  std::array<std::function<void(LookupScope&)>, 7> changes{{
       [](auto& s) { s.worldEpoch = 0; }, [](auto& s) { s.assetsGeneration = 0; }, [](auto& s) { s.materialsGeneration = 0; },
-      [](auto& s) { ++s.modelVersion; }, [](auto& s) { ++s.inputVersion; }, [](auto& s) { ++s.liquidVersion; }}};
+      [](auto& s) { s.sourceEpoch = 0; }, [](auto& s) { ++s.modelVersion; }, [](auto& s) { ++s.inputVersion; }, [](auto& s) { ++s.liquidVersion; }}};
   for (auto change : changes) {
     auto scope = lookupScope(); change(scope); LookupContext context(scope);
     EXPECT_FALSE(context.add(scope, capturedTile())); EXPECT_FALSE(context.seal()); EXPECT_FALSE(context.valid());
@@ -918,9 +918,9 @@ TEST(WorldGenerationBaseTileLookupContextTest, ExplicitScopeRejectsMissingGenera
 }
 
 TEST(WorldGenerationBaseTileLookupContextTest, EveryScopeComponentGuardsBothAdmissionAndApplication) {
-  std::array<std::function<void(LookupScope&)>, 7> changes{{
+  std::array<std::function<void(LookupScope&)>, 8> changes{{
       [](auto& s) { ++s.worldEpoch; }, [](auto& s) { ++s.templateRevision; }, [](auto& s) { ++s.assetsGeneration; },
-      [](auto& s) { ++s.materialsGeneration; }, [](auto& s) { ++s.modelVersion; }, [](auto& s) { ++s.inputVersion; }, [](auto& s) { ++s.liquidVersion; }}};
+      [](auto& s) { ++s.materialsGeneration; }, [](auto& s) { ++s.sourceEpoch; }, [](auto& s) { ++s.modelVersion; }, [](auto& s) { ++s.inputVersion; }, [](auto& s) { ++s.liquidVersion; }}};
   for (auto change : changes) {
     LookupContext context(lookupScope()); auto stale = lookupScope(); change(stale);
     EXPECT_FALSE(context.add(stale, capturedTile())); EXPECT_EQ(context.size(), 0u);

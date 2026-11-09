@@ -5,6 +5,7 @@
 #include "StarMaterialRenderProfile.hpp"
 #include "StarTileDamage.hpp"
 #include "StarItemDescriptor.hpp"
+#include "StarGenerationVersion.hpp"
 
 namespace Star {
 
@@ -28,6 +29,9 @@ struct LiquidModInteraction {
 class MaterialDatabase {
 public:
   MaterialDatabase();
+  // Definitions are immutable after construction; copying definitions preserves
+  // their version. Each freshly loaded database gets a new process-local ID.
+  uint64_t generationRevision() const { return m_generationRevision; }
 
   StringList materialNames() const;
   bool isMetaMaterialName(String const& name) const;
@@ -174,6 +178,7 @@ private:
   shared_ptr<ModInfo const> const& getModInfo(ModId modId) const;
 
   List<shared_ptr<MetaMaterialInfo const>> m_metaMaterials;
+  uint64_t m_generationRevision = nextGenerationVersion();
   StringMap<MaterialId> m_metaMaterialIndex;
 
   List<shared_ptr<MaterialInfo const>> m_materials;

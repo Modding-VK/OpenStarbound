@@ -4,26 +4,28 @@
 
 namespace Star {
 
-// Explicit caller-owned generations, not inferred from pointers or sample
-// values. The engine's reload/asset generation producer is NOT wired here yet.
+// Explicit generations, not inferred from addresses or samples. Root's sources
+// factory supplies real root/assets/material versions; literal scopes remain a
+// low-level prototype interface, not proof of source freshness or commit rights.
 struct WorldGenerationBaseTileLookupScope {
-  static constexpr unsigned ModelVersion = 1;
+  static constexpr unsigned ModelVersion = 2;
   uint64_t worldEpoch = 0;
   uint64_t templateRevision = 0;
   uint64_t assetsGeneration = 0;
   uint64_t materialsGeneration = 0;
+  uint64_t sourceEpoch = 0;
   unsigned modelVersion = ModelVersion;
   unsigned inputVersion = WorldGenerationBaseTileInput::ModelVersion;
   unsigned liquidVersion = WorldGenerationBaseTileLiquidDecision::ModelVersion;
 
   bool valid() const {
-    return worldEpoch && assetsGeneration && materialsGeneration && modelVersion == ModelVersion
+    return worldEpoch && assetsGeneration && materialsGeneration && sourceEpoch && modelVersion == ModelVersion
         && inputVersion == WorldGenerationBaseTileInput::ModelVersion
         && liquidVersion == WorldGenerationBaseTileLiquidDecision::ModelVersion;
   }
   bool operator==(WorldGenerationBaseTileLookupScope const& other) const {
     return worldEpoch == other.worldEpoch && templateRevision == other.templateRevision
-        && assetsGeneration == other.assetsGeneration && materialsGeneration == other.materialsGeneration
+        && assetsGeneration == other.assetsGeneration && materialsGeneration == other.materialsGeneration && sourceEpoch == other.sourceEpoch
         && modelVersion == other.modelVersion && inputVersion == other.inputVersion && liquidVersion == other.liquidVersion;
   }
 };

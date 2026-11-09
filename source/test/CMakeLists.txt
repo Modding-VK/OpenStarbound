@@ -130,6 +130,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_memory_capacity_test.cpp
   world_generation_base_tile_liquid_test.cpp
   world_generation_base_tiles_test.cpp
+  world_generation_lookup_sources_test.cpp
   world_generation_estimate_test.cpp
   world_generation_worker_cache_test.cpp
   world_generation_buffer_test.cpp
@@ -167,6 +168,8 @@ FOREACH(world_region_test_suite
     WorldGenerationBaseTileInputsTest
     WorldGenerationBaseTileObservationTest
     WorldGenerationBaseTileLookupContextTest
+    WorldGenerationSourceVersionTest
+    WorldGenerationLookupSourcesTest
     WorldGenerationEstimateTest
     WorldGenerationWorkerCacheTest
     WorldGenerationBufferTest

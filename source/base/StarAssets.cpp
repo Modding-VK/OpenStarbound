@@ -483,9 +483,11 @@ Assets::~Assets() {
 
 void Assets::hotReload() const {
   MutexLocker assetsLocker(m_assetsMutex);
+  auto generationChange = m_generationVersion.change();
   m_assetsCache.clear();
   m_queue.clear();
   m_framesSpecifications.clear();
+  generationChange.complete();
 }
 
 StringList Assets::assetSources() const {

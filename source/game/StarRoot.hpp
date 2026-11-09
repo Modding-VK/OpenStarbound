@@ -5,6 +5,7 @@
 #include "StarLogging.hpp"
 #include "StarListener.hpp"
 #include "StarConfiguration.hpp"
+#include "StarGenerationVersion.hpp"
 
 namespace Star {
 
@@ -48,6 +49,7 @@ STAR_CLASS(RadioMessageDatabase);
 STAR_CLASS(CollectionDatabase);
 
 STAR_CLASS(Root);
+template <typename AssetsSource, typename MaterialsSource> class WorldGenerationLookupSources;
 
 // Singleton Root object for starbound providing access to the unique
 // Configuration class, as well as the assets, root factories, and databases.
@@ -132,6 +134,9 @@ public:
   void registerReloadListener(ListenerWeakPtr reloadListener);
 
   void hotReload();
+  // Captures real source handles/versions; unavailable during/after failed
+  // reload. Consumers still need original task/template/tile commit guards.
+  WorldGenerationLookupSources<Assets, MaterialDatabase> worldGenerationLookupSources();
 
   // Translates the given path to be relative to the configured storage
   // location.
@@ -198,6 +203,7 @@ private:
   void writeConfig();
 
   Settings m_settings;
+  std::shared_ptr<GenerationVersionClock> m_generationSources = std::make_shared<GenerationVersionClock>();
 
   Mutex m_modsMutex;
   StringList m_modDirectories;

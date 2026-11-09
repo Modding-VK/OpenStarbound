@@ -181,6 +181,7 @@ SET (star_game_HEADERS
     StarWorldGenerationBaseTileInput.hpp
     StarWorldGenerationBaseTileObservation.hpp
     StarWorldGenerationBaseTileLookupContext.hpp
+    StarWorldGenerationLookupSources.hpp
     StarWorldGenerationBaseTiles.hpp
     StarWorldGenerationBufferAllocator.hpp
     StarWorldGenerationImmutableArray.hpp

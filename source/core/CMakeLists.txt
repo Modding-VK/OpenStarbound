@@ -36,6 +36,7 @@ SET (star_core_HEADERS
     StarFlatHashSet.hpp
     StarFont.hpp
     StarFormat.hpp
+    StarGenerationVersion.hpp
     StarHash.hpp
     StarHostAddress.hpp
     StarHttpClient.hpp

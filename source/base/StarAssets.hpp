@@ -8,6 +8,7 @@
 #include "StarAssetSource.hpp"
 #include "StarAssetPath.hpp"
 #include "StarRefPtr.hpp"
+#include "StarGenerationVersion.hpp"
 
 namespace Star {
 
@@ -178,6 +179,8 @@ public:
   ~Assets();
 
   void hotReload() const;
+  // Explicit reload generation, not a disk/cache-content hash.
+  uint64_t generationRevision() const { return m_generationVersion.current(); }
 
   // Returns a list of all the asset source paths used by Assets in load order.
   StringList assetSources() const;
@@ -340,6 +343,7 @@ private:
   void freshen(shared_ptr<AssetData> const& asset) const;
 
   Settings m_settings;
+  mutable GenerationVersionClock m_generationVersion;
 
   mutable Mutex m_assetsMutex;
 
