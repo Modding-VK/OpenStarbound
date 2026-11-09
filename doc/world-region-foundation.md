@@ -127,6 +127,13 @@ reutiliza capacidade sem inputs MicroDungeonNames: evitar cópias no crescimento
 pode mudar seleção. Mantém publicação serial; temporários/limites globais e
 benchmark real continuam abertos.
 
+O [recorte de payloads](sector-runtime-h0-candidate-payloads-2026-11-09.md)
+adiciona estimativa agregada do backing de candidatos, anterior à factory e
+ao crescimento, retida até destruição física. Cobre campos públicos dos seis
+variants sem mudar cópias/seleção; Json/privados e originais de scratch/listas
+potenciais continuam fora. Modelos geral 5/distribuições 2/payloads 1; sem novo
+teto hard, aumento de admissão ou ganho de jogo medido.
+
 Com workers desligados (`sectorWorkers: 0` no modo `legacy`), o registro não
 é criado: segue o caminho síncrono. Nos modos não legados, zero pode selecionar
 workers automaticamente; não interpretar o zero isolado como desativação.

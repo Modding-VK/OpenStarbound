@@ -208,6 +208,12 @@ Externalização de NPCs suspensa e Linux Clang adiado.
 
 ## Manifesto das fontes e conferência documental
 
+Continuação: o [recorte de payloads](sector-runtime-h0-candidate-payloads-2026-11-09.md),
+`25cecf95`, cobre backing conhecido dos candidatos/factory e amplia os campos
+públicos dos variants, sem alterar cópias/seleção. Modelo geral 5, 223 testes e
+quinze grupos CTest. Este relatório conserva o resultado/manifesto histórico;
+retomar pelo seguinte e pelo roadmap. Temporários/Json/privados permanecem parciais.
+
 Fontes locais coletadas/conferidas em 09/11/2026; nomes relativos ao checkout,
 bytes e SHA-256. Nenhum novo artefato de execução do usuário.
 

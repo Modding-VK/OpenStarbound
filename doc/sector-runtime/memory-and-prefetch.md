@@ -81,6 +81,13 @@ estimado/reconciliado uma vez por dono, mesmo sem profiling. Modelo geral 4.
 Scratch só conserva capacidade sem inputs MicroDungeonNames, pois cópias
 durante crescimento podem alterar escolhas. Não é cache global ou teto hard.
 
+O [recorte dos payloads](../sector-runtime-h0-candidate-payloads-2026-11-09.md),
+`25cecf95`, estima backing conhecido antes da factory/crescimento dos candidatos
+e o retém até destruir o container. Reconciliado por elemento, crescimento e
+sort, sem pré-reserva/cópia extra de elementos. Amplia strings/listas públicas
+dos seis variants; Json e privados permanecem opacos. Modelos geral 5,
+distribuições 2 e payloads 1. É estimativa, não orçamento hard completo.
+
 ### Inventário de ownership e cobertura atual
 
 | Produto/recurso | Dono e término da retenção | Contabilidade atual |
@@ -92,12 +99,13 @@ durante crescimento podem alterar escolhas. Não é cache global ou teto hard.
 | Template privado/cache do worker | entrada de `WorldGenerationWorkerCache` thread-local, até substituição/saída da thread e último uso | objeto + storage solicitado da LRU, modelo próprio v1; sem profiling para cobrança; heaps de layout/biomas/seletores fora |
 | Revisões/referências no snapshot e pendências | snapshot assíncrono e registros pendentes, cada metadado com seu lifetime | representações/capacidades públicas com profiling regional; bundle compartilhado não é repetido por referência |
 | Input de distribuição ainda não capturado | pedido enfileirado, até primeiro freeze ou retirada | estimativa do original já construído, incluindo container; não é reserva anterior à construção pelo chamador |
-| Bundle imutável de distribuição enfileirada | fila, snapshots e worker; até último consumidor físico | pedidos do objeto/control block/vetor reservados antes de alocar; backing conhecido único estimado/reconciliado, sem profiling; Perlin/vetores/nomes, não buckets vazios ou internals opacos |
+| Bundle imutável de distribuição enfileirada | fila, snapshots e worker; até último consumidor físico | pedidos do objeto/control block/vetor reservados antes de alocar; backing conhecido único estimado/reconciliado, sem profiling; Perlin/vetores e campos públicos dos variants no modelo 5, não Json/privados ou buckets vazios |
 | Vetor intermediário de candidatos | planejamento síncrono/assíncrono, até retorno/unwind | pedido de buffer com header/padding, reservado antes de alocar; realocação mantém os dois buffers cobrados |
+| Backing conhecido de candidatos/temporário da factory | token agregado no container; elementos destruídos antes do token | classe 12 estimada antes da factory/crescimento e reconciliada; strings/listas públicas, não Json/privados; independe do profiling e não é teto profundo hard |
 | Vetor de descritores de planos | local síncrono ou payload da promise, até último handle físico | reserva fixa por pedido de buffer; pré-reserva pelo número elegível; sem cópia no consumo |
-| Nomes de saída compartilhados | handles const dos descritores; até último consumidor físico | modelo 4: backing de String estimado antes da cópia/reconciliado; objeto/control block reservado pelo allocator; não repetido por plano, SSO pode superestimar |
+| Nomes de saída compartilhados | handles const dos descritores; até último consumidor físico | fórmula de v4 mantida no modelo 5: backing de String estimado antes da cópia/reconciliado; objeto/control block reservado pelo allocator; não repetido por plano, SSO pode superestimar |
 | Índice de nomes | local ao planejamento; destruído ao retornar | nodes/buckets reservados antes do raw allocator; keys apontam para strings possuídas, sem cópia da chave textual |
-| Metadata do resultado assíncrono | token do resultado e referências retidas | modelo 4 mantém objeto preparado após construir, com profiling regional; nomes e capacidade dos descritores cobrados separadamente |
+| Metadata do resultado assíncrono | token do resultado e referências retidas | fórmula de v4 mantida no modelo 5: objeto preparado após construir, com profiling regional; nomes e capacidade dos descritores cobrados separadamente |
 | Scratch de itens válidos/listas potenciais | local ao planejamento/consulta; elementos limpos após captura | capacidade não micro reutilizada; inputs micro preservam crescimento/cópias legados; scratch e heaps internos ainda fora da reserva profunda |
 | Decode de tiles salvos | caminhos específicos de `WorldStorage` | fora deste recorte |
 | Tokens, control blocks e allocator | ledger/wrappers/containers | overhead geral fora; entram requests da LRU, buffers e control blocks de bundles/nomes alocados com allocator rastreado, não demais control blocks externos |

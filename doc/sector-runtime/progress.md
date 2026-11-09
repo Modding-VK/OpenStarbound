@@ -1,11 +1,11 @@
 # Progressão do projeto — percentuais e ordem das tarefas
 
 Atualizado em **09/11/2026**. Branch: `Experimental`.
-Estado inspecionado: `bcbe56c68b70455b3e60dde030963b75c7fa2766`;
-última implementação: `cad311d1`.
+Estado inspecionado: `25cecf95a439c01bb2563d30f03b184fbb41c9c9`;
+última implementação: `25cecf95`.
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h0-planning-storage-2026-11-09.md)
+· [Último relatório técnico](../sector-runtime-h0-candidate-payloads-2026-11-09.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -22,7 +22,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **3,1%** — 6 marcos verificados de 196 |
 | Contratos com avanço registrado | **6 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | 204 testes, 380 execuções adicionais e 14 grupos CTest, ASan/UBSan |
+| Última evidência de testes | 223 testes, 380 execuções adicionais e 15 grupos CTest, ASan/UBSan |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,1% não significam que o jogo esteja só 3,1% pronto.** O runtime anterior
@@ -91,9 +91,11 @@ autoritativa. GPU é opcional, com fallback CPU completo.
 
 ## Próximas ações — fila imediata
 
-1. **RAM-01, em execução:** cobrir payloads de candidatos/temporários e variants
-   opacos, preservando o histórico de cópias; explicitar lacunas de layout/
-   biomas/seletores e o envelope de memória antes de ampliar admissão.
+1. **RAM-01, em execução:** backing conhecido dos candidatos/factory coberto
+   no recorte `25cecf95`, sem trocar cópias. Próximo: originais de listas
+   potenciais/scratch e sua cópia por valor, Json/TileDamage privados e
+   buckets/metadados do hash; explicitar lacunas de layout/biomas/seletores e
+   o envelope antes de ampliar admissão. Modelos geral 5/distribuições 2/payloads 1.
 2. **VAL-02, próxima entrega e apoio à primeira:** ampliar o comparador para
    candidatos, IDs, prioridades, ordem e outputs completos. Manter os controles
    de colisões de hash como gate de qualquer eliminação de cópias.
@@ -124,7 +126,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | ---: | --- | --- | --- | ---: | --- |
 | 1 | H0 | [DAG-01](dependency-scheduler.md) | Identidades estáveis | 25% | Completar identidade/versionamento e comparação integrada; IDs de colocações já testados |
 | 2 | H0 | [DAG-04](dependency-scheduler.md) | Conclusões e progresso dentro da passagem | 25% | Mailbox executiva/reação a conclusões; continuação/avanço já corrigidos no recorte |
-| 3 | H0 | [RAM-01](memory-and-prefetch.md) | Reserva e contabilização de bytes | 25% | Payloads/temporários opacos, envelope processual e reação à pressão |
+| 3 | H0 | [RAM-01](memory-and-prefetch.md) | Reserva e contabilização de bytes | 25% | Listas potenciais/scratch, internals compartilhados e envelope processual |
 | 4 | H0 | [VAL-02](validation-and-telemetry.md) | Comparador de outputs e produtores controlados | 25% | Fluxo completo de candidatos/outputs e dependências reais |
 | 5 | H0 | [MOD-01](compatibility.md) | Classificar operações por efeito | 25% | Auditoria completa do escopo que ganhará concorrência |
 | 6 | H0 | [VAL-01](validation-and-telemetry.md) | Benchmark de streaming | 25% | Rota/save/config fixos, streaming real e A/B equivalente |
@@ -178,15 +180,16 @@ de todas as implementações antigas para conceder crédito retroativo.
 | --- | --- | --- |
 | DAG-01 | `d72b7239`, [identidades de colocações](../sector-runtime-h0-placement-identities-2026-11-08.md) | Recorte de colocações, não todo o contrato de identidade/integração |
 | DAG-04 | `2131ead3`, [passagem/continuação](../sector-runtime-h0-streaming-pass-2026-11-09.md) | Não implementa a mailbox executiva nem reação a conclusões na mesma passagem |
-| RAM-01 | Recortes `5c3c4c8f` a `cad311d1`, [inventário](memory-and-prefetch.md) e [último relatório](../sector-runtime-h0-planning-storage-2026-11-09.md) | Heaps parciais, estimativas não hard e ausência de teto processual completo |
+| RAM-01 | Recortes `5c3c4c8f` a `25cecf95`, [inventário](memory-and-prefetch.md) e [último relatório](../sector-runtime-h0-candidate-payloads-2026-11-09.md) | Backing conhecido avançou; listas potenciais/Json/privados e teto processual seguem parciais; nota não sobe por quantidade de testes |
 | VAL-02 | [Harness inicial](../sector-runtime-h0-streaming-pass-2026-11-09.md) e [sampler/controles de hash](../sector-runtime-h0-planning-storage-2026-11-09.md) | Comparação ainda não cobre o streaming/mundo completo |
 | MOD-01 | [Leitores imutáveis](../sector-runtime-h0-distribution-bundles-2026-11-09.md) e [proteção da seleção](../sector-runtime-h0-planning-storage-2026-11-09.md) | Auditoria restrita, não de todos os efeitos/inicializadores |
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 
-Os 204 testes e demais números do resumo são **evidência herdada do último
-relatório técnico**, não testes reexecutados ao criar este painel. Nenhuma
-captura/config/log novo foi analisado. A criação do painel é documental;
-não muda runtime, prioridades do roadmap, defaults, workflows ou adoção.
+Os 223 testes e demais números do resumo provêm do **último relatório técnico**,
+no cenário NoAssets, não de streaming integrado. A criação original do painel
+foi documental; os avanços posteriores de runtime estão associados aos commits/
+relatórios do histórico. Atualizar este painel não acrescenta uma medição de
+desempenho nem muda prioridades do roadmap, defaults, workflows ou adoção.
 
 ## Política de atualização e histórico
 
@@ -208,15 +211,16 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | Data | Base técnica | Movimento | Nota do programa |
 | --- | --- | --- | ---: |
 | 09/11/2026 | `bcbe56c6` / implementação `cad311d1` | Primeiro levantamento formal: 6 contratos com marco inicial, 43 sem marco novo reconhecido, 0 integralmente aceitos | 3,1% |
+| 09/11/2026 | Implementação `25cecf95` | RAM-01: backing conhecido de candidatos/factory e campos públicos dos seis variants; 223 testes/15 grupos. Continua parcial: nenhum marco adicional completo, RAM-01/H0 mantidos em 25% | 3,1% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.
 Oceanos/clima e demais itens históricos permanecem no backlog geral e não
 entram silenciosamente no denominador dos 49 contratos deste programa.
 
-Conferência desta criação: 49 IDs únicos correspondentes aos contratos dos
+Conferência da criação original (`1c6fa74c`): 49 IDs únicos correspondentes aos contratos dos
 módulos/roadmap, ordem 1–49 sem lacunas, oito totais de fase e fórmulas
 recalculados; 355 links locais em 27 documentos sem destino ausente e todos
 os 14 documentos da coleção alcançáveis pelo índice. `git diff --check`
 aprovado. Nenhuma mudança em `source/` ou workflows; sem build, reexecução de
-testes de runtime ou disparo de Actions nesta entrega documental.
+testes de runtime ou disparo de Actions naquela entrega documental original.

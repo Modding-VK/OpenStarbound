@@ -39,7 +39,7 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[nomes de saída e scratch protegido](sector-runtime-h0-planning-storage-2026-11-09.md).
+[backing conhecido dos candidatos](sector-runtime-h0-candidate-payloads-2026-11-09.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
 corrigido opt-in e VAL-01/02 têm harness sintético inicial, com 26 testes H0
@@ -66,11 +66,17 @@ conta o backing conhecido uma vez, sem depender de profiling. Validação da eta
 185 testes, 360 execuções adicionais e treze grupos CTest, com ASan/UBSan.
 Modelo de estimativas 3, sem ganho de jogo medido. `cad311d1` compartilha nomes
 de saída e reutiliza scratch somente sem inputs MicroDungeonNames, preservando
-cópias que afetam seleção. Validação atual: 204 testes, 380 execuções adicionais
+cópias que afetam seleção. Validação daquela etapa: 204 testes, 380 execuções adicionais
 e catorze grupos CTest, ASan/UBSan; modelo 4. Controle negativo de hash com wrap
 reproduz escolha diferente sem proteção. Próximo: payloads de candidatos e
 temporários, variants opacos, comparador completo e streaming real; sem cotas
 ampliadas ou ganho de jogo alegado.
+`25cecf95` acompanha backing conhecido antes da factory/crescimento dos
+candidatos e até destruir o vetor; amplia campos públicos dos seis variants
+sem trocar cópias/seleção. Validação atual: 223 testes, 380 execuções adicionais
+e quinze grupos CTest, ASan/UBSan; modelos geral 5/distribuições 2/payloads 1.
+RAM-01 permanece em 25%; próximo: originais de listas potenciais/scratch,
+Json/privados e buckets do hash. Não é teto hard ou ganho de jogo medido.
 Streaming real com assets/mods
 e executor de conclusões ainda pendentes.
 

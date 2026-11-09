@@ -53,6 +53,13 @@ fresco quando há MicroDungeonNames; compartilhar o nome escolhido acontece
 somente depois da seleção. Não remover cópias ou filtrar candidatos antes do
 sort sem comparador explícito de ordem/IDs/seleção. A auditoria segue parcial.
 
+O [recorte de payloads](../sector-runtime-h0-candidate-payloads-2026-11-09.md)
+mantém factories prvalue, crescimento e comparator legados; a contagem nativa
+de cópias/moves e a seleção com colisões foram confrontadas com o vetor anterior.
+Sizing lê campos públicos sem Root/Json traversal; opacidade não filtra itens.
+Essa prova local não substitui comparação de mundo/mods, nem autoriza escrita
+concorrente, eliminação de cópias ou ampliação de admissão.
+
 ## MOD-02 — Equivalência e versionamento
 
 Definir inputs que produzem um output: seed, template/layout, geração de

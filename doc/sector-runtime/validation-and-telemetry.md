@@ -76,6 +76,16 @@ storage fresco para preservar cópias. Modelo 4; dois objetos reais e sintaxe
 Tracy de três fontes aprovados. Sem benchmark, linking completo ou equivalência
 integrada de streaming/mods; scratch/heaps profundos continuam parciais.
 
+O [recorte de payloads](../sector-runtime-h0-candidate-payloads-2026-11-09.md)
+passa **223 testes**, quinze grupos CTest e 19 novos repetidos 20 vezes
+(380 execuções adicionais), com ASan/UBSan. Inclui previsão antes da factory,
+overlap, rollback/retry, sizing sem varredura completa por append, retenção em
+worker e oito jobs concorrentes. Compara 96 candidatos nativos com hashes com
+wrap, caminhos ambiental/enfileirado e mesmas escolhas/capacidades/ordem.
+Modelos geral 5/distribuições 2/payloads 1; backing parcial, sem teto hard.
+Dois objetos reais e sintaxe Tracy de três fontes aprovados; sem streaming
+integrado, linking completo ou ganho de jogo medido.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

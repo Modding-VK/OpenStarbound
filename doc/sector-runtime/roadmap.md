@@ -126,13 +126,24 @@ do profiling. Scratch reutilizado somente sem MicroDungeonNames; controle
 negativo confirma que evitar cópias de realocação pode mudar escolhas em
 clusters de hash com wrap. Modelo 4, 19 casos novos, 204 no total, 380 execuções
 adicionais e catorze grupos CTest aprovados com ASan/UBSan. Ver
-[relatório vigente](../sector-runtime-h0-planning-storage-2026-11-09.md).
+[relatório da etapa](../sector-runtime-h0-planning-storage-2026-11-09.md).
 Não conclui temporários, MOD-01 ou benchmark: nomes curtos/únicos podem pagar
 mais overhead, e inputs micro preservam o crescimento legado por compatibilidade.
 
-Próximo trabalho executável: heaps de payloads de candidatos/temporários,
-variants opacos e metadados excluídos, preservando fallback síncrono e história
-de cópias. Estender o comparador ao fluxo de candidatos/IDs/prioridades e ao
+RAM-01, backing conhecido dos candidatos em `25cecf95`: previsão agregada antes
+da factory e sobreposição durante crescimento, rollback/retry e retenção até
+destruir o vetor. Não muda crescimento, comparator ou cópias; comparação nativa
+com clusters de hash com wrap preserva escolhas. Amplia campos públicos dos
+seis variants sem percorrer Json/privados. São 19 casos novos, 223 no total,
+380 execuções adicionais e quinze grupos CTest, ASan/UBSan. Ver
+[relatório vigente](../sector-runtime-h0-candidate-payloads-2026-11-09.md).
+Modelos geral 5/distribuições 2/payloads 1; incompletude de reconciliação é
+diagnóstico, não um teto hard profundo. RAM-01 segue em 25% no painel.
+
+Próximo trabalho executável: listas potenciais/scratch e cópia por valor da
+validação, Json compartilhado/internals TileDamage e buckets/metadados do hash,
+preservando fallback síncrono, ownership único e história de cópias. Estender
+o comparador ao fluxo de candidatos/IDs/prioridades e ao
 streaming real, usando o controle de colisões como gate antes de eliminar cópias.
 Auditar metadata do Perlin não inicializado antes de novos consumidores em
 CPU-01; RNG de produção não foi alterado. Ampliar a cobertura dos
