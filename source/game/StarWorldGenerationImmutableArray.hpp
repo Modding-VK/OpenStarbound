@@ -15,8 +15,9 @@ public:
   using Values = std::vector<T, WorldGenerationBufferAllocator<T>>;
   template <typename Source, typename Sizer>
   WorldGenerationImmutableArray(std::shared_ptr<WorldGenerationMemoryReservation> backing,
-      WorldGenerationBufferAllocator<T> allocator, Source const& source, Sizer sizer)
-    : m_backing(std::move(backing)), m_values(allocator) {
+      WorldGenerationBufferAllocator<T> allocator, Source const& source, Sizer sizer,
+      WorldGenerationJsonSnapshotPtr json = {})
+    : m_json(std::move(json)), m_backing(std::move(backing)), m_values(allocator) {
     m_values.reserve(source.size());
     for (auto const& value : source) m_values.emplace_back(value);
     auto actual = sizer(m_values);
@@ -30,9 +31,11 @@ public:
   Values const& values() const { return m_values; }
   size_t opaqueItems() const { return m_opaqueItems; }
   bool estimateComplete() const { return m_complete; }
+  WorldGenerationJsonSnapshotPtr const& jsonAccounting() const { return m_json; }
 
 private:
   // Destroy elements before releasing their nested-backing estimate.
+  WorldGenerationJsonSnapshotPtr m_json;
   std::shared_ptr<WorldGenerationMemoryReservation> m_backing;
   Values m_values;
   size_t m_opaqueItems = 0;
@@ -41,7 +44,8 @@ private:
 
 template <typename T, typename Source, typename Sizer>
 std::shared_ptr<WorldGenerationImmutableArray<T> const> makeWorldGenerationImmutableArray(
-    WorldGenerationMemoryLedger& ledger, Source const& source, Sizer sizer) {
+    WorldGenerationMemoryLedger& ledger, Source const& source, Sizer sizer,
+    WorldGenerationJsonSnapshotPtr json = {}) {
   auto estimate = sizer(source);
   if (!estimate.storage.complete) throw std::bad_alloc();
   auto backing = ledger.reserve(WorldGenerationMemoryClass::MicroDungeonDistributionEstimate, estimate.storage.bytes);
@@ -49,7 +53,7 @@ std::shared_ptr<WorldGenerationImmutableArray<T> const> makeWorldGenerationImmut
   using Array = WorldGenerationImmutableArray<T>;
   WorldGenerationBufferAllocator<T> allocator(ledger, WorldGenerationMemoryClass::MicroDungeonDistributionBuffer);
   return std::allocate_shared<Array>(WorldGenerationBufferAllocator<Array>(allocator),
-      std::move(backing), allocator, source, sizer);
+      std::move(backing), allocator, source, sizer, std::move(json));
 }
 
 // Owner-only lazy capture. The original input is retained until the first
@@ -58,8 +62,9 @@ template <typename T, typename Source>
 class WorldGenerationSnapshotCache {
 public:
   template <typename Sizer>
-  WorldGenerationSnapshotCache(WorldGenerationMemoryLedger& ledger, Source source, Sizer sizer)
-    : m_originalBacking(reserveOriginal(ledger, source, sizer)),
+  WorldGenerationSnapshotCache(WorldGenerationMemoryLedger& ledger, Source source, Sizer sizer,
+      WorldGenerationJsonSnapshotPtr json = {})
+    : m_originalJson(std::move(json)), m_originalBacking(reserveOriginal(ledger, source, sizer)),
       m_source(std::move(source)), m_ledger(ledger) {
     static_assert(std::is_nothrow_move_constructible<Source>::value && std::is_nothrow_move_assignable<Source>::value,
         "Original input transfer must not introduce another element copy");
@@ -70,14 +75,18 @@ public:
 
   bool frozen() const { return bool(m_frozen); }
   Source const& source() const { return m_source; }
+  WorldGenerationJsonSnapshotPtr const& jsonAccounting() const {
+    return m_frozen ? m_frozen->jsonAccounting() : m_originalJson;
+  }
   template <typename Sizer>
   std::shared_ptr<WorldGenerationImmutableArray<T> const> freeze(Sizer sizer) {
     if (!m_frozen) {
-      auto frozen = makeWorldGenerationImmutableArray<T>(m_ledger, m_source, sizer);
+      auto frozen = makeWorldGenerationImmutableArray<T>(m_ledger, m_source, sizer, m_originalJson);
       m_frozen = std::move(frozen);
       // Destroy the original physical storage before releasing its estimate.
       m_source = Source{};
       m_originalBacking.reset();
+      m_originalJson.reset();
     }
     return m_frozen;
   }
@@ -94,6 +103,9 @@ private:
     return result;
   }
 
+  // Json copies preserve shared owners. Transfer this accounting handle, never
+  // rescan/copy the distributions just to measure the frozen bundle again.
+  WorldGenerationJsonSnapshotPtr m_originalJson;
   std::shared_ptr<WorldGenerationMemoryReservation> m_originalBacking;
   Source m_source;
   WorldGenerationMemoryLedger m_ledger;

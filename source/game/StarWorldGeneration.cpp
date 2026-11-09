@@ -1195,14 +1195,32 @@ bool WorldGenerator::entityPersistent(WorldStorage*, EntityPtr const& entity) co
 }
 
 RpcPromise<Vec2I> WorldGenerator::enqueuePlacement(List<BiomeItemDistribution> distributions, Maybe<DungeonId> id) {
+  auto profile = m_worldServer->explorationProfile();
+  bool measure = profile && profile->regionalDetailsEnabled();
+  WorldGenerationJsonSnapshotPtr json;
+  {
+    ExplorationProfile::Scope sizing(measure ? profile : nullptr, "generation.memory.distributions.jsonSizing");
+    json = captureBiomeDistributionGenerationJson(worldGenerationMemoryLedger(),
+        distributions.data(), distributions.size(), measure);
+  }
   WorldGenerationSnapshotCache<BiomeItemDistribution, List<BiomeItemDistribution>> input(
-      worldGenerationMemoryLedger(), std::move(distributions), DistributionBackingSizer{});
+      worldGenerationMemoryLedger(), std::move(distributions), DistributionBackingSizer{}, json);
   auto promise = RpcPromise<Vec2I>::createPair();
   m_queuedPlacements.append(QueuedPlacement {
     std::move(input),
     id,
     promise.second,
   });
+  if (json) {
+    profile->maximum("generation.memory.distributions.jsonModelVersion", WorldGenerationSizeEstimate::DistributionJsonModelVersion);
+    profile->count("generation.memory.distributions.jsonCaptures");
+    profile->count("generation.memory.distributions.jsonRoots", json->roots.size());
+    profile->count("generation.memory.distributions.jsonVisitedValues", json->visitedValues);
+    profile->count("generation.memory.distributions.jsonObjectKeys", json->sizedObjectKeys);
+    profile->count("generation.memory.distributions.jsonOmittedObjects", json->omittedObjects);
+    if (!json->rootsComplete) profile->count("generation.memory.distributions.jsonRootCollectionIncomplete");
+    if (!json->complete) profile->count("generation.memory.distributions.jsonIncomplete");
+  }
   return promise.first;
 }
 

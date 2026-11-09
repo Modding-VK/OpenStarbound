@@ -253,3 +253,107 @@ TEST(WorldGenerationJsonStorageTest, ParentModelRemainsCanonicalWhenADescendantI
   EXPECT_TRUE(full->complete);
   EXPECT_EQ(ledger.snapshot().estimatedBytes, objectBytes(value) + objectBytes(wide));
 }
+
+TEST(WorldGenerationVariantJsonTest, EmptyForestDoesNotCreateASyntheticArrayCharge) {
+  WorldGenerationMemoryLedger ledger;
+  auto capture = captureWorldGenerationJsonRoots(ledger, WorldGenerationJsonRoots{});
+  EXPECT_TRUE(capture->complete); EXPECT_TRUE(capture->measured);
+  EXPECT_TRUE(capture->roots.empty()); EXPECT_EQ(capture->visitedValues, 0u);
+  EXPECT_EQ(ledger.snapshot().resources, 0u);
+  EXPECT_EQ(WorldGenerationSizeEstimate::DistributionJsonModelVersion, 1u);
+}
+
+TEST(WorldGenerationVariantJsonTest, ScalarForestRootsHaveNoBackingOrCollectionCost) {
+  WorldGenerationMemoryLedger ledger; WorldGenerationJsonRoots roots(0);
+  for (auto value : {Json(), Json(true), Json(1), Json(0.5)}) EXPECT_TRUE(roots.append(value));
+  auto capture = captureWorldGenerationJsonRoots(ledger, std::move(roots));
+  EXPECT_TRUE(capture->complete); EXPECT_TRUE(capture->rootsComplete);
+  EXPECT_EQ(capture->visitedValues, 0u); EXPECT_EQ(ledger.snapshot().resources, 0u);
+}
+
+TEST(WorldGenerationVariantJsonTest, RepeatedForestRootsChargeOnePhysicalString) {
+  WorldGenerationMemoryLedger ledger; WorldGenerationJsonRoots roots;
+  Json leaf(std::string(4096, 'v'));
+  for (unsigned i = 0; i < 5; ++i) ASSERT_TRUE(roots.append(leaf));
+  auto capture = captureWorldGenerationJsonRoots(ledger, std::move(roots));
+  EXPECT_TRUE(capture->complete); EXPECT_EQ(capture->roots.size(), 5u);
+  EXPECT_EQ(capture->visitedValues, 5u); EXPECT_EQ(ledger.snapshot().sharedResources, 1u);
+  EXPECT_EQ(ledger.snapshot().estimatedBytes, stringBytes(leaf));
+}
+
+TEST(WorldGenerationVariantJsonTest, ForestAndTemplateCapturesShareTheSameOwnerRegistry) {
+  WorldGenerationMemoryLedger ledger; auto value = object();
+  auto single = captureWorldGenerationJson(ledger, value, true);
+  WorldGenerationJsonRoots roots; ASSERT_TRUE(roots.append(value));
+  auto forest = captureWorldGenerationJsonRoots(ledger, std::move(roots));
+  EXPECT_TRUE(forest->complete); EXPECT_EQ(ledger.snapshot().sharedResources, 1u);
+  EXPECT_EQ(ledger.snapshot().estimatedBytes, objectBytes(value));
+  single.reset(); EXPECT_EQ(ledger.snapshot().estimatedBytes, objectBytes(value));
+  forest.reset(); EXPECT_EQ(ledger.snapshot().reservedBytes, 0u);
+}
+
+TEST(WorldGenerationVariantJsonTest, EqualIndependentForestRootsRemainDistinct) {
+  WorldGenerationMemoryLedger ledger; auto left = object(), right = object();
+  WorldGenerationJsonRoots roots; ASSERT_TRUE(roots.append(left)); ASSERT_TRUE(roots.append(right));
+  auto capture = captureWorldGenerationJsonRoots(ledger, std::move(roots));
+  EXPECT_TRUE(capture->complete); EXPECT_EQ(ledger.snapshot().sharedResources, 2u);
+  EXPECT_EQ(ledger.snapshot().estimatedBytes, objectBytes(left) + objectBytes(right));
+}
+
+TEST(WorldGenerationVariantJsonTest, RootCollectionLimitDoesNotPoisonALaterCompleteCapture) {
+  WorldGenerationMemoryLedger ledger; Json one("first"), two("second");
+  WorldGenerationJsonRoots roots(1); ASSERT_TRUE(roots.append(one)); EXPECT_FALSE(roots.append(two));
+  auto partial = captureWorldGenerationJsonRoots(ledger, std::move(roots));
+  EXPECT_FALSE(partial->complete); EXPECT_FALSE(partial->rootsComplete);
+  EXPECT_EQ(partial->roots.size(), 1u); EXPECT_EQ(partial->visitedValues, 1u);
+  WorldGenerationJsonRoots all; ASSERT_TRUE(all.append(one)); ASSERT_TRUE(all.append(two));
+  auto full = captureWorldGenerationJsonRoots(ledger, std::move(all));
+  EXPECT_TRUE(full->complete);
+  EXPECT_EQ(ledger.snapshot().estimatedBytes, stringBytes(one) + stringBytes(two));
+}
+
+TEST(WorldGenerationVariantJsonTest, ForestSharesOneTraversalAllowanceAcrossAllRoots) {
+  WorldGenerationMemoryLedger ledger; auto child = object(); Json leaf("leaf");
+  WorldGenerationJsonRoots roots(2); ASSERT_TRUE(roots.append(child)); ASSERT_TRUE(roots.append(leaf));
+  auto capture = captureWorldGenerationJsonRoots(ledger, std::move(roots));
+  EXPECT_TRUE(capture->rootsComplete); EXPECT_FALSE(capture->complete);
+  EXPECT_EQ(capture->visitedValues, 2u); EXPECT_EQ(capture->omittedObjects, 1u);
+  EXPECT_EQ(ledger.snapshot().estimatedBytes, stringBytes(leaf));
+  EXPECT_EQ(child.size(), 3u);
+}
+
+TEST(WorldGenerationVariantJsonTest, ForestKeepsRootsAliveUntilItsAccountingHandleDies) {
+  WorldGenerationMemoryLedger ledger; std::weak_ptr<String const> weak;
+  WorldGenerationJsonSnapshotPtr capture;
+  {
+    Json leaf(std::string(4096, 'v')); weak = leaf.stringPtr();
+    WorldGenerationJsonRoots roots; ASSERT_TRUE(roots.append(leaf));
+    capture = captureWorldGenerationJsonRoots(ledger, std::move(roots));
+  }
+  EXPECT_FALSE(weak.expired()); EXPECT_GT(ledger.snapshot().reservedBytes, 0u);
+  capture.reset(); EXPECT_TRUE(weak.expired()); EXPECT_EQ(ledger.snapshot().reservedBytes, 0u);
+}
+
+TEST(WorldGenerationVariantJsonTest, RefusedForestEstimatePreservesItsRootHandles) {
+  WorldGenerationMemoryLedger ledger(0); Json leaf("retained");
+  WorldGenerationJsonRoots roots; ASSERT_TRUE(roots.append(leaf));
+  auto capture = captureWorldGenerationJsonRoots(ledger, std::move(roots));
+  EXPECT_FALSE(capture->complete); ASSERT_EQ(capture->roots.size(), 1u);
+  EXPECT_EQ(capture->roots[0].stringPtr(), leaf.stringPtr());
+  EXPECT_EQ(ledger.snapshot().resources, 0u);
+}
+
+TEST(WorldGenerationVariantJsonTest, ConcurrentForestsShareBackingWithoutSharedMutableScannerState) {
+  WorldGenerationMemoryLedger ledger; auto value = object(64);
+  std::array<WorldGenerationJsonSnapshotPtr, 8> captures; std::vector<std::thread> threads;
+  for (unsigned i = 0; i < captures.size(); ++i) threads.emplace_back([&, i] {
+    WorldGenerationJsonRoots roots; roots.append(value);
+    captures[i] = captureWorldGenerationJsonRoots(ledger, std::move(roots));
+  });
+  for (auto& thread : threads) thread.join();
+  for (auto const& capture : captures) EXPECT_TRUE(capture->complete);
+  EXPECT_EQ(ledger.snapshot().sharedResources, 1u);
+  EXPECT_EQ(ledger.snapshot().estimatedBytes, objectBytes(value));
+  for (auto& capture : captures) capture.reset();
+  EXPECT_EQ(ledger.snapshot().sharedRegistryEntries, 0u);
+}

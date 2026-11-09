@@ -154,6 +154,7 @@ FOREACH(world_region_test_suite
     WorldGenerationTemporaryTest
     WorldGenerationContainerStorageTest
     WorldGenerationJsonStorageTest
+    WorldGenerationVariantJsonTest
     BlockAllocatorExceptionTest
     WorldRegionCoordinatorTest
     WorldRegionObservationTest)

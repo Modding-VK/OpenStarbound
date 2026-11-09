@@ -130,4 +130,38 @@ WorldGenerationBackingEstimate BiomeItemDistribution::generationBackingEstimate(
   return result;
 }
 
+bool collectBiomeItemGenerationJson(BiomeItem const& value, WorldGenerationJsonRoots& roots) {
+  auto tree = [&](TreeVariant const& variant) {
+    return roots.append(variant.stemSettings) && roots.append(variant.foliageSettings)
+        && roots.append(variant.descriptions) && roots.append(variant.stemDropConfig)
+        && roots.append(variant.foliageDropConfig);
+  };
+  if (auto grass = value.ptr<GrassVariant>()) return roots.append(grass->descriptions);
+  if (auto bush = value.ptr<BushVariant>()) return roots.append(bush->descriptions);
+  if (auto trees = value.ptr<TreePair>()) return tree(trees->first) && tree(trees->second);
+  if (auto objects = value.ptr<ObjectPool>()) {
+    for (auto const& item : objects->items()) if (!roots.append(item.second.second)) return false;
+  }
+  return true;
+}
+
+bool BiomeItemDistribution::collectGenerationJson(WorldGenerationJsonRoots& roots) const {
+  // Cover both physical lists even if only one is selected by the sampler.
+  for (auto const& item : m_randomItems) if (!collectBiomeItemGenerationJson(item, roots)) return false;
+  for (auto const& item : m_weightedItems) if (!collectBiomeItemGenerationJson(item.first, roots)) return false;
+  return true;
+}
+
+std::shared_ptr<WorldGenerationJsonSnapshot const> captureBiomeDistributionGenerationJson(
+    WorldGenerationMemoryLedger& ledger, BiomeItemDistribution const* values, size_t count,
+    bool measure, size_t maximumValues) {
+  if (!measure) return {};
+  WorldGenerationJsonRoots roots(maximumValues);
+  for (size_t i = 0; i < count; ++i) if (!values[i].collectGenerationJson(roots)) break;
+  // MicroDungeonNames/default variants need no forest object or ledger token.
+  // A truncated empty collection still needs an explicit incomplete result.
+  if (roots.empty() && roots.complete()) return {};
+  return captureWorldGenerationJsonRoots(ledger, std::move(roots));
+}
+
 }

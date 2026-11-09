@@ -18,14 +18,10 @@ void WorldGenerationSizeEstimate::stringCapacity(String const& string) {
   add(1);
 }
 
-WorldGenerationJsonSnapshotPtr captureWorldGenerationJson(WorldGenerationMemoryLedger& ledger,
-    Json value, bool measure, size_t maximumValues) {
-  auto snapshot = std::make_shared<WorldGenerationJsonSnapshot>();
-  snapshot->value = std::move(value);
-  snapshot->measured = measure;
-  if (!measure) return snapshot;
-  snapshot->complete = true;
-  std::vector<Json> pending{snapshot->value};
+namespace {
+void measureJson(WorldGenerationMemoryLedger& ledger, WorldGenerationJsonSnapshot& result,
+    std::vector<Json> pending, size_t maximumValues) {
+  auto snapshot = &result;
   std::set<std::shared_ptr<void const>, std::owner_less<std::shared_ptr<void const>>> visited;
   while (!pending.empty() && snapshot->visitedValues < maximumValues) {
     auto node = std::move(pending.back());
@@ -89,6 +85,42 @@ WorldGenerationJsonSnapshotPtr captureWorldGenerationJson(WorldGenerationMemoryL
     else snapshot->complete = false;
   }
   if (!pending.empty()) snapshot->complete = false;
+}
+}
+
+bool WorldGenerationJsonRoots::append(Json const& value) {
+  switch (value.type()) {
+    case Json::Type::String:
+    case Json::Type::Array:
+    case Json::Type::Object:
+      if (m_values.size() == m_maximumValues) { m_complete = false; return false; }
+      m_values.push_back(value);
+      break;
+    default:
+      break;
+  }
+  return true;
+}
+
+WorldGenerationJsonSnapshotPtr captureWorldGenerationJsonRoots(
+    WorldGenerationMemoryLedger& ledger, WorldGenerationJsonRoots roots) {
+  auto snapshot = std::make_shared<WorldGenerationJsonSnapshot>();
+  snapshot->roots = std::move(roots.m_values);
+  snapshot->measured = true;
+  snapshot->rootsComplete = roots.m_complete;
+  snapshot->complete = roots.m_complete;
+  measureJson(ledger, *snapshot, snapshot->roots, roots.m_maximumValues);
+  return snapshot;
+}
+
+WorldGenerationJsonSnapshotPtr captureWorldGenerationJson(WorldGenerationMemoryLedger& ledger,
+    Json value, bool measure, size_t maximumValues) {
+  auto snapshot = std::make_shared<WorldGenerationJsonSnapshot>();
+  snapshot->value = std::move(value);
+  snapshot->measured = measure;
+  if (!measure) return snapshot;
+  snapshot->complete = true;
+  measureJson(ledger, *snapshot, {snapshot->value}, maximumValues);
   return snapshot;
 }
 

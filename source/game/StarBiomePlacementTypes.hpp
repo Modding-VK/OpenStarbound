@@ -14,6 +14,9 @@ namespace Star {
 
 STAR_CLASS(BiomeItemDistribution);
 struct WorldGenerationBackingEstimate;
+class WorldGenerationJsonRoots;
+class WorldGenerationMemoryLedger;
+struct WorldGenerationJsonSnapshot;
 
 STAR_EXCEPTION(BiomeException, StarException);
 
@@ -26,6 +29,7 @@ typedef Variant<GrassVariant, BushVariant, TreePair, ObjectPool, TreasureBoxSet,
 // Read-only, allocation-free known backing model; Json/private internals stay opaque.
 // Excludes the BiomeItem object already charged in its containing buffer.
 WorldGenerationBackingEstimate estimateBiomeItemGenerationBacking(BiomeItem const& item) noexcept;
+bool collectBiomeItemGenerationJson(BiomeItem const& item, WorldGenerationJsonRoots& roots);
 BiomeItem variantToBiomeItem(Json const& store);
 Json variantFromBiomeItem(BiomeItem const& biomeItem);
 
@@ -60,6 +64,8 @@ public:
   Maybe<BiomeItemPlacement> itemToPlace(int x, int y) const;
   // Known backing, not a complete heap bound. Opaque items remain explicit.
   WorldGenerationBackingEstimate generationBackingEstimate() const;
+  // Enumerate retained Json without copying items, sampling or using Root.
+  bool collectGenerationJson(WorldGenerationJsonRoots& roots) const;
 
 private:
   friend struct BiomeItemDistributionTestAccess;
@@ -80,5 +86,9 @@ private:
   int m_modulusOffset;
   List<pair<BiomeItem, PerlinF>> m_weightedItems;
 };
+
+std::shared_ptr<WorldGenerationJsonSnapshot const> captureBiomeDistributionGenerationJson(
+    WorldGenerationMemoryLedger& ledger, BiomeItemDistribution const* values, size_t count,
+    bool measure, size_t maximumValues = 32768);
 
 }
