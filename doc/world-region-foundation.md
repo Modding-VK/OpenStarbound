@@ -216,9 +216,14 @@ Sem retry/pressão real ou ganho alegado.
 O [recorte de inputs/consultas](sector-runtime-h0-base-tile-inputs-2026-11-09.md),
 `2ea41cf8`, conserva ordem/argumentos/estado parcial e NoMod no adaptador real.
 548 testes/27 grupos CTest com ASan/UBSan; resolver real ainda depende de template/
-assets. Próximo: congelar/versionar observações e comparar replay a partir do
-input original antes de cache/retry, sem antecipar consultas ou usar tile parcial.
+assets. Não antecipar consultas ou usar tile parcial.
 biomeTransition default/cópias herdado permanece pendente. RAM-01/H0 em 25%.
+O [recorte de observações](sector-runtime-h0-base-tile-observations-2026-11-09.md),
+`abfc3834`, congela consultas e compara replay protegido sem resolver vivo.
+575 testes/28 grupos CTest, ASan/UBSan. API diagnóstica fora do produtor normal;
+microcusto com resolver trivial mostrou overhead e 176 bytes/tile. Próximo:
+contexto compartilhado/compacto por chaves/versão, revisão/assets e recusa antes
+de aplicar quando faltar cobertura, não fita residente como cache por bloco.
 
 ## Diagnóstico
 

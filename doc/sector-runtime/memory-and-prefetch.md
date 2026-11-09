@@ -175,7 +175,15 @@ Os [inputs escalares BaseTiles](../sector-runtime-h0-base-tile-inputs-2026-11-09
 são valores locais sem heap; resolver é referência emprestada, não novo snapshot
 ou cache. Não acrescentam classe/estimativa de payload, scan, reserva ou teto.
 Ticket/produto/líquido seguem modelo 1; retry 2 e envelope/admissão 1 inalterados.
-Contexto profundo/observações congeladas e demanda real continuam pendentes.
+Contexto profundo e demanda real continuam pendentes.
+
+As [observações diagnósticas](../sector-runtime-h0-base-tile-observations-2026-11-09.md)
+já congelam retornos, não o contexto profundo. Storage fixo de 176 bytes/tile
+nesta ABI: 176 KiB por setor cheio, excluindo origem/output/containers. Nenhum
+registro é alocado/retido pelo produtor normal e nenhum byte é adicionado
+implicitamente ao ledger. Não adotar fita residente como cache; futura integração
+precisa reservar seu escopo antes de alocar. Próximo: contexto compartilhado/
+compacto por chaves/versão/revisão de assets, com custo/bytes e equivalência.
 
 ### Inventário de ownership e cobertura atual
 
@@ -231,8 +239,10 @@ não foi removida. A floresta retém handles, não cópias profundas, e seu over
 diagnóstico ainda é excluído. Consolidar envelope/exclusões/pressão para o
 escopo antes de ampliar admissão; não exigir cada heap para H1 em sombra.
 O envelope consolidado expõe essas fronteiras, não remove as exclusões. Próximo:
-congelar/versionar observações do resolver e comparar reexecução a partir do input
-original. Inputs escalares, adaptador e comparador de campos já foram entregues,
+contexto compartilhado/compacto de consultas por chaves/versão, usando a fita
+diagnóstica como referência. Vincular revisão/assets e recusar cobertura ausente
+antes de aplicar; comparar outputs/custo/bytes antes de sombra por setor/cache.
+Inputs escalares, adaptador, observações e comparador já foram entregues,
 não o contexto profundo; não antecipar consultas ou alterar cópias/RNG. Auditar
 biomeTransition antes de normalizar snapshots e
 ampliar pureza/demanda real com MOD-01/VAL-02 antes de replay. O protocolo de

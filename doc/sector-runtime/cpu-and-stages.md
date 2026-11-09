@@ -51,9 +51,16 @@ Continuidade: [inputs escalares BaseTiles](../sector-runtime-h0-base-tile-inputs
 WorldGenerationBaseTileInput explicita biomas/material/mod/oceano/y por tile;
 um adaptador injeta materialHue/supportsMod/modHue sem mudar a ordem ou antecipar
 consultas. O resolver real ainda usa o template do caminho e MaterialDatabase;
-const/injeção não fecham dependências. Próximo: congelar/versionar observações
-do resolver e comparar reexecução a partir do input original antes de cache/retry.
+const/injeção não fecham dependências.
 CPU-01 e PreparedSector permanecem pendentes; sem novo marco ou ganho medido.
+
+As [observações congeladas](../sector-runtime-h0-base-tile-observations-2026-11-09.md),
+`abfc3834`, permitem replay diagnóstico sem resolver vivo, com preflight de todas
+as consultas/input/estado relevante antes de escrever. Não são chamadas no
+produtor normal; custo sintético/176 bytes por tile desaconselham fita residente.
+Próximo: contexto imutável compartilhado/compacto por chaves/versão, vínculo a
+revisão/assets e recusa de cobertura ausente antes da aplicação; comparar
+outputs/ordem/exceções e custo/bytes antes de sombra por setor/cache/retry.
 
 Aceitação: execução concorrente não alcança template vivo, callbacks ou RNG
 global; comparador de outputs cobre a mudança de contexto e de worker.

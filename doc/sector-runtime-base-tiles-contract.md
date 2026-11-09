@@ -3,7 +3,7 @@
 Estado: H0, `Experimental`, 09/11/2026.
 [Programa](sector-runtime/README.md) · [Roadmap](sector-runtime/roadmap.md)
 · [Memória](sector-runtime-memory-envelope.md)
-· [Relatório](sector-runtime-h0-base-tile-inputs-2026-11-09.md)
+· [Relatório](sector-runtime-h0-base-tile-observations-2026-11-09.md)
 
 ## Identidade não é autorização de commit nem chave de conteúdo
 
@@ -73,6 +73,31 @@ Modelo do input/adaptador 1; produto/ticket e kernel líquido permanecem 1 porqu
 esta extração preserva comportamento. Não há mudança de save, contexto completo,
 cache de produto, orçamento, número de workers ou publicação serial.
 
+## Observações congeladas e replay diagnóstico, modelo 1
+
+WorldGenerationBaseTileObservation guarda input, versões observação/input/líquido,
+14 campos iniciais relevantes e até seis consultas tipo/chaves/valor. Captura é
+explícita: envolve o adaptador e registra cada resultado depois que a consulta
+original retorna, sem antecipar chamadas. Reset inicial impede reutilizar um
+sucesso anterior após falha; exceção mantém a fita incompleta e o tile parcial.
+
+Replay valida todo o registro, inclusive a última chave, antes de qualquer write:
+complete/versões/contagem, sequência condicional, argumentos/faixas, input esperado
+e dez campos de camadas/quatro de líquido originais. Floats usam bits. Só então
+aplica com resolver congelado/cursor local, sem consultar template/assets. Uma
+observação const pode servir tiles privados em paralelo, sem cursor compartilhado.
+
+Guard não inclui dano/root/dungeon/colisão/cache, que passam intactos; nem lê
+biomas antigos, sobrescritos pelo adaptador. Não é identidade de tile inteiro,
+hash/selo de integridade, geração de assets ou autorização de commit/cache/retry.
+Requer campos relevantes inicializados, input/observação estáveis e tile exclusivo.
+O domínio aritmético do líquido continua o herdado. Modelo não é codec persistido.
+
+A API não é chamada pelo produtor normal. Custa 176 bytes por tile nesta ABI;
+o microcusto Debug/ASan com resolver trivial mostrou overhead, não aceleração.
+Fica como referência de equivalência, não fita residente ou custo novo no hot path.
+Produto/ticket/input/líquido e demais modelos anteriores permanecem inalterados.
+
 ## Comparação de campos, modelo 1
 
 O comparador recebe referências const de ServerTile reais. Não serializa, aloca
@@ -129,9 +154,10 @@ puras de constructor/reset de TileDamageStatus foram movidas sem mudança de
 corpo para permitir esses testes sem ligar Root/assets; dano/recovery/codec não
 mudaram. CMake registra a nova unidade no jogo e no alvo NoAssets.
 
-Próximo: congelar/versionar as observações do resolver para cálculo independente,
-comparar reexecução a partir de inputs originais e medir o custo de preparação
-antes de integrar cache/retry. Não antecipar consultas nem reaproveitar tile parcial.
+Próximo: contexto compartilhado e compacto de consultas por chaves/versão,
+usando a fita como referência. Vincular revisão/assets e recusar cobertura ausente
+antes da aplicação; comparar outputs/ordem/exceções e custo/bytes antes de sombra
+por setor ou cache/retry. Não antecipar consultas nem reaproveitar tile parcial.
 Auditar biomeTransition antes de normalizar snapshots; versionar assets/contexto
 profundo e ligar demanda ao interesse real. Preservar gates MOD-01/VAL-02,
 baseline integrado, revisão independente e fallback CPU.

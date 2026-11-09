@@ -191,6 +191,19 @@ fecha o resolver e tile parcial não é input seguro de retry. Sete objetos reai
 e sintaxe Tracy de três fontes aprovados, sem linking completo do jogo/Tracy.
 Não executa WorldTemplate/assets reais nem mede throughput; H0 continua parcial.
 
+O [recorte observações/replay](../sector-runtime-h0-base-tile-observations-2026-11-09.md)
+passa **575 testes**, 28 grupos CTest e 91 casos afetados repetidos vinte vezes
+(**1.820 execuções adicionais**), ASan/UBSan; 27 novos normativos. Matriz de 4.096
+branches compara captura/replay/corpo anterior e trace; preflight inclui todas
+as chaves/input/campos relevantes/versões/faixas antes da primeira escrita. Seis
+falhas preservam tile parcial e invalidam captura. 1.024 tiles usam a mesma
+observação em quatro workers com cursores locais. Sem execução integrada do
+produtor/template/mods ou novo marco. Microexperimento DISABLED separado executado
+explicitamente: não integra os 575 casos/CTest nem mede entrega; revela overhead
+com resolver trivial, logo fita diagnóstica fora do hot path. Três fontes com
+sintaxe Tracy aprovadas, sete objetos reais existentes conferidos sem reconstrução
+forçada e link NoAssets aprovado; não é linking completo do jogo/Tracy.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

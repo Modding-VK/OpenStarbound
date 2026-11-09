@@ -3,7 +3,7 @@
 Atualização: 09/11/2026. Branch: `Experimental`. Runtime de partida:
 `7ca7ed2a`; recortes de H0: `d72b7239`, `2131ead3`, `5c3c4c8f`, `65bae55c`,
 `803d4cf7`, `739067b1`, `1bd348e6`, `34c76ea3`, `887149c0`, `cad311d1`, `25cecf95`,
-`c4d7ddb3`, `730e36ba`, `45db2402`, `49a12fbf`, `ada755bf`, `0915af25`, `4b5aed18`, `dd59f3b4`, `8b68ab6a`, `8e190742`, `f7785963` e `2ea41cf8`;
+`c4d7ddb3`, `730e36ba`, `45db2402`, `49a12fbf`, `ada755bf`, `0915af25`, `4b5aed18`, `dd59f3b4`, `8b68ab6a`, `8e190742`, `f7785963`, `2ea41cf8` e `abfc3834`;
 documentação de arquitetura de partida: `8d3b0ade`.
 
 Este é o **programa principal de desenvolvimento**, adotado pelo usuário em
@@ -131,13 +131,19 @@ incluindo dano privado, líquido e cache com modo explícito. São 524 testes,
 800 execuções adicionais e 26 grupos CTest com ASan/UBSan. Comparador não é
 executado no hot path; retry real/pressão seguem desligados. Achado herdado de
 biomeTransition/default/cópia registrado, não corrigido nem atribuído a crashes.
-O [relatório vigente](../sector-runtime-h0-base-tile-inputs-2026-11-09.md), `2ea41cf8`,
+O [recorte de inputs](../sector-runtime-h0-base-tile-inputs-2026-11-09.md), `2ea41cf8`,
 explicita inputs escalares de materiais/mods/biomas/oceano e injeta consultas no
 adaptador real sem antecipá-las. Preserva ordem/argumentos, NoMod e estado parcial
 após exceções, inclusive no síncrono. São 548 testes, 1.280 execuções adicionais
 e 27 grupos CTest com ASan/UBSan. Resolver real ainda depende de template/assets;
-próximo: congelar/versionar suas observações, comparar reexecução a partir do input
-original e medir custo antes de cache/retry. Não reutilizar tile parcial.
+não reutilizar tile parcial.
+O [relatório vigente](../sector-runtime-h0-base-tile-observations-2026-11-09.md),
+`abfc3834`, congela resultados das consultas e compara replay protegido a partir
+do estado original: 575 testes, 1.820 execuções adicionais e 28 grupos CTest,
+ASan/UBSan. API diagnóstica fora do caminho normal; não ativa replay de tarefas.
+Microcusto com resolver trivial revelou overhead e 176 bytes/tile nesta ABI:
+não adotar a fita como cache residente. Próximo: contexto compartilhado/compacto,
+vínculo a revisão/assets e recusa de cobertura ausente antes da aplicação.
 RAM-01/H0 seguem em 25%, sem ganho de setores/s medido.
 Orçamento processual completo, benchmark real e equivalência com assets
 continuam pendentes.

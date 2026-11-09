@@ -10,6 +10,10 @@ Implementação: `2ea41cf8b1c75a064b76e3dd65d70a53f1d1b0bf`.
 · [Memória](sector-runtime-memory-envelope.md)
 · [Etapa anterior](sector-runtime-h0-base-tiles-identity-2026-11-09.md)
 
+Continuação vigente: [observações versionadas e replay diagnóstico](sector-runtime-h0-base-tile-observations-2026-11-09.md).
+Este relatório preserva evidências/manifesto de `2ea41cf8`; estado e próximo
+trabalho atuais estão na continuação e no roadmap.
+
 ## Objetivo e entrega
 
 Explicitar o input da aplicação de um tile comum e isolar a sequência de

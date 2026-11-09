@@ -244,13 +244,24 @@ real injetam consultas mantendo ordem/argumentos/writes foreground→background�
 NoMod, mod não suportado e seis pontos de exceção preservam estado anterior/parcial.
 São 24 casos novos, 548 no total, 1.280 execuções adicionais e 27 grupos CTest com
 ASan/UBSan; 4.096 combinações de branches e 1.024 tiles com resolver imutável.
-Ver [relatório vigente](../sector-runtime-h0-base-tile-inputs-2026-11-09.md).
+Ver [relatório da etapa](../sector-runtime-h0-base-tile-inputs-2026-11-09.md).
 Não é produtor puro completo: resolver depende de template/assets, input igual
 não garante output igual e tile parcial não é input seguro de retry. H0 em 25%.
 
-Próximo trabalho executável: congelar/versionar observações do resolver, comparar
-reexecução a partir do input original e medir custo de preparação antes de cache/
-retry, sem antecipar consultas ou alterar cópias/RNG. Auditar biomeTransition
+Observações/replay diagnóstico em `abfc3834`: registro modelo 1, até seis consultas
+retornadas, versões e guard de input/14 campos originais. Preflight completo antes
+de escrever; falhas incompletas não podem ser replayadas. 27 testes novos, 575 no
+total, 1.820 execuções adicionais e 28 grupos CTest com ASan/UBSan. Microexperimento
+opt-in separado mostrou overhead com resolver trivial e 176 bytes/tile; manter
+fora do produtor normal, não adotar como cache residente. Ver
+[relatório vigente](../sector-runtime-h0-base-tile-observations-2026-11-09.md).
+Não fecha blockInfo/WorldTemplate/assets, demanda ou retry real; H0 em 25%.
+
+Próximo trabalho executável: contexto compartilhado/compacto de consultas por
+chaves/versão explícita, usando a fita como referência. Vincular revisão/assets e
+recusar cobertura ausente antes da aplicação; comparar outputs/ordem/exceções e
+custo/bytes antes de sombra por setor/cache/retry. Não antecipar consultas,
+assumir resolver arbitrário puro ou alterar cópias/RNG. Auditar biomeTransition
 antes de normalizar snapshots; versionar contexto profundo/assets e ligar demanda
 ao interesse real antes de replay/cache de produtos.
 Não repetir callbacks/Lua/mundo vivo por uma exceção.

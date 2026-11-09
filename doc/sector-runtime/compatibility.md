@@ -154,6 +154,15 @@ parcial, antecipação de consultas, mudança de RNG/save/API Lua ou publicaçã
 O resolver real continua dependente de template/assets; NoAssets não valida
 mods instalados, saves ou multiplayer. MOD-01 permanece parcial.
 
+O [replay de observações](../sector-runtime-h0-base-tile-observations-2026-11-09.md)
+é diagnóstico e não chama resolver vivo: só aceita registro completo, versões,
+sequência/argumentos/faixas e input/estado relevante originais antes de escrever.
+Captura mantém falhas originais e marca registro incompleto; não guarda exceção
+para repeti-la. Guard não é hash de tile inteiro, geração de assets, selo de
+integridade ou autoridade de commit; campos intocados passam intactos. API fora
+do produtor normal, sem novo default, codec, RNG, cópia ou replay de tarefa.
+Fechar revisão/assets/cobertura antes de qualquer fallback ou consumidor real.
+
 ## MOD-02 — Equivalência e versionamento
 
 Definir inputs que produzem um output: seed, template/layout, geração de

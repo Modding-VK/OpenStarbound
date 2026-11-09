@@ -147,14 +147,21 @@ ou contexto profundo. [Contrato](sector-runtime-base-tiles-contract.md) explicit
 25 grupos de campos/cache/bordas. São 524 testes, 800 execuções adicionais e 26
 grupos CTest com ASan/UBSan, sem scan de tiles no commit, retry/limite real ou ganho
 alegado. H0 em 25%.
-O [relatório vigente](sector-runtime-h0-base-tile-inputs-2026-11-09.md), `2ea41cf8`,
+O [recorte de inputs](sector-runtime-h0-base-tile-inputs-2026-11-09.md), `2ea41cf8`,
 explicita input por tile e adaptador de consultas, preservando sequência, NoMod e
 estado parcial nas seis falhas possíveis. 548 testes, 1.280 execuções adicionais
 e 27 grupos CTest, ASan/UBSan. Não há contexto puro completo/novo orçamento ou
-ganho demonstrado; H0 em 25%. Próximo: congelar/versionar observações do resolver,
-comparar replay a partir do input original e medir preparação antes de cache/retry.
+ganho demonstrado; H0 em 25%.
 Não antecipar consultas, reaproveitar tile parcial ou alterar cópias/RNG; manter
 auditoria do flag herdado abaixo e os gates com assets/mods/saves/multiplayer.
+O [relatório vigente](sector-runtime-h0-base-tile-observations-2026-11-09.md),
+`abfc3834`, entrega observações congeladas e replay com preflight completo,
+diagnósticos fora do produtor normal. 575 testes, 1.820 execuções adicionais e
+28 grupos CTest com ASan/UBSan; experimento opt-in mostrou overhead com resolver
+trivial e 176 bytes/tile. Não adotar como cache residente ou alegar ganho no jogo.
+Próximo: contexto compartilhado/compacto por chaves/versão, vínculo a revisão/
+assets e recusa de cobertura ausente antes da aplicação. Comparar outputs/custo/
+bytes antes de sombra por setor ou retry; RAM-01/H0 mantidos em 25%.
 
 Achado adicional de inicialização/cópia, não corrigido: WorldTile não inicializa/
 copia biomeTransition no construtor/operador; BaseTiles sobrescreve o flag nos

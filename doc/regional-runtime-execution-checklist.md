@@ -39,7 +39,7 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[inputs e consultas BaseTiles](sector-runtime-h0-base-tile-inputs-2026-11-09.md), com
+[observações e replay diagnóstico BaseTiles](sector-runtime-h0-base-tile-observations-2026-11-09.md), com
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
@@ -143,13 +143,18 @@ adicionais e 26 grupos CTest com ASan/UBSan. Comparador fora do hot path; retry/
 pressão real desligados. H0 em 25%.
 `2ea41cf8` explicita materiais/mods/biomas/oceano no input escalar e conserva
 consultas/escritas e estado após exceções no adaptador real, incluindo NoMod.
-Validação atual: 548 testes, 1.280 execuções adicionais e 27 grupos CTest,
-ASan/UBSan. Resolver ainda não fecha template/assets; próximo: congelar/versionar
-observações e comparar replay a partir do input original antes de cache/retry.
-Não antecipar consultas ou reaproveitar tile parcial; auditar biomeTransition/
-default/cópias antes de normalizar. RAM-01/H0 em 25%, programa 3,1% inalterados.
-Streaming real com assets/mods
-e executor de conclusões ainda pendentes.
+Validação daquela etapa: 548 testes, 1.280 execuções adicionais e 27 grupos CTest,
+ASan/UBSan. Resolver ainda não fecha template/assets.
+`abfc3834` entrega captura versionada e replay diagnóstico com preflight completo
+de consultas/input/estado inicial, sem chamar resolver vivo. 575 testes, 1.820
+execuções adicionais e 28 grupos CTest aprovados, ASan/UBSan; microexperimento
+separado executado. API fora do produtor normal, fita com overhead/176 bytes por
+tile: não é cache/retry integrado ou ganho de entrega. Próximo: contexto compacto
+compartilhado por chaves/versão e vínculo a revisão/assets, com recusa de cobertura
+ausente antes de aplicar. Não antecipar consultas/reaproveitar tile parcial;
+auditar biomeTransition/default/cópias antes de normalizar. RAM-01/H0 em 25%,
+programa 3,1% inalterados. Streaming real com assets/mods e executor de conclusões
+ainda pendentes.
 
 A proposta vigente foi retrabalhada para aproveitar CPU, RAM e GPU:
 [sector-generation-hardware-design-2026-11-08.md](sector-generation-hardware-design-2026-11-08.md).
