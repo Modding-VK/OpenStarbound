@@ -35,15 +35,19 @@ os contratos por subsistema. O [roadmap detalhado](sector-runtime/roadmap.md)
 relaciona tarefas, dependências, propósito e critérios de conclusão; ele é a
 entrada operacional para a implementação; documentos antigos são apoio e
 histórico, sem outra fila de prioridades. Frente ativa: H0. O relatório atual é
-[ledger processual dos arrays privados](sector-runtime-h0-process-memory-2026-11-09.md).
+[templates compartilhados e estimativas v1](sector-runtime-h0-retained-estimates-2026-11-09.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
 corrigido opt-in e VAL-01/02 têm harness sintético inicial, com 26 testes H0
 aprovados naquele recorte. RAM-01 já reserva arrays antes das cópias, com
 rollback de preparação e handoff. O ledger processual observacional acompanha
 agora arrays privados sobreviventes ao mundo, sem mudar cotas ou impor novo
-teto. Próximo: templates compartilhados, metadados e produtos variáveis,
-antes do orçamento global completo. Streaming real com assets/mods
+teto. `803d4cf7` acrescenta estimativas v1 de templates compartilhados,
+metadados e planos variáveis, somente com profiling regional, separadas dos
+arrays. Validação: 115 testes, 400 execuções adicionais e nove grupos CTest,
+ASan/UBSan estritos; não é medição integral de RAM ou de throughput.
+Próximo: auditar caches privados/containers excluídos, crescimento de outputs
+e cobertura sem profiling antes de cotas globais. Streaming real com assets/mods
 e executor de conclusões ainda pendentes.
 
 A proposta vigente foi retrabalhada para aproveitar CPU, RAM e GPU:

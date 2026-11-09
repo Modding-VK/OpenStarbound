@@ -91,6 +91,12 @@ acrescenta contabilidade por lifetime do payload, independente do registro
 destruído. Ele é observacional e não substitui a cota local nem mede toda a
 RAM: publicação transfere ownership ao estado autoritativo, fora desse ledger.
 
+O [recorte de estimativas v1](sector-runtime-h0-retained-estimates-2026-11-09.md)
+acrescenta Json compartilhado, metadados e resultados variáveis assíncronos,
+com profiling regional. Essas parcelas são separadas dos arrays e não tornam
+a reserva local profunda: caches privados/allocator e outros produtos seguem
+fora. Nenhuma cota foi ampliada e o teto processual continua pendente.
+
 Com workers desligados (`sectorWorkers: 0` no modo `legacy`), o registro não
 é criado: segue o caminho síncrono. Nos modos não legados, zero pode selecionar
 workers automaticamente; não interpretar o zero isolado como desativação.

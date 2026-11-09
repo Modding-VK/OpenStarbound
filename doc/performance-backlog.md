@@ -13,12 +13,17 @@ implementado, com [relatório e testes](sector-runtime-h0-placement-identities-2
 O [recorte seguinte](sector-runtime-h0-streaming-pass-2026-11-09.md) já
 reproduz/corrige a interação de DAG-04 e inicia VAL-01/02 com um harness de
 passagens sintéticas. São 26 testes de H0 aprovados; ganho real e equivalência
-com mundo/mods continuam pendentes. O [recorte atual de RAM-01](sector-runtime-h0-memory-admission-2026-11-09.md)
+com mundo/mods continuam pendentes. O [recorte inicial de RAM-01](sector-runtime-h0-memory-admission-2026-11-09.md)
 reserva arrays antes de copiar inputs, faz rollback pré-dispatch e preserva a
 reserva após handoff. O [ledger processual seguinte](sector-runtime-h0-process-memory-2026-11-09.md)
 já agrega reservas de arrays privados com lifetime independente do mundo.
-Próximo: templates compartilhados, metadados, produtos variáveis e limites
-processuais configuráveis, preservando MOD-01 e sem ampliar admissão ainda.
+O [recorte atual de estimativas v1](sector-runtime-h0-retained-estimates-2026-11-09.md)
+mede templates compartilhados entre handles rastreados, metadados e resultados
+variáveis, condicionado a profiling regional e separado das reservas de arrays.
+São 115 testes de contratos e nove grupos CTest aprovados, sem ganho de runtime
+alegado. Próximo: caches privados, containers excluídos, crescimento de outputs
+e cobertura independente do profiling, antes de limites processuais
+configuráveis; preservar MOD-01 e não ampliar admissão com números parciais.
 Achado de CPU-01: overflow assinado na seed automática de `StarRandom.cpp:197`,
 observado em execução estrita de sanitizers; RNG de produção permanece
 inalterado. A reprodução e a separação dos testes de hash com seeds privadas

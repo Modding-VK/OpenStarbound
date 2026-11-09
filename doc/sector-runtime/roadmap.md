@@ -57,21 +57,32 @@ a RAM do pipeline. A build CMake dos contratos passou 75 testes, além de sete
 casos de hash selecionados e sete grupos CTest, com sanitizers estritos.
 Uma sentinela nula inválida foi corrigida; o overflow do RNG automático foi
 registrado para CPU-01, não corrigido. Ver
-[relatório atual e limites](../sector-runtime-h0-memory-admission-2026-11-09.md).
+[relatório da etapa e limites](../sector-runtime-h0-memory-admission-2026-11-09.md).
 
 RAM-01, segundo recorte em `65bae55c`: ledger processual observacional de arrays privados,
 com reserva única por wrapper e retenção após fechar o mundo, integrado a
 BaseTiles/halo. Inventário de produtos/caches e limites está em
 [memória](memory-and-prefetch.md); o
-[relatório atual](../sector-runtime-h0-process-memory-2026-11-09.md) delimita
+[relatório da etapa](../sector-runtime-h0-process-memory-2026-11-09.md) delimita
 validação e contadores. São 20 testes novos, 95 testes de contratos no total,
 400 repetições adicionais aprovadas e oito grupos CTest, com sanitizers
 estritos. O objeto real de geração também compilou. Isso ainda não impõe
 teto global nem mede toda a RAM.
 
-Próximo trabalho executável: RAM-01, medir/versionar tamanhos e storage único
-de templates compartilhados, metadados e saídas variáveis; depois definir
-limites processuais por hardware/configuração e reação à pressão.
+RAM-01, terceiro recorte em `803d4cf7`: estimativas v1 de Json compartilhado,
+metadados e resultados variáveis implementadas, com deduplicação por dono do
+storage entre handles rastreados. A coleta adicional exige profiling regional;
+não é RSS, cobertura integral nem reserva antes do crescimento do output.
+Ver [relatório atual](../sector-runtime-h0-retained-estimates-2026-11-09.md).
+São 20 testes novos, 115 no total, 400 execuções adicionais e nove grupos
+CTest aprovados com ASan/UBSan; objeto real de geração compilado.
+Nenhum limite, default, seed ou regra de publicação mudou.
+
+Próximo trabalho executável: RAM-01, auditar templates privados/cache por
+worker e containers excluídos; definir capacidade/allocator e cobertura sem
+profiling antes da admissão obrigatória. Cobrir crescimento de outputs e
+caminhos síncronos antes de limites processuais por hardware/configuração e
+reação à pressão. O inventário v1 é parcial, não autorização para ampliar filas.
 Manter MOD-01 explícito antes de mudar admissão ou ownership.
 Estender o harness para dependências reais e o baseline com rota/save/config
 fixos. Não ampliar admissão nem ligar previews por padrão antes desses gates.

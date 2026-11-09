@@ -214,3 +214,12 @@ a hardware/configuração e reação à pressão, sem duplicar contabilização.
 Manter MOD-01 e comparador real de outputs antes de ampliar admissão. RAM-01
 completo e os gates de H0 continuam abertos; este recorte não implementa o
 executor de H1, a nova WorldThread autoritativa ou compute GPU.
+
+### Continuação posterior — `803d4cf7`
+
+O [relatório seguinte](sector-runtime-h0-retained-estimates-2026-11-09.md)
+documenta estimativas v1 de templates Json compartilhados, metadados e planos
+variáveis. Amplia o alvo para 115 testes e nove grupos CTest; preserva as
+reservas/semântica dos arrays deste relatório. O inventário atualizado é parcial,
+condicionado a profiling regional e não impõe teto global. Este relatório
+permanece como evidência histórica de `65bae55c`, não o ponto atual de retomada.

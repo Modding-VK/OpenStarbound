@@ -25,6 +25,14 @@ usando WorkerPool real, gates controlados e oito threads. Os 20 casos passaram
 também em 20 repetições embaralhadas. São oito grupos CTest NoAssets, sem
 confundir casos únicos com repetições nem ASan/UBSan com validação de TSan.
 
+O [recorte de estimativas v1](../sector-runtime-h0-retained-estimates-2026-11-09.md)
+leva o alvo a **115 testes** e nove grupos CTest. Os 20 novos de identidade
+de storage, sizing limitado, concorrência e retenção do output passaram também
+20 vezes embaralhados (400 execuções adicionais), com ASan/UBSan estritos.
+O objeto real de geração compilou; sintaxe Tracy passou, sem linking completo.
+As estimativas exigem profiling regional e não medem toda a RAM. Custos da
+coleta e throughput ainda exigem A/B real; não há ganho presumido por teste verde.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,
