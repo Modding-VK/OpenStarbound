@@ -187,6 +187,15 @@ Não prevê todo crescimento real, não ativa pressão padrão nem conclui RAM-0
 Próximo: saída variável com retry/drenagem, dois jobs/resultados retidos sem
 espera indefinida por bytes e classificação de demanda pelo interesse real.
 
+O [recorte variável](sector-runtime-h0-variable-memory-2026-11-09.md), `8b68ab6a`,
+adiciona status atômicos e retry owner-thread limitado de produtores puros,
+com fence dos tokens físicos, evento útil para nova admissão e sem wait por
+budget no worker. Fixture com dois jobs/resultados retidos progride e confere
+bytes; 452 testes/23 grupos CTest com ASan/UBSan. Sem consumidor real ou evento
+automático, sem retry genérico de exceções. Próximo: owner/adaptador puro e
+versionado, demanda real e MOD-01/VAL-02 antes de replay. Pressão padrão
+desligada e RAM-01 parcial; não prova progresso do mundo/DAG inteiro.
+
 ## Diagnóstico
 
 Com `explorationProfiling.enabled`, os contadores fixos são:

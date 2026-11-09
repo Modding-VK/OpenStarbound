@@ -144,6 +144,16 @@ o token ou devolve previsão no hit, mantendo entrada antiga no overlap. Ledger/
 demanda entram na identidade do cache. Crescimento interno continua estimado;
 metadados, Json e planejador não migrados. Pressão padrão desligada; RAM-01 parcial.
 
+O [recorte variável](../sector-runtime-h0-variable-memory-2026-11-09.md), `8b68ab6a`,
+acrescenta status atômico ao batch e protocolo limitado de retry owner-thread
+para produtores puros. Abandona previsão insuficiente antes de alocar saída maior;
+weak fences exigem liberação de todos os tokens físicos anteriores. Deferred
+exige novo evento útil do owner, não cada poll; Impossible/Invalid e limite de
+tentativas são terminais. A política não espera no worker nem cria eventos.
+Fixture com dois workers/resultados retidos progride e confere bytes; não prova
+progresso do jogo. Retry/allocator de crédito ainda não ligados aos produtores
+reais. Ledger/demanda fixos; exceções não viram saída vazia ou retry automático.
+
 ### Inventário de ownership e cobertura atual
 
 | Produto/recurso | Dono e término da retenção | Contabilidade atual |
@@ -198,8 +208,9 @@ não foi removida. A floresta retém handles, não cópias profundas, e seu over
 diagnóstico ainda é excluído. Consolidar envelope/exclusões/pressão para o
 escopo antes de ampliar admissão; não exigir cada heap para H1 em sombra.
 O envelope consolidado expõe essas fronteiras, não remove as exclusões. Próximo:
-contrato de saída variável/retry/drenagem e dois jobs com resultados retidos,
-sem espera indefinida por bytes de saída; classificar demanda pelo interesse real.
+eventos úteis no owner e adaptador do primeiro produtor puro/versionado com
+demanda real e comparação MOD-01/VAL-02, antes de replay real. O protocolo de
+saída variável já foi testado em dois jobs controlados, não no kernel do jogo.
 Batch de BaseTiles já evita admissão parcial do array/parcela inicial do template,
 mas não garante seu crescimento completo nem progresso de todo DAG. A pressão
 opt-in não foi ativada no jogo. Não há teto RSS ou orçamento finito

@@ -152,6 +152,15 @@ do jogo/DAG. Cinco objetos de produção e sintaxe Tracy de cinco fontes aprovad
 sem linking completo. Não há novas séries; a reserva antecipada de templates
 enfileirados muda o saldo observado, não comprova RSS/throughput maiores.
 
+O [recorte variável](../sector-runtime-h0-variable-memory-2026-11-09.md) passa
+**452 testes**, 23 grupos CTest e 32 novos repetidos vinte vezes (**640 execuções
+adicionais**), ASan/UBSan. Status atômicos, fences de input/output, estados stale/
+ativos/terminais, eventos sem capacidade, concorrência de oito descritores,
+dois workers/resultados retidos, equivalência de bytes e exceções. Cinco objetos
+reais e sintaxe Tracy de cinco fontes aprovados, sem linking completo. Retry
+sem consumidor real; revisão útil do owner e cobertura física são pré-condições,
+não eventos/heap completo inferidos. Não é TSan, benchmark ou prova de todo DAG.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

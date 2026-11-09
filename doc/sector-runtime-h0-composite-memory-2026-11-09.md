@@ -9,6 +9,9 @@ Implementação: `dd59f3b42aec2536b035f7cf39c9275b614a784e`.
 · [Inventário](sector-runtime/memory-and-prefetch.md)
 · [Etapa anterior](sector-runtime-h0-atomic-memory-2026-11-09.md)
 
+Continuação: [saída variável/retry limitado](sector-runtime-h0-variable-memory-2026-11-09.md),
+`8b68ab6a`. Os resultados/manifesto abaixo permanecem os desta etapa histórica.
+
 ## Objetivo e resultado
 
 Antes, BaseTiles reservava seu array antes da cópia, mas só tentava reservar

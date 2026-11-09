@@ -1,11 +1,11 @@
 # Progressão do projeto — percentuais e ordem das tarefas
 
 Atualizado em **09/11/2026**. Branch: `Experimental`.
-Estado inspecionado: `dd59f3b42aec2536b035f7cf39c9275b614a784e`;
-última implementação: `dd59f3b4`.
+Estado inspecionado: `8b68ab6ae03984cf24e9a1c251023767472f109c`;
+última implementação: `8b68ab6a`.
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h0-composite-memory-2026-11-09.md)
+· [Último relatório técnico](../sector-runtime-h0-variable-memory-2026-11-09.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -22,7 +22,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **3,1%** — 6 marcos verificados de 196 |
 | Contratos com avanço registrado | **6 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | 420 testes, 640 execuções adicionais e 22 grupos CTest, ASan/UBSan |
+| Última evidência de testes | 452 testes, 640 execuções adicionais e 23 grupos CTest, ASan/UBSan |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,1% não significam que o jogo esteja só 3,1% pronto.** O runtime anterior
@@ -91,15 +91,15 @@ autoritativa. GPU é opcional, com fallback CPU completo.
 
 ## Próximas ações — fila imediata
 
-1. **RAM-01, em execução:** `dd59f3b4` implementa batch atômico e primeira reserva
-   composta de BaseTiles: array in place + template inicial antes do dispatch,
-   consumo sem recobrança e cache isolado por ledger/demanda. Pressão do singleton
-   continua desligada. [Cobertura/exclusões](../sector-runtime-memory-envelope.md)
-   não significam heap completo. Próximo: saída variável com adiar/repetir/drenar,
-   dois jobs/resultados retidos sem espera indefinida por bytes e demanda ligada
-   ao interesse real; depois provider único, promoção/fairness e pressão externa.
-   Não ampliar filas ou impor limite no jogo pelo teste limitado em hard.
-   Admissão 1; modelos anteriores mantidos; crescimento real ainda estimado.
+1. **RAM-01, em execução:** `8b68ab6a` acrescenta status atômicos e protocolo
+   limitado de retry owner-thread para produtores puros. Dois jobs/resultados
+   retidos progridem na fixture, com fences físicas e saídas equivalentes;
+   exceções não viram retry genérico. Ainda sem consumidor real ou evento
+   automático. Pressão padrão desligada; [cobertura](../sector-runtime-memory-envelope.md)
+   não é heap completo. Próximo: eventos úteis de drain/capacidade no owner e
+   adaptador do primeiro produtor puro/versionado, demanda real e comparador
+   MOD-01/VAL-02 antes de replay real. Depois provider único, promoção/fairness
+   e pressão externa. Não ampliar filas/defaults por teste controlado.
 2. **VAL-02, próxima entrega e apoio à primeira:** ampliar o comparador para
    candidatos, IDs, prioridades, ordem e outputs completos. Manter os controles
    de colisões de hash como gate de qualquer eliminação de cópias.
@@ -130,7 +130,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | ---: | --- | --- | --- | ---: | --- |
 | 1 | H0 | [DAG-01](dependency-scheduler.md) | Identidades estáveis | 25% | Completar identidade/versionamento e comparação integrada; IDs de colocações já testados |
 | 2 | H0 | [DAG-04](dependency-scheduler.md) | Conclusões e progresso dentro da passagem | 25% | Mailbox executiva/reação a conclusões; continuação/avanço já corrigidos no recorte |
-| 3 | H0 | [RAM-01](memory-and-prefetch.md) | Reserva e contabilização de bytes | 25% | BaseTiles composto inicial; saída variável/progresso e demanda real pendentes; pressão desligada |
+| 3 | H0 | [RAM-01](memory-and-prefetch.md) | Reserva e contabilização de bytes | 25% | Retry puro controlado testado; eventos/adaptador real, demanda, provider/fairness pendentes; pressão desligada |
 | 4 | H0 | [VAL-02](validation-and-telemetry.md) | Comparador de outputs e produtores controlados | 25% | Fluxo completo de candidatos/outputs e dependências reais |
 | 5 | H0 | [MOD-01](compatibility.md) | Classificar operações por efeito | 25% | Auditoria completa do escopo que ganhará concorrência |
 | 6 | H0 | [VAL-01](validation-and-telemetry.md) | Benchmark de streaming | 25% | Rota/save/config fixos, streaming real e A/B equivalente |
@@ -184,12 +184,12 @@ de todas as implementações antigas para conceder crédito retroativo.
 | --- | --- | --- |
 | DAG-01 | `d72b7239`, [identidades de colocações](../sector-runtime-h0-placement-identities-2026-11-08.md) | Recorte de colocações, não todo o contrato de identidade/integração |
 | DAG-04 | `2131ead3`, [passagem/continuação](../sector-runtime-h0-streaming-pass-2026-11-09.md) | Não implementa a mailbox executiva nem reação a conclusões na mesma passagem |
-| RAM-01 | Recortes `5c3c4c8f` a `dd59f3b4`, [inventário](memory-and-prefetch.md), [envelope](../sector-runtime-memory-envelope.md) e [último relatório](../sector-runtime-h0-composite-memory-2026-11-09.md) | Batch/BaseTiles iniciais; faltam crescimento/saída variável e progresso, demanda real, provider/fairness, qualidade e pressão externa; nota não sobe por quantidade de testes |
+| RAM-01 | Recortes `5c3c4c8f` a `8b68ab6a`, [inventário](memory-and-prefetch.md), [envelope](../sector-runtime-memory-envelope.md) e [último relatório](../sector-runtime-h0-variable-memory-2026-11-09.md) | Batch/BaseTiles iniciais e retry controlado; faltam eventos/adaptador real, demanda, provider/fairness, qualidade e pressão externa; nota não sobe por quantidade de testes |
 | VAL-02 | [Harness inicial](../sector-runtime-h0-streaming-pass-2026-11-09.md) e [sampler/controles de hash](../sector-runtime-h0-planning-storage-2026-11-09.md) | Comparação ainda não cobre o streaming/mundo completo |
 | MOD-01 | [Leitores imutáveis](../sector-runtime-h0-distribution-bundles-2026-11-09.md) e [proteção da seleção](../sector-runtime-h0-planning-storage-2026-11-09.md) | Auditoria restrita, não de todos os efeitos/inicializadores |
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 
-Os 420 testes e demais números do resumo provêm do **último relatório técnico**,
+Os 452 testes e demais números do resumo provêm do **último relatório técnico**,
 no cenário NoAssets, não de streaming integrado. A criação original do painel
 foi documental; os avanços posteriores de runtime estão associados aos commits/
 relatórios do histórico. Atualizar este painel não acrescenta uma medição de
@@ -223,6 +223,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 09/11/2026 | Implementações `ada755bf`/`0915af25` | RAM-01: envelope das 14 classes e modelo isolado de pressão/histerese, preservado em entradas inválidas; 354 testes/20 grupos. Só métricas no runtime, reserva/controlador e progresso pendentes; sem novo marco completo, RAM-01/H0 em 25% | 3,1% |
 | 09/11/2026 | Implementação `4b5aed18` | RAM-01: ledger opt-in com check/charge atômicos e demanda em tokens/allocators; 388 testes/21 grupos. Singleton desligado, reserva composta e progresso pendentes; sem novo marco completo, RAM-01/H0 em 25% | 3,1% |
 | 09/11/2026 | Implementação `dd59f3b4` | RAM-01: batch e BaseTiles com array/template inicial antes do dispatch; cache sem recobrança e isolado por ledger/demanda. 420 testes/22 grupos; saída variável/progresso real pendentes, pressão desligada. Sem novo marco completo, RAM-01/H0 em 25% | 3,1% |
+| 09/11/2026 | Implementação `8b68ab6a` | RAM-01: status atômicos e retry limitado de produtores puros, com fences físicas e dois jobs/resultados retidos. 452 testes/23 grupos; falta integração/eventos/demanda real, pressão desligada. Sem novo marco completo, RAM-01/H0 em 25% | 3,1% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

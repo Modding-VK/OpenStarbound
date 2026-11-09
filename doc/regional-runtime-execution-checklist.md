@@ -39,7 +39,7 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[reserva composta de BaseTiles](sector-runtime-h0-composite-memory-2026-11-09.md), com
+[saída variável/retry limitado](sector-runtime-h0-variable-memory-2026-11-09.md), com
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
@@ -116,11 +116,18 @@ nova. Validação daquela etapa: 388 testes, 680 execuções adicionais e 21 gru
 CTest, ASan/UBSan; admissão modelo 1. A reserva composta era o próximo recorte.
 `dd59f3b4` admite array in place e template inicial de BaseTiles antes de copiar/
 despachar, com tokens consumidos pelo cache sem recobrança e isolamento ledger/
-demanda. Validação atual: 420 testes, 640 execuções adicionais e 22 grupos CTest,
+demanda. Validação daquela etapa: 420 testes, 640 execuções adicionais e 22 grupos CTest,
 ASan/UBSan. Pressão padrão desligada; conclusão em hard só para produtor limitado,
 não todo crescimento real/DAG. RAM-01/H0 em 25%; próximo: saída variável com
 retry/drenagem e dois jobs/resultados retidos sem espera indefinida por bytes,
 demanda ligada ao interesse real; depois provider/config/fairness processuais.
+`8b68ab6a` entrega status atômicos e retry limitado para produtores puros,
+sem espera por budget no worker; duas produções/resultados retidos progridem
+na fixture com fences físicas e bytes equivalentes. Validação atual: 452 testes,
+640 execuções adicionais e 23 grupos CTest com ASan/UBSan. Retry sem consumidor
+real/evento automático; pressão padrão desligada. RAM-01/H0 em 25%; próximo:
+eventos úteis no owner, adaptador puro/versionado, demanda real e comparação
+MOD-01/VAL-02 antes de replay real; depois provider/config/fairness processuais.
 Streaming real com assets/mods
 e executor de conclusões ainda pendentes.
 

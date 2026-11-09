@@ -3,7 +3,7 @@
 Atualização: 09/11/2026. Branch: `Experimental`. Runtime de partida:
 `7ca7ed2a`; recortes de H0: `d72b7239`, `2131ead3`, `5c3c4c8f`, `65bae55c`,
 `803d4cf7`, `739067b1`, `1bd348e6`, `34c76ea3`, `887149c0`, `cad311d1`, `25cecf95`,
-`c4d7ddb3`, `730e36ba`, `45db2402`, `49a12fbf`, `ada755bf`, `0915af25`, `4b5aed18` e `dd59f3b4`;
+`c4d7ddb3`, `730e36ba`, `45db2402`, `49a12fbf`, `ada755bf`, `0915af25`, `4b5aed18`, `dd59f3b4` e `8b68ab6a`;
 documentação de arquitetura de partida: `8d3b0ade`.
 
 Este é o **programa principal de desenvolvimento**, adotado pelo usuário em
@@ -98,7 +98,7 @@ demanda preservada em tokens/allocators. Testa headroom de dependências,
 overlap/rollback e concorrência; o singleton do jogo permanece desligado.
 São 388 testes, 680 execuções adicionais e 21 grupos CTest com ASan/UBSan;
 admissão modelo 1. Naquela etapa faltava reserva composta de jobs.
-O [relatório vigente](../sector-runtime-h0-composite-memory-2026-11-09.md), `dd59f3b4`,
+O [recorte composto](../sector-runtime-h0-composite-memory-2026-11-09.md), `dd59f3b4`,
 admite conjuntamente array in place e parcela inicial do template de BaseTiles
 antes de copiar/despachar. O cache consome tokens sem recobrança e isola ledger/
 demanda; overlap/rollback e conclusão de produtor limitado em hard testados.
@@ -106,6 +106,14 @@ São 420 testes, 640 execuções adicionais e 22 grupos CTest com ASan/UBSan.
 Pressão padrão segue desligada; crescimento real do template permanece estimado,
 não há prova de progresso do DAG completo ou ganho medido. Próximo: saída
 variável/retry/drenagem e demanda ligada ao interesse real. RAM-01/H0 em 25%.
+O [relatório vigente](../sector-runtime-h0-variable-memory-2026-11-09.md), `8b68ab6a`,
+acrescenta status atômico e protocolo limitado de retry para produtores puros,
+sem espera por budget no worker e com fence de liberação física. Dois jobs e
+resultados retidos progridem na fixture; exceções não viram retry genérico.
+São 452 testes, 640 execuções adicionais e 23 grupos CTest com ASan/UBSan.
+Retry não está conectado à geração real; pressão padrão desligada. Próximo:
+eventos úteis no owner e adaptador de produtor puro/versionado com demanda real
+e comparador MOD-01/VAL-02. RAM-01/H0 seguem em 25%, sem ganho de setores/s medido.
 Orçamento processual completo, benchmark real e equivalência com assets
 continuam pendentes.
 Isso não implementa o executor, a nova WorldThread ou compute GPU.

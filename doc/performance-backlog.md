@@ -112,7 +112,7 @@ grupos CTest, ASan/UBSan. Singleton do jogo ainda desligado, sem limite novo;
 admissão modelo 1. RAM-01/H0 em 25%; próximo: contrato de demanda por produtor,
 reserva composta/rollback antes do dispatch e progresso do DAG, depois provider
 processual/configuração/fairness. Headroom individual não conclui todo o contrato.
-O [relatório vigente](sector-runtime-h0-composite-memory-2026-11-09.md), `dd59f3b4`,
+O [recorte composto](sector-runtime-h0-composite-memory-2026-11-09.md), `dd59f3b4`,
 entrega batch atômico e primeiro produtor BaseTiles: array input/output in place
 e estimativa inicial de template reservados antes do dispatch. Cache consome
 tokens/libera previsão no hit e isola ledger/demanda. São 420 testes, 640
@@ -121,6 +121,16 @@ crescimento real continua estimado. Próximo: saída variável/retry/drenagem,
 fixture de dois jobs/resultados retidos sem espera indefinida por bytes e demanda
 real, depois provider processual/fairness/configuração. RAM-01/H0 em 25%, sem
 ganho medido ou garantia de progresso de todo DAG. Não ampliar filas/defaults.
+O [relatório vigente](sector-runtime-h0-variable-memory-2026-11-09.md), `8b68ab6a`,
+entrega admissão tipada e retry limitado owner-thread de produtores puros:
+aguarda liberação física sem bloquear worker, evita nova consulta no mesmo
+evento de pressão e encerra pedidos impossíveis/tentativas esgotadas. Dois jobs
+com resultados retidos progridem na fixture, preservando bytes; 452 testes,
+640 execuções adicionais e 23 grupos CTest com ASan/UBSan. Sem consumidor real
+ou evento automático; exceções continuam erros. Próximo: eventos úteis no owner,
+adaptador puro/versionado com demanda real e MOD-01/VAL-02 antes de replay.
+Provider/fairness/configuração e benchmark integrado seguem gates. RAM-01/H0
+em 25%, pressão padrão desligada, sem ganho de throughput alegado.
 Achado de CPU-01: overflow assinado na seed automática de `StarRandom.cpp:197`,
 observado em execução estrita de sanitizers; RNG de produção permanece
 inalterado. A reprodução e a separação dos testes de hash com seeds privadas

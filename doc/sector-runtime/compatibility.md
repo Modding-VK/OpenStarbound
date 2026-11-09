@@ -118,6 +118,14 @@ Previsões enfileiradas mudam os saldos observados, não o formato persistido.
 Progresso em hard foi testado com produtor limitado, não com todo heap real;
 assets/mods/saves/multiplayer e retry de crescimento variável seguem gates abertos.
 
+O [protocolo de saída variável](../sector-runtime-h0-variable-memory-2026-11-09.md)
+é restrito a produtores puros controlados, sem consumidor real. Não reexecutar
+Lua, callbacks ou mutações do mundo por capturar bad_alloc: erro físico segue
+erro, previsão insuficiente precisa de descritor explícito, unwind e fence física.
+A API anterior de batch mantém o optional; só a resposta detalhada é nova.
+MOD-01/VAL-02 precisam delimitar produtor versionado e comparar outputs antes
+de replay real. Sem novas configs/defaults, alteração de formatos ou ganho alegado.
+
 ## MOD-02 — Equivalência e versionamento
 
 Definir inputs que produzem um output: seed, template/layout, geração de

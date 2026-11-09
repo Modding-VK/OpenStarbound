@@ -203,15 +203,28 @@ primeiro consumidor BaseTiles, com array in place + parcela inicial do template
 antes do dispatch. Cache consome reserva, libera previsão no hit e mantém overlap
 do antigo; ledger/demanda fazem parte de sua identidade. São 32 casos novos,
 420 no total, 640 execuções adicionais e 22 grupos CTest com ASan/UBSan. Ver
-[relatório vigente](../sector-runtime-h0-composite-memory-2026-11-09.md).
+[relatório daquela etapa](../sector-runtime-h0-composite-memory-2026-11-09.md).
 Conclusão em hard provada somente para produtor controlado com demanda limitada;
 controle negativo expõe crescimento não previsto. Singleton desligado, modelos
 mantidos e RAM-01/H0 em 25%; não é garantia de progresso do BaseTiles real/DAG.
 
-Próximo trabalho executável: saída variável com adiar/repetir/drenar explícitos,
-fixture de dois jobs/resultados retidos sem espera indefinida por bytes de saída,
-e demanda ligada ao interesse real. Estender parcelas transferíveis ao planejador
-sem alterar cópias. Depois, provider processual único configurável, promoção de demanda,
+RAM-01, saída variável em `8b68ab6a`: admissão tipada Admitted/Deferred/Impossible/
+Invalid e protocolo owner-thread limitado para produtores puros. Fences dos
+tokens impedem nova tentativa com recursos anteriores vivos; revisões úteis
+evitam reconsultar Deferred a cada poll, sem esperar por budget no worker.
+Fixture de dois jobs com resultados retidos progride e preserva bytes de saída;
+exceções continuam falhas. São 32 novos casos, 452 no total, 640 execuções
+adicionais e 23 grupos CTest com ASan/UBSan. Ver
+[relatório vigente](../sector-runtime-h0-variable-memory-2026-11-09.md).
+Retry ainda sem consumidor real, sem evento automático ou allocator de crédito;
+modelo do protocolo 1, anteriores mantidos. Pressão padrão desligada; RAM-01/H0
+em 25%. Progresso do produtor controlado não prova todo DAG ou kernel real.
+
+Próximo trabalho executável: eventos úteis de drain/capacidade no owner e
+adaptador do primeiro produtor puro/versionado, com demanda real e comparador
+MOD-01/VAL-02 antes de replay real. Estender tokens transferíveis sem recobrança
+ou mudança de cópias; não repetir callbacks/Lua/mundo vivo por uma exceção.
+Depois, provider processual único configurável, promoção de demanda,
 fairness entre mundos e pressão externa/limites de hardware. Manter exclusões;
 não exigir cada heap para H1 em sombra nem ativar orçamento de jogo só pela
 existência do backend. Preservar fallback síncrono,
