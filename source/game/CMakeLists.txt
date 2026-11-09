@@ -179,6 +179,7 @@ SET (star_game_HEADERS
     StarWorldGenerationMemoryRetry.hpp
     StarWorldGenerationBaseTileLiquid.hpp
     StarWorldGenerationBaseTileInput.hpp
+    StarWorldGenerationBaseTileObservation.hpp
     StarWorldGenerationBaseTiles.hpp
     StarWorldGenerationBufferAllocator.hpp
     StarWorldGenerationImmutableArray.hpp

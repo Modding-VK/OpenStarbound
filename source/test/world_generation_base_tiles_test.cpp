@@ -1,9 +1,13 @@
 #include "StarWorldGenerationBaseTiles.hpp"
 #include "StarWorldGenerationBaseTileInput.hpp"
+#include "StarWorldGenerationBaseTileObservation.hpp"
 #include "StarWorldGenerationMemory.hpp"
 #include "StarWorkerPool.hpp"
 
 #include <array>
+#include <algorithm>
+#include <chrono>
+#include <cstdio>
 #include <cstring>
 #include <functional>
 #include <limits>
@@ -586,4 +590,298 @@ TEST(WorldGenerationBaseTileInputsTest, ObserversSeeTheSameStagedWritesBeforeEac
   EXPECT_EQ(resolver.events[2].state[5], 31u); EXPECT_EQ(resolver.events[2].state[6], 5u);
   EXPECT_EQ(resolver.events[3].state[8], 22u); EXPECT_EQ(resolver.events[3].state[12], DefaultMaterialColorVariant);
   for (unsigned i = 0; i < 6; ++i) EXPECT_EQ(resolver.events[i].state[15], floatBits(4.5f));
+}
+
+namespace {
+using Observation = WorldGenerationBaseTileObservation;
+using ObservedLookup = WorldGenerationBaseTileLookup;
+Observation capturedTile() {
+  ServerTile tile; populate(tile); tile.foreground = tile.background = NullMaterialId;
+  Observation observation; observeWorldGenerationBaseTile(tile, tileInput(), FrozenResolver{}, observation);
+  return observation;
+}
+void expectCaptureRefused(Observation const& observation) {
+  Pair pair; missing(pair);
+  EXPECT_FALSE(replayWorldGenerationBaseTile(pair.b, tileInput(), observation));
+  EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+}
+}
+
+TEST(WorldGenerationBaseTileObservationTest, DefaultCaptureIsInvalidAndHasValueOnlyStorage) {
+  static_assert(std::is_trivially_copyable<Observation>::value);
+  static_assert(std::is_standard_layout<Observation>::value);
+  Observation observation; EXPECT_FALSE(observation.valid()); expectCaptureRefused(observation);
+}
+
+TEST(WorldGenerationBaseTileObservationTest, ExistingLayersProduceACompleteEmptyTrace) {
+  Pair pair; Observation observation;
+  observeWorldGenerationBaseTile(pair.a, tileInput(), FrozenResolver{}, observation);
+  EXPECT_TRUE(observation.valid()); EXPECT_EQ(observation.count, 0u);
+  EXPECT_TRUE(replayWorldGenerationBaseTile(pair.b, tileInput(), observation));
+  EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+}
+
+TEST(WorldGenerationBaseTileObservationTest, BothMissingLayersCaptureSixOrderedKeyedValues) {
+  auto observation = capturedTile(); ASSERT_TRUE(observation.valid()); ASSERT_EQ(observation.count, 6u);
+  EXPECT_EQ(observation.lookups[0].kind, ObservedLookup::MaterialHue); EXPECT_EQ(observation.lookups[0].biome, 11u);
+  EXPECT_EQ(observation.lookups[0].material, 21u); EXPECT_EQ(observation.lookups[0].value, 19u);
+  EXPECT_EQ(observation.lookups[1].kind, ObservedLookup::SupportsMod); EXPECT_EQ(observation.lookups[1].mod, 31u);
+  EXPECT_EQ(observation.lookups[2].kind, ObservedLookup::ModHue); EXPECT_EQ(observation.lookups[2].value, 27u);
+  EXPECT_EQ(observation.lookups[3].material, 22u); EXPECT_EQ(observation.lookups[5].mod, 32u);
+}
+
+TEST(WorldGenerationBaseTileObservationTest, UnsupportedModsDoNotRecordUnperformedHueQueries) {
+  Pair pair; missing(pair); FrozenResolver resolver; resolver.support = false; Observation observation;
+  observeWorldGenerationBaseTile(pair.a, tileInput(), resolver, observation);
+  ASSERT_TRUE(observation.valid()); EXPECT_EQ(observation.count, 4u);
+  EXPECT_TRUE(replayWorldGenerationBaseTile(pair.b, tileInput(), observation));
+  EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+}
+
+TEST(WorldGenerationBaseTileObservationTest, NoModHueIsCapturedEvenForAir) {
+  Pair pair; missing(pair); auto input = tileInput(); input.foreground = input.background = {EmptyMaterialId, NoModId};
+  Observation observation; observeWorldGenerationBaseTile(pair.a, input, FrozenResolver{}, observation);
+  ASSERT_TRUE(observation.valid()); EXPECT_EQ(observation.count, 6u);
+  EXPECT_TRUE(replayWorldGenerationBaseTile(pair.b, input, observation));
+  EXPECT_EQ(pair.b.foregroundModHueShift, 27u); EXPECT_EQ(pair.b.backgroundModHueShift, 27u);
+  EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+}
+
+TEST(WorldGenerationBaseTileObservationTest, ExistingForegroundSkipsItsThreeObservations) {
+  Pair pair; pair.a.background = pair.b.background = NullMaterialId; Observation observation;
+  observeWorldGenerationBaseTile(pair.a, tileInput(), FrozenResolver{}, observation);
+  ASSERT_TRUE(observation.valid()); EXPECT_EQ(observation.count, 3u); EXPECT_EQ(observation.lookups[0].material, 22u);
+  EXPECT_TRUE(replayWorldGenerationBaseTile(pair.b, tileInput(), observation));
+  EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+}
+
+TEST(WorldGenerationBaseTileObservationTest, ExistingBackgroundSkipsItsThreeObservations) {
+  Pair pair; pair.a.foreground = pair.b.foreground = NullMaterialId; Observation observation;
+  observeWorldGenerationBaseTile(pair.a, tileInput(), FrozenResolver{}, observation);
+  ASSERT_TRUE(observation.valid()); EXPECT_EQ(observation.count, 3u); EXPECT_EQ(observation.lookups[0].material, 21u);
+  EXPECT_TRUE(replayWorldGenerationBaseTile(pair.b, tileInput(), observation));
+  EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+}
+
+TEST(WorldGenerationBaseTileObservationTest, CapturingDoesNotChangeTheLegacyQueryTraceOrStagedWrites) {
+  Pair pair; missing(pair); RecordingResolver a{pair.a}, b{pair.b}; Observation observation;
+  legacyBaseTile(pair.a, tileInput(), a); observeWorldGenerationBaseTile(pair.b, tileInput(), b, observation);
+  ASSERT_TRUE(observation.valid()); sameTrace(a, b); EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+}
+
+TEST(WorldGenerationBaseTileObservationTest, EveryThrowRecordsOnlyReturnedValuesAndPreservesPartialWrites) {
+  for (unsigned point = 1; point <= 6; ++point) {
+    Pair pair; missing(pair); RecordingResolver a{pair.a, true, point}, b{pair.b, true, point}; Observation observation;
+    EXPECT_THROW(legacyBaseTile(pair.a, tileInput(), a), std::runtime_error);
+    EXPECT_THROW(observeWorldGenerationBaseTile(pair.b, tileInput(), b, observation), std::runtime_error);
+    EXPECT_FALSE(observation.complete); EXPECT_FALSE(observation.valid()); EXPECT_EQ(observation.count, point - 1);
+    sameTrace(a, b); EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal()); expectCaptureRefused(observation);
+  }
+}
+
+TEST(WorldGenerationBaseTileObservationTest, FailedCaptureCannotLeaveAnEarlierSuccessfulCaptureValid) {
+  auto observation = capturedTile(); ASSERT_TRUE(observation.valid()); Pair pair; missing(pair); RecordingResolver resolver{pair.b, true, 1};
+  EXPECT_THROW(observeWorldGenerationBaseTile(pair.b, tileInput(), resolver, observation), std::runtime_error);
+  EXPECT_FALSE(observation.complete); EXPECT_EQ(observation.count, 0u); expectCaptureRefused(observation);
+}
+
+TEST(WorldGenerationBaseTileObservationTest, EveryRelevantOriginalFieldIsCheckedBeforeAnyWrite) {
+  std::array<std::function<void(ServerTile&)>, 14> changes{{
+      [](auto& t) { t.foreground = 3; }, [](auto& t) { ++t.foregroundHueShift; }, [](auto& t) { t.foregroundMod = 3; },
+      [](auto& t) { ++t.foregroundModHueShift; }, [](auto& t) { ++t.foregroundColorVariant; },
+      [](auto& t) { t.background = 3; }, [](auto& t) { ++t.backgroundHueShift; }, [](auto& t) { t.backgroundMod = 3; },
+      [](auto& t) { ++t.backgroundModHueShift; }, [](auto& t) { ++t.backgroundColorVariant; },
+      [](auto& t) { ++t.liquid.liquid; }, [](auto& t) { t.liquid.level = -0.0f; },
+      [](auto& t) { t.liquid.pressure = bits(0x7fc00001u); }, [](auto& t) { t.liquid.source = !t.liquid.source; }}};
+  auto observation = capturedTile();
+  for (auto change : changes) {
+    Pair pair; missing(pair); change(pair.a); change(pair.b);
+    EXPECT_FALSE(replayWorldGenerationBaseTile(pair.b, tileInput(), observation));
+    EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+  }
+}
+
+TEST(WorldGenerationBaseTileObservationTest, EveryScalarInputFieldIsCheckedBeforeAnyWrite) {
+  std::array<std::function<void(TileInput&)>, 11> changes{{
+      [](auto& v) { ++v.blockBiome; }, [](auto& v) { ++v.environmentBiome; }, [](auto& v) { v.biomeTransition = !v.biomeTransition; },
+      [](auto& v) { ++v.foreground.material; }, [](auto& v) { ++v.foreground.mod; },
+      [](auto& v) { ++v.background.material; }, [](auto& v) { ++v.background.mod; },
+      [](auto& v) { ++v.oceanLiquid; }, [](auto& v) { ++v.oceanLiquidLevel; },
+      [](auto& v) { v.encloseLiquids = !v.encloseLiquids; }, [](auto& v) { ++v.y; }}};
+  auto observation = capturedTile();
+  for (auto change : changes) {
+    auto input = tileInput(); change(input); Pair pair; missing(pair);
+    EXPECT_FALSE(replayWorldGenerationBaseTile(pair.b, input, observation));
+    EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+  }
+}
+
+TEST(WorldGenerationBaseTileObservationTest, AllThreeUnsupportedVersionsAreRejectedBeforeAnyWrite) {
+  auto observation = capturedTile(); ++observation.modelVersion; expectCaptureRefused(observation);
+  observation = capturedTile(); ++observation.inputVersion; expectCaptureRefused(observation);
+  observation = capturedTile(); ++observation.liquidVersion; expectCaptureRefused(observation);
+}
+
+TEST(WorldGenerationBaseTileObservationTest, OversizedCountsAreRejectedWithoutReadingPastTheFixedTrace) {
+  auto observation = capturedTile(); observation.count = 7; expectCaptureRefused(observation);
+  observation.count = std::numeric_limits<unsigned>::max(); expectCaptureRefused(observation);
+}
+
+TEST(WorldGenerationBaseTileObservationTest, EveryTruncatedTraceIsRejectedBeforeAnyWrite) {
+  for (unsigned count = 0; count < 6; ++count) { auto observation = capturedTile(); observation.count = count; expectCaptureRefused(observation); }
+}
+
+TEST(WorldGenerationBaseTileObservationTest, ExtraQueriesOnAnOtherwiseCompleteTraceAreRejected) {
+  Pair pair; Observation observation; observeWorldGenerationBaseTile(pair.a, tileInput(), FrozenResolver{}, observation);
+  observation.count = 1; observation.lookups[0] = capturedTile().lookups[0];
+  EXPECT_FALSE(replayWorldGenerationBaseTile(pair.b, tileInput(), observation));
+  EXPECT_EQ(pair.b.blockBiomeIndex, 3u); EXPECT_EQ(pair.b.environmentBiomeIndex, 4u);
+}
+
+TEST(WorldGenerationBaseTileObservationTest, EveryQueryKindAndArgumentIsPreflightedIncludingTheLastQuery) {
+  for (unsigned i = 0; i < 6; ++i) {
+    auto observation = capturedTile(); observation.lookups[i].kind = ObservedLookup::Invalid; expectCaptureRefused(observation);
+    observation = capturedTile(); ++observation.lookups[i].biome; expectCaptureRefused(observation);
+    observation = capturedTile(); ++observation.lookups[i].material; expectCaptureRefused(observation);
+    observation = capturedTile(); ++observation.lookups[i].mod; expectCaptureRefused(observation);
+  }
+  auto observation = capturedTile(); std::swap(observation.lookups[0], observation.lookups[3]); expectCaptureRefused(observation);
+}
+
+TEST(WorldGenerationBaseTileObservationTest, OutOfRangeHueAndBooleanValuesAreRejectedBeforeAnyWrite) {
+  for (unsigned i = 0; i < 6; ++i) {
+    auto observation = capturedTile(); observation.lookups[i].value = i % 3 == 1 ? 2u : 256u; expectCaptureRefused(observation);
+  }
+}
+
+TEST(WorldGenerationBaseTileObservationTest, BranchMatrixMatchesTheIndependentLegacyBodyAndCapturedTrace) {
+  for (unsigned flags = 0; flags < 4096; ++flags) {
+    Pair pair; ServerTile replay; populate(replay); auto input = tileInput();
+    pair.a.foreground = pair.b.foreground = replay.foreground = flags & 1 ? NullMaterialId : MaterialId(1);
+    pair.a.background = pair.b.background = replay.background = flags & 2 ? NullMaterialId : MaterialId(2);
+    input.foreground = {flags & 4 ? EmptyMaterialId : MaterialId(21), flags & 16 ? NoModId : ModId(31)};
+    input.background = {flags & 8 ? EmptyMaterialId : MaterialId(22), flags & 32 ? NoModId : ModId(32)};
+    input.blockBiome = flags & 128 ? NullBiomeIndex : BiomeIndex(11); input.biomeTransition = flags & 256;
+    input.oceanLiquid = flags & 512 ? EmptyLiquidId : LiquidId(3); input.encloseLiquids = flags & 1024; input.y = flags & 2048 ? 10 : 0;
+    RecordingResolver a{pair.a, bool(flags & 64)}, b{pair.b, bool(flags & 64)}; Observation observation;
+    legacyBaseTile(pair.a, input, a); observeWorldGenerationBaseTile(pair.b, input, b, observation);
+    ASSERT_TRUE(observation.valid()); sameTrace(a, b);
+    ASSERT_TRUE(replayWorldGenerationBaseTile(replay, input, observation));
+    ASSERT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+    ASSERT_TRUE(compareWorldGenerationBaseTile(pair.a, replay).equal());
+  }
+}
+
+TEST(WorldGenerationBaseTileObservationTest, OneImmutableObservationCanServeIndependentCursorsAcrossFourWorkers) {
+  auto expected = std::make_unique<ServerTileSectorArray::Array>(), actual = std::make_unique<ServerTileSectorArray::Array>();
+  auto observation = capturedTile();
+  for (unsigned x = 0; x < 32; ++x) for (unsigned y = 0; y < 32; ++y) {
+    auto& a = (*expected)(x, y); auto& b = (*actual)(x, y); populate(a); populate(b);
+    a.foreground = a.background = b.foreground = b.background = NullMaterialId;
+    legacyBaseTile(a, tileInput(), FrozenResolver{});
+  }
+  WorkerPool pool("Frozen BaseTiles observations contract", 4); std::vector<WorkerPoolPromise<bool>> promises;
+  for (unsigned part = 0; part < 4; ++part) promises.push_back(pool.addProducer<bool>([&, part] {
+    for (unsigned i = part * 256; i < (part + 1) * 256; ++i)
+      if (!replayWorldGenerationBaseTile((*actual)(i / 32, i % 32), tileInput(), observation)) return false;
+    return true;
+  }));
+  for (auto& promise : promises) { EXPECT_TRUE(promise.get()); }
+  pool.finish(); EXPECT_TRUE(compareWorldGenerationBaseTiles(*expected, *actual, baseTicket()).equal());
+  EXPECT_TRUE(observation.valid()); EXPECT_EQ(observation.count, 6u);
+}
+
+TEST(WorldGenerationBaseTileObservationTest, LiquidGuardAndKeepPreserveSignedZeroAndNanPayloadBits) {
+  Pair pair; pair.a.foreground = pair.b.foreground = EmptyMaterialId;
+  pair.a.liquid.level = pair.b.liquid.level = -0.0f; pair.a.liquid.pressure = pair.b.liquid.pressure = bits(0x7fc00123u);
+  auto input = tileInput(); input.encloseLiquids = false; input.oceanLiquid = EmptyLiquidId; Observation observation;
+  observeWorldGenerationBaseTile(pair.a, input, FrozenResolver{}, observation);
+  EXPECT_TRUE(replayWorldGenerationBaseTile(pair.b, input, observation));
+  EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+  pair.b.liquid.level = 0.0f; EXPECT_FALSE(replayWorldGenerationBaseTile(pair.b, input, observation));
+}
+
+TEST(WorldGenerationBaseTileObservationTest, CaptureAcceptsInputAliasedToTheOutputBeforeResettingIt) {
+  Pair pair; missing(pair); Observation observation; observation.input = tileInput();
+  observeWorldGenerationBaseTile(pair.a, observation.input, FrozenResolver{}, observation);
+  EXPECT_TRUE(replayWorldGenerationBaseTile(pair.b, tileInput(), observation));
+  EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+}
+
+TEST(WorldGenerationBaseTileObservationTest, ReplayDoesNotRetainOrConsultTheOriginalResolver) {
+  Pair pair; missing(pair); Observation observation;
+  { RecordingResolver resolver{pair.a}; observeWorldGenerationBaseTile(pair.a, tileInput(), resolver, observation); }
+  EXPECT_TRUE(replayWorldGenerationBaseTile(pair.b, tileInput(), observation));
+  EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+}
+
+TEST(WorldGenerationBaseTileObservationTest, RepeatedReplayStartsFromFreshOriginalsNotAPersistentCursor) {
+  auto observation = capturedTile();
+  for (unsigned i = 0; i < 10; ++i) {
+    Pair pair; missing(pair); legacyBaseTile(pair.a, tileInput(), FrozenResolver{});
+    EXPECT_TRUE(replayWorldGenerationBaseTile(pair.b, tileInput(), observation));
+    EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+  }
+}
+
+TEST(WorldGenerationBaseTileObservationTest, PartialTileIsRejectedEvenWhenTheProposedMaterialRemainsNull) {
+  Pair pair; missing(pair); auto input = tileInput(); input.foreground.material = NullMaterialId; Observation observation;
+  observeWorldGenerationBaseTile(pair.a, input, FrozenResolver{}, observation);
+  RecordingResolver fail{pair.b, true, 1}; EXPECT_THROW(applyWorldGenerationBaseTile(pair.b, input, fail), std::runtime_error);
+  EXPECT_EQ(pair.b.foreground, NullMaterialId); auto before = Observation::sourceState(pair.b);
+  EXPECT_FALSE(replayWorldGenerationBaseTile(pair.b, input, observation)); EXPECT_EQ(Observation::sourceState(pair.b), before);
+}
+
+TEST(WorldGenerationBaseTileObservationTest, UnrelatedInitializedFieldsPassThroughAndAreNotAContentKey) {
+  Pair pair; missing(pair); auto observation = capturedTile();
+  for (auto* tile : {&pair.a, &pair.b}) {
+    tile->rootSource = Vec2I{99, 55}; tile->dungeonId = 88; tile->collisionCacheDirty = true;
+    TileDamageStatusTestAccess::change(tile->foregroundDamage, 1);
+  }
+  legacyBaseTile(pair.a, tileInput(), FrozenResolver{});
+  EXPECT_TRUE(replayWorldGenerationBaseTile(pair.b, tileInput(), observation));
+  EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal()); EXPECT_EQ(pair.b.dungeonId, 88u);
+}
+
+TEST(WorldGenerationBaseTileObservationTest, EqualQueryKeysCanHaveDifferentPositionDependentReturnedValues) {
+  struct Resolver {
+    mutable unsigned cursor = 0;
+    MaterialHue materialHue(BiomeIndex, MaterialId) const { return MaterialHue(++cursor); }
+    bool supportsMod(MaterialId, ModId) const { return ++cursor != 2; }
+    MaterialHue modHue(BiomeIndex, ModId) const { return MaterialHue(++cursor); }
+  } resolver;
+  Pair pair; missing(pair); auto input = tileInput(); input.background = input.foreground; Observation observation;
+  observeWorldGenerationBaseTile(pair.a, input, resolver, observation); ASSERT_TRUE(observation.valid()); EXPECT_EQ(observation.count, 5u);
+  EXPECT_TRUE(replayWorldGenerationBaseTile(pair.b, input, observation)); EXPECT_NE(pair.b.foregroundHueShift, pair.b.backgroundHueShift);
+  EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+}
+
+// Explicit opt-in micro-cost experiment, not a gameplay throughput benchmark or
+// a timing assertion in CI. Preallocate/initialize outside the measured ranges.
+TEST(WorldGenerationBaseTileObservationTest, DISABLED_SyntheticObservationCosts) {
+  constexpr unsigned count = 8192, rounds = 9;
+  std::vector<ServerTile> tiles(count); std::vector<Observation> observations(count);
+  std::array<std::array<double, rounds>, 3> timings{}; auto input = tileInput(); FrozenResolver resolver;
+  size_t checksum = 0;
+  for (unsigned round = 0; round < rounds; ++round) for (unsigned position = 0; position < 3; ++position) {
+    unsigned mode = (round + position) % 3;
+    for (auto& tile : tiles) { populate(tile); tile.foreground = tile.background = NullMaterialId; }
+    if (mode == 2) {
+      auto observation = capturedTile(); for (auto& value : observations) value = observation;
+    }
+    auto begin = std::chrono::steady_clock::now();
+    for (unsigned i = 0; i < count; ++i) {
+      if (mode == 0) applyWorldGenerationBaseTile(tiles[i], input, resolver);
+      else if (mode == 1) observeWorldGenerationBaseTile(tiles[i], input, resolver, observations[i]);
+      else checksum += replayWorldGenerationBaseTile(tiles[i], input, observations[i]);
+    }
+    timings[mode][round] = std::chrono::duration<double, std::nano>(std::chrono::steady_clock::now() - begin).count() / count;
+    for (auto const& tile : tiles) checksum += tile.foregroundHueShift + tile.backgroundModHueShift;
+  }
+  for (unsigned mode = 0; mode < 3; ++mode) {
+    std::sort(timings[mode].begin(), timings[mode].end());
+    std::printf("BaseTileObservationCost mode=%u tiles=%u rounds=%u medianNs=%.2f minNs=%.2f maxNs=%.2f captureBytes=%zu\n",
+        mode, count, rounds, timings[mode][rounds / 2], timings[mode].front(), timings[mode].back(), sizeof(Observation));
+  }
+  EXPECT_EQ(checksum, size_t(rounds) * count * (3 * (19 + 27) + 1));
 }

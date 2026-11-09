@@ -165,6 +165,7 @@ FOREACH(world_region_test_suite
     WorldGenerationBaseTileLiquidTest
     WorldGenerationBaseTilesTest
     WorldGenerationBaseTileInputsTest
+    WorldGenerationBaseTileObservationTest
     WorldGenerationEstimateTest
     WorldGenerationWorkerCacheTest
     WorldGenerationBufferTest
