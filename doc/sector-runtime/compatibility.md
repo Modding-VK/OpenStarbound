@@ -167,10 +167,18 @@ O [catálogo de consultas](../sector-runtime-h0-base-tile-lookup-context-2026-11
 aplica só após cobertura integral e scope equivalente; miss não escreve e permite
 escolher o legado intacto, inclusive sua exceção/estado parcial. Conflitos de
 resposta por chave invalidam o builder, mas amostras consistentes não certificam
-resolver arbitrário puro. Scope declara gerações: reload/assets/material reais
-ainda não ligados. Catálogo não é guard de snapshot original ou autorização de
+resolver arbitrário puro. Catálogo não é guard de snapshot original ou autorização de
 retry; ownership/revisões vivos permanecem gates. Fora do produtor normal, sem
 mudança de cópia/RNG/Lua/save e sem validação integrada de mods/multiplayer.
+
+O [binding modelo 1/scope 2](../sector-runtime-h0-lookup-source-generations-2026-11-09.md)
+usa clocks reais de Root/Assets e versões das definições de materiais. Mantém
+ordem dos resets/listeners e não reconstrói o banco por hotReload. Durante mudança
+ou falha não emite vínculo válido; a retirada no encerramento não mantém Root vivo.
+Refused garante ausência de writes; Stale após aplicação exige descartar saída
+privada, não fallback/retry nesse buffer. Applied ainda exige revalidação pelo
+dono. Metadata não sincroniza conteúdos nem monitora todo disco/cache; lifecycle
+e locks legados continuam necessários. Sem execução integrada de reload/assets.
 
 ## MOD-02 — Equivalência e versionamento
 

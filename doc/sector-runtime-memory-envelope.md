@@ -5,7 +5,7 @@ Estado: H0 / RAM-01, `Experimental`, 09/11/2026.
 · [Roadmap](sector-runtime/roadmap.md) · [Relatório da entrega](sector-runtime-h0-capacity-kernel-2026-11-09.md)
 
 Continuidade de identidade/equivalência: [contrato BaseTiles](sector-runtime-base-tiles-contract.md)
-e [último relatório](sector-runtime-h0-base-tile-lookup-context-2026-11-09.md).
+e [último relatório](sector-runtime-h0-lookup-source-generations-2026-11-09.md).
 
 Este contrato delimita o **subconjunto privado de geração contabilizado**.
 Não redefine RAM-01 como orçamento de todo o motor e não transforma estimativa
@@ -249,8 +249,11 @@ de ativar um orçamento para tarefas reais:
    heap; observações diagnósticas congeladas não são contexto profundo ou replay
    integrado. Fita fora do produtor normal, 176 bytes/tile nesta ABI; não está
    implicitamente no ledger. Catálogo compacto de capacidade fixa já foi testado,
-   não integrado: scope ainda declarado. Ligar gerações/lifetime/leitores reais,
-   assets/cobertura e demanda, MOD-01/VAL-02, antes de integrar replay. Contabilizar
+   não integrado ao produtor: scope 2/binding já usam clocks reais de Root/Assets
+   e versões de materiais. Strong handles retêm fontes inteiras mesmo inválidos;
+   não contar só 72 bytes de binding/64 de clock desta ABI ou declarar globals
+   cobertos pelo ledger. Comparar leitores/lifecycle/assets/cobertura e demanda,
+   MOD-01/VAL-02, antes de integrar replay. Contabilizar
    objeto/backing reservado/donos antes de alocar, não só entradas ativas nem por
    leitor. Não reutilizar tiles parciais após exceção.
    Auditar biomeTransition/default/cópias. Estender tokens

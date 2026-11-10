@@ -225,9 +225,14 @@ microcusto com resolver trivial mostrou overhead e 176 bytes/tile.
 O [catálogo compartilhado](sector-runtime-h0-base-tile-lookup-context-2026-11-09.md),
 `4e5cc6c1`, deduplica oito bytes por chave, sela e recusa scope/cobertura divergentes
 antes de escrever. 601 testes/29 grupos CTest, ASan/UBSan. Protótipo fora do jogo;
-scope de assets/material declarado, não ligado a reload. Próximo: gerações/
-lifetime/leitores reais antes de sombra por setor com admissão/bytes. Não há
+scope de assets/material era declarado naquela etapa. Não há
 ganho de setores/s demonstrado ou mudança de autoridade/publicação.
+O [binding de fontes reais](sector-runtime-h0-lookup-source-generations-2026-11-09.md),
+`5413e13a`, liga clocks de Root/Assets e versão de definições de materiais, handles
+fortes e scope 2. 629 testes/31 grupos CTest, ASan/UBSan, com fontes controladas;
+hooks compilados, não execução de reload/assets reais. Stale depois de aplicar
+descarta output; não é lease, autoridade de commit ou consumidor real do catálogo.
+Próximo: comparar leitores reais/catálogo/fita e lifecycle antes de sombra com bytes.
 
 ## Diagnóstico
 

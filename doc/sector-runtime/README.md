@@ -1,9 +1,9 @@
 # Programa de geração e runtime de setores
 
-Atualização: 09/11/2026. Branch: `Experimental`. Runtime de partida:
+Atualização: 10/11/2026. Branch: `Experimental`. Runtime de partida:
 `7ca7ed2a`; recortes de H0: `d72b7239`, `2131ead3`, `5c3c4c8f`, `65bae55c`,
 `803d4cf7`, `739067b1`, `1bd348e6`, `34c76ea3`, `887149c0`, `cad311d1`, `25cecf95`,
-`c4d7ddb3`, `730e36ba`, `45db2402`, `49a12fbf`, `ada755bf`, `0915af25`, `4b5aed18`, `dd59f3b4`, `8b68ab6a`, `8e190742`, `f7785963`, `2ea41cf8`, `abfc3834` e `4e5cc6c1`;
+`c4d7ddb3`, `730e36ba`, `45db2402`, `49a12fbf`, `ada755bf`, `0915af25`, `4b5aed18`, `dd59f3b4`, `8b68ab6a`, `8e190742`, `f7785963`, `2ea41cf8`, `abfc3834`, `4e5cc6c1` e `5413e13a`;
 documentação de arquitetura de partida: `8d3b0ade`.
 
 Este é o **programa principal de desenvolvimento**, adotado pelo usuário em
@@ -143,14 +143,20 @@ do estado original: 575 testes, 1.820 execuções adicionais e 28 grupos CTest,
 ASan/UBSan. API diagnóstica fora do caminho normal; não ativa replay de tarefas.
 Microcusto com resolver trivial revelou overhead e 176 bytes/tile nesta ABI:
 não adotar a fita como cache residente.
-O [relatório vigente](../sector-runtime-h0-base-tile-lookup-context-2026-11-09.md),
+O [recorte do catálogo](../sector-runtime-h0-base-tile-lookup-context-2026-11-09.md),
 `4e5cc6c1`, entrega catálogo selado sem heap, oito bytes por chave única e scope
 versionado. Cobertura é conferida antes de escrever; conflitos invalidam o builder.
 601 testes, 2.340 execuções adicionais e 29 grupos CTest, ASan/UBSan. Protótipo
 fora do produtor normal: gerações de assets/material ainda declaradas, não
-conectadas a reload real. Próximo: gerações/lifetime reais e comparação com os
-leitores do motor antes de sombra por setor com admissão/bytes. Experimento local
+conectadas a reload real naquela etapa. Experimento local
 de memória/custo não mede entrega no jogo ou ganho de WorldTemplate.
+O [relatório vigente](../sector-runtime-h0-lookup-source-generations-2026-11-09.md),
+`5413e13a`, liga clocks a Root/Assets e versões às definições de materiais, com
+handles fortes e scope 2. Refused não escreve; Stale após cálculo exige descarte.
+629 testes, 2.900 execuções adicionais e 31 grupos CTest, ASan/UBSan. Hooks reais
+compilados, testes com fontes controladas; não executou reload/assets reais.
+Catálogo ainda fora do produtor normal. Próximo: comparar leitores reais, catálogo/
+fita e reload/hotReload antes de sombra por setor com admissão/bytes e guards.
 RAM-01/H0 seguem em 25%, sem ganho de setores/s medido.
 Orçamento processual completo, benchmark real e equivalência com assets
 continuam pendentes.

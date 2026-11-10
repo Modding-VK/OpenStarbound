@@ -1,9 +1,9 @@
 # BaseTiles: identidade do produto e comparação de campos
 
-Estado: H0, `Experimental`, 09/11/2026.
+Estado: H0, `Experimental`, 10/11/2026.
 [Programa](sector-runtime/README.md) · [Roadmap](sector-runtime/roadmap.md)
 · [Memória](sector-runtime-memory-envelope.md)
-· [Relatório](sector-runtime-h0-base-tile-lookup-context-2026-11-09.md)
+· [Relatório](sector-runtime-h0-lookup-source-generations-2026-11-09.md)
 
 ## Identidade não é autorização de commit nem chave de conteúdo
 
@@ -107,11 +107,11 @@ são deduplicadas antes de inserir; recusa por escopo/capacidade/amostra inváli
 não insere parcialmente. Conflito de valor para a mesma chave invalida o builder.
 Após seal há apenas leitura compartilhada; lifetime/publicação são do chamador.
 
-WorldGenerationBaseTileLookupScope exige epoch e gerações de assets/material
-não zero, revisão de template (zero permitido) e versões de scope/input/líquido.
-Os sete campos são conferidos em add/apply. **Gerações ainda declaradas pelo
-chamador**: não ligadas aos eventos reais de reload/hotReload; não são hash de
-conteúdo, detecção automática de obsolescência ou prova de pureza por amostragem.
+WorldGenerationBaseTileLookupScope **modelo 2** exige epoch, gerações de assets/
+material e sourceEpoch de Root não zero, revisão de template (zero permitido)
+e versões scope/input/líquido. Oito campos conferidos em add/apply. A factory
+Root::worldGenerationLookupSources fornece gerações reais; scopes literais ainda
+são interface de baixo nível, não prova de frescor ou pureza por amostragem.
 
 apply resolve uma vez todas as chaves condicionais antes de qualquer write e
 usa seis bytes locais no adaptador existente. Miss, inclusive no último hue,
@@ -120,9 +120,30 @@ vivo, fallback interno ou tape por tile. Diferente do replay diagnóstico, aplic
 ao tile privado **atual**: não inclui guard de 14 campos originais ou autoriza
 retry de estado parcial. Ownership/revisões/guards vivos continuam necessários.
 
-Fora do produtor normal. No teste Context<32> ocupa 320 bytes, 256 reservados em
-entries e 48 ativos para seis chaves; não é dimensão garantida para todo mundo.
+Fora do produtor normal. No teste com scope 2, Context<32> ocupa 328 bytes,
+256 reservados em entries e 48 ativos para seis chaves; não é dimensão garantida
+para todo mundo.
 Microcusto sintético não demonstra aceleração de setores ou de WorldTemplate.
+
+## Fontes reais, clock e binding, modelo 1
+
+Root invalida seu clock em reload/hotReload/loadMods e o retira no encerramento.
+Assets tem geração própria para hotReload explícito; MaterialDatabase identifica
+as definições carregadas. IDs são processuais monotônicos sem RNG/wrap; zero é
+indisponível. Nested/overlap só publicam após todos completarem; falha mantém zero.
+Não é hash de conteúdo ou monitor de disco/cache; sincronização dos dados continua
+pelos locks existentes. Banco de materiais não é reconstruído por hotReload.
+
+Binding retém Assets/material e relógio, não Root/mundo; confere versões antes
+de produzir scope e antes/depois de aplicar. Refused garante nenhum write;
+Stale após aplicação exige descartar output privado, sem fallback nesse buffer.
+Applied é checagem local, não lease/autoridade: fonte pode mudar em seguida, logo
+o dono revalida fontes/task/template/tiles no commit. Strong handles retêm fontes
+mesmo após invalidação; não cancelam/drainam jobs ou recuperam RAM automaticamente.
+
+Hooks de metadata no runtime real; catálogo ainda não chamado pelo produtor normal.
+NoAssets testa algoritmo com fontes controladas, não reload/assets reais. Próximo
+escopo exige leitores reais e validação integrada antes de uso/sombra por setor.
 
 ## Comparação de campos, modelo 1
 
@@ -180,10 +201,10 @@ puras de constructor/reset de TileDamageStatus foram movidas sem mudança de
 corpo para permitir esses testes sem ligar Root/assets; dano/recovery/codec não
 mudaram. CMake registra a nova unidade no jogo e no alvo NoAssets.
 
-Próximo: gerações e lifetime reais de assets/material nas fronteiras de reload/
-hotReload, epoch/revisão de template e auditoria das mutações. Comparar catálogo
-de leitores reais/cobertura/misses antes de sombra por setor, com admissão/bytes
-e comparação. Não antecipar consultas nem reaproveitar tile parcial.
+Próximo: comparar consultas dos leitores reais e catálogo/fita, com template/
+fontes esperados, cobertura/misses, reload/hotReload e fontes antigas retidas.
+Revalidar preparação e commit antes de sombra por setor com admissão/bytes e
+comparação. Não antecipar consultas nem reaproveitar tile parcial.
 Auditar biomeTransition antes de normalizar snapshots; versionar assets/contexto
 profundo e ligar demanda ao interesse real. Preservar gates MOD-01/VAL-02,
 baseline integrado, revisão independente e fallback CPU.

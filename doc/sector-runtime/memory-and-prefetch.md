@@ -184,12 +184,18 @@ registro é alocado/retido pelo produtor normal e nenhum byte é adicionado
 implicitamente ao ledger. Não adotar fita residente como cache; futura integração
 precisa reservar seu escopo antes de alocar.
 O [catálogo compartilhado](../sector-runtime-h0-base-tile-lookup-context-2026-11-09.md)
-usa oito bytes por chave única e backing fixo explícito: Context<32> tem 320 bytes
-totais nesta ABI, 256 reservados de entradas, 48 ativos no cenário de seis chaves.
+usa oito bytes por chave única e backing fixo explícito: Context<32> tem 328 bytes
+totais nesta ABI com scope 2 (320 no scope 1), 256 reservados de entradas, 48 ativos no cenário de seis chaves.
 Não retém fita por tile e não aloca internamente. Não confundir bytes ativos com
 reserva; futura admissão inclui objeto/donos e não recobra backing por leitor.
-Fora do produtor normal, sem nova classe/fórmula/limite no ledger. Próximo:
-gerações/lifetime e leitores reais, cobertura/misses, antes de sombra com bytes.
+Fora do produtor normal, sem nova classe/fórmula/limite no ledger.
+O [binding de fontes](../sector-runtime-h0-lookup-source-generations-2026-11-09.md)
+liga relógios reais e handles fortes: 72 bytes de binding/64 de clock nesta ABI,
+não incluindo control blocks ou as fontes inteiras retidas. Root tem shared clock,
+Assets clock embutido e materiais versão escalar. Invalidar não libera fisicamente
+fontes/caches/threads enquanto houver handles. Globals continuam fora do ledger
+privado; futura admissão precisa escopo/donos completos, sem recobrança por leitor.
+Próximo: comparar leitores/lifecycle reais e cobertura antes de sombra com bytes.
 
 ### Inventário de ownership e cobertura atual
 
@@ -245,9 +251,9 @@ não foi removida. A floresta retém handles, não cópias profundas, e seu over
 diagnóstico ainda é excluído. Consolidar envelope/exclusões/pressão para o
 escopo antes de ampliar admissão; não exigir cada heap para H1 em sombra.
 O envelope consolidado expõe essas fronteiras, não remove as exclusões. Próximo:
-gerações/lifetime reais de assets/material em reload/hotReload e comparação do
-catálogo com os leitores do motor, com cobertura/misses, antes de sombra por
-setor/cache com admissão/bytes. O scope do protótipo ainda é declarado.
+comparação do catálogo com os leitores do motor, cobertura/misses e reload/
+hotReload com fontes antigas retidas antes de sombra por setor/cache com admissão/
+bytes. Scope 2/binding já usam clocks reais, não são lease ou commit automático.
 Inputs escalares, adaptador, observações e comparador já foram entregues,
 não o contexto profundo; não antecipar consultas ou alterar cópias/RNG. Auditar
 biomeTransition antes de normalizar snapshots e

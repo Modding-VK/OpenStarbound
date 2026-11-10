@@ -262,13 +262,22 @@ capacidade explícita, deduplicação/conflitos e seal. Preflight de cobertura a
 de qualquer write; não confundir catálogo com guard de tile original. 26 casos
 novos, 601 no total, 2.340 execuções adicionais e 29 grupos CTest com ASan/UBSan;
 microexperimento separado de custo/storage. Ver
-[relatório vigente](../sector-runtime-h0-base-tile-lookup-context-2026-11-09.md).
+[relatório da etapa](../sector-runtime-h0-base-tile-lookup-context-2026-11-09.md).
 Fora do produtor normal; scope declara gerações, não detecta reload real. Não
 fecha CPU-01/produtor completo nem demonstra setores/s; H0 em 25%.
 
-Próximo trabalho executável: gerações/lifetime reais de assets/material em reload/
-hotReload, epoch/revisão de template e auditoria de mutações. Comparar catálogo
-aos leitores reais com cobertura/misses antes de sombra por setor, com admissão/
+Clocks/binding modelo 1 e scope 2 em `5413e13a`: Root/Assets têm hooks reais de
+reload/lifecycle, banco de materiais versão de definições e factory com handles
+fortes. Wrapper distingue Refused/Applied/Stale, sem autorização de commit ou
+fallback em buffer alterado. 28 testes novos, 629 no total, 2.900 execuções
+adicionais e 31 grupos CTest com ASan/UBSan. Ver
+[relatório vigente](../sector-runtime-h0-lookup-source-generations-2026-11-09.md).
+Root/Assets/MaterialDatabase compilados; testes com fontes controladas, sem
+reload/assets reais. Catálogo continua fora do produtor normal, H0 em 25%.
+
+Próximo trabalho executável: comparar leitores reais/catálogo/fita com template/
+fontes esperados, cobertura/misses, reload/hotReload, listener que falha e fontes
+retidas. Revalidar preparação e commit antes de sombra por setor, com admissão/
 bytes e outputs equivalentes. Não antecipar consultas,
 assumir resolver arbitrário puro ou alterar cópias/RNG. Auditar biomeTransition
 antes de normalizar snapshots; versionar contexto profundo/assets e ligar demanda

@@ -160,13 +160,19 @@ diagnósticos fora do produtor normal. 575 testes, 1.820 execuções adicionais 
 28 grupos CTest com ASan/UBSan; experimento opt-in mostrou overhead com resolver
 trivial e 176 bytes/tile. Não adotar como cache residente ou alegar ganho no jogo.
 RAM-01/H0 mantidos em 25%.
-O [relatório vigente](sector-runtime-h0-base-tile-lookup-context-2026-11-09.md),
+O [recorte do catálogo](sector-runtime-h0-base-tile-lookup-context-2026-11-09.md),
 `4e5cc6c1`, acrescenta catálogo/scope modelo 1, sem heap e oito bytes por resposta
 única. Preflight completo de cobertura, deduplicação e conflito fail-closed.
 601 testes, 2.340 execuções adicionais e 29 grupos CTest, ASan/UBSan. Protótipo
-fora do jogo: gerações ainda declaradas, não ligadas a reload real. Próximo:
-gerações/lifetime de assets/material e leitores reais antes de sombra por setor,
-com admissão/bytes. Custos/storage sintéticos não são ganho de setores/s.
+fora do jogo: gerações ainda declaradas naquela etapa. Custos/storage sintéticos
+não são ganho de setores/s.
+O [relatório vigente](sector-runtime-h0-lookup-source-generations-2026-11-09.md),
+`5413e13a`, liga hooks de versões a Root/Assets/material, com handles fortes,
+scope 2 e Refused/Applied/Stale. 629 testes, 2.900 execuções adicionais e 31 grupos
+CTest, ASan/UBSan. Catálogo não ativado; leitores/reload/assets reais ainda não
+executados. Próximo: comparação real/catálogo/fita com cobertura e lifecycle,
+revalidando no dono antes de sombra por setor com admissão/bytes. Não é lease,
+autoridade de commit ou ganho de entrega medido; RAM-01/H0 continuam em 25%.
 
 Achado adicional de inicialização/cópia, não corrigido: WorldTile não inicializa/
 copia biomeTransition no construtor/operador; BaseTiles sobrescreve o flag nos

@@ -1,11 +1,11 @@
 # Progressão do projeto — percentuais e ordem das tarefas
 
-Atualizado em **09/11/2026**. Branch: `Experimental`.
-Estado inspecionado: `4e5cc6c1852802ec4eba022de48afbcd9cfd171b`;
-última implementação: `4e5cc6c1`.
+Atualizado em **10/11/2026**. Branch: `Experimental`.
+Estado inspecionado: `5413e13a57b2f89860c0228c5aa563360144dac3`;
+última implementação: `5413e13a`.
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h0-base-tile-lookup-context-2026-11-09.md)
+· [Último relatório técnico](../sector-runtime-h0-lookup-source-generations-2026-11-09.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -22,7 +22,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **3,1%** — 6 marcos verificados de 196 |
 | Contratos com avanço registrado | **6 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | 601 testes, 2.340 execuções adicionais e 29 grupos CTest, ASan/UBSan; microexperimento novo opt-in separado |
+| Última evidência de testes | 629 testes, 2.900 execuções adicionais e 31 grupos CTest, ASan/UBSan; sem benchmark novo |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,1% não significam que o jogo esteja só 3,1% pronto.** O runtime anterior
@@ -91,15 +91,16 @@ autoritativa. GPU é opcional, com fallback CPU completo.
 
 ## Próximas ações — fila imediata
 
-1. **H0: DAG-01/RAM-01 com MOD-01/VAL-02:** ticket/comparador, input/adaptador,
-   observações e catálogo compacto de `4e5cc6c1` estão testados no escopo declarado.
-   [Contrato](../sector-runtime-base-tiles-contract.md): catálogo/scope modelo 1,
-   oito bytes por chave única e preflight antes de escrever, não contexto profundo
-   ou retry de tarefas. Protótipo fora do produtor normal; gerações de assets/
-   material ainda declaradas, sem vínculo automático a reload. Próximo: gerações/
-   lifetime reais em reload/hotReload e comparação com leitores do motor, cobertura/
-   misses e custo/bytes antes de sombra por setor com admissão. Não adotar fita por
-   tile, antecipar consultas, usar tile parcial ou mudar cópias/RNG. Auditar biomeTransition
+1. **H0: DAG-01/RAM-01 com MOD-01/VAL-02:** catálogo compacto e binding de fontes
+   reais de `5413e13a`, com clock/binding 1 e scope 2, estão testados no escopo
+   declarado. [Contrato](../sector-runtime-base-tiles-contract.md): hooks Root/
+   Assets/material reais, strong handles e checagem pré/pós, não read lease ou
+   commit. Refused não escreve; Stale posterior descarta output privado. Catálogo
+   fora do produtor normal; testes com fontes controladas, não reload/assets reais.
+   Próximo: comparar leitores reais/catálogo/fita, cobertura/misses e lifecycle,
+   revalidando preparação e commit antes de sombra por setor com admissão/bytes.
+   Não adotar fita por tile, antecipar consultas, usar tile parcial ou mudar
+   cópias/RNG. Auditar biomeTransition
    default/cópia antes de normalizar snapshots. Depois contexto/assets/demanda
    reais, mailbox/DAG, provider, promoção/fairness e pressão externa. A
    [cobertura de memória](../sector-runtime-memory-envelope.md) não é heap completo;
@@ -134,9 +135,9 @@ de todas as implementações antigas para conceder crédito retroativo.
 | ---: | --- | --- | --- | ---: | --- |
 | 1 | H0 | [DAG-01](dependency-scheduler.md) | Identidades estáveis | 25% | IDs de colocações e ticket BaseTiles testados; contexto profundo/integração geral pendentes |
 | 2 | H0 | [DAG-04](dependency-scheduler.md) | Conclusões e progresso dentro da passagem | 25% | Mailbox executiva/reação a conclusões; continuação/avanço já corrigidos no recorte |
-| 3 | H0 | [RAM-01](memory-and-prefetch.md) | Reserva e contabilização de bytes | 25% | Catálogo limitado fora do runtime; gerações/lifetime/consumidor reais, demanda/provider/fairness pendentes |
-| 4 | H0 | [VAL-02](validation-and-telemetry.md) | Comparador de outputs e produtores controlados | 25% | Catálogo/fita/corpo anterior cobertos; leitores/produtor/streaming reais pendentes |
-| 5 | H0 | [MOD-01](compatibility.md) | Classificar operações por efeito | 25% | Preflight de scope/cobertura; ligar gerações/lifetime a reload e auditar fontes reais antes da integração |
+| 3 | H0 | [RAM-01](memory-and-prefetch.md) | Reserva e contabilização de bytes | 25% | Clocks/binding reais, catálogo fora do produtor; retenção profunda/consumidor, demanda/provider/fairness pendentes |
+| 4 | H0 | [VAL-02](validation-and-telemetry.md) | Comparador de outputs e produtores controlados | 25% | Clock/binding com fontes controladas; leitores/reload/assets/streaming reais pendentes |
+| 5 | H0 | [MOD-01](compatibility.md) | Classificar operações por efeito | 25% | Hooks de lifecycle e scope 2; comparar leitores/fontes reais e revalidar no dono antes da integração |
 | 6 | H0 | [VAL-01](validation-and-telemetry.md) | Benchmark de streaming | 25% | Rota/save/config fixos, streaming real e A/B equivalente |
 | 7 | H1 | [DAG-02](dependency-scheduler.md) | Grafo persistente e demanda compartilhada | 0% | Grafo executivo em sombra, separado das dependências de publicação |
 | 8 | H1 | [DAG-03](dependency-scheduler.md) | Prioridade, justiça e distância correta | 0% | Prioridade herdada e justiça entre consumidores com wrap |
@@ -188,12 +189,12 @@ de todas as implementações antigas para conceder crédito retroativo.
 | --- | --- | --- |
 | DAG-01 | `d72b7239`, [identidades de colocações](../sector-runtime-h0-placement-identities-2026-11-08.md) e [ticket BaseTiles](../sector-runtime-base-tiles-contract.md), `f7785963` | Não cobre contexto profundo/assets nem todo o contrato de identidade/integração |
 | DAG-04 | `2131ead3`, [passagem/continuação](../sector-runtime-h0-streaming-pass-2026-11-09.md) | Não implementa a mailbox executiva nem reação a conclusões na mesma passagem |
-| RAM-01 | Recortes `5c3c4c8f` a `4e5cc6c1`, [inventário](memory-and-prefetch.md), [envelope](../sector-runtime-memory-envelope.md) e [último relatório](../sector-runtime-h0-base-tile-lookup-context-2026-11-09.md) | Catálogo limitado testado; faltam contexto profundo, gerações/lifetime/consumidor reais, demanda/provider/fairness e pressão externa |
-| VAL-02 | [Harness inicial](../sector-runtime-h0-streaming-pass-2026-11-09.md), [comparador de tiles](../sector-runtime-h0-base-tiles-identity-2026-11-09.md) e [catálogo/fita/referência](../sector-runtime-h0-base-tile-lookup-context-2026-11-09.md) | Comparação local, não leitores/produtor/streaming reais; controles de hash continuam gates |
-| MOD-01 | [Leitores imutáveis](../sector-runtime-h0-distribution-bundles-2026-11-09.md), [proteção da seleção](../sector-runtime-h0-planning-storage-2026-11-09.md) e [scope/cobertura](../sector-runtime-h0-base-tile-lookup-context-2026-11-09.md) | Gerações ainda declaradas, não ligadas a reload/material/assets; fronteira biomeTransition e auditoria profunda abertas |
+| RAM-01 | Recortes `5c3c4c8f` a `5413e13a`, [inventário](memory-and-prefetch.md), [envelope](../sector-runtime-memory-envelope.md) e [último relatório](../sector-runtime-h0-lookup-source-generations-2026-11-09.md) | Clocks/binding reais; faltam contexto profundo, retenção/consumidor, demanda/provider/fairness e pressão externa |
+| VAL-02 | [Harness inicial](../sector-runtime-h0-streaming-pass-2026-11-09.md), [comparador de tiles](../sector-runtime-h0-base-tiles-identity-2026-11-09.md) e [fontes/gerações](../sector-runtime-h0-lookup-source-generations-2026-11-09.md) | Fontes controladas e hooks compilados, não leitores/reload/assets/streaming reais; controles de hash continuam gates |
+| MOD-01 | [Leitores imutáveis](../sector-runtime-h0-distribution-bundles-2026-11-09.md), [proteção da seleção](../sector-runtime-h0-planning-storage-2026-11-09.md) e [lifecycle/scope 2](../sector-runtime-h0-lookup-source-generations-2026-11-09.md) | Metadata não é sincronização/commit nem auditoria de toda mutação; fronteira biomeTransition e integração abertas |
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 
-Os 601 testes e demais números do resumo provêm do **último relatório técnico**,
+Os 629 testes e demais números do resumo provêm do **último relatório técnico**,
 no cenário NoAssets, não de streaming integrado. A criação original do painel
 foi documental; os avanços posteriores de runtime estão associados aos commits/
 relatórios do histórico. Atualizar este painel não acrescenta uma medição de
@@ -233,6 +234,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 09/11/2026 | Implementação `2ea41cf8` | H0: input escalar e adaptador de consultas BaseTiles preservam sequência, NoMod e estado parcial nas exceções. 548 testes/27 grupos; resolver/contexto profundo e replay do produtor completo pendentes. Sem novo marco completo, RAM-01/H0 em 25% | 3,1% |
 | 09/11/2026 | Implementação `abfc3834` | H0: observações versionadas/replay protegido, API diagnóstica fora do produtor normal. 575 testes/28 grupos; microcusto separado revelou overhead/176 bytes por tile, próximo contexto compartilhado/compacto com revisão/assets. Sem novo marco completo, RAM-01/H0 em 25% | 3,1% |
 | 09/11/2026 | Implementação `4e5cc6c1` | H0: catálogo selado de respostas únicas/scope, capacidade explícita e preflight sem heap. 601 testes/29 grupos; redução de storage sintética, gerações/lifetime/leitores reais e integração pendentes. Sem novo marco completo, RAM-01/H0 em 25% | 3,1% |
+| 10/11/2026 | Implementação `5413e13a` (testada em 09/11) | H0: clocks reais em Root/Assets, versão de materiais, binding forte e scope 2. 629 testes/31 grupos com fontes controladas; leitores/reload/assets reais e consumidor do catálogo ainda pendentes. Encerramento documental sem novo marco completo, RAM-01/H0 em 25% | 3,1% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

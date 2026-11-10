@@ -62,9 +62,13 @@ O [catálogo compartilhado](../sector-runtime-h0-base-tile-lookup-context-2026-1
 `4e5cc6c1`, deduplica chaves em oito bytes, sela e confere scope/cobertura antes
 de escrever. Não retém fita ou input por tile; não guarda o estado inicial de
 um tile específico. Protótipo fora do produtor normal, sem heap interno; scope
-de assets/material ainda declarado. Próximo: gerações/lifetime reais em reload/
-hotReload e comparação com os leitores do motor antes de sombra por setor,
-com admissão/bytes. CPU-01 completo e ganho de WorldTemplate continuam pendentes.
+de assets/material era declarado naquela entrega.
+O [binding de fontes](../sector-runtime-h0-lookup-source-generations-2026-11-09.md),
+`5413e13a`, liga clocks às fronteiras reais de Root/Assets e versões de definições
+de materiais. Scope 2 inclui sourceEpoch, handles fortes e checagem pré/pós;
+não é read lease ou autorização de commit. Próximo: comparar leitores reais/
+catálogo/fita e lifecycle com assets antes de sombra por setor, com admissão/bytes.
+CPU-01 completo, contexto profundo/RNG e ganho de WorldTemplate seguem pendentes.
 
 Aceitação: execução concorrente não alcança template vivo, callbacks ou RNG
 global; comparador de outputs cobre a mudança de contexto e de worker.

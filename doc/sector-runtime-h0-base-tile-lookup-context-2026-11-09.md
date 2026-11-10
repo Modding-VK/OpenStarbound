@@ -10,6 +10,10 @@ Implementação: `4e5cc6c1852802ec4eba022de48afbcd9cfd171b`.
 · [Memória](sector-runtime-memory-envelope.md)
 · [Etapa anterior](sector-runtime-h0-base-tile-observations-2026-11-09.md)
 
+Continuação vigente: [gerações reais e lifetime das fontes](sector-runtime-h0-lookup-source-generations-2026-11-09.md).
+Este relatório preserva evidências/manifesto de `4e5cc6c1` e scope modelo 1;
+estado atual, scope 2 e próximos passos estão na continuação e no roadmap.
+
 ## Objetivo e estado entregue
 
 Substituir a retenção de uma fita por tile por um catálogo de respostas únicas,

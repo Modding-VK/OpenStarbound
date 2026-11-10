@@ -39,7 +39,7 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[catálogo compartilhado de consultas BaseTiles](sector-runtime-h0-base-tile-lookup-context-2026-11-09.md), com
+[gerações e lifetime das fontes BaseTiles](sector-runtime-h0-lookup-source-generations-2026-11-09.md), com
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
@@ -153,9 +153,14 @@ tile: não é cache/retry integrado ou ganho de entrega.
 `4e5cc6c1` entrega catálogo selado de respostas únicas, capacidade explícita e
 scope/checagem de cobertura antes dos writes. 601 testes, 2.340 execuções adicionais
 e 29 grupos CTest, ASan/UBSan. Oito bytes/chave, sem heap ou fita por tile; escopo
-de assets/material ainda declarado, sem produtor de gerações/reload real. Não
-ativado no jogo. Próximo: gerações/lifetime e leitores reais antes de sombra por
-setor com admissão/bytes. Não antecipar consultas/reaproveitar tile parcial;
+de assets/material ainda declarado naquela etapa. Não ativado no jogo.
+`5413e13a` liga clocks às fronteiras reais de Root/Assets e versões de materiais,
+com binding de fontes fortes e scope 2. 629 testes, 2.900 execuções adicionais e
+31 grupos CTest, ASan/UBSan. Refused não escreve; Stale posterior descarta output,
+não fallback. Hooks compilados, testes com fontes controladas, sem reload/assets
+reais. Próximo: comparar leitores reais/catálogo/fita e reload/hotReload antes
+de sombra por setor com admissão/bytes e guards do dono. Catálogo fora do produtor
+normal. Não antecipar consultas/reaproveitar tile parcial;
 auditar biomeTransition/default/cópias antes de normalizar. RAM-01/H0 em 25%,
 programa 3,1% inalterados. Streaming real com assets/mods e executor de conclusões
 ainda pendentes.

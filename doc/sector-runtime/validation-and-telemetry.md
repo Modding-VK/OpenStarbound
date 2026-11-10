@@ -216,6 +216,17 @@ ou CTest; dois experimentos ficam desativados por padrão. Sem jogo/assets/reloa
 ou throughput integrado; sintaxe Tracy de três fontes e objetos reais existentes
 conferidos como na etapa anterior, não link completo. H0 continua parcial.
 
+O [recorte de fontes/gerações](../sector-runtime-h0-lookup-source-generations-2026-11-09.md)
+passa **629 testes**, 31 grupos CTest e 145 casos afetados repetidos vinte vezes
+(**2.900 execuções adicionais**), ASan/UBSan; 28 novos. Testa clock/binding reais
+com fontes controladas: nested/overlap/falhas/retire, 512 IDs concorrentes, saturação
+local, troca/lifetime de fontes e Refused/Applied/Stale. Scope 2 exige sourceEpoch
+e oito campos; a recusa não escreve e stale posterior exige descarte privado.
+Root/Assets/MaterialDatabase compilados e dez objetos reais conferidos; seis
+fontes com sintaxe Tracy aprovadas, não linking do jogo/Tracy. Não executou
+reload/assets/mods reais, TSan ou benchmark. Dois microexperimentos seguem
+DISABLED e não foram reexecutados. Catálogo continua fora do produtor normal.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,
