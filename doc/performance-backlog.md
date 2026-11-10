@@ -1,5 +1,10 @@
 # Backlog de desempenho da exploração
 
+Continuidade de CPU-01: o [ensaio de RNG](sector-runtime-h0-rng-boundary-2026-11-10.md)
+restringiu o consumo à montagem da fixture de layout. Cache, árvore de seletores
+e noises não consumiram RNG nos recortes isolados; localizar a operação exata
+antes de reconstruir a árvore em workers e validar a sequência observável.
+
 ## Prioridade de implementação — 09/11/2026
 
 O trabalho está detalhado na [coleção do runtime de setores](sector-runtime/README.md),

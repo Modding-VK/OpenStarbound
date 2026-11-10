@@ -5,7 +5,7 @@ Base inspecionada: `55b2d3691aad116f5421b5206faf170287b471fc`;
 última implementação: `b0caadce`.
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h0-perlin-cache-2026-11-10.md)
+· [Último relatório técnico](../sector-runtime-h0-rng-boundary-2026-11-10.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -108,7 +108,7 @@ autoritativa. GPU é opcional, com fallback CPU completo.
    lazy já compõe essa captura com lifetime/modelo Json v2 opcional. Agora o
    construtor normal, layout/Constant/FlatSurface e LRU reais são comparados e
    produzem BaseTiles 32×32 completos sob metadata controlada. Próximo:
-   identificar o consumo de RNG global ao construir a árvore de seletores;
+   identificar o consumo de RNG global na montagem da fixture de layout;
    CacheSelector e cópia de Perlin vazio corrigidos; fechar
    contexto/inicialização e revalidar antes de sombra por setor
    com admissão/bytes. Não repetir o mesmo recorte de Root como nova entrega.

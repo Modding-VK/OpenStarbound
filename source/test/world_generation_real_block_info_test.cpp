@@ -460,3 +460,26 @@ TEST_F(WorldGenerationRealBlockInfoTest, BuildingNoiseTreeCurrentlyConsumesGloba
   (void)layout;
   EXPECT_NE(next, Random::randu64());
 }
+
+TEST_F(WorldGenerationRealBlockInfoTest, LocateGlobalRngConsumptionDuringTreeConstruction) {
+  auto r = root(); auto database = r->terrainDatabase();
+  auto check = [&](char const* label, bool consumes, auto construct) {
+    Random::init(918); auto expected = Random::randu64();
+    Random::init(918); construct(); auto actual = Random::randu64();
+    EXPECT_EQ(consumes, expected != actual) << label;
+  };
+  check("layout fixture", true, [&] { auto value = Access::layout(true, true); });
+  check("empty layout", false, [&] { WorldLayout value; });
+  check("empty region", false, [&] { WorldRegion value; });
+  check("empty biome", false, [&] { Biome value; });
+  check("selector parameters", false, [&] { auto value = Access::parameters(); });
+  auto params = Access::parameters();
+  auto constant = Access::cached(JsonObject{{"type", "constant"}, {"value", -1}});
+  auto tree = Access::treeConfig();
+  auto noise = Access::noiseConfig();
+  auto blockNoise = Access::blockNoiseConfig();
+  check("cache constant", false, [&] { auto value = database->createSelectorType("cache", constant, params); });
+  check("cache tree", false, [&] { auto value = database->createSelectorType("cache", tree, params); });
+  check("blend noise", false, [&] { PerlinF value(noise, 177); });
+  check("block noise", false, [&] { auto value = WorldLayout::BlockNoise::build(blockNoise, 181); });
+}

@@ -336,6 +336,11 @@ reproduz e corrige falhas de cópia de metadata e seleção de fonte, e executa
 noises e caches privados em fixture. Construir a árvore avança o RNG global;
 essa dependência precisa ser isolada antes da integração em workers.
 
+O [ensaio de fronteiras de RNG](../sector-runtime-h0-rng-boundary-2026-11-10.md)
+restringiu o consumo à montagem da fixture de layout. Cache de constante, árvore
+de seletores e noises, isoladamente, não consumiram RNG na amostra; a operação
+específica dentro da montagem ainda está pendente.
+
 Próximo trabalho executável: isolar o consumo de RNG, preservar a sequência
 observável e fechar ownership e admissão do contexto de produção.
 Não confundir a LRU validada com CacheSelector. Auditar também defaults
