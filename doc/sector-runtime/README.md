@@ -3,7 +3,7 @@
 Atualização: 10/11/2026. Branch: `Experimental`. Runtime de partida:
 `7ca7ed2a`; recortes de H0: `d72b7239`, `2131ead3`, `5c3c4c8f`, `65bae55c`,
 `803d4cf7`, `739067b1`, `1bd348e6`, `34c76ea3`, `887149c0`, `cad311d1`, `25cecf95`,
-`c4d7ddb3`, `730e36ba`, `45db2402`, `49a12fbf`, `ada755bf`, `0915af25`, `4b5aed18`, `dd59f3b4`, `8b68ab6a`, `8e190742`, `f7785963`, `2ea41cf8`, `abfc3834`, `4e5cc6c1`, `5413e13a`, `061ce68c`, `571bb01e`, `7001ae6d`, `0871d13c`, `bfbbf403` e `e076d96a`;
+`c4d7ddb3`, `730e36ba`, `45db2402`, `49a12fbf`, `ada755bf`, `0915af25`, `4b5aed18`, `dd59f3b4`, `8b68ab6a`, `8e190742`, `f7785963`, `2ea41cf8`, `abfc3834`, `4e5cc6c1`, `5413e13a`, `061ce68c`, `571bb01e`, `7001ae6d`, `0871d13c`, `bfbbf403`, `e076d96a` e `b0caadce`;
 documentação de arquitetura de partida: `8d3b0ade`.
 
 Este é o **programa principal de desenvolvimento**, adotado pelo usuário em
@@ -199,13 +199,22 @@ adapter normal conserva Assets, sem cópia por bloco. Próximo: config lazy,
 adapter/layout/seletores reais e contexto completo com admissão/revalidação.
 Não há ganho de setores/s medido ou novo executor.
 
-O [relatório vigente de inputs estáticos](../sector-runtime-h0-block-info-static-inputs-2026-11-10.md),
+O [relatório de inputs estáticos](../sector-runtime-h0-block-info-static-inputs-2026-11-10.md),
 `e076d96a`, compõe config lazy/custom terrain e ownership/Json v2 opcional no
 kernel. 752 casos padrão +13 Root opt-in, 5.425 execuções adicionais e 38+1
 grupos, ASan/UBSan. Layout/seletores controlados; captura fora dos jobs, sem
 admissão de contexto inteiro ou ganho medido. CPU-01/H0/RAM-01 25%, programa
 3,6%. Próximo bloco: adapter/layout/seletores/cache reais e caminho comum
 validável; não mais um accessor isolado como substituto da integração.
+
+O [relatório vigente de amostragem real](../sector-runtime-h0-real-sector-sampling-2026-11-10.md),
+`b0caadce`, compara Root/construtor normal, layout/Constant/FlatSurface e LRU
+reais, produzindo BaseTiles 32×32 completos sob metadata controlada. 19 novos
+opt-in; 752 padrão +32 opcionais, 5.520 execuções adicionais e 40 grupos,
+ASan/UBSan. Não é planeta procedural/streaming ou cache mutável da árvore.
+Próximo: factory de CacheSelector, inicialização/cópia de Perlin e noises/caches
+privados, antes de contexto/admissão/sombra. CPU-01/H0/RAM-01 25%, programa 3,6%;
+nenhum ganho medido ou mudança de defaults/jobs.
 
 ## Objetivo e decisões vigentes
 

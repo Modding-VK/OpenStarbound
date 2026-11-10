@@ -216,13 +216,24 @@ Captura fora de jobs/ledger, sem cópia por bloco ou ganho de setores/s medido.
 Próximo: config lazy capturada, adapter/layout/seletores reais e contexto completo
 com admissão/lifetime/revalidação antes da sombra por setor. Não ampliar filas.
 
-O [relatório vigente de inputs estáticos](sector-runtime-h0-block-info-static-inputs-2026-11-10.md),
+O [relatório de inputs estáticos](sector-runtime-h0-block-info-static-inputs-2026-11-10.md),
 `e076d96a`, compõe config lazy/custom terrain, com Json imutável retido e modelo
 v2 opcional/deduplicado. 29 novos; 752 padrão +13 Root opt-in, 5.425 execuções
 adicionais, 38+1 grupos, ASan/UBSan. Layout/seletores controlados e captura fora
 dos jobs; wrapper/polígonos e admissão completa pendentes. Próximo bloco deve
 executar adapter/layout/seletores/cache reais e fechar o caminho comum validável,
 antes de sombra/benchmark. CPU-01/H0/RAM-01 25%, programa 3,6%, sem ganho medido.
+
+O [relatório vigente de amostragem real](sector-runtime-h0-real-sector-sampling-2026-11-10.md),
+`b0caadce`, executa Root/construtor normal, layout/Constant/FlatSurface e LRU
+reais e compara arrays BaseTiles 32×32 completos. 19 novos opt-in; 752 padrão
++32 opcionais, 5.520 execuções adicionais e 40 grupos, ASan/UBSan. Grafo de
+metadata controlada, sem Perlin/caches mutáveis, builder de planeta ou streaming.
+Próximo: reproduzir factory de CacheSelector (sourceType lido, type passado à
+factory; hipótese por inspeção, não corrigida) e inicialização/cópia de Perlin;
+auditar defaults baseHeight/regionLiquids. Depois noises/caches exclusivos,
+contexto/admissão/identidade e sombra por setor. Não ampliar filas/orçamento por
+esse ensaio; CPU-01/H0/RAM-01 25%, programa 3,6%, sem ganho de setores/s medido.
 
 Achado adicional de inicialização/cópia, não corrigido: WorldTile não inicializa/
 copia biomeTransition no construtor/operador; BaseTiles sobrescreve o flag nos

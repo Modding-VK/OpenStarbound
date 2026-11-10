@@ -323,8 +323,19 @@ e contabilidade Json v2 opcional. Composição exercitada no kernel; layout/
 seletores ainda controlados, captura fora dos jobs e sem admissão do contexto
 inteiro. CPU-01 continua em 25%, programa em 3,6%, sem ganho de setores/s medido.
 
-Próximo trabalho executável: testar adapter/layout/seletores e cache reais,
-mantendo caches exclusivos; fechar o contexto de BaseTiles,
+O [ensaio de amostragem real](../sector-runtime-h0-real-sector-sampling-2026-11-10.md)
+(`b0caadce`) executa Root/construtor normal, WorldLayout/Constant/FlatSurface e
+LRU reais, compara a captura estática e produz BaseTiles 32×32 completos.
+19 novos opt-in; 752 padrão +32 opcionais, 5.520 execuções adicionais e 40 grupos
+CTest, ASan/UBSan. Grafo montado com metadata controlada, sem builder de planeta,
+noise/Perlin ou cache mutável da árvore. 23 corpos relocados sem alteração;
+nenhum novo marco, contexto em jobs ou ganho de setores/s medido.
+
+Próximo trabalho executável: reproduzir factory de CacheSelector e
+inicialização/cópia de Perlin; resolver defeitos confirmados com controle
+negativo e estender o ensaio a noises/árvore de seletores/caches privados reais.
+Não confundir a LRU validada com CacheSelector. Auditar também defaults
+baseHeight/regionLiquids. Manter caches exclusivos; fechar o contexto de BaseTiles,
 inicialização e inputs efetivamente capturados; o lifecycle de Root mínimo já foi
 testado, não repetir o mesmo recorte. Revalidar preparação e commit antes de
 sombra por setor, com admissão/

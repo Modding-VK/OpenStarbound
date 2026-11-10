@@ -3,7 +3,7 @@
 Estado: H0, `Experimental`, 10/11/2026.
 [Programa](sector-runtime/README.md) · [Roadmap](sector-runtime/roadmap.md)
 · [Memória](sector-runtime-memory-envelope.md)
-· [Relatório](sector-runtime-h0-block-info-static-inputs-2026-11-10.md)
+· [Relatório](sector-runtime-h0-real-sector-sampling-2026-11-10.md)
 
 ## Identidade não é autorização de commit nem chave de conteúdo
 
@@ -236,6 +236,17 @@ jsonStorageModelComplete não valida schema nem permite commit/admissão global.
 Composição no kernel compara campos, consultas e erros, ainda com layout/
 seletores controlados. Próximo: adapter/layout/seletores/cache reais e cobertura
 do contexto completo. Captura fora dos jobs; CPU-01 em 25%, não ganho medido.
+
+O [ensaio de amostragem real](sector-runtime-h0-real-sector-sampling-2026-11-10.md)
+agora compara blockInfo normal/LRU e captura composta sobre WorldLayout e
+Constant/FlatSurface reais. Root/construtor normal e parser de materiais reais,
+com metadata controlada de layout, produzem dois arrays 32×32 inteiramente
+válidos. Os 25 campos são comparados sob ticket sintético, com expectativas
+independentes para sólido/ar/hue/líquido. Não são setores publicados, builder
+procedural, simulação de oceano ou PreparedSector completo. Ambas rotas usam
+o mesmo downstream BaseTiles/resolver: ensaio de bindings, não referência
+independente de toda a geração. Perlin/caches mutáveis, congelamento dos
+materiais, identidade/admissão e revalidação pelo dono seguem pendentes.
 
 ## Comparação de campos, modelo 1
 

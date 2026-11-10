@@ -1,11 +1,11 @@
 # Progressão do projeto — percentuais e ordem das tarefas
 
 Atualizado em **10/11/2026**. Branch: `Experimental`.
-Base inspecionada: `740dc6c1eefc2a09a4e0ad6f58ed238b4aa9abd8`;
-última implementação: `e076d96a`.
+Base inspecionada: `55b2d3691aad116f5421b5206faf170287b471fc`;
+última implementação: `b0caadce`.
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h0-block-info-static-inputs-2026-11-10.md)
+· [Último relatório técnico](../sector-runtime-h0-real-sector-sampling-2026-11-10.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -22,7 +22,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **3,6%** — 7 marcos verificados de 196 |
 | Contratos com avanço registrado | **7 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | 752 casos padrão +13 Root opt-in, 5.425 execuções adicionais e 38+1 grupos CTest, ASan/UBSan; config lazy/custom terrain compostos no kernel, layout/seletores controlados |
+| Última evidência de testes | 752 casos padrão +32 opt-in (19 novos), 5.520 execuções adicionais e 40 grupos CTest, ASan/UBSan; Root normal, layout/Constant/FlatSurface e LRU reais, BaseTiles 32×32 com metadata controlada |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,6% não significam que o jogo esteja só 3,6% pronto.** O runtime anterior
@@ -105,12 +105,15 @@ autoritativa. GPU é opcional, com fallback CPU completo.
    caminho normal, com fontes controladas em teste. Custom terrain já possui
    captura proprietária Root-free, inclusive após destruir a origem: primeiro
    recorte de CPU-01 em 25%, sem adoção nos jobs ou orçamento novo. Config Json
-   lazy já compõe essa captura com lifetime/modelo Json v2 opcional. Próximo:
-   adapter/layout/seletores e cache reais, com caches exclusivos;
-   fechar contexto/inicialização e revalidar antes de sombra por setor
+   lazy já compõe essa captura com lifetime/modelo Json v2 opcional. Agora o
+   construtor normal, layout/Constant/FlatSurface e LRU reais são comparados e
+   produzem BaseTiles 32×32 completos sob metadata controlada. Próximo:
+   reproduzir a factory de CacheSelector e inicialização/cópia de Perlin;
+   estender noises/árvore de seletores/caches privados reais, fechar
+   contexto/inicialização e revalidar antes de sombra por setor
    com admissão/bytes. Não repetir o mesmo recorte de Root como nova entrega.
    Não adotar fita por tile, antecipar consultas, usar tile parcial ou mudar
-   cópias/RNG. Auditar biomeTransition e SkyParameters::horizonClouds
+   cópias/RNG. Auditar baseHeight/regionLiquids default, biomeTransition e SkyParameters::horizonClouds
    default/cópia antes de normalizar snapshots. Depois contexto/assets/demanda
    reais, mailbox/DAG, provider, promoção/fairness e pressão externa. A
    [cobertura de memória](../sector-runtime-memory-envelope.md) não é heap completo;
@@ -147,13 +150,13 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 1 | H0 | [DAG-01](dependency-scheduler.md) | Identidades estáveis | 25% | IDs de colocações e ticket BaseTiles testados; contexto profundo/integração geral pendentes |
 | 2 | H0 | [DAG-04](dependency-scheduler.md) | Conclusões e progresso dentro da passagem | 25% | Mailbox executiva/reação a conclusões; continuação/avanço já corrigidos no recorte |
 | 3 | H0 | [RAM-01](memory-and-prefetch.md) | Reserva e contabilização de bytes | 25% | Json retido medido/deduplicado no contexto estático; polígonos/wrappers e admissão/contexto/consumidor globais pendentes |
-| 4 | H0 | [VAL-02](validation-and-telemetry.md) | Comparador de outputs e produtores controlados | 25% | Config lazy/custom terrain compostos no kernel contra referência; adapter/layout/seletores/assets/mods e streaming reais pendentes |
+| 4 | H0 | [VAL-02](validation-and-telemetry.md) | Comparador de outputs e produtores controlados | 25% | Root/layout/seletores simples/LRU reais e BaseTiles 32×32 comparados; noise/caches mutáveis, planeta/mods e streaming pendentes |
 | 5 | H0 | [MOD-01](compatibility.md) | Classificar operações por efeito | 25% | Config lazy preserva ramos/falhas, custom terrain Root-free; adapter normal conserva Assets e restante do contexto é pendente |
 | 6 | H0 | [VAL-01](validation-and-telemetry.md) | Benchmark de streaming | 25% | Rota/save/config fixos, streaming real e A/B equivalente |
 | 7 | H1 | [DAG-02](dependency-scheduler.md) | Grafo persistente e demanda compartilhada | 0% | Grafo executivo em sombra, separado das dependências de publicação |
 | 8 | H1 | [DAG-03](dependency-scheduler.md) | Prioridade, justiça e distância correta | 0% | Prioridade herdada e justiça entre consumidores com wrap |
 | 9 | H1 | [DAG-05](dependency-scheduler.md) | Cancelamento, falha e invalidação | 0% | Retry/drain e retenção até término físico no novo executor |
-| 10 | H1 | [CPU-01](cpu-and-stages.md) | Contexto privado de cálculo | 25% | Config lazy/custom terrain compostos e testados no kernel; layout/seletores/materiais reais, inicialização/RNG e admissão completa pendentes |
+| 10 | H1 | [CPU-01](cpu-and-stages.md) | Contexto privado de cálculo | 25% | Amostragem real simples e arrays BaseTiles completos comparados; Perlin/caches privados, ownership/versões, inicialização/RNG e admissão completa pendentes |
 | 11 | H1 | [CPU-02](cpu-and-stages.md) | Produto PreparedSector | 0% | Produtos/versionamento compartilhados; continua em H2 |
 | 12 | H1 | [MD-01](microdungeons-and-tmx.md) | Seleção leve e identidade | 0% | Candidatos/vazio sem copiar halo não lido |
 | 13 | H1 | [CPU-03](cpu-and-stages.md) | Executor processual e granularidade | 0% | Capacidade global e tarefas com fronteira de publicação preservada |
@@ -200,17 +203,17 @@ de todas as implementações antigas para conceder crédito retroativo.
 | --- | --- | --- |
 | DAG-01 | `d72b7239`, [identidades de colocações](../sector-runtime-h0-placement-identities-2026-11-08.md) e [ticket BaseTiles](../sector-runtime-base-tiles-contract.md), `f7785963` | Não cobre contexto profundo/assets nem todo o contrato de identidade/integração |
 | DAG-04 | `2131ead3`, [passagem/continuação](../sector-runtime-h0-streaming-pass-2026-11-09.md) | Não implementa a mailbox executiva nem reação a conclusões na mesma passagem |
-| RAM-01 | Recortes `5c3c4c8f` a `e076d96a`, [inventário](memory-and-prefetch.md), [envelope](../sector-runtime-memory-envelope.md) e [último relatório](../sector-runtime-h0-block-info-static-inputs-2026-11-10.md) | Json v2 acompanha capturas rastreadas; polígonos/wrappers, admissão completa, consumidor/demanda/provider/fairness e pressão externa pendentes |
-| VAL-02 | [Harness inicial](../sector-runtime-h0-streaming-pass-2026-11-09.md), [comparador de tiles](../sector-runtime-h0-base-tiles-identity-2026-11-09.md), [Root real](../sector-runtime-h0-root-lifecycle-2026-11-10.md), [kernel blockInfo](../sector-runtime-h0-block-info-kernel-2026-11-10.md) e [custom terrain](../sector-runtime-h0-custom-terrain-context-2026-11-10.md) | Geometria real em custom terrain, sem adapter/layout/seletores/assets/mods completos/streaming; controles de hash continuam gates |
+| RAM-01 | Recortes `5c3c4c8f` a `e076d96a`, [inventário](memory-and-prefetch.md), [envelope](../sector-runtime-memory-envelope.md) e [último relatório](../sector-runtime-h0-real-sector-sampling-2026-11-10.md) | Json v2 acompanha capturas rastreadas; polígonos/wrappers/layout, admissão completa, consumidor/demanda/provider/fairness e pressão externa pendentes |
+| VAL-02 | [Harness inicial](../sector-runtime-h0-streaming-pass-2026-11-09.md), [comparador de tiles](../sector-runtime-h0-base-tiles-identity-2026-11-09.md), [kernel blockInfo](../sector-runtime-h0-block-info-kernel-2026-11-10.md) e [amostragem/BaseTiles reais](../sector-runtime-h0-real-sector-sampling-2026-11-10.md) | Noise/caches mutáveis, builder de planeta/assets/mods completos/streaming pendentes; controles de hash continuam gates |
 | MOD-01 | [Leitores imutáveis](../sector-runtime-h0-distribution-bundles-2026-11-09.md), [proteção da seleção](../sector-runtime-h0-planning-storage-2026-11-09.md) e [lifecycle/scope 2](../sector-runtime-h0-lookup-source-generations-2026-11-09.md) | Metadata não é sincronização/commit nem auditoria de toda mutação; fronteira biomeTransition e integração abertas |
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
-| CPU-01 | `bfbbf403`, [captura custom terrain](../sector-runtime-h0-custom-terrain-context-2026-11-10.md), e `e076d96a`, [composição de config lazy](../sector-runtime-h0-block-info-static-inputs-2026-11-10.md), cálculo após destruição da origem/por três tarefas | Layout/seletores/materiais/versões reais, inicialização/RNG, reutilização e admissão do contexto completo pendentes; composição ainda fora dos jobs |
+| CPU-01 | `bfbbf403`, [captura custom terrain](../sector-runtime-h0-custom-terrain-context-2026-11-10.md), `e076d96a`, [config lazy](../sector-runtime-h0-block-info-static-inputs-2026-11-10.md), e `b0caadce`, [layout/cache reais e BaseTiles](../sector-runtime-h0-real-sector-sampling-2026-11-10.md) | Perlin/caches mutáveis, ownership/versões, inicialização/RNG, reutilização e admissão do contexto completo pendentes; composição ainda fora dos jobs |
 
 CPU-01 recebe o primeiro marco porque agora existe cálculo com dados próprios
 que independe da origem/Root após captura, não só callbacks/catálogos ou contagem
 de testes. Não recebe 50%; não ativa jobs, orçamento ou nova fase de executor.
 
-Os 752 casos padrão e 13 opcionais e demais números provêm do **último relatório técnico**,
+Os 752 casos padrão e 32 opcionais e demais números provêm do **último relatório técnico**,
 no cenário NoAssets, não de streaming integrado. A criação original do painel
 foi documental; os avanços posteriores de runtime estão associados aos commits/
 relatórios do histórico. Atualizar este painel não acrescenta uma medição de
@@ -257,6 +260,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 10/11/2026 | Implementação `0871d13c` | H0: kernel blockInfo separado do cache no caminho normal; 28 testes novos, 4.096 inputs em um caso, campos/consultas/falhas contra corpo herdado. 697 padrão +13 Root opt-in, 4.325 execuções adicionais, 36+1 grupos, ASan/UBSan. Adapter/layout real e contexto privado pendentes; sem novo marco ou ganho medido, H0/RAM-01 em 25% | 3,1% |
 | 10/11/2026 | Implementação `bfbbf403` | Apoio a H0: primeiro contexto proprietário funcional de CPU-01 (0→25%), custom terrain Root-free com geometria real, cópias profundas e leitura após destruição da origem. 26 testes novos; 723 padrão +13 Root opt-in, 4.845 execuções adicionais, 37+1 grupos. Contexto completo/admissão/jobs/streaming pendentes, sem ganho medido; H0/RAM-01 25%, H1 2,5% | 3,6% |
 | 10/11/2026 | Implementação `e076d96a` | Config lazy/custom terrain compostos, Json v2 opcional com ownership/deduplicação e comparação no kernel. 29 novos; 752 padrão +13 Root opt-in, 5.425 execuções adicionais, 38+1 grupos. Layout/seletores controlados; admissão/contexto completo/jobs/streaming pendentes. Sem novo marco ou ganho medido; CPU-01/H0/RAM-01 25% | 3,6% |
+| 10/11/2026 | Implementação `b0caadce` | Root/construtor normal, layout/Constant/FlatSurface e LRU reais, arrays BaseTiles 32×32 completos comparados; metadata controlada, sem planeta/streaming. 19 novos opt-in; 752 padrão +32 opcionais, 5.520 execuções adicionais, 40 grupos, ASan/UBSan. Perlin/caches mutáveis, contexto/admissão/jobs pendentes; nenhum novo marco ou ganho medido | 3,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

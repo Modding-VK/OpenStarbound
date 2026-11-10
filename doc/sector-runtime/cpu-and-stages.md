@@ -99,9 +99,17 @@ quando o kernel consulta o campo. Modelo Json v2 opcional acompanha lifetime
 e deduplica backing; não é validação de schema ou admissão do contexto inteiro.
 Composição testada no kernel contra corpo herdado, com layout/seletores ainda
 controlados. Captura fora dos jobs normais; CPU-01 continua em 25%.
-Próximo bloco funcional: adapter/layout/seletores e cache reais, ownership
-exclusivo de caches e revalidação antes de sombra com admissão/bytes. Não criar
-outro accessor isolado como substituto dessa validação integrada.
+O [ensaio de amostragem real](../sector-runtime-h0-real-sector-sampling-2026-11-10.md)
+agora usa Root/construtor normal, WorldLayout/Constant/FlatSurface e LRU reais,
+compara a captura e produz BaseTiles 32×32 completos com materiais parseados.
+Layout montado com metadata controlada: não builder procedural, Perlin ou caches
+mutáveis de seletores. Adapter candidato só de teste, fora dos jobs normais.
+23 corpos herdados relocados sem alteração, sem remover Root/Assets do legado.
+19 casos novos opt-in, 752 padrão +32 opcionais, 40 grupos; CPU-01 ainda 25%.
+Próximo bloco funcional: reproduzir factory de CacheSelector e inicialização/
+cópia de Perlin, auditar baseHeight/regionLiquids default, estender noises e
+árvores/caches privados reais. Fechar ownership/identidade e revalidar antes de
+sombra com admissão/bytes. Não criar outro accessor isolado como substituto.
 Não otimizar consultas isoladas como fim em si mesmo.
 CPU-01 completo, contexto profundo/RNG e ganho de WorldTemplate seguem pendentes.
 

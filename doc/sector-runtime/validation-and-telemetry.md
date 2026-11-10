@@ -290,6 +290,20 @@ execuções adicionais** (268×20 +13×5, seed 1236), **38+1 grupos**, ASan/UBSa
 Modelo Json completo não valida schema/admissão. Captura fora dos jobs normais,
 sem novo marco, throughput ou Actions; três microexperimentos desligados.
 
+O [ensaio de amostragem real/BaseTiles](../sector-runtime-h0-real-sector-sampling-2026-11-10.md)
+adiciona **19 casos opt-in**, padrão OFF: Root/construtor normal, WorldLayout e
+Constant/FlatSurface, LRU hit/miss/eviction/invalidação/erros/hotReload, três
+leitores privados após destruir origem e dois arrays BaseTiles 32×32 completos.
+Grades com 1.435 coordenadas comparam 16 campos; arrays, 25 campos de 1.024 tiles,
+incluindo expectativas de líquido. Não contar coordenadas como casos únicos.
+**752 padrão +32 opt-in =784 únicos**, **5.520 execuções adicionais**
+(268×20 +32×5, shuffle/seed 1236), **40 grupos CTest**, ASan/UBSan.
+As rotas usam o mesmo kernel/downstream; referências independentes anteriores
+permanecem. Layout montado por metadata, sem builder procedural, Perlin,
+CacheSelector/caches da árvore ou streaming. Zero grupos opcionais com opção
+OFF; Actions/defaults inalterados. Próximo: reproduções da factory/inicialização,
+noises/caches privados e contexto/admissão antes de sombra/benchmark.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

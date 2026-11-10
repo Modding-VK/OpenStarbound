@@ -5,7 +5,13 @@ Estado: H0 / RAM-01, `Experimental`, 09/11/2026.
 · [Roadmap](sector-runtime/roadmap.md) · [Relatório da entrega](sector-runtime-h0-capacity-kernel-2026-11-09.md)
 
 Continuidade de identidade/equivalência: [contrato BaseTiles](sector-runtime-base-tiles-contract.md)
-e [último relatório](sector-runtime-h0-block-info-static-inputs-2026-11-10.md).
+e [último relatório](sector-runtime-h0-real-sector-sampling-2026-11-10.md).
+
+Continuidade de amostragem real: construtor normal, layout/seletores simples e
+LRU reais agora produzem arrays BaseTiles 32×32 completos em teste opt-in.
+Não é admissão profunda ou ownership de contexto completo: layout controlado
+montado por leitor, sem Perlin/caches mutáveis da árvore, jobs ou publicação.
+Nenhum modelo/cota/fila foi ampliado; RAM-01 continua em 25%.
 
 Continuidade de inputs estáticos: config Json imutável retida com medição v2
 opcional/deduplicada, lifetime de tokens ligado às capturas rastreadas. Raiz

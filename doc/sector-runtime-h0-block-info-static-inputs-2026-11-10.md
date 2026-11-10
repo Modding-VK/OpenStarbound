@@ -178,6 +178,15 @@ críticos; NPC externo suspenso, Linux Clang adiado. Sem jogo/assets completos,
 save/reload, multiplayer, MSan/TSan, OOM/pressão, GPU, outros allocators/plataformas,
 revisão independente, Actions, release ou merge em main.
 
+### Continuidade posterior
+
+O [relatório seguinte](sector-runtime-h0-real-sector-sampling-2026-11-10.md),
+`b0caadce`, executa construtor normal/Root, layout/Constant/FlatSurface e LRU
+reais e compara arrays BaseTiles 32×32 completos com metadata controlada.
+Não altera as evidências históricas acima: Perlin/caches mutáveis, contexto
+profundo/admissão/jobs e streaming continuam pendentes. É o novo ponto canônico
+para continuar, sem novo marco ou ganho de desempenho demonstrado.
+
 ## Manifesto das fontes
 
 Doze fontes locais de 10/11/2026; seis alteradas e seis fronteiras auditadas.

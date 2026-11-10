@@ -229,7 +229,17 @@ mantêm getFloat lazy no leitor sobre Json imutável retido: missing/null e fall
 originais, tipos/root inválidos falhando somente quando consultados. Não filtrar
 config para acomodar limite de medição; schema válido e medição completa são
 coisas distintas. Composição de config/custom terrain é privada e fora dos jobs.
-Adapter normal e corpo de WorldTemplate.cpp permanecem byte-idênticos à base.
+Naquela entrega, adapter normal e WorldTemplate.cpp permaneceram byte-idênticos à base.
+
+O [ensaio seguinte de amostragem real](../sector-runtime-h0-real-sector-sampling-2026-11-10.md)
+reloca 23 corpos herdados sem alteração, incluindo construtores/consulta normal
+e LRU. Testa exceções e cache reais: hit após retirar Root não consulta Assets,
+miss preserva a falha herdada; hotReload não troca a config retida pelo template.
+Sem mudança de RNG, ordem de floats, seleção, formato ou default. Constant/
+FlatSurface e layout reais sobre metadata controlada produzem arrays completos,
+mas não aprovam planeta/mods/save/multiplayer. Perlin/caches mutáveis e defaults
+baseHeight/regionLiquids seguem auditoria, além de biomeTransition/horizonClouds.
+Cada leitor usa grafo privado; const não autoriza compartilhar os demais caches.
 
 ## MOD-02 — Equivalência e versionamento
 

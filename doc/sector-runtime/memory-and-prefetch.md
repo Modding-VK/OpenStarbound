@@ -238,6 +238,15 @@ inputs. Wrapper/vetor de tokens/control blocks e heap dos polígonos não entram
 nesse modelo; medição completa não equivale a admissão do contexto ou schema
 válido. Nenhuma classe/cota nova ou adoção nos jobs normais.
 
+O [ensaio de amostragem real/BaseTiles](../sector-runtime-h0-real-sector-sampling-2026-11-10.md)
+executa construtor normal, layout/seletores simples/LRU e materiais parseados,
+com arrays 32×32 completamente inicializados. Grafos montados por leitor no
+teste não representam captura/admissão profunda de layout/biomas/seletores;
+arrays diagnósticos usam ownership local, não são produtos admitidos no executor.
+Não muda modelo/classe/cota ou integra os inputs capturados aos jobs.
+Fechar noises/caches privados, cobertura/overlap e admissão antes de aumentar
+paralelismo. RAM-01 permanece 25%, não censo de heap completo.
+
 ### Inventário de ownership e cobertura atual
 
 | Produto/recurso | Dono e término da retenção | Contabilidade atual |

@@ -39,7 +39,7 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[Config lazy e inputs estáticos compostos](sector-runtime-h0-block-info-static-inputs-2026-11-10.md), com
+[Layout/cache reais e BaseTiles 32×32](sector-runtime-h0-real-sector-sampling-2026-11-10.md), com
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
@@ -207,13 +207,23 @@ adapter normal mantém Assets e não copia por bloco. Próximo: config lazy e
 adapter/layout/seletores reais, admissão/revalidação antes da sombra. Sem ganho
 de setores/s medido, Actions ou release.
 
-O [recorte atual de inputs estáticos](sector-runtime-h0-block-info-static-inputs-2026-11-10.md),
+O [recorte de inputs estáticos](sector-runtime-h0-block-info-static-inputs-2026-11-10.md),
 `e076d96a`, compõe config lazy/custom terrain no kernel com lifetime e Json v2
 opcional/deduplicado. 752 casos padrão +13 Root opt-in, 5.425 execuções adicionais,
 38+1 grupos CTest, ASan/UBSan. Layout/seletores ainda controlados; captura fora
 dos jobs e sem admissão do contexto inteiro. Próximo bloco: adapter/layout/
 seletores e cache reais, não outro accessor isolado. CPU-01/H0/RAM-01 25%,
 programa 3,6%, sem novo marco, ganho medido ou Actions.
+
+O [recorte atual de amostragem real](sector-runtime-h0-real-sector-sampling-2026-11-10.md),
+`b0caadce`, compara Root/construtor normal, layout/Constant/FlatSurface e LRU
+reais, com arrays BaseTiles 32×32 completos. 19 novos opt-in; 752 padrão +32
+opcionais, 5.520 execuções adicionais e 40 grupos, ASan/UBSan. Metadata controlada,
+sem planeta procedural, Perlin ou caches mutáveis da árvore. Próximo: reproduzir
+factory de CacheSelector e inicialização/cópias de Perlin, depois noises/caches
+privados e contexto/admissão antes de sombra por setor. Defaults baseHeight/
+regionLiquids entram na auditoria. CPU-01/H0/RAM-01 seguem 25%, programa 3,6%;
+não ativa jobs, amplia orçamento ou comprova setores/s. Nenhum Actions disparado.
 
 A proposta vigente foi retrabalhada para aproveitar CPU, RAM e GPU:
 [sector-generation-hardware-design-2026-11-08.md](sector-generation-hardware-design-2026-11-08.md).
