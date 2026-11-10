@@ -55,33 +55,6 @@ Json WorldRegion::toJson() const {
   };
 }
 
-WorldLayout::BlockNoise WorldLayout::BlockNoise::build(Json const& config, uint64_t seed) {
-  BlockNoise blockNoise;
-  blockNoise.horizontalNoise = PerlinF(config.get("horizontalNoise"), staticRandomU64(seed, "HorizontalNoise"));
-  blockNoise.verticalNoise = PerlinF(config.get("verticalNoise"), staticRandomU64(seed, "VerticalNoise"));
-  blockNoise.xNoise = PerlinF(config.get("noise"), staticRandomU64(seed, "XNoise"));
-  blockNoise.yNoise = PerlinF(config.get("noise"), staticRandomU64(seed, "yNoise"));
-  return blockNoise;
-}
-
-WorldLayout::BlockNoise::BlockNoise() {}
-
-WorldLayout::BlockNoise::BlockNoise(Json const& store) {
-  horizontalNoise = PerlinF(store.get("horizontalNoise"));
-  verticalNoise = PerlinF(store.get("verticalNoise"));
-  xNoise = PerlinF(store.get("xNoise"));
-  yNoise = PerlinF(store.get("yNoise"));
-}
-
-Json WorldLayout::BlockNoise::toJson() const {
-  return JsonObject{
-    {"horizontalNoise", horizontalNoise.toJson()},
-    {"verticalNoise", verticalNoise.toJson()},
-    {"xNoise", xNoise.toJson()},
-    {"yNoise", yNoise.toJson()},
-  };
-}
-
 WorldLayout WorldLayout::buildTerrestrialLayout(TerrestrialWorldParameters const& terrestrialParameters, uint64_t seed) {
   auto& root = Root::singleton();
   auto assets = root.assets();

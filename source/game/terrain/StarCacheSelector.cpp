@@ -12,7 +12,7 @@ CacheSelector::CacheSelector(
   uint64_t seedBias = sourceConfig.getUInt("seedBias", 0);
   TerrainSelectorParameters sourceParameters = parameters;
   sourceParameters.seed += seedBias;
-  m_source = database->createSelectorType(type, sourceConfig, sourceParameters);
+  m_source = database->createSelectorType(sourceType, sourceConfig, sourceParameters);
 
   m_cache.setMaxSize(config.getUInt("lruCacheSize", 20000));
 }

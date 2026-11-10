@@ -331,9 +331,13 @@ CTest, ASan/UBSan. Grafo montado com metadata controlada, sem builder de planeta
 noise/Perlin ou cache mutável da árvore. 23 corpos relocados sem alteração;
 nenhum novo marco, contexto em jobs ou ganho de setores/s medido.
 
-Próximo trabalho executável: reproduzir factory de CacheSelector e
-inicialização/cópia de Perlin; resolver defeitos confirmados com controle
-negativo e estender o ensaio a noises/árvore de seletores/caches privados reais.
+O [recorte de Perlin e CacheSelector](../sector-runtime-h0-perlin-cache-2026-11-10.md)
+reproduz e corrige falhas de cópia de metadata e seleção de fonte, e executa
+noises e caches privados em fixture. Construir a árvore avança o RNG global;
+essa dependência precisa ser isolada antes da integração em workers.
+
+Próximo trabalho executável: isolar o consumo de RNG, preservar a sequência
+observável e fechar ownership e admissão do contexto de produção.
 Não confundir a LRU validada com CacheSelector. Auditar também defaults
 baseHeight/regionLiquids. Manter caches exclusivos; fechar o contexto de BaseTiles,
 inicialização e inputs efetivamente capturados; o lifecycle de Root mínimo já foi

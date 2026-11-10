@@ -142,6 +142,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_lookup_readers_test.cpp
   byte_array_test.cpp
   random_seed_test.cpp
+  perlin_lifecycle_test.cpp
   world_generation_estimate_test.cpp
   world_generation_worker_cache_test.cpp
   world_generation_buffer_test.cpp
@@ -188,6 +189,7 @@ FOREACH(world_region_test_suite
     WorldGenerationAssetsLifecycleTest
     ByteArrayTest
     AutomaticRandomSeedTest
+    PerlinLifecycleTest
     WorldGenerationEstimateTest
     WorldGenerationWorkerCacheTest
     WorldGenerationBufferTest
@@ -219,6 +221,18 @@ IF(STAR_BUILD_ROOT_LIFECYCLE_TESTS)
     ../game/StarWorldTemplateSampling.cpp
     ../game/StarWorldLayoutSampling.cpp
     ../game/StarTerrainSelector.cpp
+    ../game/StarTerrainDatabase.cpp
+    ../game/terrain/StarCacheSelector.cpp
+    ../game/terrain/StarDisplacementSelector.cpp
+    ../game/terrain/StarIslandSurfaceSelector.cpp
+    ../game/terrain/StarKarstCave.cpp
+    ../game/terrain/StarMaxSelector.cpp
+    ../game/terrain/StarMinMaxSelector.cpp
+    ../game/terrain/StarMixSelector.cpp
+    ../game/terrain/StarPerlinSelector.cpp
+    ../game/terrain/StarRidgeBlocksSelector.cpp
+    ../game/terrain/StarRotateSelector.cpp
+    ../game/terrain/StarWormCave.cpp
     ../game/terrain/StarConstantSelector.cpp
     ../game/terrain/StarFlatSurfaceSelector.cpp
     ../game/StarWorldGenerationCustomTerrain.cpp

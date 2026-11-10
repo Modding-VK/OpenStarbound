@@ -6,6 +6,9 @@
 #include "StarWorldGenerationLookupResolver.hpp"
 #include "StarConstantSelector.hpp"
 #include "StarFlatSurfaceSelector.hpp"
+#include "StarCacheSelector.hpp"
+#include "StarPerlinSelector.hpp"
+#include "StarIslandSurfaceSelector.hpp"
 #include "StarWorldGenerationTestDirectory.hpp"
 
 #include <array>
@@ -21,6 +24,26 @@ namespace Star {
 // No fixture constructor/tag for Root, WorldTemplate or selectors: all sampling
 // methods and Constant/FlatSurface constructors/getters are production bodies.
 struct WorldGenerationRealBlockInfoTestAccess {
+  static TerrainSelectorParameters parameters(uint64_t seed = 1234, float height = 16) {
+    return TerrainSelectorParameters(JsonObject{{"worldWidth", 64}, {"baseHeight", height}, {"seed", seed}, {"commonality", 1}});
+  }
+  static Json noiseConfig(float amplitude = 2, float bias = 0) {
+    return JsonObject{{"type", "perlin"}, {"octaves", 2}, {"frequency", 0.0625}, {"amplitude", amplitude}, {"bias", bias}};
+  }
+  static Json selectorNoiseConfig(String function = "perlin") {
+    return JsonObject{{"type", "perlin"}, {"function", function}, {"octaves", 2}, {"freq", 0.0625}, {"amp", 0.8}, {"bias", 0.125}};
+  }
+  static Json cached(Json source, uint64_t limit = 3) {
+    return JsonObject{{"type", "cache"}, {"source", std::move(source)}, {"lruCacheSize", limit}};
+  }
+  static Json treeConfig() {
+    return cached(JsonObject{{"type", "mix"}, {"mixSource", cached(selectorNoiseConfig())},
+      {"aSource", cached(JsonObject{{"type", "flatSurface"}})},
+      {"bSource", cached(JsonObject{{"type", "flatSurface"}, {"adjustment", 6}})}});
+  }
+  static Json blockNoiseConfig() {
+    return JsonObject{{"horizontalNoise", noiseConfig(2)}, {"verticalNoise", noiseConfig(2)}, {"noise", noiseConfig(3)}};
+  }
   static WorldLayoutPtr layout(bool horizontal = false, bool vertical = false,
       float foregroundCave = -1, float backgroundCave = -1, bool subBlocks = false, bool ores = false) {
     auto out = std::make_shared<WorldLayout>(); out->m_worldSize = {64, 64}; out->m_regionBlending = 8;
@@ -58,6 +81,19 @@ struct WorldGenerationRealBlockInfoTestAccess {
   static WorldRegion& first(WorldLayout& layout) { return *layout.m_layers.first().cells.first(); }
   static size_t cacheSize(WorldTemplate const& world) { return world.m_blockCache.currentSize(); }
   static void clearCache(WorldTemplate& world) { world.m_blockCache.clear(); }
+  static WorldLayoutPtr procedural(TerrainDatabase const& database, bool withNoise = true) {
+    auto out = layout(true, true);
+    out->m_terrainSelectors[0] = database.createSelectorType("cache", treeConfig(), parameters());
+    out->m_terrainSelectors[5] = database.createSelectorType("cache", treeConfig(), parameters(2348, 40));
+    out->m_terrainSelectors[1] = database.createSelectorType("cache", cached(JsonObject{{"type", "constant"}, {"value", -1}}), parameters());
+    out->m_terrainSelectors[2] = database.createSelectorType("cache", cached(JsonObject{{"type", "constant"}, {"value", -1}}), parameters());
+    if (withNoise) {
+      out->m_blendNoise = PerlinF(noiseConfig(3), 177);
+      out->m_blockNoise = WorldLayout::BlockNoise::build(blockNoiseConfig(), 181);
+    }
+    return out;
+  }
+  static void emptyBlend(WorldLayout& layout) { layout.m_blendNoise = PerlinF(); }
 };
 }
 
@@ -142,7 +178,7 @@ protected:
     for (int x = -8; x <= 72; x += 2) for (int y = -2; y <= 66; y += 2)
       EXPECT_EQ(fields(world.blockInfo(x, y)), fields(candidate.sample(x, y))) << x << ',' << y;
   }
-  void sector(WorldTemplate& world, WorldLayoutPtr privateLayout, LiquidId ocean = EmptyLiquidId) {
+  void sector(WorldTemplate& world, WorldLayoutPtr privateLayout, LiquidId ocean = EmptyLiquidId, bool flatExpectations = true) {
     auto inputs = world.captureBlockInfoStaticInputs(ledger, true); RealSource candidate{inputs, privateLayout};
     auto materials = Root::singleton().materialDatabase(); WorldGenerationLookupResolver resolver{world, *materials};
     auto expected = std::make_unique<ServerTileSectorArray::Array>(); auto actual = std::make_unique<ServerTileSectorArray::Array>();
@@ -156,6 +192,15 @@ protected:
       1, world.generationRevision(), {64, 64}, RectI(0, 0, 32, 32)};
     auto comparison = compareWorldGenerationBaseTiles(*expected, *actual, identity);
     EXPECT_TRUE(comparison.equal()); EXPECT_EQ(1024u, comparison.comparedTiles);
+    if (!flatExpectations) {
+      size_t solid = 0, empty = 0;
+      for (int x = 0; x != 32; ++x) for (int y = 0; y != 32; ++y) {
+        if ((*actual)(x, y).foreground == EmptyMaterialId) ++empty;
+        else ++solid;
+      }
+      EXPECT_GT(solid, 0u); EXPECT_GT(empty, 0u);
+      return;
+    }
     EXPECT_EQ(21, (*actual)(8, 4).foreground); EXPECT_EQ(EmptyMaterialId, (*actual)(8, 20).foreground);
     EXPECT_EQ(MaterialHue(9), (*actual)(8, 4).foregroundHueShift);
     EXPECT_EQ(EmptyLiquidId, (*actual)(8, 4).liquid.liquid);
@@ -262,4 +307,156 @@ TEST_F(WorldGenerationRealBlockInfoTest, BaseTiles32x32WithOceanMetadataMatchesT
   auto r = root(); auto normal = Access::layout(), captured = Access::layout();
   Access::first(*normal).regionLiquids = Access::first(*captured).regionLiquids = {0, 0, 3, 24, false, false};
   auto world = planet(normal); sector(*world, captured, 3);
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, CacheFactoryUsesItsDeclaredSourceType) {
+  auto r = root();
+  auto database = r->terrainDatabase();
+  TerrainSelectorParameters params(JsonObject{{"worldWidth", 64}, {"baseHeight", 16}, {"seed", 1234}, {"commonality", 1}});
+  TerrainSelectorConstPtr selector;
+  ASSERT_NO_THROW(selector = database->createSelectorType("cache",
+    JsonObject{{"source", JsonObject{{"type", "constant"}, {"value", 0.375}}}, {"lruCacheSize", 2}}, params));
+  auto cached = std::dynamic_pointer_cast<CacheSelector const>(selector);
+  ASSERT_TRUE(cached);
+  EXPECT_EQ("constant", cached->m_source->type);
+  EXPECT_EQ(bits(0.375f), bits(cached->get(4, 8)));
+  EXPECT_EQ(bits(0.375f), bits(cached->get(4, 8)));
+  EXPECT_EQ(1u, cached->m_cache.currentSize());
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, NestedCacheSeedBiasAndStoreLoadUseRealFactory) {
+  auto r = root(); auto database = r->terrainDatabase();
+  auto params = Access::parameters(UINT64_MAX - 4);
+  auto config = Access::cached(Access::cached(JsonObject{{"type", "constant"}, {"value", -0.25}, {"seedBias", 7}}).set("seedBias", 9));
+  auto first = database->createSelectorType("cache", config, params);
+  auto outer = std::dynamic_pointer_cast<CacheSelector const>(first);
+  ASSERT_TRUE(outer);
+  auto inner = std::dynamic_pointer_cast<CacheSelector const>(outer->m_source);
+  ASSERT_TRUE(inner);
+  EXPECT_EQ(4u, inner->parameters.seed); EXPECT_EQ(11u, inner->m_source->parameters.seed);
+  auto second = database->loadSelector(database->storeSelector(first));
+  EXPECT_NE(first.get(), second.get());
+  EXPECT_EQ(database->storeSelector(first), database->storeSelector(second));
+  EXPECT_EQ(bits(-0.25f), bits(first->get(1, 2)));
+  EXPECT_EQ(bits(first->get(1, 2)), bits(second->get(1, 2)));
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, CacheOfPerlinMatchesUncachedAcrossEvictionAndFunctionTypes) {
+  auto r = root(); auto database = r->terrainDatabase();
+  for (String type : {String("perlin"), String("billow"), String("ridgedMulti")}) {
+    auto config = Access::selectorNoiseConfig(type).set("seedBias", 17);
+    auto cached = std::dynamic_pointer_cast<CacheSelector const>(database->createSelectorType("cache", Access::cached(config, 2), Access::parameters()));
+    auto direct = database->createSelectorType("perlin", config, Access::parameters(1251));
+    ASSERT_TRUE(cached);
+    for (int x = -8; x != 12; ++x) {
+      EXPECT_EQ(bits(direct->get(x, 11)), bits(cached->get(x, 11)));
+      EXPECT_EQ(bits(direct->get(x, 11)), bits(cached->get(x, 11)));
+    }
+    EXPECT_EQ(2u, cached->m_cache.currentSize());
+    EXPECT_EQ(bits(direct->get(-8, 11)), bits(cached->get(-8, 11)));
+  }
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, CacheFactoryKeepsUnknownAndMalformedSourceErrors) {
+  auto r = root(); auto database = r->terrainDatabase(); auto params = Access::parameters();
+  EXPECT_THROW(database->createSelectorType("cache", Access::cached(JsonObject{{"type", "not-a-selector"}}), params), TerrainException);
+  EXPECT_THROW(database->createSelectorType("cache", JsonObject{}, params), JsonException);
+  EXPECT_THROW(database->createSelectorType("cache", Access::cached(JsonObject{{"type", "constant"}, {"value", "bad"}}), params), JsonException);
+  auto valid = database->createSelectorType("cache", Access::cached(JsonObject{{"type", "constant"}, {"value", 1}}), params);
+  EXPECT_EQ(bits(1.0f), bits(valid->get(0, 0)));
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, NamedCachedTreeLoadsFromRealTerrainAssetRegistry) {
+  source.write("cached.terrain", Access::treeConfig().set("name", "fixture-cached-tree").repr());
+  auto r = root(); auto database = r->terrainDatabase();
+  auto named = database->createNamedSelector("fixture-cached-tree", Access::parameters());
+  auto direct = database->createSelectorType("cache", Access::treeConfig(), Access::parameters());
+  for (int y = 0; y != 32; ++y) EXPECT_EQ(bits(named->get(23, y)), bits(direct->get(23, y)));
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, BlockNoiseBuildJsonCopyAndMoveKeepNonzeroSamples) {
+  auto original = WorldLayout::BlockNoise::build(Access::blockNoiseConfig(), 181);
+  WorldLayout::BlockNoise loaded(original.toJson()), copied(original);
+  auto moved = std::move(copied);
+  EXPECT_EQ(original.toJson(), loaded.toJson()); EXPECT_EQ(original.toJson(), moved.toJson());
+  size_t changed = 0;
+  for (int x = 0; x != 64; ++x) {
+    Vec2I point(x, 28);
+    auto expected = original.apply(point, {64, 64});
+    EXPECT_EQ(expected, loaded.apply(point, {64, 64})); EXPECT_EQ(expected, moved.apply(point, {64, 64}));
+    if (expected != point) ++changed;
+  }
+  EXPECT_GT(changed, 0u);
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, RealNoisesAndCachedSelectorTreeMatchGridAndFullBaseTiles) {
+  auto r = root(); auto database = r->terrainDatabase();
+  auto world = planet(Access::procedural(*database));
+  grid(*world, Access::procedural(*database));
+  sector(*world, Access::procedural(*database), EmptyLiquidId, false);
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, ColdWarmAndRebuiltCachedTreesKeepSampleBits) {
+  auto r = root(); auto database = r->terrainDatabase();
+  auto warm = database->createSelectorType("cache", Access::treeConfig(), Access::parameters());
+  auto cold = database->loadSelector(database->storeSelector(warm));
+  auto cache = std::dynamic_pointer_cast<CacheSelector const>(warm);
+  auto coldCache = std::dynamic_pointer_cast<CacheSelector const>(cold);
+  ASSERT_TRUE(cache); ASSERT_TRUE(coldCache);
+  for (int x = -4; x != 68; ++x) warm->get(x, 12);
+  EXPECT_EQ(3u, cache->m_cache.currentSize()); EXPECT_EQ(0u, coldCache->m_cache.currentSize());
+  for (int x = 67; x != -5; --x) EXPECT_EQ(bits(warm->get(x, 12)), bits(cold->get(x, 12)));
+  auto retained = coldCache->m_cache.currentSize(); cache->m_cache.clear();
+  EXPECT_EQ(retained, coldCache->m_cache.currentSize());
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, IslandColumnCachesArePrivateAndMatchUncachedColumnCalculation) {
+  auto r = root(); auto database = r->terrainDatabase();
+  Json config = JsonObject{{"islandElevation", 3}, {"islandTaperPoint", 0.5},
+    {"islandHeight", Access::noiseConfig(2, 4)}, {"islandDepth", Access::noiseConfig(2, 4)}, {"islandDecision", Access::noiseConfig(0.5, 0.5)}};
+  auto first = std::dynamic_pointer_cast<IslandSurfaceSelector const>(database->createSelectorType("islandSurface", config, Access::parameters()));
+  auto second = std::dynamic_pointer_cast<IslandSurfaceSelector const>(database->loadSelector(database->storeSelector(first)));
+  ASSERT_TRUE(first); ASSERT_TRUE(second); EXPECT_NE(first.get(), second.get());
+  first->columnCache.setMaxSize(2); second->columnCache.setMaxSize(2);
+  for (int x = -4; x != 68; ++x) {
+    auto column = first->generateColumn(x);
+    for (int y : {0, 12, 16, 20, 32}) {
+      float expected = (column.topLevel - column.bottomLevel) / 2 - abs((column.topLevel + column.bottomLevel) / 2 - y);
+      EXPECT_EQ(bits(expected), bits(first->get(x, y))); EXPECT_EQ(bits(expected), bits(second->get(x, y)));
+    }
+  }
+  EXPECT_EQ(2u, first->columnCache.currentSize()); EXPECT_EQ(2u, second->columnCache.currentSize());
+  first->columnCache.clear(); EXPECT_EQ(2u, second->columnCache.currentSize());
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, ThreePrivateNoiseTreesSampleAfterRootAndTemplateDestruction) {
+  auto r = root(); auto database = r->terrainDatabase(); auto world = planet(Access::procedural(*database));
+  auto inputs = world->captureBlockInfoStaticInputs(ledger, true);
+  std::vector<decltype(fields(WorldTemplate::BlockInfo{}))> expected;
+  for (int x = -4; x != 68; ++x) expected.push_back(fields(world->blockInfo(x, 12)));
+  world.reset(); r.reset();
+  std::array<std::future<decltype(expected)>, 3> results;
+  for (auto& result : results) result = std::async(std::launch::async, [&inputs, database] {
+    RealSource candidate{inputs, Access::procedural(*database)};
+    decltype(expected) out;
+    for (int x = -4; x != 68; ++x) out.push_back(fields(candidate.sample(x, 12)));
+    return out;
+  });
+  for (auto& result : results) EXPECT_EQ(expected, result.get());
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, UninitializedBlendNoiseFailureDoesNotCachePartialBlockInfo) {
+  auto r = root(); auto layout = Access::procedural(*r->terrainDatabase()); Access::emptyBlend(*layout);
+  auto world = planet(layout);
+  EXPECT_THROW(world->blockInfo(7, 4), PerlinException); EXPECT_EQ(0u, Access::cacheSize(*world));
+  EXPECT_THROW(world->blockInfo(7, 4), PerlinException); EXPECT_EQ(0u, Access::cacheSize(*world));
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, BuildingNoiseTreeCurrentlyConsumesGlobalRng) {
+  auto r = root(); auto database = r->terrainDatabase();
+  Random::init(918); auto first = Random::randu64(), next = Random::randu64();
+  Random::init(918); EXPECT_EQ(first, Random::randu64());
+  auto layout = Access::procedural(*database);
+  (void)layout;
+  EXPECT_NE(next, Random::randu64());
 }

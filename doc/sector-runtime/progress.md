@@ -5,7 +5,7 @@ Base inspecionada: `55b2d3691aad116f5421b5206faf170287b471fc`;
 última implementação: `b0caadce`.
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h0-real-sector-sampling-2026-11-10.md)
+· [Último relatório técnico](../sector-runtime-h0-perlin-cache-2026-11-10.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -22,7 +22,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **3,6%** — 7 marcos verificados de 196 |
 | Contratos com avanço registrado | **7 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | 752 casos padrão +32 opt-in (19 novos), 5.520 execuções adicionais e 40 grupos CTest, ASan/UBSan; Root normal, layout/Constant/FlatSurface e LRU reais, BaseTiles 32×32 com metadata controlada |
+| Última evidência de testes | 760 casos padrão +44 opcionais e 41 grupos CTest, ASan/UBSan; Perlin, CacheSelector e árvores privadas com noises reais |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,6% não significam que o jogo esteja só 3,6% pronto.** O runtime anterior
@@ -108,8 +108,8 @@ autoritativa. GPU é opcional, com fallback CPU completo.
    lazy já compõe essa captura com lifetime/modelo Json v2 opcional. Agora o
    construtor normal, layout/Constant/FlatSurface e LRU reais são comparados e
    produzem BaseTiles 32×32 completos sob metadata controlada. Próximo:
-   reproduzir a factory de CacheSelector e inicialização/cópia de Perlin;
-   estender noises/árvore de seletores/caches privados reais, fechar
+   identificar o consumo de RNG global ao construir a árvore de seletores;
+   CacheSelector e cópia de Perlin vazio corrigidos; fechar
    contexto/inicialização e revalidar antes de sombra por setor
    com admissão/bytes. Não repetir o mesmo recorte de Root como nova entrega.
    Não adotar fita por tile, antecipar consultas, usar tile parcial ou mudar
@@ -213,7 +213,7 @@ CPU-01 recebe o primeiro marco porque agora existe cálculo com dados próprios
 que independe da origem/Root após captura, não só callbacks/catálogos ou contagem
 de testes. Não recebe 50%; não ativa jobs, orçamento ou nova fase de executor.
 
-Os 752 casos padrão e 32 opcionais e demais números provêm do **último relatório técnico**,
+Os 760 casos padrão e 44 opcionais e demais números provêm do **último relatório técnico**,
 no cenário NoAssets, não de streaming integrado. A criação original do painel
 foi documental; os avanços posteriores de runtime estão associados aos commits/
 relatórios do histórico. Atualizar este painel não acrescenta uma medição de

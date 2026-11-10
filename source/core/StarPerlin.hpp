@@ -220,6 +220,17 @@ template <typename Float>
 Perlin<Float>& Perlin<Float>::operator=(Perlin const& perlin) {
   if (perlin.m_type == PerlinType::Uninitialized) {
     m_type = PerlinType::Uninitialized;
+    // The copy constructor delegates here too. Empty noises still have
+    // initialized, serializable metadata; do not leave it stale/indeterminate.
+    m_seed = perlin.m_seed;
+    m_octaves = perlin.m_octaves;
+    m_frequency = perlin.m_frequency;
+    m_amplitude = perlin.m_amplitude;
+    m_bias = perlin.m_bias;
+    m_alpha = perlin.m_alpha;
+    m_beta = perlin.m_beta;
+    m_offset = perlin.m_offset;
+    m_gain = perlin.m_gain;
     p.reset();
     g3.reset();
     g2.reset();
