@@ -5,7 +5,13 @@ Estado: H0 / RAM-01, `Experimental`, 09/11/2026.
 · [Roadmap](sector-runtime/roadmap.md) · [Relatório da entrega](sector-runtime-h0-capacity-kernel-2026-11-09.md)
 
 Continuidade de identidade/equivalência: [contrato BaseTiles](sector-runtime-base-tiles-contract.md)
-e [último relatório](sector-runtime-h0-lookup-source-generations-2026-11-09.md).
+e [último relatório](sector-runtime-h0-real-lookup-readers-2026-11-10.md).
+
+Continuidade de 10/11: leitores reais testados com metadata controlada não ampliam
+a cobertura do ledger. Catálogo/binding seguem fora do produtor normal; headers
+de tipos/fachadas e tags privadas de fixture não acrescentam campos às classes.
+Não usar a memória de fixtures ou bytes ativos de catálogo como teto de bancos,
+layout/biomas/assets ou como autorização para ampliar filas.
 
 Este contrato delimita o **subconjunto privado de geração contabilizado**.
 Não redefine RAM-01 como orçamento de todo o motor e não transforma estimativa

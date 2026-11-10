@@ -66,8 +66,15 @@ de assets/material era declarado naquela entrega.
 O [binding de fontes](../sector-runtime-h0-lookup-source-generations-2026-11-09.md),
 `5413e13a`, liga clocks às fronteiras reais de Root/Assets e versões de definições
 de materiais. Scope 2 inclui sourceEpoch, handles fortes e checagem pré/pós;
-não é read lease ou autorização de commit. Próximo: comparar leitores reais/
-catálogo/fita e lifecycle com assets antes de sombra por setor, com admissão/bytes.
+não é read lease ou autorização de commit.
+Os [leitores reais](../sector-runtime-h0-real-lookup-readers-2026-11-10.md)
+agora são comparados ao catálogo/fita/corpo independente, incluindo exceções,
+NoMod e troca de layout, sem construir Root/assets ou sortear seed. Facades de
+Biome/WorldTemplate mantêm includes antigos; tags privadas servem só a metadata
+de consultas, não a blockInfo/contexto completo. Auditar também o default herdado
+de SkyParameters::horizonClouds: a fixture o inicializa, produção não foi alterada.
+Próximo: lifecycle com fontes/assets reais e revalidação antes de sombra por
+setor com admissão/bytes; não otimizar consultas isoladas como fim em si mesmo.
 CPU-01 completo, contexto profundo/RNG e ganho de WorldTemplate seguem pendentes.
 
 Aceitação: execução concorrente não alcança template vivo, callbacks ou RNG

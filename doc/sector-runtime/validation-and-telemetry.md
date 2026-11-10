@@ -227,6 +227,17 @@ fontes com sintaxe Tracy aprovadas, não linking do jogo/Tracy. Não executou
 reload/assets/mods reais, TSan ou benchmark. Dois microexperimentos seguem
 DISABLED e não foram reexecutados. Catálogo continua fora do produtor normal.
 
+O [recorte de leitores reais](../sector-runtime-h0-real-lookup-readers-2026-11-10.md)
+passa **649 testes**, 32 grupos CTest e **165 × 20 = 3.300 execuções adicionais**
+com ASan/UBSan; 20 novos casos normativos. Os corpos reais de WorldTemplate/
+MaterialDatabase e a referência independente comparam trace, estado parcial nas
+exceções, 4.096 combinações e arrays de 1.024 tiles com quatro workers. Layout
+real substituído/revisionado; clocks parent/Assets controlados e definições de
+materiais reais só com metadata de fixture. Não executou Root::reload/Assets,
+terreno, mods ou streaming. Três microexperimentos DISABLED por padrão; somente
+o novo de custo dos leitores foi executado à parte, conforme relatório, sem
+asserção de timing ou inferência de setores/s. CPU-01 e gates integrados abertos.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

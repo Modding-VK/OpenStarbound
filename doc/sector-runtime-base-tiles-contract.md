@@ -3,7 +3,7 @@
 Estado: H0, `Experimental`, 10/11/2026.
 [Programa](sector-runtime/README.md) · [Roadmap](sector-runtime/roadmap.md)
 · [Memória](sector-runtime-memory-envelope.md)
-· [Relatório](sector-runtime-h0-lookup-source-generations-2026-11-09.md)
+· [Relatório](sector-runtime-h0-real-lookup-readers-2026-11-10.md)
 
 ## Identidade não é autorização de commit nem chave de conteúdo
 
@@ -142,8 +142,31 @@ o dono revalida fontes/task/template/tiles no commit. Strong handles retêm font
 mesmo após invalidação; não cancelam/drainam jobs ou recuperam RAM automaticamente.
 
 Hooks de metadata no runtime real; catálogo ainda não chamado pelo produtor normal.
-NoAssets testa algoritmo com fontes controladas, não reload/assets reais. Próximo
-escopo exige leitores reais e validação integrada antes de uso/sombra por setor.
+NoAssets agora liga os mesmos corpos de leitores usados no jogo, com objetos
+reais e metadata controlada; clocks parent/Assets ainda são controlados.
+Não executa construção/reload de Root/assets. Validação integrada permanece gate
+antes de uso/sombra por setor.
+
+## Leitores reais e equivalência sem assets
+
+O [recorte de leitores](sector-runtime-h0-real-lookup-readers-2026-11-10.md)
+extrai o resolver emprestado de produção e reloca seus leitores/construtores
+de valores sem mudar os corpos. Biome/WorldTemplate têm headers de tipos e
+fachadas antigas que preservam includes transitivos; campos/layout não mudam.
+Tags privadas de fixture não constroem mundos/bancos completos e não são usadas
+nos construtores normais ou para blockInfo/geração.
+
+Consultas reais confirmam que NoMod pode ter hue não zero, supportsMod aceita
+NoMod antes de procurar material e não consulta pertencimento de mods reais
+ao banco. Bioma inválido/material ausente conservam suas exceções e prefixos
+de escrita, inclusive na referência independente. Não adicionar validação ou
+normalização que mude esses comportamentos em nome de uma otimização.
+
+4.096 combinações comparam trace/campos entre corpo anterior, captura, fita e
+catálogo; 1.024 tiles comparam os leitores reais e catálogo em quatro workers
+a uma referência serial. Troca real de layout avança revision e recusa catálogo
+antigo; replacement de lifecycle usa clocks controlados, não Root::reload.
+Catálogo continua diagnóstico, sem uso no produtor normal ou ganho de setores/s.
 
 ## Comparação de campos, modelo 1
 
@@ -201,10 +224,10 @@ puras de constructor/reset de TileDamageStatus foram movidas sem mudança de
 corpo para permitir esses testes sem ligar Root/assets; dano/recovery/codec não
 mudaram. CMake registra a nova unidade no jogo e no alvo NoAssets.
 
-Próximo: comparar consultas dos leitores reais e catálogo/fita, com template/
-fontes esperados, cobertura/misses, reload/hotReload e fontes antigas retidas.
+Próximo: integrar fontes/assets reais e lifecycle de Root: reload/hotReload,
+listener que falha e fontes antigas retidas, sem reconstrução implícita de bancos.
 Revalidar preparação e commit antes de sombra por setor com admissão/bytes e
 comparação. Não antecipar consultas nem reaproveitar tile parcial.
-Auditar biomeTransition antes de normalizar snapshots; versionar assets/contexto
+Auditar biomeTransition e SkyParameters::horizonClouds default antes de normalizar snapshots; versionar assets/contexto
 profundo e ligar demanda ao interesse real. Preservar gates MOD-01/VAL-02,
 baseline integrado, revisão independente e fallback CPU.

@@ -232,7 +232,13 @@ O [binding de fontes reais](sector-runtime-h0-lookup-source-generations-2026-11-
 fortes e scope 2. 629 testes/31 grupos CTest, ASan/UBSan, com fontes controladas;
 hooks compilados, não execução de reload/assets reais. Stale depois de aplicar
 descarta output; não é lease, autoridade de commit ou consumidor real do catálogo.
-Próximo: comparar leitores reais/catálogo/fita e lifecycle antes de sombra com bytes.
+O [recorte de leitores reais](sector-runtime-h0-real-lookup-readers-2026-11-10.md)
+compara consultas reais a catálogo/fita/corpo independente com metadata
+controlada; 649 testes/32 grupos CTest, ASan/UBSan. Troca de layout/revisão real,
+lifecycle parent/Assets controlado, não reload de Root/assets carregados.
+Catálogo segue fora do produtor normal. Próximo: lifecycle integrado/fontes
+reais e revalidação no dono antes de sombra com bytes. Nenhuma autoridade
+regional, formato de save/rede ou limite de workers alterado.
 
 ## Diagnóstico
 

@@ -3,7 +3,7 @@
 Atualização: 10/11/2026. Branch: `Experimental`. Runtime de partida:
 `7ca7ed2a`; recortes de H0: `d72b7239`, `2131ead3`, `5c3c4c8f`, `65bae55c`,
 `803d4cf7`, `739067b1`, `1bd348e6`, `34c76ea3`, `887149c0`, `cad311d1`, `25cecf95`,
-`c4d7ddb3`, `730e36ba`, `45db2402`, `49a12fbf`, `ada755bf`, `0915af25`, `4b5aed18`, `dd59f3b4`, `8b68ab6a`, `8e190742`, `f7785963`, `2ea41cf8`, `abfc3834`, `4e5cc6c1` e `5413e13a`;
+`c4d7ddb3`, `730e36ba`, `45db2402`, `49a12fbf`, `ada755bf`, `0915af25`, `4b5aed18`, `dd59f3b4`, `8b68ab6a`, `8e190742`, `f7785963`, `2ea41cf8`, `abfc3834`, `4e5cc6c1`, `5413e13a` e `061ce68c`;
 documentação de arquitetura de partida: `8d3b0ade`.
 
 Este é o **programa principal de desenvolvimento**, adotado pelo usuário em
@@ -150,13 +150,18 @@ versionado. Cobertura é conferida antes de escrever; conflitos invalidam o buil
 fora do produtor normal: gerações de assets/material ainda declaradas, não
 conectadas a reload real naquela etapa. Experimento local
 de memória/custo não mede entrega no jogo ou ganho de WorldTemplate.
-O [relatório vigente](../sector-runtime-h0-lookup-source-generations-2026-11-09.md),
+O [relatório de clocks](../sector-runtime-h0-lookup-source-generations-2026-11-09.md),
 `5413e13a`, liga clocks a Root/Assets e versões às definições de materiais, com
 handles fortes e scope 2. Refused não escreve; Stale após cálculo exige descarte.
 629 testes, 2.900 execuções adicionais e 31 grupos CTest, ASan/UBSan. Hooks reais
 compilados, testes com fontes controladas; não executou reload/assets reais.
-Catálogo ainda fora do produtor normal. Próximo: comparar leitores reais, catálogo/
-fita e reload/hotReload antes de sombra por setor com admissão/bytes e guards.
+Catálogo ainda fora do produtor normal.
+O [relatório vigente](../sector-runtime-h0-real-lookup-readers-2026-11-10.md)
+compara leitores reais de WorldTemplate/MaterialDatabase ao corpo anterior,
+catálogo e fita com metadata controlada: 649 testes, 3.300 execuções adicionais
+e 32 grupos CTest, ASan/UBSan. Mesmos corpos usados pelo jogo; não construção
+ou reload de Root/assets. Próximo: lifecycle integrado e fontes reais, depois
+sombra por setor com admissão/bytes e guards; catálogo não ativado na geração.
 RAM-01/H0 seguem em 25%, sem ganho de setores/s medido.
 Orçamento processual completo, benchmark real e equivalência com assets
 continuam pendentes.

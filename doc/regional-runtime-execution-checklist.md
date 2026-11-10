@@ -39,7 +39,7 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[gerações e lifetime das fontes BaseTiles](sector-runtime-h0-lookup-source-generations-2026-11-09.md), com
+[leitores reais e equivalência BaseTiles](sector-runtime-h0-real-lookup-readers-2026-11-10.md), com
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
@@ -158,10 +158,15 @@ de assets/material ainda declarado naquela etapa. Não ativado no jogo.
 com binding de fontes fortes e scope 2. 629 testes, 2.900 execuções adicionais e
 31 grupos CTest, ASan/UBSan. Refused não escreve; Stale posterior descarta output,
 não fallback. Hooks compilados, testes com fontes controladas, sem reload/assets
-reais. Próximo: comparar leitores reais/catálogo/fita e reload/hotReload antes
+reais. O [recorte de leitores](sector-runtime-h0-real-lookup-readers-2026-11-10.md)
+compara os corpos reais das consultas ao catálogo/fita e referência independente,
+com metadata controlada: 649 testes, 3.300 execuções adicionais e 32 grupos CTest,
+ASan/UBSan. Includes transitivos e corpos de produção preservados; fixture não é
+um mundo/banco completo. Próximo: Root/assets e reload/hotReload integrados antes
 de sombra por setor com admissão/bytes e guards do dono. Catálogo fora do produtor
 normal. Não antecipar consultas/reaproveitar tile parcial;
-auditar biomeTransition/default/cópias antes de normalizar. RAM-01/H0 em 25%,
+auditar biomeTransition/default/cópias e SkyParameters::horizonClouds antes de
+normalizar. RAM-01/H0 em 25%,
 programa 3,1% inalterados. Streaming real com assets/mods e executor de conclusões
 ainda pendentes.
 

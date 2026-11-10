@@ -180,6 +180,14 @@ privada, não fallback/retry nesse buffer. Applied ainda exige revalidação pel
 dono. Metadata não sincroniza conteúdos nem monitora todo disco/cache; lifecycle
 e locks legados continuam necessários. Sem execução integrada de reload/assets.
 
+Os [leitores reais](../sector-runtime-h0-real-lookup-readers-2026-11-10.md)
+confirmam o contrato legado: NoMod pode receber hue não zero e dispensa lookup
+do material; supportsMod não exige presença de um mod real no banco de mods.
+Preservar exceções reais e writes anteriores à falha em foreground/background.
+Corpos e campos das classes preservados; headers antigos continuam fachadas
+com os mesmos includes transitivos. Objetos de fixture não equivalem a mundos/
+bancos completos. Testes sem assets não certificam mods, saves ou multiplayer.
+
 ## MOD-02 — Equivalência e versionamento
 
 Definir inputs que produzem um output: seed, template/layout, geração de

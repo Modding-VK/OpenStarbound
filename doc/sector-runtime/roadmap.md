@@ -271,15 +271,25 @@ reload/lifecycle, banco de materiais versão de definições e factory com handl
 fortes. Wrapper distingue Refused/Applied/Stale, sem autorização de commit ou
 fallback em buffer alterado. 28 testes novos, 629 no total, 2.900 execuções
 adicionais e 31 grupos CTest com ASan/UBSan. Ver
-[relatório vigente](../sector-runtime-h0-lookup-source-generations-2026-11-09.md).
+[relatório da etapa](../sector-runtime-h0-lookup-source-generations-2026-11-09.md).
 Root/Assets/MaterialDatabase compilados; testes com fontes controladas, sem
 reload/assets reais. Catálogo continua fora do produtor normal, H0 em 25%.
 
-Próximo trabalho executável: comparar leitores reais/catálogo/fita com template/
-fontes esperados, cobertura/misses, reload/hotReload, listener que falha e fontes
-retidas. Revalidar preparação e commit antes de sombra por setor, com admissão/
+Os [leitores reais](../sector-runtime-h0-real-lookup-readers-2026-11-10.md), `061ce68c`,
+de WorldTemplate/MaterialDatabase agora são ligados no NoAssets com os mesmos
+corpos de produção e metadata controlada; catálogo/fita/referência independente
+comparados, inclusive misses e exceções. 20 novos casos, 649 no total, 3.300
+execuções adicionais e 32 grupos CTest, ASan/UBSan. Troca real de layout e fontes
+materiais retidas testadas; lifecycle parent/Assets ainda controlado, sem Root
+ou assets carregados. Catálogo fora do produtor normal; nenhum marco completo
+adicional ou ganho de setores/s. H0/RAM-01 continuam 25%.
+
+Próximo trabalho executável: lifecycle com Root/assets reais, reload/hotReload,
+listener que falha e fontes retidas, sem reconstrução implícita de bancos/layouts.
+Revalidar preparação e commit antes de sombra por setor, com admissão/
 bytes e outputs equivalentes. Não antecipar consultas,
-assumir resolver arbitrário puro ou alterar cópias/RNG. Auditar biomeTransition
+assumir resolver arbitrário puro ou alterar cópias/RNG. Auditar biomeTransition e
+SkyParameters::horizonClouds default (achado registrado, não corrigido)
 antes de normalizar snapshots; versionar contexto profundo/assets e ligar demanda
 ao interesse real antes de replay/cache de produtos.
 Não repetir callbacks/Lua/mundo vivo por uma exceção.

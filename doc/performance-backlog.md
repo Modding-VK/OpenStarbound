@@ -166,12 +166,17 @@ O [recorte do catálogo](sector-runtime-h0-base-tile-lookup-context-2026-11-09.m
 601 testes, 2.340 execuções adicionais e 29 grupos CTest, ASan/UBSan. Protótipo
 fora do jogo: gerações ainda declaradas naquela etapa. Custos/storage sintéticos
 não são ganho de setores/s.
-O [relatório vigente](sector-runtime-h0-lookup-source-generations-2026-11-09.md),
+O [relatório de clocks](sector-runtime-h0-lookup-source-generations-2026-11-09.md),
 `5413e13a`, liga hooks de versões a Root/Assets/material, com handles fortes,
 scope 2 e Refused/Applied/Stale. 629 testes, 2.900 execuções adicionais e 31 grupos
-CTest, ASan/UBSan. Catálogo não ativado; leitores/reload/assets reais ainda não
-executados. Próximo: comparação real/catálogo/fita com cobertura e lifecycle,
-revalidando no dono antes de sombra por setor com admissão/bytes. Não é lease,
+CTest, ASan/UBSan. Naquela etapa leitores/reload/assets reais não foram executados.
+O [relatório vigente](sector-runtime-h0-real-lookup-readers-2026-11-10.md)
+compara os leitores reais a catálogo/fita/corpo independente com metadata
+controlada: 649 testes, 3.300 execuções adicionais e 32 grupos CTest, ASan/UBSan.
+Preserva NoMod, exceções e writes parciais; layout real revisionado, fontes
+retidas com lifecycle controlado. Catálogo não ativado. Próximo: Root/assets e
+reload/hotReload integrados, revalidando no dono antes de sombra por setor com
+admissão/bytes. Não é lease,
 autoridade de commit ou ganho de entrega medido; RAM-01/H0 continuam em 25%.
 
 Achado adicional de inicialização/cópia, não corrigido: WorldTile não inicializa/
@@ -179,6 +184,11 @@ copia biomeTransition no construtor/operador; BaseTiles sobrescreve o flag nos
 tiles válidos. Auditar demais snapshots/consumidores antes de corrigir a cópia
 ou inferir causa de crash. Comparador exige campos inicializados e não lê bordas
 fora do mundo. ASan/UBSan não substituem MSan. Nenhum formato persistido foi mudado.
+Outro achado herdado de CPU-01: SkyParameters::SkyParameters() não inicializa
+horizonClouds. O corpo foi relocado sem mudança; a fixture de consultas define
+false explicitamente, sem corrigir produção nem atribuir crash. Auditar todos
+os construtores/consumidores antes de normalizar ou copiar snapshots; tests
+ASan/UBSan não provam ausência de leituras indefinidas de inicialização.
 Achado de CPU-01: overflow assinado na seed automática de `StarRandom.cpp:197`,
 observado em execução estrita de sanitizers; RNG de produção permanece
 inalterado. A reprodução e a separação dos testes de hash com seeds privadas

@@ -1,5 +1,8 @@
 # H0: gerações reais e lifetime das fontes de consultas
 
+Continuidade em 10/11/2026: [leitores reais e equivalência](sector-runtime-h0-real-lookup-readers-2026-11-10.md).
+Este relatório preserva os resultados históricos da etapa de clocks/binding.
+
 Data: 09/11/2026. Entrega: `Experimental`; revisão local:
 `codex/experimental-regional-runtime`. Base: `4eedc81f41701e9456bac7c0b7fe1c8f4e59da21`.
 Implementação: `5413e13a57b2f89860c0228c5aa563360144dac3`.

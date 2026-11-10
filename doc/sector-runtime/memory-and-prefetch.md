@@ -195,7 +195,12 @@ não incluindo control blocks ou as fontes inteiras retidas. Root tem shared clo
 Assets clock embutido e materiais versão escalar. Invalidar não libera fisicamente
 fontes/caches/threads enquanto houver handles. Globals continuam fora do ledger
 privado; futura admissão precisa escopo/donos completos, sem recobrança por leitor.
-Próximo: comparar leitores/lifecycle reais e cobertura antes de sombra com bytes.
+Os [leitores reais](../sector-runtime-h0-real-lookup-readers-2026-11-10.md)
+já foram comparados com metadata controlada, sem ativar catálogo. Context<32>
+continua 328 bytes; o cenário real de cinco chaves usa 40 bytes ativos, não
+substitui a reserva de 256 bytes ou inclui as fontes retidas. Extração de headers/
+leitores não altera campos/ownership. Próximo: lifecycle integrado de Root/assets
+e contexto completo antes de sombra com bytes. Fixtures não medem heaps reais.
 
 ### Inventário de ownership e cobertura atual
 
