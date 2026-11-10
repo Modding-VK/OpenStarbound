@@ -268,6 +268,17 @@ Inputs e fronteiras são controlados; não é WorldLayout/Perlin real, setores o
 throughput. O adapter normal compila na unidade real de WorldTemplate e mantém
 Root/custom terrain e caches privados. Contexto completo e streaming pendentes.
 
+O [contexto de custom terrain](../sector-runtime-h0-custom-terrain-context-2026-11-10.md)
+adiciona **26 casos**: geometria/polígonos reais, comparação dos dois floats por
+bits com corpo herdado, cópia profunda, mudanças/destruição da origem, move e
+três leitores. **723 casos padrão +13 Root opcionais**, **4.845 execuções
+adicionais** (239×20 +13×5, shuffle/seed 1235) e **37+1 grupos CTest**, ASan/UBSan.
+Capture/mutadores reais sobre template de metadata criado por tag de fixture;
+não construtor normal, layout/seletores ou streaming. Cache usa uma entrada
+sintética para verificar invalidação, não blockInfo hit/miss real. CPU-01 tem
+seu primeiro marco em 25%, não benchmark/adoção de contexto completo. Três
+microexperimentos permanecem desligados; sem Actions ou ganho de setores/s.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

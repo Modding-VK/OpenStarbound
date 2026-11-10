@@ -219,6 +219,15 @@ caches mutáveis exclusivos. Próximo: capturar inputs de custom terrain/config,
 validar adapter/layout real e contabilizar o escopo privado antes da sombra.
 Não ampliar cotas ou compartilhar seletores por serem const.
 
+O [contexto de custom terrain](../sector-runtime-h0-custom-terrain-context-2026-11-10.md)
+possui cópias profundas de polígonos/bounds e geometria/parâmetros por valor,
+sem manter o template vivo. É move-only, com interface de leitura; o capture
+reserva a lista uma vez, não por consulta. **Fora dos jobs normais e do ledger**:
+não amplia nenhuma das 14 classes/cotas nem afirma teto de heap. Antes de usá-lo
+em tarefas reais, admitir e contabilizar lista, vértices e lifetime até término
+físico, compondo identidade/revalidação do contexto completo. Não copiar por
+bloco ou interpretar ausência de owner retido como memória já contabilizada.
+
 ### Inventário de ownership e cobertura atual
 
 | Produto/recurso | Dono e término da retenção | Contabilidade atual |

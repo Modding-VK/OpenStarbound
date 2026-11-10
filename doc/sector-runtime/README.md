@@ -3,7 +3,7 @@
 Atualização: 10/11/2026. Branch: `Experimental`. Runtime de partida:
 `7ca7ed2a`; recortes de H0: `d72b7239`, `2131ead3`, `5c3c4c8f`, `65bae55c`,
 `803d4cf7`, `739067b1`, `1bd348e6`, `34c76ea3`, `887149c0`, `cad311d1`, `25cecf95`,
-`c4d7ddb3`, `730e36ba`, `45db2402`, `49a12fbf`, `ada755bf`, `0915af25`, `4b5aed18`, `dd59f3b4`, `8b68ab6a`, `8e190742`, `f7785963`, `2ea41cf8`, `abfc3834`, `4e5cc6c1`, `5413e13a`, `061ce68c`, `571bb01e`, `7001ae6d` e `0871d13c`;
+`c4d7ddb3`, `730e36ba`, `45db2402`, `49a12fbf`, `ada755bf`, `0915af25`, `4b5aed18`, `dd59f3b4`, `8b68ab6a`, `8e190742`, `f7785963`, `2ea41cf8`, `abfc3834`, `4e5cc6c1`, `5413e13a`, `061ce68c`, `571bb01e`, `7001ae6d`, `0871d13c` e `bfbbf403`;
 documentação de arquitetura de partida: `8d3b0ade`.
 
 Este é o **programa principal de desenvolvimento**, adotado pelo usuário em
@@ -180,7 +180,7 @@ Orçamento processual completo, benchmark real e equivalência com assets
 continuam pendentes.
 Isso não implementa o executor, a nova WorldThread ou compute GPU.
 
-O [relatório vigente de blockInfo](../sector-runtime-h0-block-info-kernel-2026-11-10.md)
+O [recorte de blockInfo](../sector-runtime-h0-block-info-kernel-2026-11-10.md)
 (`0871d13c`) separa o cálculo do cache e o liga ao caminho normal. Kernel e referência
 herdada são comparados por campos/consultas, com fontes controladas; layout,
 Perlin e setores reais ainda não executados nesse recorte. O adapter mantém
@@ -188,6 +188,16 @@ Root/custom terrain e caches de seletores exclusivos. Próximo: capturar inputs
 de custom terrain/config e testar adapter/layout real antes da sombra por setor.
 697 casos padrão +13 Root opt-in, 4.325 execuções adicionais e 36+1 grupos,
 ASan/UBSan. Não há contexto profundo concluído ou throughput novo demonstrado.
+
+O [relatório vigente de custom terrain](../sector-runtime-h0-custom-terrain-context-2026-11-10.md),
+`bfbbf403`, entrega o primeiro recorte proprietário de CPU-01 em 25%: geometria,
+polígonos/bounds e blend Root-free, com leitura após mudanças/destruição da
+origem e por três tarefas. 723 casos padrão +13 Root opt-in, 4.845 execuções
+adicionais, 37+1 grupos, ASan/UBSan. H0/RAM-01 em 25%, H1 em 2,5%, programa
+3,6%, nenhum contrato integralmente aceito. Captura fora dos jobs/ledger;
+adapter normal conserva Assets, sem cópia por bloco. Próximo: config lazy,
+adapter/layout/seletores reais e contexto completo com admissão/revalidação.
+Não há ganho de setores/s medido ou novo executor.
 
 ## Objetivo e decisões vigentes
 

@@ -216,6 +216,14 @@ essa remoção exige decidir/testar lifecycle e falhas, não apenas observar que
 a variável não participa da matemática. Nenhum novo snapshot, RNG, formato,
 publicação paralela ou compartilhamento de cache de seletores foi introduzido.
 
+O [contexto de custom terrain](../sector-runtime-h0-custom-terrain-context-2026-11-10.md)
+copia geometria/polígonos/bounds/blend na captura, sem Root ou RNG. O adapter
+normal conserva a consulta a Assets antes da matemática e seu handle vivo
+durante o cálculo; a captura não é usada automaticamente. Três mutadores foram
+relocados com corpos idênticos, conservando clear do cache e incremento de
+revisão. Não normalizar parâmetros/bounds nem usar templateRevision isolada
+como identidade entre mundos ou autorização de commit. CPU-01 permanece parcial.
+
 ## MOD-02 — Equivalência e versionamento
 
 Definir inputs que produzem um output: seed, template/layout, geração de

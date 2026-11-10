@@ -308,8 +308,17 @@ adapter em snapshot: custom terrain ainda alcança Root/Assets e os seletores
 possuem caches mutáveis. 697 casos padrão +13 Root opt-in, 4.325 execuções
 adicionais e 36+1 grupos, ASan/UBSan. Sem novo marco completo ou throughput medido.
 
-Próximo trabalho executável: capturar inputs de custom terrain/config e testar
-adapter/layout real, mantendo caches exclusivos; fechar o contexto de BaseTiles,
+O [contexto proprietário de custom terrain](../sector-runtime-h0-custom-terrain-context-2026-11-10.md)
+(`bfbbf403`) captura inputs e executa a matemática com geometria/polígonos reais, inclusive
+após destruir a origem e trocar leitores. Primeiro recorte funcional de CPU-01
+em 25%, H0/RAM-01 em 25%, programa 7/196 marcos =3,6%; não é contexto completo,
+benchmark ou nova frente de executor. Captura fora dos jobs normais; a consulta
+legada a Root permanece no mesmo ponto. Não adicionar cópia por bloco.
+723 casos padrão +13 Root opt-in, 4.845 execuções adicionais e 37+1 grupos,
+ASan/UBSan, no escopo declarado pelo relatório.
+
+Próximo trabalho executável: capturar config com consultas lazy e testar
+adapter/layout/seletores reais, mantendo caches exclusivos; fechar o contexto de BaseTiles,
 inicialização e inputs efetivamente capturados; o lifecycle de Root mínimo já foi
 testado, não repetir o mesmo recorte. Revalidar preparação e commit antes de
 sombra por setor, com admissão/
@@ -348,7 +357,8 @@ Depende de H0 para identidade e comparação.
 - [ ] DAG-02: nós compartilhados, demanda por consumidor e grafo em sombra.
 - [ ] DAG-03: prioridade herdada, justiça e distância com wrap.
 - [ ] DAG-04/05: mailbox, revalidação, retry e cancelamento com drain.
-- [ ] CPU-01: contexto privado com dependências/RNG de inicialização auditados.
+- [ ] CPU-01: primeiro recorte proprietário de custom terrain em 25%; completar
+  contexto privado com dependências/RNG de inicialização auditados e admissão.
 - [ ] CPU-02 e MD-01: candidatos leves e resultado vazio versionado.
 - [ ] CPU-03: capacidade processual e granularidade inicial.
 - [ ] WT-01/02: drenagem produtiva, orçamento e motivos de saída explícitos.

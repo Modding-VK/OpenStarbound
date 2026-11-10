@@ -86,8 +86,15 @@ agora separa o cálculo do cache e é usado no caminho normal. A interface mant�
 consultas lazy; o adapter ainda usa o WorldTemplate do worker e custom terrain
 com Root/Assets. CacheSelector, IslandSurfaceSelector, WormCaveSelector e
 KarstCaveSelector possuem caches mutáveis: const não autoriza compartilhamento.
-Próximo: inputs capturados de custom terrain/config e adapter/layout real,
-ownership exclusivo de caches e revalidação antes de sombra com admissão/bytes.
+O [contexto de custom terrain](../sector-runtime-h0-custom-terrain-context-2026-11-10.md)
+agora captura geometria, polígonos/bounds, blend e revisão por valor, sem reter
+WorldTemplate/Root/Assets. A matemática compartilhada com o caminho normal
+passa em geometria/polígonos reais, inclusive leitura por três tarefas após
+destruir a origem. **CPU-01 em 25%:** primeiro recorte proprietário funcional,
+não contexto BaseTiles completo ou adoção nos jobs normais. O adapter legado
+mantém Root/Assets e usa uma visão emprestada, sem capturar/copiar por bloco.
+Próximo: config lazy capturada e adapter/layout/seletores reais, ownership
+exclusivo de caches e revalidação antes de sombra com admissão/bytes.
 Não otimizar consultas isoladas como fim em si mesmo.
 CPU-01 completo, contexto profundo/RNG e ganho de WorldTemplate seguem pendentes.
 

@@ -197,7 +197,7 @@ cinco corpos de manutenção relocados byte a byte. Próximo: contexto de BaseTi
 blockInfo, inicialização e inputs capturados; não repetir Root com a mesma hipótese.
 Root::fullyLoad, mods/scripts/saves/multiplayer reais e throughput continuam gates.
 
-O [relatório vigente de blockInfo](sector-runtime-h0-block-info-kernel-2026-11-10.md)
+O [recorte de blockInfo](sector-runtime-h0-block-info-kernel-2026-11-10.md)
 extrai o kernel usado no miss do cache normal. Preserva ordem de consultas,
 aritmética/primeiro match e falhas lazy, sem novas flags/cotas ou fita por tile.
 O adapter ainda usa template do worker/Root/custom terrain e caches mutáveis
@@ -206,6 +206,15 @@ recorte: inputs capturados de custom terrain/config, validação de adapter/layo
 real, depois contexto completo/revalidação/admissão antes de sombra por setor.
 Implementação `0871d13c`; 697 casos padrão +13 Root opt-in, 4.325 execuções
 adicionais e 36+1 grupos CTest, ASan/UBSan; H0/RAM-01 seguem em 25%.
+
+O [relatório vigente de custom terrain](sector-runtime-h0-custom-terrain-context-2026-11-10.md),
+`bfbbf403`, entrega o primeiro recorte proprietário de CPU-01: geometria,
+polígonos/bounds e blend independentes de WorldTemplate/Root após captura.
+26 casos novos; 723 padrão +13 Root opt-in, 4.845 execuções adicionais e 37+1
+grupos, ASan/UBSan. CPU-01 em 25%, programa 3,6%; H0/RAM-01 mantêm 25%.
+Captura fora de jobs/ledger, sem cópia por bloco ou ganho de setores/s medido.
+Próximo: config lazy capturada, adapter/layout/seletores reais e contexto completo
+com admissão/lifetime/revalidação antes da sombra por setor. Não ampliar filas.
 
 Achado adicional de inicialização/cópia, não corrigido: WorldTile não inicializa/
 copia biomeTransition no construtor/operador; BaseTiles sobrescreve o flag nos

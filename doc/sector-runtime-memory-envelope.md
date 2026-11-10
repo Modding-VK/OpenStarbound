@@ -5,7 +5,13 @@ Estado: H0 / RAM-01, `Experimental`, 09/11/2026.
 · [Roadmap](sector-runtime/roadmap.md) · [Relatório da entrega](sector-runtime-h0-capacity-kernel-2026-11-09.md)
 
 Continuidade de identidade/equivalência: [contrato BaseTiles](sector-runtime-base-tiles-contract.md)
-e [último relatório](sector-runtime-h0-block-info-kernel-2026-11-10.md).
+e [último relatório](sector-runtime-h0-custom-terrain-context-2026-11-10.md).
+
+Continuidade de custom terrain: captura proprietária de geometria/polígonos/
+parâmetros, sem reter a origem, testada fora dos jobs normais. Seu heap de lista
+e vértices **ainda não é admitido/registrado no ledger**; integrar essa cobertura
+e lifetime antes de adoção no executor. Sem nova classe, cota ou ampliação de
+filas. O adapter normal usa o helper emprestado, sem captura por bloco.
 
 Continuidade de blockInfo: kernel separado do cache, adapter não proprietário
 e fontes controladas em teste; sem snapshot profundo, classe de memória nova,

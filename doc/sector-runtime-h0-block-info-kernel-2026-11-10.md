@@ -1,5 +1,7 @@
 # H0: kernel de blockInfo e fronteira do contexto privado
 
+Continuidade: [contexto proprietário de custom terrain](sector-runtime-h0-custom-terrain-context-2026-11-10.md).
+
 Data: 10/11/2026 UTC. Entrega: `Experimental`; revisão local:
 `codex/experimental-regional-runtime`.
 Base: `05b63092c0cc387ba9c72b65cea43cfe2cfc3865`.

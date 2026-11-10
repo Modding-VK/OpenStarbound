@@ -3,7 +3,7 @@
 Estado: H0, `Experimental`, 10/11/2026.
 [Programa](sector-runtime/README.md) · [Roadmap](sector-runtime/roadmap.md)
 · [Memória](sector-runtime-memory-envelope.md)
-· [Relatório](sector-runtime-h0-block-info-kernel-2026-11-10.md)
+· [Relatório](sector-runtime-h0-custom-terrain-context-2026-11-10.md)
 
 ## Identidade não é autorização de commit nem chave de conteúdo
 
@@ -221,8 +221,14 @@ para terreno positivo e factor somente abaixo de dist. Não antecipar leituras
 ou validar todos os arrays antes do ramo: isso muda falhas observáveis. A saída
 local só retorna quando completa; não há fallback/retry sobre tile parcial.
 O kernel não autoriza commit, amplia fila ou estabelece identidade profunda.
-Próximo: capturar custom terrain/config com lifecycle explícito e manter caches
-de seletores exclusivos, testando o adapter/layout real antes de sombra por setor.
+O [contexto proprietário de custom terrain](sector-runtime-h0-custom-terrain-context-2026-11-10.md)
+captura geometria, polígonos/bounds, blend e revisão sem reter a origem; suporta
+handoff por move e leitura após destruição da origem. Não é o contexto completo,
+lease, admissão ou identidade de mundo: revisões iguais de mundos diferentes
+podem produzir dados distintos. Fora dos jobs normais; helper puro compartilhado
+com o adapter legado mantém Root/Assets no mesmo ponto e não copia por bloco.
+Próximo: config lazy e adapter/layout/seletores reais, com caches exclusivos e
+admissão/revalidação antes da sombra. CPU-01 parcial em 25%, não ganho medido.
 
 ## Comparação de campos, modelo 1
 
