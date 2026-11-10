@@ -317,8 +317,14 @@ legada a Root permanece no mesmo ponto. Não adicionar cópia por bloco.
 723 casos padrão +13 Root opt-in, 4.845 execuções adicionais e 37+1 grupos,
 ASan/UBSan, no escopo declarado pelo relatório.
 
-Próximo trabalho executável: capturar config com consultas lazy e testar
-adapter/layout/seletores reais, mantendo caches exclusivos; fechar o contexto de BaseTiles,
+Os [inputs estáticos compostos](../sector-runtime-h0-block-info-static-inputs-2026-11-10.md)
+retêm config Json imutável e custom terrain no mesmo objeto, com consultas lazy
+e contabilidade Json v2 opcional. Composição exercitada no kernel; layout/
+seletores ainda controlados, captura fora dos jobs e sem admissão do contexto
+inteiro. CPU-01 continua em 25%, programa em 3,6%, sem ganho de setores/s medido.
+
+Próximo trabalho executável: testar adapter/layout/seletores e cache reais,
+mantendo caches exclusivos; fechar o contexto de BaseTiles,
 inicialização e inputs efetivamente capturados; o lifecycle de Root mínimo já foi
 testado, não repetir o mesmo recorte. Revalidar preparação e commit antes de
 sombra por setor, com admissão/

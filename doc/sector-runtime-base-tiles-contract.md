@@ -3,7 +3,7 @@
 Estado: H0, `Experimental`, 10/11/2026.
 [Programa](sector-runtime/README.md) · [Roadmap](sector-runtime/roadmap.md)
 · [Memória](sector-runtime-memory-envelope.md)
-· [Relatório](sector-runtime-h0-custom-terrain-context-2026-11-10.md)
+· [Relatório](sector-runtime-h0-block-info-static-inputs-2026-11-10.md)
 
 ## Identidade não é autorização de commit nem chave de conteúdo
 
@@ -227,8 +227,15 @@ handoff por move e leitura após destruição da origem. Não é o contexto comp
 lease, admissão ou identidade de mundo: revisões iguais de mundos diferentes
 podem produzir dados distintos. Fora dos jobs normais; helper puro compartilhado
 com o adapter legado mantém Root/Assets no mesmo ponto e não copia por bloco.
-Próximo: config lazy e adapter/layout/seletores reais, com caches exclusivos e
-admissão/revalidação antes da sombra. CPU-01 parcial em 25%, não ganho medido.
+Os [inputs estáticos compostos](sector-runtime-h0-block-info-static-inputs-2026-11-10.md)
+retêm a raiz Json inteira, imutável/compartilhada, e a captura de custom terrain.
+Nada de converter/getFloat ou filtrar campos na captura: root/tipos inválidos
+só falham no ramo que consulta a chave; ausente/null preserva o fallback.
+Medição estrutural Json v2 é opcional; cobertura parcial/recusa não apaga inputs.
+jsonStorageModelComplete não valida schema nem permite commit/admissão global.
+Composição no kernel compara campos, consultas e erros, ainda com layout/
+seletores controlados. Próximo: adapter/layout/seletores/cache reais e cobertura
+do contexto completo. Captura fora dos jobs; CPU-01 em 25%, não ganho medido.
 
 ## Comparação de campos, modelo 1
 

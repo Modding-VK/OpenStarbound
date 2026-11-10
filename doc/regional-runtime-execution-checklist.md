@@ -39,7 +39,7 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[Contexto proprietário de custom terrain](sector-runtime-h0-custom-terrain-context-2026-11-10.md), com
+[Config lazy e inputs estáticos compostos](sector-runtime-h0-block-info-static-inputs-2026-11-10.md), com
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
@@ -198,7 +198,7 @@ Implementação `0871d13c`: 697 casos padrão +13 Root opt-in, 4.325 execuções
 adicionais e 36+1 grupos CTest, ASan/UBSan. Nenhum Actions executado.
 H0/RAM-01 em 25%, programa 3,1%, sem ganho de setores/s medido.
 
-O [recorte atual de custom terrain](sector-runtime-h0-custom-terrain-context-2026-11-10.md),
+O [recorte de custom terrain](sector-runtime-h0-custom-terrain-context-2026-11-10.md),
 `bfbbf403`, entrega dados proprietários e cálculo Root-free, testados com geometria
 real, mudanças/destruição da origem e três leitores. 723 testes padrão +13 Root
 opt-in, 4.845 execuções adicionais e 37+1 grupos, ASan/UBSan. CPU-01 em 25%,
@@ -206,6 +206,14 @@ H0/RAM-01 em 25%, H1 em 2,5%, programa 3,6%. Captura fora dos jobs/ledger,
 adapter normal mantém Assets e não copia por bloco. Próximo: config lazy e
 adapter/layout/seletores reais, admissão/revalidação antes da sombra. Sem ganho
 de setores/s medido, Actions ou release.
+
+O [recorte atual de inputs estáticos](sector-runtime-h0-block-info-static-inputs-2026-11-10.md),
+`e076d96a`, compõe config lazy/custom terrain no kernel com lifetime e Json v2
+opcional/deduplicado. 752 casos padrão +13 Root opt-in, 5.425 execuções adicionais,
+38+1 grupos CTest, ASan/UBSan. Layout/seletores ainda controlados; captura fora
+dos jobs e sem admissão do contexto inteiro. Próximo bloco: adapter/layout/
+seletores e cache reais, não outro accessor isolado. CPU-01/H0/RAM-01 25%,
+programa 3,6%, sem novo marco, ganho medido ou Actions.
 
 A proposta vigente foi retrabalhada para aproveitar CPU, RAM e GPU:
 [sector-generation-hardware-design-2026-11-08.md](sector-generation-hardware-design-2026-11-08.md).

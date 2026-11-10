@@ -93,8 +93,15 @@ passa em geometria/polígonos reais, inclusive leitura por três tarefas após
 destruir a origem. **CPU-01 em 25%:** primeiro recorte proprietário funcional,
 não contexto BaseTiles completo ou adoção nos jobs normais. O adapter legado
 mantém Root/Assets e usa uma visão emprestada, sem capturar/copiar por bloco.
-Próximo: config lazy capturada e adapter/layout/seletores reais, ownership
-exclusivo de caches e revalidação antes de sombra com admissão/bytes.
+Os [inputs estáticos compostos](../sector-runtime-h0-block-info-static-inputs-2026-11-10.md)
+agora juntam custom terrain e raiz Json imutável retida, com getFloat somente
+quando o kernel consulta o campo. Modelo Json v2 opcional acompanha lifetime
+e deduplica backing; não é validação de schema ou admissão do contexto inteiro.
+Composição testada no kernel contra corpo herdado, com layout/seletores ainda
+controlados. Captura fora dos jobs normais; CPU-01 continua em 25%.
+Próximo bloco funcional: adapter/layout/seletores e cache reais, ownership
+exclusivo de caches e revalidação antes de sombra com admissão/bytes. Não criar
+outro accessor isolado como substituto dessa validação integrada.
 Não otimizar consultas isoladas como fim em si mesmo.
 CPU-01 completo, contexto profundo/RNG e ganho de WorldTemplate seguem pendentes.
 

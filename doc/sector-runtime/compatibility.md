@@ -224,6 +224,13 @@ relocados com corpos idênticos, conservando clear do cache e incremento de
 revisão. Não normalizar parâmetros/bounds nem usar templateRevision isolada
 como identidade entre mundos ou autorização de commit. CPU-01 permanece parcial.
 
+Os [inputs estáticos compostos](../sector-runtime-h0-block-info-static-inputs-2026-11-10.md)
+mantêm getFloat lazy no leitor sobre Json imutável retido: missing/null e fallback
+originais, tipos/root inválidos falhando somente quando consultados. Não filtrar
+config para acomodar limite de medição; schema válido e medição completa são
+coisas distintas. Composição de config/custom terrain é privada e fora dos jobs.
+Adapter normal e corpo de WorldTemplate.cpp permanecem byte-idênticos à base.
+
 ## MOD-02 — Equivalência e versionamento
 
 Definir inputs que produzem um output: seed, template/layout, geração de

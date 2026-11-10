@@ -279,6 +279,17 @@ sintética para verificar invalidação, não blockInfo hit/miss real. CPU-01 te
 seu primeiro marco em 25%, não benchmark/adoção de contexto completo. Três
 microexperimentos permanecem desligados; sem Actions ou ganho de setores/s.
 
+Os [inputs estáticos compostos](../sector-runtime-h0-block-info-static-inputs-2026-11-10.md)
+adicionam **29 casos**, config/getFloat lazy, lifetime/deduplicação Json v2,
+medição desligada/limitada/recusada sem filtro, move e três leitores. Matriz de
+**1.024 combinações em um caso** compara campos/erros/consultas do kernel com
+corpo herdado. Ambas referências recebem o mesmo input custom; os 26 casos
+anteriores cobrem sua matemática independentemente. Layout/seletores continuam
+controlados; não é planeta/setor real. **752 padrão +13 Root opt-in**, **5.425
+execuções adicionais** (268×20 +13×5, seed 1236), **38+1 grupos**, ASan/UBSan.
+Modelo Json completo não valida schema/admissão. Captura fora dos jobs normais,
+sem novo marco, throughput ou Actions; três microexperimentos desligados.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

@@ -5,7 +5,14 @@ Estado: H0 / RAM-01, `Experimental`, 09/11/2026.
 · [Roadmap](sector-runtime/roadmap.md) · [Relatório da entrega](sector-runtime-h0-capacity-kernel-2026-11-09.md)
 
 Continuidade de identidade/equivalência: [contrato BaseTiles](sector-runtime-base-tiles-contract.md)
-e [último relatório](sector-runtime-h0-custom-terrain-context-2026-11-10.md).
+e [último relatório](sector-runtime-h0-block-info-static-inputs-2026-11-10.md).
+
+Continuidade de inputs estáticos: config Json imutável retida com medição v2
+opcional/deduplicada, lifetime de tokens ligado às capturas rastreadas. Raiz
+inteira pode reter campos não usados; cobertura limitada/recusa não filtra dados.
+Wrapper/vetor de tokens/control blocks e polígonos seguem excluídos; não é
+admissão do contexto completo ou validação de schema. Sem classe/cota nova,
+ampliação de filas ou adoção nos jobs normais.
 
 Continuidade de custom terrain: captura proprietária de geometria/polígonos/
 parâmetros, sem reter a origem, testada fora dos jobs normais. Seu heap de lista

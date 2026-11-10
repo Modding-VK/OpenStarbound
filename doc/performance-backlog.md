@@ -207,7 +207,7 @@ real, depois contexto completo/revalidação/admissão antes de sombra por setor
 Implementação `0871d13c`; 697 casos padrão +13 Root opt-in, 4.325 execuções
 adicionais e 36+1 grupos CTest, ASan/UBSan; H0/RAM-01 seguem em 25%.
 
-O [relatório vigente de custom terrain](sector-runtime-h0-custom-terrain-context-2026-11-10.md),
+O [recorte de custom terrain](sector-runtime-h0-custom-terrain-context-2026-11-10.md),
 `bfbbf403`, entrega o primeiro recorte proprietário de CPU-01: geometria,
 polígonos/bounds e blend independentes de WorldTemplate/Root após captura.
 26 casos novos; 723 padrão +13 Root opt-in, 4.845 execuções adicionais e 37+1
@@ -215,6 +215,14 @@ grupos, ASan/UBSan. CPU-01 em 25%, programa 3,6%; H0/RAM-01 mantêm 25%.
 Captura fora de jobs/ledger, sem cópia por bloco ou ganho de setores/s medido.
 Próximo: config lazy capturada, adapter/layout/seletores reais e contexto completo
 com admissão/lifetime/revalidação antes da sombra por setor. Não ampliar filas.
+
+O [relatório vigente de inputs estáticos](sector-runtime-h0-block-info-static-inputs-2026-11-10.md),
+`e076d96a`, compõe config lazy/custom terrain, com Json imutável retido e modelo
+v2 opcional/deduplicado. 29 novos; 752 padrão +13 Root opt-in, 5.425 execuções
+adicionais, 38+1 grupos, ASan/UBSan. Layout/seletores controlados e captura fora
+dos jobs; wrapper/polígonos e admissão completa pendentes. Próximo bloco deve
+executar adapter/layout/seletores/cache reais e fechar o caminho comum validável,
+antes de sombra/benchmark. CPU-01/H0/RAM-01 25%, programa 3,6%, sem ganho medido.
 
 Achado adicional de inicialização/cópia, não corrigido: WorldTile não inicializa/
 copia biomeTransition no construtor/operador; BaseTiles sobrescreve o flag nos

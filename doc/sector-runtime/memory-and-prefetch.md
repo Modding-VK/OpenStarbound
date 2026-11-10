@@ -228,6 +228,16 @@ em tarefas reais, admitir e contabilizar lista, vértices e lifetime até térmi
 físico, compondo identidade/revalidação do contexto completo. Não copiar por
 bloco ou interpretar ausência de owner retido como memória já contabilizada.
 
+Os [inputs estáticos compostos](../sector-runtime-h0-block-info-static-inputs-2026-11-10.md)
+retêm a **raiz Json inteira**, inclusive campos não usados, junto de custom
+terrain. Medição opt-in usa captureWorldGenerationJson/modelo Json v2 existente:
+mesmo backing é cobrado uma vez entre capturas rastreadas, e os tokens duram
+até a última captura. Owners ordinários não rastreados continuam fora do escopo.
+Visita limitada/recusa conserva dados e marca cobertura incompleta, nunca trunca
+inputs. Wrapper/vetor de tokens/control blocks e heap dos polígonos não entram
+nesse modelo; medição completa não equivale a admissão do contexto ou schema
+válido. Nenhuma classe/cota nova ou adoção nos jobs normais.
+
 ### Inventário de ownership e cobertura atual
 
 | Produto/recurso | Dono e término da retenção | Contabilidade atual |

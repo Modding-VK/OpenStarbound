@@ -1,5 +1,7 @@
 # H0 / CPU-01: contexto proprietário de custom terrain
 
+Continuidade: [config lazy e inputs estáticos compostos](sector-runtime-h0-block-info-static-inputs-2026-11-10.md).
+
 Data: 10/11/2026 UTC. Branch de entrega: `Experimental`;
 revisão local: `codex/experimental-regional-runtime`.
 Base: `82ff948ec69779356500ad9e87c42c2eb80b3c31`.
