@@ -98,7 +98,8 @@ SET_TESTS_PROPERTIES(core_tests PROPERTIES
                      LABELS "NoAssets")
 
 # Ownership and geometry contracts must be runnable without game assets or a
-# mutable Root/World. Compile just these pure game components for this target.
+# mutable game Root/World. The Assets lifecycle suite supplies a configuration-
+# only RootBase host and temporary first-party files, not installed game assets.
 ADD_EXECUTABLE(world_generation_contract_tests
   $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base>
   ../game/StarWorldRegionPartition.cpp
@@ -134,6 +135,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_base_tiles_test.cpp
   world_generation_lookup_sources_test.cpp
   world_generation_lookup_readers_test.cpp
+  byte_array_test.cpp
   world_generation_estimate_test.cpp
   world_generation_worker_cache_test.cpp
   world_generation_buffer_test.cpp
@@ -174,6 +176,8 @@ FOREACH(world_region_test_suite
     WorldGenerationSourceVersionTest
     WorldGenerationLookupSourcesTest
     WorldGenerationLookupReadersTest
+    WorldGenerationAssetsLifecycleTest
+    ByteArrayTest
     WorldGenerationEstimateTest
     WorldGenerationWorkerCacheTest
     WorldGenerationBufferTest

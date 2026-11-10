@@ -3,11 +3,17 @@
 #include "StarWorldGenerationBaseTiles.hpp"
 #include "StarBiomeTypes.hpp"
 #include "StarWorkerPool.hpp"
+#include "StarRootBase.hpp"
+#include "StarConfiguration.hpp"
+#include "StarFile.hpp"
 
 #include <array>
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
+#include <atomic>
+#include <filesystem>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -134,6 +140,213 @@ Observation sample(Fixture const& fixture, Input in = input()) {
   ServerTile tile; initialize(tile); Observation result; observeWorldGenerationBaseTile(tile, in, fixture.resolver(), result); return result;
 }
 void sameTrace(Trace const& a, Trace const& b) { EXPECT_EQ(a.count, b.count); EXPECT_TRUE(a.events == b.events); }
+
+// Only the abstract configuration host required by Assets, NOT game Root or its
+// reload/maintenance/listeners. The real Assets constructor and methods run.
+class AssetsConfigurationHost final : public RootBase {
+public:
+  explicit AssetsConfigurationHost(ConfigurationPtr configuration) : m_configuration(std::move(configuration)) {}
+  ~AssetsConfigurationHost() {
+    RootBase* expected = this;
+    EXPECT_TRUE(s_singleton.compare_exchange_strong(expected, nullptr));
+  }
+  ConfigurationPtr configuration() override { return m_configuration; }
+  AssetsConstPtr assets() override {
+    auto result = current.lock();
+    if (!result) throw RootException("Assets fixture has no current source");
+    return result;
+  }
+  std::weak_ptr<Assets const> current;
+private:
+  ConfigurationPtr m_configuration;
+};
+
+// Exclusive directory creation without the game's automatic RNG seed (CPU-01
+// remains open). Only remove the exact directory successfully created here.
+class LookupAssetsDirectory {
+public:
+  LookupAssetsDirectory() {
+    static std::atomic<uint64_t> counter{0};
+    auto tick = std::chrono::steady_clock::now().time_since_epoch().count();
+    for (unsigned attempt = 0; attempt < 128; ++attempt) {
+      auto path = std::filesystem::temp_directory_path() / ("openstarbound-lookup-assets-" + std::to_string(tick)
+          + "-" + std::to_string(counter.fetch_add(1)));
+      std::error_code error;
+      if (std::filesystem::create_directory(path, error)) { m_path = std::move(path); return; }
+      if (error && error != std::errc::file_exists) throw std::filesystem::filesystem_error("create lookup fixture", path, error);
+    }
+    throw std::runtime_error("Cannot create an exclusive lookup assets directory");
+  }
+  LookupAssetsDirectory(LookupAssetsDirectory const&) = delete;
+  LookupAssetsDirectory& operator=(LookupAssetsDirectory const&) = delete;
+  ~LookupAssetsDirectory() {
+    std::error_code error;
+    std::filesystem::remove_all(m_path, error);
+    EXPECT_FALSE(error) << error.message();
+  }
+  String path() const { return String(m_path.u8string()); }
+  void write(String const& name, String const& data) const {
+    if (name.empty() || name.hasChar('/') || name.hasChar('\\') || name.contains(".."))
+      throw std::runtime_error("Fixture writes must name one local file");
+    File::writeFile(data, File::relativeTo(path(), name));
+  }
+private:
+  std::filesystem::path m_path;
+};
+
+class WorldGenerationAssetsLifecycleTest : public testing::Test {
+protected:
+  using RealSources = WorldGenerationLookupSources<Assets, MaterialDatabase>;
+  ConfigurationPtr configuration = std::make_shared<Configuration>(
+      JsonObject{{"safe", JsonObject{{"allowRemoteAssets", false}}}},
+      JsonObject{{"safe", JsonObject{{"allowRemoteAssets", false}}}});
+  AssetsConfigurationHost host{configuration};
+  LookupAssetsDirectory directory;
+  Fixture definitions;
+  AssetsPtr assets;
+
+  void SetUp() override {
+    directory.write("preload.config", "[]");
+    directory.write("_metadata", "{\"name\":\"lookup-lifecycle-fixture\"}");
+    writeProbe(1);
+    directory.write("probe.bin", "first");
+    assets = makeAssets();
+  }
+  AssetsPtr makeAssets(unsigned workers = 0) {
+    Assets::Settings settings{};
+    settings.assetTimeToLive = 60.0f;
+    settings.audioDecompressLimit = 0.0f;
+    settings.workerPoolSize = workers;
+    auto result = std::make_shared<Assets>(settings, StringList{directory.path()});
+    host.current = result;
+    return result;
+  }
+  void writeProbe(unsigned marker) { directory.write("probe.config", Json(JsonObject{{"marker", marker}}).repr()); }
+  RealSources sources(AssetsConstPtr selected = {}) const {
+    return RealSources::capture(definitions.root, definitions.root->current(), selected ? std::move(selected) : assets, definitions.materials);
+  }
+};
+}
+
+TEST_F(WorldGenerationAssetsLifecycleTest, ConstructsRealDirectorySourceAndLoadsJsonWithAnExplicitGeneration) {
+  EXPECT_EQ(RootBase::singletonPtr(), &host);
+  EXPECT_EQ(assets->assetSources(), StringList{directory.path()});
+  EXPECT_EQ(assets->assetSourceMetadata(directory.path()).get("name"), "lookup-lifecycle-fixture");
+  EXPECT_TRUE(assets->scanExtension("config").contains("/probe.config"));
+  EXPECT_EQ(assets->json("/probe.config").getUInt("marker"), 1u);
+  EXPECT_NE(assets->generationRevision(), 0u);
+  auto binding = sources(); ASSERT_TRUE(binding.valid());
+  auto scope = binding.scope(1, definitions.planet->generationRevision()); ASSERT_TRUE(scope);
+  EXPECT_EQ(scope->assetsGeneration, assets->generationRevision());
+  EXPECT_EQ(scope->materialsGeneration, definitions.materials->generationRevision());
+}
+
+TEST_F(WorldGenerationAssetsLifecycleTest, DiskEditAloneIsNeitherGenerationInvalidationNorCachedJsonRefresh) {
+  auto binding = sources(); auto generation = assets->generationRevision();
+  EXPECT_EQ(assets->json("/probe.config").getUInt("marker"), 1u);
+  writeProbe(2);
+  EXPECT_EQ(assets->generationRevision(), generation); EXPECT_TRUE(binding.valid());
+  EXPECT_EQ(assets->json("/probe.config").getUInt("marker"), 1u);
+}
+
+TEST_F(WorldGenerationAssetsLifecycleTest, DirectHotReloadInvalidatesOldBindingAndCatalogWithoutRebuildingDefinitions) {
+  auto binding = sources(); auto revision = definitions.planet->generationRevision(); auto scope = binding.scope(1, revision); ASSERT_TRUE(scope);
+  Context previous(*scope); ASSERT_TRUE(previous.add(*scope, sample(definitions))); ASSERT_TRUE(previous.seal());
+  auto rootVersion = definitions.root->current(), materialVersion = definitions.materials->generationRevision();
+  assets->hotReload();
+  EXPECT_NE(assets->generationRevision(), scope->assetsGeneration); EXPECT_FALSE(binding.valid());
+  EXPECT_EQ(definitions.root->current(), rootVersion); EXPECT_EQ(definitions.materials->generationRevision(), materialVersion);
+  EXPECT_EQ(definitions.planet->generationRevision(), revision);
+  Pair untouched;
+  EXPECT_EQ(binding.apply(previous, untouched.b, input(), 1, revision), Status::Refused);
+  EXPECT_TRUE(compareWorldGenerationBaseTile(untouched.a, untouched.b).equal());
+  auto current = sources(); ASSERT_TRUE(current.valid());
+  EXPECT_EQ(current.apply(previous, untouched.b, input(), 1, revision), Status::Refused);
+  EXPECT_TRUE(compareWorldGenerationBaseTile(untouched.a, untouched.b).equal());
+  auto currentScope = current.scope(1, revision); ASSERT_TRUE(currentScope);
+  Context replacement(*currentScope); ASSERT_TRUE(replacement.add(*currentScope, sample(definitions))); ASSERT_TRUE(replacement.seal());
+  legacy(untouched.a, input(), definitions.resolver());
+  EXPECT_EQ(current.apply(replacement, untouched.b, input(), 1, revision), Status::Applied);
+  EXPECT_TRUE(compareWorldGenerationBaseTile(untouched.a, untouched.b).equal());
+}
+
+TEST_F(WorldGenerationAssetsLifecycleTest, PreviouslyReturnedJsonAndBytesSurviveRealHotReload) {
+  auto oldJson = assets->json("/probe.config"); auto oldBytes = assets->bytes("/probe.bin");
+  writeProbe(2); directory.write("probe.bin", "second"); assets->hotReload();
+  EXPECT_EQ(oldJson.getUInt("marker"), 1u); EXPECT_EQ(String(oldBytes->ptr(), oldBytes->size()), "first");
+  EXPECT_EQ(assets->json("/probe.config").getUInt("marker"), 2u);
+  auto currentBytes = assets->bytes("/probe.bin"); EXPECT_EQ(String(currentBytes->ptr(), currentBytes->size()), "second");
+}
+
+TEST_F(WorldGenerationAssetsLifecycleTest, ClearCacheCanRefreshContentWithoutChangingExplicitReloadGeneration) {
+  auto binding = sources(); auto generation = assets->generationRevision();
+  EXPECT_EQ(assets->json("/probe.config").getUInt("marker"), 1u);
+  writeProbe(2); assets->clearCache();
+  EXPECT_EQ(assets->json("/probe.config").getUInt("marker"), 2u);
+  EXPECT_EQ(assets->generationRevision(), generation); EXPECT_TRUE(binding.valid());
+}
+
+TEST_F(WorldGenerationAssetsLifecycleTest, BrokenJsonStaysBrokenUntilHotReloadClearsTheFailureCache) {
+  directory.write("probe.config", "{"); assets->hotReload(); auto generation = assets->generationRevision();
+  EXPECT_THROW(assets->json("/probe.config"), AssetException);
+  writeProbe(3);
+  EXPECT_THROW(assets->json("/probe.config"), AssetException);
+  EXPECT_EQ(assets->generationRevision(), generation);
+  assets->hotReload(); EXPECT_NE(assets->generationRevision(), generation);
+  EXPECT_EQ(assets->json("/probe.config").getUInt("marker"), 3u);
+}
+
+TEST_F(WorldGenerationAssetsLifecycleTest, HotReloadDoesNotRescanNewFilesButAReconstructedSourceDoes) {
+  auto binding = sources(); directory.write("late.config", "{\"marker\":4}");
+  EXPECT_FALSE(assets->assetExists("/late.config")); assets->hotReload();
+  EXPECT_FALSE(assets->assetExists("/late.config")); EXPECT_FALSE(assets->scanExtension("config").contains("/late.config"));
+  auto replacement = makeAssets();
+  EXPECT_TRUE(replacement->assetExists("/late.config")); EXPECT_EQ(replacement->json("/late.config").getUInt("marker"), 4u);
+  EXPECT_NE(replacement->generationRevision(), assets->generationRevision());
+  EXPECT_FALSE(binding.valid()); EXPECT_TRUE(sources(replacement).valid());
+}
+
+TEST_F(WorldGenerationAssetsLifecycleTest, EveryExplicitHotReloadInvalidatesThePriorGenerationEvenWithoutFileChanges) {
+  for (unsigned round = 0; round < 8; ++round) {
+    auto previous = assets->generationRevision(); auto binding = sources(); ASSERT_TRUE(binding.valid());
+    assets->hotReload(); EXPECT_NE(assets->generationRevision(), 0u); EXPECT_NE(assets->generationRevision(), previous);
+    EXPECT_FALSE(binding.valid()); EXPECT_TRUE(sources().valid());
+  }
+}
+
+TEST_F(WorldGenerationAssetsLifecycleTest, InvalidBindingRetainsActualAssetsUntilTheLastPhysicalHandleIsReleased) {
+  auto binding = sources(); std::weak_ptr<Assets const> retained = assets; assets.reset();
+  definitions.root->retire(); EXPECT_FALSE(binding.valid()); EXPECT_FALSE(retained.expired());
+  EXPECT_EQ(binding.assets()->json("/probe.config").getUInt("marker"), 1u);
+  binding = {}; EXPECT_TRUE(retained.expired());
+}
+
+TEST_F(WorldGenerationAssetsLifecycleTest, RealAssetWorkersFinishQueuedJsonReadsAndCanBeReloadedAndJoined) {
+  StringList paths;
+  for (unsigned i = 0; i < 8; ++i) {
+    String name = String("queued") + String(std::to_string(i)) + ".config";
+    directory.write(name, Json(JsonObject{{"marker", i}}).repr()); paths.append("/" + name);
+  }
+  assets = makeAssets(2); auto binding = sources();
+  assets->queueJsons(paths);
+  for (unsigned i = 0; i < paths.size(); ++i) EXPECT_EQ(assets->json(paths[i]).getUInt("marker"), i);
+  writeProbe(2); assets->hotReload(); EXPECT_FALSE(binding.valid());
+  EXPECT_EQ(assets->json("/probe.config").getUInt("marker"), 2u);
+  binding = {}; assets.reset(); EXPECT_TRUE(host.current.expired());
+}
+
+TEST_F(WorldGenerationAssetsLifecycleTest, IdenticalContentInIndependentAssetsObjectsHasIndependentGenerations) {
+  auto first = sources(); auto other = makeAssets(); auto second = sources(other);
+  EXPECT_EQ(assets->digest(), other->digest()); EXPECT_NE(assets->generationRevision(), other->generationRevision());
+  assets->hotReload(); EXPECT_FALSE(first.valid()); EXPECT_TRUE(second.valid());
+  EXPECT_EQ(other->json("/probe.config").getUInt("marker"), 1u);
+}
+
+TEST_F(WorldGenerationAssetsLifecycleTest, RepeatedImmediateIdleWorkerDestructionJoinsEveryWorker) {
+  for (unsigned cycle = 0; cycle < 32; ++cycle) {
+    auto ephemeral = makeAssets(2); std::weak_ptr<Assets const> retained = ephemeral;
+    ephemeral.reset(); EXPECT_TRUE(retained.expired());
+  }
 }
 
 TEST(WorldGenerationLookupReadersTest, NoLayoutAndNullBiomeReturnZeroWithoutLookingUpMetadata) {

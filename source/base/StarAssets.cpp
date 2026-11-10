@@ -468,13 +468,13 @@ Assets::Assets(Settings settings, StringList assetSources) {
 }
 
 Assets::~Assets() {
-  m_stopThreads = true;
-
   {
-    // Should lock associated mutex to prevent loss of wakeups,
+    // Publish stop under the same mutex as both worker wait predicates. Wake
+    // workers waiting for queued work AND workers waiting for a dependency.
     MutexLocker locker(m_assetsMutex);
-    // Notify all worker threads to allow them to stop
+    m_stopThreads = true;
     m_assetsQueued.broadcast();
+    m_assetsDone.broadcast();
   }
 
   // Join them all
@@ -956,6 +956,11 @@ void Assets::workerMain() {
 
     MutexLocker assetsLocker(m_assetsMutex);
 
+    // Stop may have been published while this worker collected Lua garbage.
+    // Recheck before waiting, otherwise the destructor's wakeup can be lost.
+    if (m_stopThreads)
+      break;
+
     AssetId assetId;
     QueuePriority queuePriority = QueuePriority::None;
 
@@ -984,7 +989,9 @@ void Assets::workerMain() {
     if (workIsBlocking) {
       // We are blocking on some sort of busy asset, so need to wait on
       // something to complete here, rather than spinning and burning cpu.
-      m_assetsDone.wait(m_assetsMutex);
+      // doLoad/doPost may temporarily release the mutex while doing IO.
+      if (!m_stopThreads)
+        m_assetsDone.wait(m_assetsMutex);
       continue;
     }
 

@@ -113,7 +113,10 @@ void ByteArray::fill(size_t s, char c) {
   if (s != NPos)
     resize(s);
 
-  memset(m_data, c, m_size);
+  // An empty array can have null storage; memset still requires a non-null
+  // destination even when its count is zero. Preserve empty storage/capacity.
+  if (m_size)
+    memset(m_data, c, m_size);
 }
 
 void ByteArray::fill(char c) {
