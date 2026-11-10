@@ -1,5 +1,9 @@
 # Backlog de desempenho da exploração
 
+CPU-01: o [ensaio de factory real](sector-runtime-h0-region-selector-factory-2026-11-10.md)
+amplia a validação de parâmetros a seletores, caches de cavernas e falhas; o
+builder completo, assets/mods e admissão do contexto seguem pendentes.
+
 CPU-01: [captura dos seletores de região](sector-runtime-h0-region-selector-capture-2026-11-10.md)
 integrada em buildRegion, com comparação de parâmetros e próximo RNG. Falta
 validar builder completo/assets e compor contexto/admissão para workers.

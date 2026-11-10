@@ -356,6 +356,11 @@ prepara os três parâmetros de buildRegion via snapshot, preservando uma chamad
 global e as seeds derivadas. Testes compararam parâmetros e próximo RNG; falta
 executar builder real completo com assets e validar equivalência integrada.
 
+O [ensaio da factory real](../sector-runtime-h0-region-selector-factory-2026-11-10.md)
+compara parâmetros capturados em seletores de terreno, caches de cavernas após
+eviction/reconstrução e falhas com sequência de RNG. O builder de planeta completo
+e a equivalência com mods/saves/multiplayer continuam pendentes.
+
 Próximo trabalho executável: validar builder/assets e preservar a sequência
 observável e fechar ownership e admissão do contexto de produção.
 Não confundir a LRU validada com CacheSelector. Auditar também defaults

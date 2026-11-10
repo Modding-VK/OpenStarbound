@@ -1,6 +1,7 @@
 #include "StarRoot.hpp"
 #include "StarWorldTemplateTypes.hpp"
 #include "StarWorldGenerationBlockInfo.hpp"
+#include "StarWorldGenerationSelectorSnapshot.hpp"
 #include "StarWorldGenerationBaseTiles.hpp"
 #include "StarWorldGenerationBaseTileInput.hpp"
 #include "StarWorldGenerationLookupResolver.hpp"
@@ -526,4 +527,47 @@ TEST_F(WorldGenerationRealBlockInfoTest, DefaultTerrainParametersConsumeOneGloba
   auto derived = base.withSeed(1234);
   EXPECT_EQ(1234u, derived.seed);
   EXPECT_EQ(expectedNext, Random::randu64());
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, RegionSnapshotsCreateEquivalentRealSelectors) {
+  auto r = root(); auto database = r->terrainDatabase(); r.reset();
+  auto tree = Access::treeConfig();
+  auto params = Access::parameters(918, 16);
+  for (uint64_t seed : {uint64_t(0), uint64_t(917), UINT64_MAX}) {
+    auto legacy = params.withSeed(staticRandomU64(seed, "Terrain"));
+    Random::init(918);
+    auto snapshots = WorldGenerationRegionSelectorSnapshots::capture(64, 16, seed);
+    auto actual = database->createSelectorType("cache", tree, snapshots.terrain.materialize());
+    auto reference = database->createSelectorType("cache", tree, legacy);
+    EXPECT_EQ(database->storeSelector(reference), database->storeSelector(actual));
+    for (int x = -8; x != 72; x += 2) for (int y = 0; y != 32; y += 4)
+      EXPECT_EQ(bits(reference->get(x, y)), bits(actual->get(x, y))) << seed << ':' << x << ',' << y;
+  }
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, RegionSnapshotsPreserveCaveSelectorsAcrossEvictionAndRebuild) {
+  auto r = root(); auto database = r->terrainDatabase(); r.reset();
+  auto source = Access::selectorNoiseConfig("billow");
+  auto config = Access::cached(source, 2);
+  auto snapshots = WorldGenerationRegionSelectorSnapshots::capture(64, 16, 42);
+  for (auto const& snapshot : {snapshots.foregroundCave, snapshots.backgroundCave}) {
+    auto selector = database->createSelectorType("cache", config, snapshot.materialize());
+    auto copy = database->loadSelector(database->storeSelector(selector));
+    for (int x = -8; x != 40; ++x) {
+      auto expected = bits(selector->get(x, 9));
+      EXPECT_EQ(expected, bits(copy->get(x, 9)));
+      EXPECT_EQ(expected, bits(selector->get(x, 9)));
+    }
+  }
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, RegionSnapshotFactoryErrorsPreserveLegacyRngDraw) {
+  auto r = root(); auto database = r->terrainDatabase(); r.reset();
+  RandomSource reference(918); reference.randu64(); auto expectedNext = reference.randu64();
+  Random::init(918);
+  auto snapshot = WorldGenerationRegionSelectorSnapshots::capture(64, 16, 42);
+  EXPECT_THROW(database->createSelectorType("invalid", JsonObject{}, snapshot.terrain.materialize()), TerrainException);
+  EXPECT_EQ(expectedNext, Random::randu64());
+  auto valid = database->createSelectorType("constant", JsonObject{{"value", 1}}, snapshot.terrain.materialize());
+  EXPECT_EQ(bits(1.0f), bits(valid->get(0, 0)));
 }
