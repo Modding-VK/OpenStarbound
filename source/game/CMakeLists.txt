@@ -502,6 +502,9 @@ SET (star_game_SOURCES
     StarWorldStorage.cpp
     StarWorldStructure.cpp
     StarWorldTemplate.cpp
+    StarWorldTemplateSampling.cpp
+    StarWorldLayoutSampling.cpp
+    StarTerrainSelector.cpp
     StarWorldGenerationLookupReaders.cpp
     StarWorldGenerationLookupDefaults.cpp
     StarWorldTiles.cpp

@@ -110,6 +110,7 @@ public:
 
 private:
   friend struct WorldGenerationLookupTestAccess;
+  friend struct WorldGenerationRealBlockInfoTestAccess;
   struct WorldLayer {
     WorldLayer();
 

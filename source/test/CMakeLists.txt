@@ -216,6 +216,19 @@ IF(STAR_BUILD_ROOT_LIFECYCLE_TESTS)
   ADD_EXECUTABLE(world_generation_root_lifecycle_tests
     $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base>
     ../game/StarRoot.cpp
+    ../game/StarWorldTemplateSampling.cpp
+    ../game/StarWorldLayoutSampling.cpp
+    ../game/StarTerrainSelector.cpp
+    ../game/terrain/StarConstantSelector.cpp
+    ../game/terrain/StarFlatSurfaceSelector.cpp
+    ../game/StarWorldGenerationCustomTerrain.cpp
+    ../game/StarWorldGenerationBlockInfoStaticInputs.cpp
+    ../game/StarWorldGenerationMemory.cpp
+    ../game/StarWorldGenerationMemoryEnvelope.cpp
+    ../game/StarWorldGenerationMemoryEstimate.cpp
+    ../game/StarWorldGenerationBaseTiles.cpp
+    ../game/StarWorldTiles.cpp
+    ../game/StarLiquidTypes.cpp
     ../game/StarDatabaseMaintenance.cpp
     ../game/StarItemDescriptor.cpp
     ../game/StarMaterialDatabase.cpp
@@ -234,7 +247,8 @@ IF(STAR_BUILD_ROOT_LIFECYCLE_TESTS)
     gtest/gtest-all.cc
     core_tests_main.cpp
     StarWorldGenerationTestDirectory.hpp
-    world_generation_root_lifecycle_test.cpp)
+    world_generation_root_lifecycle_test.cpp
+    world_generation_real_block_info_test.cpp)
   IF(MSVC)
     TARGET_COMPILE_OPTIONS(world_generation_root_lifecycle_tests PRIVATE /Gy /Gw)
     TARGET_LINK_OPTIONS(world_generation_root_lifecycle_tests PRIVATE /OPT:REF)
@@ -255,6 +269,9 @@ IF(STAR_BUILD_ROOT_LIFECYCLE_TESTS)
     TARGET_LINK_LIBRARIES(world_generation_root_lifecycle_tests PRIVATE ${STAR_EXT_LIBS})
   ENDIF()
   ADD_TEST(NAME world_generation_root_lifecycle
-    COMMAND $<TARGET_FILE:world_generation_root_lifecycle_tests>)
+    COMMAND $<TARGET_FILE:world_generation_root_lifecycle_tests> --gtest_filter=WorldGenerationRootLifecycleTest.*)
   SET_TESTS_PROPERTIES(world_generation_root_lifecycle PROPERTIES LABELS "NoAssets;RootLifecycle" TIMEOUT 120)
+  ADD_TEST(NAME world_generation_real_block_info
+    COMMAND $<TARGET_FILE:world_generation_root_lifecycle_tests> --gtest_filter=WorldGenerationRealBlockInfoTest.*)
+  SET_TESTS_PROPERTIES(world_generation_real_block_info PROPERTIES LABELS "NoAssets;RealBlockInfo" TIMEOUT 120)
 ENDIF()

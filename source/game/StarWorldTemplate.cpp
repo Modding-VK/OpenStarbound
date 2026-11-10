@@ -15,10 +15,6 @@
 
 namespace Star {
 
-WorldTemplate::WorldTemplate(Vec2U const& size) : WorldTemplate() {
-  m_geometry = size;
-}
-
 WorldTemplate::WorldTemplate(CelestialCoordinate const& celestialCoordinate, CelestialDatabasePtr const& celestialDatabase)
   : WorldTemplate() {
   auto celestialParameters = celestialDatabase->parameters(celestialCoordinate);
@@ -144,10 +140,6 @@ uint64_t WorldTemplate::worldSeed() const {
 
 String WorldTemplate::worldName() const {
   return m_worldName;
-}
-
-Vec2U WorldTemplate::size() const {
-  return m_geometry.size();
 }
 
 float WorldTemplate::surfaceLevel() const {
@@ -279,10 +271,6 @@ List<WorldTemplate::Dungeon> WorldTemplate::dungeons() const {
   return dungeonList;
 }
 
-WorldTemplate::BlockInfo WorldTemplate::blockInfo(int x, int y) const {
-  return getBlockInfo(m_geometry.xwrap(x), y);
-}
-
 WorldTemplate::BlockInfo WorldTemplate::blockBiomeInfo(int x, int y) const {
   BlockInfo blockInfo;
 
@@ -368,14 +356,6 @@ BiomeIndex WorldTemplate::blockBiomeIndex(int x, int y) const {
 
 BiomeIndex WorldTemplate::environmentBiomeIndex(int x, int y) const {
   return getBlockInfo(m_geometry.xwrap(x), y).environmentBiomeIndex;
-}
-
-BiomeConstPtr WorldTemplate::biome(BiomeIndex biomeIndex) const {
-  if (!m_layout)
-    return {};
-  if (biomeIndex == NullBiomeIndex)
-    return {};
-  return m_layout->getBiome(biomeIndex);
 }
 
 BiomeConstPtr WorldTemplate::blockBiome(int x, int y) const {
@@ -572,17 +552,6 @@ uint64_t WorldTemplate::seedFor(int x, int y) const {
   return staticRandomU64(m_seed, m_geometry.xwrap(x), y, "Block");
 }
 
-WorldTemplate::WorldTemplate() {
-  auto assets = Root::singleton().assets();
-  m_templateConfig = Root::singleton().assets()->json("/world_template.config");
-  m_customTerrainBlendSize = m_templateConfig.getFloat("customTerrainBlendSize");
-  m_customTerrainBlendWeight = m_templateConfig.getFloat("customTerrainBlendWeight");
-
-  m_blockCache.setMaxSize(m_templateConfig.getInt("blockCacheSize"));
-  m_geometry = Vec2U(2048, 2048);
-  m_seed = Random::randu64();
-}
-
 void WorldTemplate::determineWorldName() {
   if (m_celestialParameters)
     m_worldName = m_celestialParameters->name();
@@ -643,42 +612,6 @@ void WorldTemplate::setupWeatherDomains() {
     m_weatherDomains.append({"surface", m_worldParameters->weatherPool, (int)undergroundLevel()});
     m_weatherLayers.append({"surface", Maybe<String>(String("surface")), 0, (int)m_geometry.height()});
   }
-}
-
-pair<float, float> WorldTemplate::customTerrainWeighting(int x, int y) const {
-  auto assets = Root::singleton().assets();
-
-  return calculateWorldGenerationCustomTerrainWeighting(m_geometry, m_customTerrainRegions,
-      m_customTerrainBlendSize, m_customTerrainBlendWeight, x, y);
-}
-
-WorldTemplate::BlockInfo WorldTemplate::getBlockInfo(uint32_t x, uint32_t y) const {
-  return m_blockCache.get(Vector<uint32_t, 2>(x, y), [this, x, y](Vector<uint32_t, 2>) {
-      // Non-owning adapter on the current worker's WorldTemplate. This does not
-      // publish a context or make mutable selector caches safe to share.
-      struct Source {
-        WorldTemplate const& world;
-        bool hasLayout() const { return bool(world.m_layout); }
-        auto getWeighting(int a, int b) const { return world.m_layout->getWeighting(a, b); }
-        int blendNoiseOffset(uint32_t a, uint32_t b) const {
-          if (auto const& noise = world.m_layout->blendNoise())
-            return (int)noise->get(a, b);
-          return 0;
-        }
-        Maybe<Vec2I> blockNoisePosition(uint32_t a, uint32_t b) const {
-          if (auto const& noise = world.m_layout->blockNoise())
-            return noise->apply(Vec2I(a, b), world.m_geometry.size());
-          return {};
-        }
-        float configFloat(char const* key, float fallback) const { return world.m_templateConfig.getFloat(key, fallback); }
-        float terrainSelectorValue(TerrainSelectorIndex index, int a, int b) const {
-          return world.m_layout->getTerrainSelector(index)->get(a, b);
-        }
-        pair<float, float> customTerrainWeighting(int a, int b) const { return world.customTerrainWeighting(a, b); }
-        BiomeConstPtr biome(BiomeIndex index) const { return world.biome(index); }
-      } source{*this};
-      return calculateWorldGenerationBlockInfo(source, x, y);
-    });
 }
 
 Json WorldTemplate::BlockInfo::toJson() const {
