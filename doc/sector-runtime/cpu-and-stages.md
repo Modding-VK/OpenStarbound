@@ -24,10 +24,12 @@ copiar o ponteiro ou tornar um método `const` não comprova pureza.
 Achado em 09/11/2026: a validação ampliada de RAM-01 observou overflow
 assinado em `Random::produceRandomSeed` (`StarRandom.cpp:197`) ao inicializar
 a fonte automática/global. O [relatório](../sector-runtime-h0-memory-admission-2026-11-09.md)
-registra reprodução e escopo. O RNG de produção não foi alterado; os testes
-de hash usam fontes privadas de seed fixa e não validam a inicialização
-automática. Incluir esse defeito na auditoria de CPU-01 antes de mudar seeds,
-ordem de inicialização ou reconstrução de contexto dos workers.
+registra reprodução e escopo. A [validação posterior de Root](../sector-runtime-h0-root-lifecycle-2026-11-10.md)
+reproduziu o mesmo defeito na manutenção e o corrigiu usando uint64_t na
+multiplicação, com wrap definido. Sequências de seed/entropia explícitas e consumo
+de uma seed na construção default foram verificados. Não reabre seleção de
+conteúdo ou justifica mudar a ordem de escolhas; a auditoria do contexto/RNG de
+WorldTemplate continua pendente, assim como Perlin e demais campos não inicializados.
 
 Fronteira preparatória de H0 em `8e190742`: o
 [subkernel escalar de líquido de BaseTiles](../sector-runtime-h0-capacity-kernel-2026-11-09.md)
@@ -75,10 +77,12 @@ de consultas, não a blockInfo/contexto completo. Auditar também o default herd
 de SkyParameters::horizonClouds: a fixture o inicializa, produção não foi alterada.
 O [lifecycle de Assets real](../sector-runtime-h0-assets-lifecycle-2026-11-10.md)
 agora é exercitado com arquivos de fixture e host de configuração RootBase.
-Root/listeners/bancos completos seguem pendentes. clearCache pode atualizar
+Root/listeners ainda estavam pendentes naquela etapa. clearCache pode atualizar
 conteúdo sem mudar generationRevision; essa versão cobre reload explícito,
-não congela leituras brutas. Próximo: validar Root e fechar os inputs efetivamente
-lidos pelo kernel, depois revalidar antes de sombra por setor com admissão/bytes.
+não congela leituras brutas. O [alvo opt-in de Root](../sector-runtime-h0-root-lifecycle-2026-11-10.md)
+já testa construtor/factory/reload/loadMods/listeners reais com fontes mínimas.
+Próximo: fechar os inputs efetivamente lidos por BaseTiles/blockInfo, depois
+revalidar antes de sombra por setor com admissão/bytes.
 Não otimizar consultas isoladas como fim em si mesmo.
 CPU-01 completo, contexto profundo/RNG e ganho de WorldTemplate seguem pendentes.
 

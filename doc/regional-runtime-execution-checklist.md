@@ -39,7 +39,7 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[Assets real, invalidação e encerramento](sector-runtime-h0-assets-lifecycle-2026-11-10.md), com
+[Root real, fontes e recuperação](sector-runtime-h0-root-lifecycle-2026-11-10.md), com
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
@@ -179,6 +179,15 @@ ASan/UBSan. clearCache pode renovar conteúdo sem mudar versão de reload:
 capturar os inputs do próximo kernel, não confiar só no binding. Próximo:
 Root real/listeners/fontes retidas e contexto completo antes de sombra por setor.
 Catálogo fora da geração normal; H0/RAM-01 em 25%, programa 3,1%.
+
+O [recorte de Root real](sector-runtime-h0-root-lifecycle-2026-11-10.md) agora
+executa construtor normal/manutenção, factory, parser de materiais, reload/
+hotReload/loadMods, listeners/falhas/recuperação e retire com arquivos mínimos.
+669 testes padrão +13 Root opt-in (opção padrão OFF), 3.960 execuções adicionais
+e 35+1 grupos CTest, ASan/UBSan. Seed automática corrigida para wrap unsigned;
+gerador com seed fixa e sequências de referência preservados. Não é jogo,
+Root::fullyLoad ou validação de mods completos. Próximo: contexto de BaseTiles/
+blockInfo e inputs capturados/inicializados antes da sombra por setor.
 
 A proposta vigente foi retrabalhada para aproveitar CPU, RAM e GPU:
 [sector-generation-hardware-design-2026-11-08.md](sector-generation-hardware-design-2026-11-08.md).

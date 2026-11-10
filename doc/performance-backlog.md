@@ -179,7 +179,7 @@ reload/hotReload integrados, revalidando no dono antes de sombra por setor com
 admissão/bytes. Não é lease,
 autoridade de commit ou ganho de entrega medido; RAM-01/H0 continuam em 25%.
 
-O [relatório vigente](sector-runtime-h0-assets-lifecycle-2026-11-10.md) avança
+O [relatório de Assets](sector-runtime-h0-assets-lifecycle-2026-11-10.md) avança
 Assets real com arquivos locais de fixture: hotReload, cache, invalidação e
 retenção. Corrige fill vazio com memset(nullptr,0) e janela de parada de workers
 Assets; nenhum ganho de setores/s ou causa de crash antigo atribuído. 666 testes,
@@ -187,6 +187,15 @@ Assets; nenhum ganho de setores/s ou causa de crash antigo atribuído. 666 teste
 bancos completos não executados. clearCache pode renovar conteúdo sem avançar
 geração: fechar os inputs lidos é gate de CPU-01. Próximo: Root/lifecycle real,
 contexto completo e sombra por setor com admissão/bytes. H0/RAM-01 em 25%.
+
+O [relatório vigente](sector-runtime-h0-root-lifecycle-2026-11-10.md) executa Root
+normal/manutenção/factory, banco de materiais via parser, reload/hotReload/
+loadMods, listeners e recuperação, com fontes mínimas. 669 casos padrão +13 Root
+opt-in (padrão OFF), 3.960 execuções adicionais e 35+1 grupos CTest, ASan/UBSan.
+Corrige overflow da seed automática e preserva sequências explícitas verificadas;
+cinco corpos de manutenção relocados byte a byte. Próximo: contexto de BaseTiles/
+blockInfo, inicialização e inputs capturados; não repetir Root com a mesma hipótese.
+Root::fullyLoad, mods/scripts/saves/multiplayer reais e throughput continuam gates.
 
 Achado adicional de inicialização/cópia, não corrigido: WorldTile não inicializa/
 copia biomeTransition no construtor/operador; BaseTiles sobrescreve o flag nos
@@ -199,9 +208,11 @@ false explicitamente, sem corrigir produção nem atribuir crash. Auditar todos
 os construtores/consumidores antes de normalizar ou copiar snapshots; tests
 ASan/UBSan não provam ausência de leituras indefinidas de inicialização.
 Achado de CPU-01: overflow assinado na seed automática de `StarRandom.cpp:197`,
-observado em execução estrita de sanitizers; RNG de produção permanece
-inalterado. A reprodução e a separação dos testes de hash com seeds privadas
-fixas estão no relatório de admissão; não considerar essa pendência resolvida.
+observado em execução estrita de sanitizers e reproduzido na manutenção de Root.
+**Corrigido no recorte Root:** multiplicação em uint64_t, mantendo a expressão
+de mistura e as sequências explícitas verificadas. O relatório vigente registra
+escopo/limites; não fecha a auditoria de inicialização/consumo de RNG do contexto
+completo de CPU-01 ou autoriza mudar a seleção do mundo.
 A auditoria anterior também registra metadata escalar não inicializada na cópia
 herdada de Perlin `Uninitialized`; a consulta de bytes só lê ponteiros.
 Auditar antes de novos consumidores dessa metadata em CPU-01.

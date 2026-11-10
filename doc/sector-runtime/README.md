@@ -3,7 +3,7 @@
 Atualização: 10/11/2026. Branch: `Experimental`. Runtime de partida:
 `7ca7ed2a`; recortes de H0: `d72b7239`, `2131ead3`, `5c3c4c8f`, `65bae55c`,
 `803d4cf7`, `739067b1`, `1bd348e6`, `34c76ea3`, `887149c0`, `cad311d1`, `25cecf95`,
-`c4d7ddb3`, `730e36ba`, `45db2402`, `49a12fbf`, `ada755bf`, `0915af25`, `4b5aed18`, `dd59f3b4`, `8b68ab6a`, `8e190742`, `f7785963`, `2ea41cf8`, `abfc3834`, `4e5cc6c1`, `5413e13a`, `061ce68c` e `571bb01e`;
+`c4d7ddb3`, `730e36ba`, `45db2402`, `49a12fbf`, `ada755bf`, `0915af25`, `4b5aed18`, `dd59f3b4`, `8b68ab6a`, `8e190742`, `f7785963`, `2ea41cf8`, `abfc3834`, `4e5cc6c1`, `5413e13a`, `061ce68c`, `571bb01e` e `7001ae6d`;
 documentação de arquitetura de partida: `8d3b0ade`.
 
 Este é o **programa principal de desenvolvimento**, adotado pelo usuário em
@@ -162,12 +162,19 @@ catálogo e fita com metadata controlada: 649 testes, 3.300 execuções adiciona
 e 32 grupos CTest, ASan/UBSan. Mesmos corpos usados pelo jogo; não construção
 ou reload de Root/assets. Próximo: lifecycle integrado e fontes reais, depois
 sombra por setor com admissão/bytes e guards; catálogo não ativado na geração.
-O [relatório vigente](../sector-runtime-h0-assets-lifecycle-2026-11-10.md)
+O [relatório de Assets](../sector-runtime-h0-assets-lifecycle-2026-11-10.md)
 avança Assets real: arquivos locais de fixture, hotReload, invalidação e retenção.
 Corrige UB no fill vazio de ByteArray e janela de parada de workers Assets;
 não reconstrói Root ou bancos completos. ClearCache pode renovar conteúdo sem
 mudar a versão de reload; capturar inputs é gate para o próximo contexto.
 666 testes, 3.640 execuções adicionais e 34 grupos CTest, ASan/UBSan.
+O [relatório vigente](../sector-runtime-h0-root-lifecycle-2026-11-10.md) executa
+Root real, sua factory e banco de materiais carregado, reload/hotReload/loadMods,
+listeners/falhas e retenção: 669 casos padrão +13 opt-in de Root, 3.960 execuções
+adicionais e 35+1 grupos CTest, ASan/UBSan. Corrige overflow da seed automática,
+preservando sequências explícitas verificadas; cinco corpos de manutenção
+relocados sem alteração. Próximo: contexto de BaseTiles/blockInfo, inputs
+capturados/inicializados e sombra delimitada; não repetir a etapa de Root.
 RAM-01/H0 seguem em 25%, sem ganho de setores/s medido.
 Orçamento processual completo, benchmark real e equivalência com assets
 continuam pendentes.

@@ -248,6 +248,14 @@ Versão de reload não congela conteúdo bruto renovado por clearCache. Próximo
 Root real e captura dos inputs antes de sombra; sem autoridade regional nova,
 ampliação de filas ou ganho de setores/s demonstrado.
 
+O [lifecycle de Root real](sector-runtime-h0-root-lifecycle-2026-11-10.md)
+agora é testado por alvo opt-in: construtor/manutenção/factory e banco de materiais
+carregado, reload/hotReload/loadMods, listeners e retenção/retire. 669 testes
+padrão +13 opcionais, 35+1 grupos CTest, ASan/UBSan. Overflow da seed automática
+corrigido; corpos de manutenção preservados na extração. Arquivos mínimos, sem
+Root::fullyLoad ou mundo vivo. Próximo: contexto de BaseTiles e inputs capturados,
+não uma nova autoridade regional ou aumento de limites/defaults.
+
 ## Diagnóstico
 
 Com `explorationProfiling.enabled`, os contadores fixos são:

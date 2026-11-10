@@ -3,7 +3,7 @@
 Estado: H0, `Experimental`, 10/11/2026.
 [Programa](sector-runtime/README.md) · [Roadmap](sector-runtime/roadmap.md)
 · [Memória](sector-runtime-memory-envelope.md)
-· [Relatório](sector-runtime-h0-assets-lifecycle-2026-11-10.md)
+· [Relatório](sector-runtime-h0-root-lifecycle-2026-11-10.md)
 
 ## Identidade não é autorização de commit nem chave de conteúdo
 
@@ -145,7 +145,9 @@ Hooks de metadata no runtime real; catálogo ainda não chamado pelo produtor no
 NoAssets agora liga os mesmos corpos de leitores usados no jogo, com objetos
 reais e metadata controlada. O recorte posterior também constrói Assets e executa
 hotReload com arquivos locais de fixture; parent clock e definições continuam
-controlados. Root real não é construído/recarregado. Validação integrada permanece gate
+controlados naquele recorte. O alvo opt-in posterior executa Root real e sua
+factory com arquivos mínimos; não constrói todo o contexto de geração. Validação
+integrada com mundo/assets/mods completos permanece gate
 antes de uso/sombra por setor.
 
 ## Leitores reais e equivalência sem assets
@@ -188,6 +190,21 @@ Testes reais revelaram/corrigiram fill de ByteArray vazio com memset(nullptr,0)
 e janela de lost-wakeup na parada de workers Assets. Não mudam conteúdo dos
 tiles, formatos, filas ou autorização de commit; não são causa atribuída aos
 crashes antigos nem prova de velocidade maior.
+
+## Root real e factory com arquivos mínimos
+
+O [recorte de Root](sector-runtime-h0-root-lifecycle-2026-11-10.md) executa o
+construtor normal, manutenção, reload/hotReload/loadMods, listeners e destruição,
+incluindo Root::worldGenerationLookupSources e MaterialDatabase carregado pelo
+parser real. Treze casos opt-in confirmam versões, falhas/recuperação, retenção
+e override de arquivos, não scripts de mods ou setores gerados.
+
+HotReload mantém o banco de materiais; reload o reconstrói. LoadMods(false)
+invalida o epoch sem aplicar fontes novas até reload. Listener em execução/falha
+não emite binding válido; destruição retira o clock sem manter Root vivo.
+Seed automática passou a multiplicar em uint64_t para definir o wrap, corrigindo
+overflow reproduzido na manutenção; gerador com seed fixa e consumo de uma seed
+na construção default preservam sequências verificadas. Nenhum scope vira lease.
 
 ## Comparação de campos, modelo 1
 

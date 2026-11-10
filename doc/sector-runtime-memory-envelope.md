@@ -5,7 +5,7 @@ Estado: H0 / RAM-01, `Experimental`, 09/11/2026.
 · [Roadmap](sector-runtime/roadmap.md) · [Relatório da entrega](sector-runtime-h0-capacity-kernel-2026-11-09.md)
 
 Continuidade de identidade/equivalência: [contrato BaseTiles](sector-runtime-base-tiles-contract.md)
-e [último relatório](sector-runtime-h0-assets-lifecycle-2026-11-10.md).
+e [último relatório](sector-runtime-h0-root-lifecycle-2026-11-10.md).
 
 Continuidade de 10/11: leitores reais testados com metadata controlada não ampliam
 a cobertura do ledger. Catálogo/binding seguem fora do produtor normal; headers
@@ -17,6 +17,11 @@ Assets real e seus workers também foram exercitados com arquivos de fixture.
 Isso confirma retenção física por binding e encerramento, não contabiliza os
 heaps globais ou amplia o envelope. A correção de ByteArray vazio não aloca,
 e a de parada de workers não cria novos buffers/classes/limites.
+
+Root real agora é exercitado no alvo opt-in com fontes mínimas carregadas. A
+retenção física do binding foi confirmada, mas Root, bancos globais e seus heaps
+não passam a integrar o ledger privado. A realocação de corpos de manutenção
+não adiciona campos/cobranças e a correção da seed não altera o envelope.
 
 Este contrato delimita o **subconjunto privado de geração contabilizado**.
 Não redefine RAM-01 como orçamento de todo o motor e não transforma estimativa

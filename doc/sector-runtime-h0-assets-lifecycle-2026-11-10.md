@@ -1,5 +1,8 @@
 # H0: Assets real, invalidação e encerramento de workers
 
+Continuidade: [Root real e fontes carregadas](sector-runtime-h0-root-lifecycle-2026-11-10.md).
+Os resultados e limites abaixo permanecem históricos desta etapa.
+
 Data: 10/11/2026 UTC. Branch de entrega: `Experimental`; revisão local:
 `codex/experimental-regional-runtime`.
 Base: `b362a9d78a26bf2e8024cb3005b0d2ee0ab4b8bf`.

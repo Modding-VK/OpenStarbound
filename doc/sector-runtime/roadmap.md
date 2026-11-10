@@ -292,9 +292,19 @@ listeners e bancos completos não foram executados. clearCache pode renovar
 conteúdo sem mudar versão: congelar os inputs lidos, não assumir que binding
 é snapshot bruto. Sem novo marco completo ou ganho de setores/s; H0 em 25%.
 
-Próximo trabalho executável: lifecycle com Root real, reload/hotReload/loadMods,
-listener que falha e fontes retidas, sem reconstrução implícita de bancos/layouts.
-Revalidar preparação e commit antes de sombra por setor, com admissão/
+O [alvo opt-in de Root real](../sector-runtime-h0-root-lifecycle-2026-11-10.md), `7001ae6d`,
+agora valida construção/manutenção/factory, materiais carregados, reload,
+hotReload, loadMods(false/true), listeners em falha/recuperação e fontes antigas
+retidas/retire. 669 testes padrão +13 Root opcionais, 3.960 execuções adicionais,
+35+1 grupos CTest, ASan/UBSan. Corrige a multiplicação da seed automática com
+wrap unsigned, preservando as sequências explícitas verificadas. Cinco corpos
+de manutenção relocados sem mudança. Opção de teste padrão OFF, sem alterar
+Actions ou executar Root::fullyLoad, assets completos ou streaming. H0 em 25%.
+
+Próximo trabalho executável: fechar contexto de BaseTiles/blockInfo, inicialização
+e inputs efetivamente capturados; o lifecycle de Root com fontes mínimas já foi
+testado, não repetir o mesmo recorte. Revalidar preparação e commit antes de
+sombra por setor, com admissão/
 bytes e outputs equivalentes. Não antecipar consultas,
 assumir resolver arbitrário puro ou alterar cópias/RNG. Auditar biomeTransition e
 SkyParameters::horizonClouds default (achado registrado, não corrigido)
@@ -309,7 +319,8 @@ ownership único e história de cópias. Estender
 o comparador ao fluxo de candidatos/IDs/prioridades e ao
 streaming real, usando o controle de colisões como gate antes de eliminar cópias.
 Auditar metadata do Perlin não inicializado antes de novos consumidores em
-CPU-01; RNG de produção não foi alterado. Ampliar a cobertura dos
+CPU-01; o gerador com seeds explícitas não mudou, a seed automática teve overflow
+corrigido no recorte acima. Ampliar a cobertura dos
 heaps de layout/biomas/seletores e caches com ownership/storage únicos.
 Definir cobertura sem profiling antes da admissão obrigatória, limites
 processuais por hardware/configuração e reação à pressão.

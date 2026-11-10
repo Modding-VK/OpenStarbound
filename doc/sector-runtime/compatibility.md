@@ -194,8 +194,19 @@ nem reescaneia arquivos novos; clearCache pode renovar conteúdo sem avanço de
 versão. Não equiparar metadata a conteúdo congelado ou mudar essa semântica
 legada. A parada agora publica stop e acorda ambas as condições sob o mutex,
 com nova checagem antes da espera; fill vazio deixa de chamar memset com null.
-Não altera schemas, conteúdo/RNG ou callbacks dos mods. Root/listeners e matriz
-real de mods/saves/multiplayer ainda são gates abertos.
+Não alterou schemas, conteúdo/RNG ou callbacks dos mods naquela etapa.
+O [alvo opt-in de Root](../sector-runtime-h0-root-lifecycle-2026-11-10.md) agora
+exercita construção/manutenção/factory, reload/hotReload/loadMods e listeners
+reais. HotReload conserva o banco; reload reconstrói; loadMods(false) conserva
+as fontes até reload. Falha de listener mantém o vínculo indisponível até
+recuperação explícita. Overrides são arquivos mínimos, não scripts/pacotes
+representativos de mods. A matriz real de mods/saves/multiplayer continua aberta.
+
+O overflow da seed automática foi corrigido tornando sua multiplicação unsigned
+modular. Geradores de seed fixa, sequência/entropia explícitas e consumo da seed
+default preservam os casos de referência; não é licença para alterar seleção,
+seeds persistidas ou ordem de RNG. Cinco corpos de cleanup foram movidos sem
+alteração de algoritmo/locks. Não há lease de leitura ou publicação paralela nova.
 
 ## MOD-02 — Equivalência e versionamento
 

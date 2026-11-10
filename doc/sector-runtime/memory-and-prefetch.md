@@ -207,6 +207,13 @@ o objeto até soltar o último handle. Workers reais encerram sem perder wakeup;
 isso não é cancelamento de geração ou cobertura do heap global. Nenhuma nova
 classe, fórmula ou cota. Root e o contexto completo continuam pendentes.
 
+O [recorte de Root real](../sector-runtime-h0-root-lifecycle-2026-11-10.md)
+confirma na factory e no parser de materiais a retenção de bancos antigos após
+reload, sua liberação no último handle e retire no encerramento de Root.
+Alvo opt-in com arquivos mínimos; não censo de heaps globais/Root::fullyLoad.
+Próximo: contexto de BaseTiles/blockInfo e seus inputs capturados, com admissão
+do escopo privado e revalidação antes da sombra por setor. Não ampliar cotas.
+
 ### Inventário de ownership e cobertura atual
 
 | Produto/recurso | Dono e término da retenção | Contabilidade atual |

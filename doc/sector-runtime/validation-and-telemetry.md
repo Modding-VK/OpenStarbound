@@ -248,6 +248,18 @@ em futex, motivando correção de stop/wakeup e estresse de 32 ciclos por execu�
 Não é prova TSan de todas as races. Os três microexperimentos ficaram desligados.
 Raw assets precisam de input capturado: clearCache não avança a versão explícita.
 
+O [recorte de Root real](../sector-runtime-h0-root-lifecycle-2026-11-10.md)
+passa **669 casos padrão +13 casos opcionais de Root**, **3.960 execuções adicionais**
+(185×20 padrão, 13×20 Root; seed inicial 1233) e **35+1 grupos CTest**, ASan/UBSan.
+O alvo novo exige STAR_BUILD_ROOT_LIFECYCLE_TESTS=ON, padrão OFF; não anunciar
+esses 13 casos como executados no Actions padrão. São 16 casos novos no total.
+Root normal e manutenção/factory/parser/material/Asset/loadMods/listeners são
+reais, com arquivos mínimos e falhas controladas; não Root::fullyLoad, terrenos
+ou scripts de mods. O overflow da seed automática reproduzido foi corrigido e
+sequências explícitas preservadas. Cinco corpos de manutenção byte-idênticos
+foram relocados para ligação isolada, sem stubs ou sanitizers desativados.
+Três microexperimentos permaneceram desligados; sem ganho de setores/s medido.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,
