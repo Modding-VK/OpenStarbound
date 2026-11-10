@@ -1,9 +1,10 @@
 # Backlog de desempenho da exploração
 
-Continuidade de CPU-01: o [ensaio de RNG](sector-runtime-h0-rng-boundary-2026-11-10.md)
-restringiu o consumo à montagem da fixture de layout. Cache, árvore de seletores
-e noises não consumiram RNG nos recortes isolados; localizar a operação exata
-antes de reconstruir a árvore em workers e validar a sequência observável.
+Continuidade de CPU-01: o [ensaio de RNG com Root encerrado](sector-runtime-h0-rng-root-entropy-2026-11-10.md)
+corrige a hipótese anterior: a manutenção de Root adiciona entropia em paralelo,
+enquanto a fixture preserva a sequência isolada. O builder real constrói
+parâmetros default que consomem uma seed antes do override. Preservar essa ordem
+na captura do contexto e validar equivalência com assets/mods.
 
 ## Prioridade de implementação — 09/11/2026
 

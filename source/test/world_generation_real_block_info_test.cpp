@@ -81,6 +81,32 @@ struct WorldGenerationRealBlockInfoTestAccess {
   static WorldRegion& first(WorldLayout& layout) { return *layout.m_layers.first().cells.first(); }
   static size_t cacheSize(WorldTemplate const& world) { return world.m_blockCache.currentSize(); }
   static void clearCache(WorldTemplate& world) { world.m_blockCache.clear(); }
+  static void fixtureSelectorsOnly() {
+    auto out = std::make_shared<WorldLayout>();
+    TerrainSelectorParameters params(JsonObject{{"worldWidth", 64}, {"baseHeight", 16}, {"seed", 1234}, {"commonality", 1}});
+    auto constant = [&](float value) { return std::make_shared<ConstantSelector>(JsonObject{{"value", value}}, params); };
+    out->m_terrainSelectors = {std::make_shared<FlatSurfaceSelector>(JsonObject{}, params),
+      constant(-1), constant(-1), constant(-1), constant(1)};
+    params.baseHeight = 40;
+    out->m_terrainSelectors.append(std::make_shared<FlatSurfaceSelector>(JsonObject{}, params));
+    out->m_terrainSelectors.append(constant(1));
+  }
+  static void fixtureBiomesOnly() {
+    auto out = std::make_shared<WorldLayout>();
+    for (int i = 0; i != 2; ++i) {
+      auto b = std::make_shared<Biome>(); b->mainBlock = MaterialId(21 + i); b->materialHueShift = MaterialHue(9 + i * 18);
+      out->m_biomes.append(std::move(b));
+    }
+  }
+  static void fixtureLayersOnly() {
+    auto out = std::make_shared<WorldLayout>();
+    WorldLayout::WorldLayer lower; lower.yStart = 0;
+    lower.cells.append(std::make_shared<WorldRegion>());
+    lower.boundaries.append(32); lower.cells.append(std::make_shared<WorldRegion>());
+    out->m_layers.append(std::move(lower));
+    WorldLayout::WorldLayer upper; upper.yStart = 32;
+    upper.cells.append(std::make_shared<WorldRegion>()); out->m_layers.append(std::move(upper));
+  }
   static WorldLayoutPtr procedural(TerrainDatabase const& database, bool withNoise = true) {
     auto out = layout(true, true);
     out->m_terrainSelectors[0] = database.createSelectorType("cache", treeConfig(), parameters());
@@ -452,27 +478,32 @@ TEST_F(WorldGenerationRealBlockInfoTest, UninitializedBlendNoiseFailureDoesNotCa
   EXPECT_THROW(world->blockInfo(7, 4), PerlinException); EXPECT_EQ(0u, Access::cacheSize(*world));
 }
 
-TEST_F(WorldGenerationRealBlockInfoTest, BuildingNoiseTreeCurrentlyConsumesGlobalRng) {
+TEST_F(WorldGenerationRealBlockInfoTest, BuildingNoiseTreePreservesGlobalRngAfterRootStops) {
   auto r = root(); auto database = r->terrainDatabase();
+  r.reset(); // Join Root's maintenance thread, which independently adds entropy.
   Random::init(918); auto first = Random::randu64(), next = Random::randu64();
   Random::init(918); EXPECT_EQ(first, Random::randu64());
   auto layout = Access::procedural(*database);
   (void)layout;
-  EXPECT_NE(next, Random::randu64());
+  EXPECT_EQ(next, Random::randu64());
 }
 
 TEST_F(WorldGenerationRealBlockInfoTest, LocateGlobalRngConsumptionDuringTreeConstruction) {
   auto r = root(); auto database = r->terrainDatabase();
+  r.reset();
   auto check = [&](char const* label, bool consumes, auto construct) {
     Random::init(918); auto expected = Random::randu64();
     Random::init(918); construct(); auto actual = Random::randu64();
     EXPECT_EQ(consumes, expected != actual) << label;
   };
-  check("layout fixture", true, [&] { auto value = Access::layout(true, true); });
+  check("layout fixture", false, [&] { auto value = Access::layout(true, true); });
   check("empty layout", false, [&] { WorldLayout value; });
   check("empty region", false, [&] { WorldRegion value; });
   check("empty biome", false, [&] { Biome value; });
   check("selector parameters", false, [&] { auto value = Access::parameters(); });
+  check("fixture selectors", false, [&] { Access::fixtureSelectorsOnly(); });
+  check("fixture biomes", false, [&] { Access::fixtureBiomesOnly(); });
+  check("fixture layers", false, [&] { Access::fixtureLayersOnly(); });
   auto params = Access::parameters();
   auto constant = Access::cached(JsonObject{{"type", "constant"}, {"value", -1}});
   auto tree = Access::treeConfig();
@@ -482,4 +513,17 @@ TEST_F(WorldGenerationRealBlockInfoTest, LocateGlobalRngConsumptionDuringTreeCon
   check("cache tree", false, [&] { auto value = database->createSelectorType("cache", tree, params); });
   check("blend noise", false, [&] { PerlinF value(noise, 177); });
   check("block noise", false, [&] { auto value = WorldLayout::BlockNoise::build(blockNoise, 181); });
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, DefaultTerrainParametersConsumeOneGlobalSeedBeforeOverride) {
+  RandomSource reference(918);
+  auto expectedSeed = reference.randu64(), expectedNext = reference.randu64();
+  Random::init(918);
+  TerrainSelectorParameters base;
+  EXPECT_EQ(expectedSeed, base.seed);
+  // The inherited default omits this field; initialize it before copying.
+  base.baseHeight = 16;
+  auto derived = base.withSeed(1234);
+  EXPECT_EQ(1234u, derived.seed);
+  EXPECT_EQ(expectedNext, Random::randu64());
 }

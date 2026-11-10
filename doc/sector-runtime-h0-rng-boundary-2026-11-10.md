@@ -1,5 +1,10 @@
 # H0: investigação do RNG no contexto de geração
 
+**Correção posterior:** a conclusão sobre consumo pela fixture não era confiável,
+pois a thread de manutenção de Root adicionava entropia em paralelo. Ver o
+[ensaio isolado](sector-runtime-h0-rng-root-entropy-2026-11-10.md), que também
+identifica o consumo explícito de seed no builder real.
+
 Data: 10/11/2026 UTC. Branch `codex/experimental-regional-runtime`, base `88148dbe9f09421a99d87d48a12a6e5b6fcecb40` de Experimental.
 
 [Etapa anterior](sector-runtime-h0-perlin-cache-2026-11-10.md) · [Roadmap](sector-runtime/roadmap.md) · [Progressão](sector-runtime/progress.md)
