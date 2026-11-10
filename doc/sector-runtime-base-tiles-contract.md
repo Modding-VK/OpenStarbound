@@ -3,7 +3,7 @@
 Estado: H0, `Experimental`, 10/11/2026.
 [Programa](sector-runtime/README.md) · [Roadmap](sector-runtime/roadmap.md)
 · [Memória](sector-runtime-memory-envelope.md)
-· [Relatório](sector-runtime-h0-real-lookup-readers-2026-11-10.md)
+· [Relatório](sector-runtime-h0-assets-lifecycle-2026-11-10.md)
 
 ## Identidade não é autorização de commit nem chave de conteúdo
 
@@ -143,8 +143,9 @@ mesmo após invalidação; não cancelam/drainam jobs ou recuperam RAM automatic
 
 Hooks de metadata no runtime real; catálogo ainda não chamado pelo produtor normal.
 NoAssets agora liga os mesmos corpos de leitores usados no jogo, com objetos
-reais e metadata controlada; clocks parent/Assets ainda são controlados.
-Não executa construção/reload de Root/assets. Validação integrada permanece gate
+reais e metadata controlada. O recorte posterior também constrói Assets e executa
+hotReload com arquivos locais de fixture; parent clock e definições continuam
+controlados. Root real não é construído/recarregado. Validação integrada permanece gate
 antes de uso/sombra por setor.
 
 ## Leitores reais e equivalência sem assets
@@ -167,6 +168,26 @@ catálogo; 1.024 tiles comparam os leitores reais e catálogo em quatro workers
 a uma referência serial. Troca real de layout avança revision e recusa catálogo
 antigo; replacement de lifecycle usa clocks controlados, não Root::reload.
 Catálogo continua diagnóstico, sem uso no produtor normal ou ganho de setores/s.
+
+## Lifecycle de Assets real com arquivos de fixture
+
+O [recorte de lifecycle](sector-runtime-h0-assets-lifecycle-2026-11-10.md)
+exercita construtor, leitura/cache de JSON/bytes, hotReload, versões e retenção
+de Assets real. Um host RootBase fornece somente Configuration; não é Root,
+seus listeners ou parsing completo dos bancos do jogo. O catálogo antigo é
+recusado sem writes após hotReload direto; um catálogo novo volta a reproduzir
+os leitores sobre as mesmas definições de fixture.
+
+Editar disco não invalida a versão; clearCache pode atualizar conteúdo sem
+avançar essa versão; hotReload não reescaneia arquivos novos. Portanto scope/
+binding não certifica conteúdo bruto de assets imutável. Fechar/capturar os
+inputs efetivamente lidos antes de ampliar CPU-01; não mudar reload legado para
+simular essa garantia. Invalidar binding ainda conserva fontes até o último handle.
+
+Testes reais revelaram/corrigiram fill de ByteArray vazio com memset(nullptr,0)
+e janela de lost-wakeup na parada de workers Assets. Não mudam conteúdo dos
+tiles, formatos, filas ou autorização de commit; não são causa atribuída aos
+crashes antigos nem prova de velocidade maior.
 
 ## Comparação de campos, modelo 1
 

@@ -240,6 +240,14 @@ Catálogo segue fora do produtor normal. Próximo: lifecycle integrado/fontes
 reais e revalidação no dono antes de sombra com bytes. Nenhuma autoridade
 regional, formato de save/rede ou limite de workers alterado.
 
+O [lifecycle de Assets real](sector-runtime-h0-assets-lifecycle-2026-11-10.md)
+executa carga/hotReload/cache com arquivos de fixture e host RootBase somente
+de configuração; não Root/listeners ou jogo completo. Corrige fill vazio de
+ByteArray e lost-wakeup de stop; 666 testes/34 grupos CTest, ASan/UBSan.
+Versão de reload não congela conteúdo bruto renovado por clearCache. Próximo:
+Root real e captura dos inputs antes de sombra; sem autoridade regional nova,
+ampliação de filas ou ganho de setores/s demonstrado.
+
 ## Diagnóstico
 
 Com `explorationProfiling.enabled`, os contadores fixos são:

@@ -284,7 +284,15 @@ materiais retidas testadas; lifecycle parent/Assets ainda controlado, sem Root
 ou assets carregados. Catálogo fora do produtor normal; nenhum marco completo
 adicional ou ganho de setores/s. H0/RAM-01 continuam 25%.
 
-Próximo trabalho executável: lifecycle com Root/assets reais, reload/hotReload,
+O [lifecycle de Assets real](../sector-runtime-h0-assets-lifecycle-2026-11-10.md), `571bb01e`,
+agora carrega arquivos locais e executa hotReload/cache/retenção com host RootBase
+de configuração. Corrige fill vazio de ByteArray e parada de workers Assets;
+666 testes, 3.640 execuções adicionais e 34 grupos CTest, ASan/UBSan. Root real,
+listeners e bancos completos não foram executados. clearCache pode renovar
+conteúdo sem mudar versão: congelar os inputs lidos, não assumir que binding
+é snapshot bruto. Sem novo marco completo ou ganho de setores/s; H0 em 25%.
+
+Próximo trabalho executável: lifecycle com Root real, reload/hotReload/loadMods,
 listener que falha e fontes retidas, sem reconstrução implícita de bancos/layouts.
 Revalidar preparação e commit antes de sombra por setor, com admissão/
 bytes e outputs equivalentes. Não antecipar consultas,

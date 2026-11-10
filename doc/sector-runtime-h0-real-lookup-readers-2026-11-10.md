@@ -1,5 +1,8 @@
 # H0: leitores reais, equivalência e custo das consultas BaseTiles
 
+Continuidade: [Assets real, invalidação e encerramento](sector-runtime-h0-assets-lifecycle-2026-11-10.md).
+Este relatório preserva os resultados históricos do recorte de leitores.
+
 Data de implementação/coleta: 10/11/2026 UTC. Entrega: `Experimental`;
 revisão local `codex/experimental-regional-runtime`.
 Base: `ee94c3c46a552236863277a539a56ccee41f5993`.

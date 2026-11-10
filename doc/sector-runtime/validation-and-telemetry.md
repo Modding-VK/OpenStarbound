@@ -238,6 +238,16 @@ terreno, mods ou streaming. Três microexperimentos DISABLED por padrão; soment
 o novo de custo dos leitores foi executado à parte, conforme relatório, sem
 asserção de timing ou inferência de setores/s. CPU-01 e gates integrados abertos.
 
+O [recorte de lifecycle Assets](../sector-runtime-h0-assets-lifecycle-2026-11-10.md)
+passa **666 testes**, **34 grupos CTest** e **182 × 20 = 3.640 execuções adicionais**,
+ASan/UBSan. São 12 casos novos de Assets, quatro novos de ByteArray e um caso
+ByteArray anterior agora também no alvo. Arquivos locais de fixture e Assets
+real; RootBase só fornece Configuration, não substitui Root completo/listeners.
+Reproduziu/corrigiu memset de fill vazio; repetição anterior parou com um worker
+em futex, motivando correção de stop/wakeup e estresse de 32 ciclos por execução.
+Não é prova TSan de todas as races. Os três microexperimentos ficaram desligados.
+Raw assets precisam de input capturado: clearCache não avança a versão explícita.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

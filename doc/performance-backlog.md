@@ -170,7 +170,7 @@ O [relatório de clocks](sector-runtime-h0-lookup-source-generations-2026-11-09.
 `5413e13a`, liga hooks de versões a Root/Assets/material, com handles fortes,
 scope 2 e Refused/Applied/Stale. 629 testes, 2.900 execuções adicionais e 31 grupos
 CTest, ASan/UBSan. Naquela etapa leitores/reload/assets reais não foram executados.
-O [relatório vigente](sector-runtime-h0-real-lookup-readers-2026-11-10.md)
+O [relatório de leitores](sector-runtime-h0-real-lookup-readers-2026-11-10.md)
 compara os leitores reais a catálogo/fita/corpo independente com metadata
 controlada: 649 testes, 3.300 execuções adicionais e 32 grupos CTest, ASan/UBSan.
 Preserva NoMod, exceções e writes parciais; layout real revisionado, fontes
@@ -178,6 +178,15 @@ retidas com lifecycle controlado. Catálogo não ativado. Próximo: Root/assets 
 reload/hotReload integrados, revalidando no dono antes de sombra por setor com
 admissão/bytes. Não é lease,
 autoridade de commit ou ganho de entrega medido; RAM-01/H0 continuam em 25%.
+
+O [relatório vigente](sector-runtime-h0-assets-lifecycle-2026-11-10.md) avança
+Assets real com arquivos locais de fixture: hotReload, cache, invalidação e
+retenção. Corrige fill vazio com memset(nullptr,0) e janela de parada de workers
+Assets; nenhum ganho de setores/s ou causa de crash antigo atribuído. 666 testes,
+3.640 execuções adicionais e 34 grupos CTest, ASan/UBSan. Root real/listeners e
+bancos completos não executados. clearCache pode renovar conteúdo sem avançar
+geração: fechar os inputs lidos é gate de CPU-01. Próximo: Root/lifecycle real,
+contexto completo e sombra por setor com admissão/bytes. H0/RAM-01 em 25%.
 
 Achado adicional de inicialização/cópia, não corrigido: WorldTile não inicializa/
 copia biomeTransition no construtor/operador; BaseTiles sobrescreve o flag nos

@@ -201,6 +201,11 @@ continua 328 bytes; o cenário real de cinco chaves usa 40 bytes ativos, não
 substitui a reserva de 256 bytes ou inclui as fontes retidas. Extração de headers/
 leitores não altera campos/ownership. Próximo: lifecycle integrado de Root/assets
 e contexto completo antes de sombra com bytes. Fixtures não medem heaps reais.
+O [lifecycle de Assets](../sector-runtime-h0-assets-lifecycle-2026-11-10.md)
+usa Assets real com arquivos de fixture e verifica que binding inválido conserva
+o objeto até soltar o último handle. Workers reais encerram sem perder wakeup;
+isso não é cancelamento de geração ou cobertura do heap global. Nenhuma nova
+classe, fórmula ou cota. Root e o contexto completo continuam pendentes.
 
 ### Inventário de ownership e cobertura atual
 

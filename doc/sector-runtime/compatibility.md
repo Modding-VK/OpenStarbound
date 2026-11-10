@@ -186,7 +186,16 @@ do material; supportsMod não exige presença de um mod real no banco de mods.
 Preservar exceções reais e writes anteriores à falha em foreground/background.
 Corpos e campos das classes preservados; headers antigos continuam fachadas
 com os mesmos includes transitivos. Objetos de fixture não equivalem a mundos/
-bancos completos. Testes sem assets não certificam mods, saves ou multiplayer.
+bancos completos. Testes sem assets do jogo não certificam mods, saves ou multiplayer.
+
+O [lifecycle real de Assets](../sector-runtime-h0-assets-lifecycle-2026-11-10.md)
+com fixtures confirma: hotReload direto invalida binding, não reconstrói bancos
+nem reescaneia arquivos novos; clearCache pode renovar conteúdo sem avanço de
+versão. Não equiparar metadata a conteúdo congelado ou mudar essa semântica
+legada. A parada agora publica stop e acorda ambas as condições sob o mutex,
+com nova checagem antes da espera; fill vazio deixa de chamar memset com null.
+Não altera schemas, conteúdo/RNG ou callbacks dos mods. Root/listeners e matriz
+real de mods/saves/multiplayer ainda são gates abertos.
 
 ## MOD-02 — Equivalência e versionamento
 

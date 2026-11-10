@@ -39,7 +39,7 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[leitores reais e equivalência BaseTiles](sector-runtime-h0-real-lookup-readers-2026-11-10.md), com
+[Assets real, invalidação e encerramento](sector-runtime-h0-assets-lifecycle-2026-11-10.md), com
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
@@ -169,6 +169,16 @@ auditar biomeTransition/default/cópias e SkyParameters::horizonClouds antes de
 normalizar. RAM-01/H0 em 25%,
 programa 3,1% inalterados. Streaming real com assets/mods e executor de conclusões
 ainda pendentes.
+
+O [recorte de lifecycle Assets](sector-runtime-h0-assets-lifecycle-2026-11-10.md)
+executa construtor/hotReload/cache com arquivos locais de fixture e host
+RootBase de configuração; Root completo e listeners ainda não executados.
+Corrige UB do fill vazio de ByteArray e janela de lost-wakeup na parada de
+workers Assets. 666 testes, 3.640 execuções adicionais e 34 grupos CTest,
+ASan/UBSan. clearCache pode renovar conteúdo sem mudar versão de reload:
+capturar os inputs do próximo kernel, não confiar só no binding. Próximo:
+Root real/listeners/fontes retidas e contexto completo antes de sombra por setor.
+Catálogo fora da geração normal; H0/RAM-01 em 25%, programa 3,1%.
 
 A proposta vigente foi retrabalhada para aproveitar CPU, RAM e GPU:
 [sector-generation-hardware-design-2026-11-08.md](sector-generation-hardware-design-2026-11-08.md).

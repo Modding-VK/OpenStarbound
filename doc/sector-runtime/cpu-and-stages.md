@@ -73,8 +73,13 @@ NoMod e troca de layout, sem construir Root/assets ou sortear seed. Facades de
 Biome/WorldTemplate mantêm includes antigos; tags privadas servem só a metadata
 de consultas, não a blockInfo/contexto completo. Auditar também o default herdado
 de SkyParameters::horizonClouds: a fixture o inicializa, produção não foi alterada.
-Próximo: lifecycle com fontes/assets reais e revalidação antes de sombra por
-setor com admissão/bytes; não otimizar consultas isoladas como fim em si mesmo.
+O [lifecycle de Assets real](../sector-runtime-h0-assets-lifecycle-2026-11-10.md)
+agora é exercitado com arquivos de fixture e host de configuração RootBase.
+Root/listeners/bancos completos seguem pendentes. clearCache pode atualizar
+conteúdo sem mudar generationRevision; essa versão cobre reload explícito,
+não congela leituras brutas. Próximo: validar Root e fechar os inputs efetivamente
+lidos pelo kernel, depois revalidar antes de sombra por setor com admissão/bytes.
+Não otimizar consultas isoladas como fim em si mesmo.
 CPU-01 completo, contexto profundo/RNG e ganho de WorldTemplate seguem pendentes.
 
 Aceitação: execução concorrente não alcança template vivo, callbacks ou RNG
