@@ -5,6 +5,7 @@
 #include "StarWorldLayout.hpp"
 #include "StarWorldGeometry.hpp"
 #include "StarWorldGenerationCustomTerrain.hpp"
+#include "StarWorldGenerationBlockInfoStaticInputs.hpp"
 #include "StarBiomePlacementTypes.hpp"
 #include "StarCelestialDatabase.hpp"
 #include "StarSkyParameters.hpp"
@@ -141,6 +142,12 @@ public:
   // only, not a fully versioned/admitted context. Not used by normal jobs yet.
   WorldGenerationCustomTerrainContext captureCustomTerrain() const;
 
+  // Owner-thread only; retain immutable raw config without eager getFloat and
+  // copy custom terrain. Json measurement is opt-in, not context admission.
+  // Prototype outside normal jobs; full layout/material/version gates remain.
+  WorldGenerationBlockInfoStaticInputs captureBlockInfoStaticInputs(
+      WorldGenerationMemoryLedger& ledger, bool measureJson, size_t maximumJsonValues = 32768) const;
+
   List<RectI> previewAddBiomeRegion(Vec2I const& position, int width);
   List<RectI> previewExpandBiomeRegion(Vec2I const& position, int newWidth);
 
@@ -209,6 +216,7 @@ public:
 private:
   friend struct WorldGenerationLookupTestAccess;
   friend struct WorldGenerationCustomTerrainTestAccess;
+  friend struct WorldGenerationBlockInfoStaticInputsTestAccess;
   struct LookupFixtureTag {};
   explicit WorldTemplate(LookupFixtureTag);
   struct CustomTerrainRegion {

@@ -4,11 +4,29 @@
 #include <array>
 #include <algorithm>
 #include <cstring>
+#include <future>
 #include <stdexcept>
 #include <string>
 #include <tuple>
 #include <typeinfo>
+#include <type_traits>
 #include <vector>
+
+namespace Star {
+// Controlled metadata only. Factory/custom terrain/Json/ledger bodies are real;
+// no normal WorldTemplate constructor, layout/Root/terrain selector simulation.
+struct WorldGenerationBlockInfoStaticInputsTestAccess {
+  static WorldTemplatePtr planet(Json config) {
+    auto result = WorldTemplatePtr(new WorldTemplate(WorldTemplate::LookupFixtureTag{}));
+    result->m_templateConfig = std::move(config); result->m_geometry = WorldGeometry(Vec2U{100, 100});
+    result->m_customTerrainBlendSize = 10; result->m_customTerrainBlendWeight = 8;
+    return result;
+  }
+  static void replaceConfig(WorldTemplate& world, Json config) {
+    world.m_templateConfig = std::move(config); ++world.m_generationRevision;
+  }
+};
+}
 
 using namespace Star;
 namespace {
@@ -270,6 +288,250 @@ TEST(WorldGenerationBlockInfoTest, DeterministicInputMatrixMatchesAllFieldsAndQu
       f.custom = mask & 256 ? pair<float, float>{-2, 0.5f} : pair<float, float>{0, 0};
       f.flatRegion.regionLiquids.encloseLiquids = mask & 512;
       f.config = JsonObject{{"surfaceCaveAttenuationDist", mask & 1024 ? 12 : 0}, {"biomeTransitionThreshold", mask & 2048 ? 1.25 : 0}};
+    });
+  }
+}
+
+using StaticInputs = WorldGenerationBlockInfoStaticInputs;
+using StaticAccess = WorldGenerationBlockInfoStaticInputsTestAccess;
+static_assert(!std::is_copy_constructible<StaticInputs>::value, "No deep copy per job");
+static_assert(std::is_move_constructible<StaticInputs>::value, "Capture supports handoff");
+
+struct CapturedFixture : Fixture {
+  explicit CapturedFixture(StaticInputs const& inputs) : inputs(inputs) {}
+  float configFloat(char const* key, float fallback) {
+    event(std::string("config:") + key); return inputs.configFloat(key, fallback);
+  }
+  pair<float, float> customTerrainWeighting(int x, int y) {
+    event("custom:" + coords(x, y)); return inputs.customTerrainWeighting(x, y);
+  }
+  StaticInputs const& inputs;
+};
+struct BlockResult {
+  WorldTemplate::BlockInfo value;
+  bool failed = false;
+  std::string type, message;
+};
+template <typename Calculate> BlockResult evaluate(Calculate calculate) {
+  BlockResult result;
+  try { result.value = calculate(); }
+  catch (std::exception const& e) { result.failed = true; result.type = typeid(e).name(); result.message = e.what(); }
+  return result;
+}
+template <typename Configure>
+BlockResult compareStatic(Json config, StaticInputs const& inputs, Configure configure, int x = 7, int y = 13) {
+  Fixture old; CapturedFixture current(inputs);
+  old.config = std::move(config);
+  // Isolate config/control-flow equivalence: both receive the same custom
+  // weighting as an input. The 26 custom-terrain cases independently compare
+  // its real geometry/math to the inherited reference, not this fixture.
+  old.custom = inputs.customTerrainWeighting(x, y);
+  configure(old); configure(current);
+  auto expected = evaluate([&] { return legacyBlockInfo(old, x, y); });
+  auto actual = evaluate([&] { return calculateWorldGenerationBlockInfo(current, x, y); });
+  EXPECT_EQ(expected.failed, actual.failed); EXPECT_EQ(expected.type, actual.type); EXPECT_EQ(expected.message, actual.message);
+  if (!expected.failed && !actual.failed) {
+    EXPECT_EQ(fields(expected.value), fields(actual.value));
+  }
+  EXPECT_EQ(old.trace, current.trace);
+  return actual;
+}
+auto captureConfig(Json config, WorldGenerationMemoryLedger& ledger, bool measure = true, size_t limit = 32768) {
+  return StaticAccess::planet(std::move(config))->captureBlockInfoStaticInputs(ledger, measure, limit);
+}
+Json numericConfig() { return JsonObject{{"biomeTransitionThreshold", 0.75}, {"surfaceCaveAttenuationDist", 12}, {"surfaceCaveAttenuationFactor", 2}}; }
+TEST(WorldGenerationBlockInfoStaticInputsTest, EmptyObjectPreservesCallerFallbacks) {
+  WorldGenerationMemoryLedger ledger; auto inputs = captureConfig(JsonObject{}, ledger);
+  EXPECT_EQ(bits(0), bits(inputs.configFloat("biomeTransitionThreshold", 0)));
+  EXPECT_EQ(bits(1), bits(inputs.configFloat("surfaceCaveAttenuationFactor", 1)));
+  EXPECT_EQ(bits(-0.0f), bits(inputs.configFloat("missing", -0.0f)));
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, NullValuesKeepFallbackRatherThanThrow) {
+  WorldGenerationMemoryLedger ledger; Json config = JsonObject{{"biomeTransitionThreshold", Json()}};
+  auto inputs = captureConfig(config, ledger);
+  EXPECT_EQ(bits(0.25f), bits(inputs.configFloat("biomeTransitionThreshold", 0.25f)));
+  EXPECT_FALSE(compareStatic(config, inputs, [](Fixture&) {}).failed);
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, IntegerFloatAndSignedZeroKeepGetFloatBits) {
+  WorldGenerationMemoryLedger ledger;
+  for (Json value : {Json(12), Json(0.1), Json(-0.0), Json(-17.5)}) {
+    Json config = JsonObject{{"biomeTransitionThreshold", value}}; auto inputs = captureConfig(config, ledger);
+    EXPECT_EQ(bits(config.getFloat("biomeTransitionThreshold", 0)), bits(inputs.configFloat("biomeTransitionThreshold", 0)));
+  }
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, InvalidValueTypesAreNotValidatedAtCapture) {
+  WorldGenerationMemoryLedger ledger;
+  for (Json value : {Json("bad"), Json(false), Json(JsonArray{}), Json(JsonObject{})}) {
+    auto inputs = captureConfig(JsonObject{{"surfaceCaveAttenuationFactor", value}}, ledger);
+    EXPECT_TRUE(inputs.jsonStorageMeasured()); EXPECT_THROW(inputs.configFloat("surfaceCaveAttenuationFactor", 1), JsonException);
+  }
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, InvalidRootTypesAreRetainedUntilAQuery) {
+  WorldGenerationMemoryLedger ledger;
+  for (Json config : {Json(), Json(3), Json(false), Json("bad root"), Json(JsonArray{})}) {
+    auto inputs = captureConfig(config, ledger);
+    EXPECT_FALSE(compareStatic(config, inputs, [](Fixture& f) { f.layoutPresent = false; }).failed);
+    EXPECT_TRUE(compareStatic(config, inputs, [](Fixture&) {}).failed);
+  }
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, JsonModelCompletenessDoesNotValidateSchema) {
+  WorldGenerationMemoryLedger ledger; auto inputs = captureConfig(Json(3), ledger);
+  EXPECT_TRUE(inputs.jsonStorageModelComplete()); EXPECT_THROW(inputs.configFloat("biomeTransitionThreshold", 0), JsonException);
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, NoLayoutSkipsEvenInvalidConfig) {
+  WorldGenerationMemoryLedger ledger; auto config = Json("invalid root"); auto inputs = captureConfig(config, ledger);
+  EXPECT_FALSE(compareStatic(config, inputs, [](Fixture& f) { f.layoutPresent = false; }).failed);
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, EmptyWeightsSkipInvalidConfig) {
+  WorldGenerationMemoryLedger ledger; auto config = Json("invalid root"); auto inputs = captureConfig(config, ledger);
+  EXPECT_FALSE(compareStatic(config, inputs, [](Fixture& f) { f.weights[0].clear(); f.blockPresent = true; }).failed);
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, NonpositiveTerrainSkipsInvalidAttenuation) {
+  WorldGenerationMemoryLedger ledger;
+  Json config = JsonObject{{"surfaceCaveAttenuationDist", "bad"}, {"surfaceCaveAttenuationFactor", "bad"}};
+  auto inputs = captureConfig(config, ledger);
+  EXPECT_FALSE(compareStatic(config, inputs, [](Fixture& f) { f.values[1] = 0; }).failed);
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, StrictDistanceBoundarySkipsInvalidFactor) {
+  WorldGenerationMemoryLedger ledger;
+  Json config = JsonObject{{"surfaceCaveAttenuationDist", 10}, {"surfaceCaveAttenuationFactor", "bad"}};
+  auto inputs = captureConfig(config, ledger);
+  EXPECT_FALSE(compareStatic(config, inputs, [](Fixture&) {}).failed);
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, ReachedInvalidThresholdHasSameExceptionAndTrace) {
+  WorldGenerationMemoryLedger ledger; Json config = JsonObject{{"biomeTransitionThreshold", "bad"}};
+  auto inputs = captureConfig(config, ledger); EXPECT_TRUE(compareStatic(config, inputs, [](Fixture&) {}).failed);
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, ReachedInvalidDistanceHasSameExceptionAndTrace) {
+  WorldGenerationMemoryLedger ledger; Json config = JsonObject{{"surfaceCaveAttenuationDist", "bad"}};
+  auto inputs = captureConfig(config, ledger); EXPECT_TRUE(compareStatic(config, inputs, [](Fixture&) {}).failed);
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, ReachedInvalidFactorHasSameExceptionAndTrace) {
+  WorldGenerationMemoryLedger ledger;
+  Json config = JsonObject{{"surfaceCaveAttenuationDist", 12}, {"surfaceCaveAttenuationFactor", "bad"}};
+  auto inputs = captureConfig(config, ledger); EXPECT_TRUE(compareStatic(config, inputs, [](Fixture&) {}).failed);
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, ConfigDefaultsAndCapturedGeometryComposeInKernel) {
+  WorldGenerationMemoryLedger ledger; auto world = StaticAccess::planet(JsonObject{});
+  world->addCustomTerrainRegion(PolyF(RectF::withSize({0, 10}, {10, 10})));
+  auto inputs = world->captureBlockInfoStaticInputs(ledger, true); world.reset();
+  auto result = compareStatic(JsonObject{}, inputs, [](Fixture& f) { f.values[1] = -10; });
+  EXPECT_FALSE(result.failed); EXPECT_TRUE(result.value.terrain); EXPECT_EQ(1u, inputs.customTerrainRegionCount());
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, SourceReplacementDoesNotChangeOldConfiguration) {
+  WorldGenerationMemoryLedger ledger; auto world = StaticAccess::planet(numericConfig());
+  auto old = world->captureBlockInfoStaticInputs(ledger, true);
+  StaticAccess::replaceConfig(*world, JsonObject{{"biomeTransitionThreshold", 0.25}});
+  EXPECT_EQ(bits(0.75f), bits(old.configFloat("biomeTransitionThreshold", 0)));
+  auto current = world->captureBlockInfoStaticInputs(ledger, true);
+  EXPECT_EQ(bits(0.25f), bits(current.configFloat("biomeTransitionThreshold", 0)));
+  EXPECT_EQ(0u, old.templateRevision()); EXPECT_EQ(1u, current.templateRevision());
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, SourceClearDoesNotChangeCapturedCustomTerrain) {
+  WorldGenerationMemoryLedger ledger; auto world = StaticAccess::planet(numericConfig());
+  world->addCustomTerrainRegion(PolyF(RectF::withSize({0, 10}, {10, 10})));
+  auto inputs = world->captureBlockInfoStaticInputs(ledger, true); world->clearCustomTerrains();
+  EXPECT_EQ(bits(8), bits(inputs.customTerrainWeighting(7, 13).first)); EXPECT_EQ(1u, inputs.templateRevision());
+  EXPECT_EQ(0u, world->captureBlockInfoStaticInputs(ledger, true).customTerrainRegionCount());
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, ConfigAndTemplateSurviveOnlyForTheirOwnLifetimes) {
+  WorldGenerationMemoryLedger ledger; std::weak_ptr<WorldTemplate> worldOwner; std::weak_ptr<JsonObject const> jsonOwner;
+  auto inputs = [&] {
+    Json config = numericConfig(); jsonOwner = config.objectPtr(); auto world = StaticAccess::planet(config); worldOwner = world;
+    return std::make_unique<StaticInputs>(world->captureBlockInfoStaticInputs(ledger, true));
+  }();
+  EXPECT_TRUE(worldOwner.expired()); EXPECT_FALSE(jsonOwner.expired()); EXPECT_GT(ledger.snapshot().estimatedBytes, 0u);
+  EXPECT_EQ(bits(0.75f), bits(inputs->configFloat("biomeTransitionThreshold", 0)));
+  inputs.reset(); EXPECT_TRUE(jsonOwner.expired()); EXPECT_EQ(0u, ledger.snapshot().reservedBytes);
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, UnmeasuredCaptureRetainsDataWithoutJsonCharges) {
+  WorldGenerationMemoryLedger ledger; auto inputs = captureConfig(numericConfig(), ledger, false);
+  EXPECT_FALSE(inputs.jsonStorageMeasured()); EXPECT_FALSE(inputs.jsonStorageModelComplete());
+  EXPECT_EQ(0u, ledger.snapshot().reservedBytes); EXPECT_EQ(bits(12), bits(inputs.configFloat("surfaceCaveAttenuationDist", 0)));
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, FullJsonOwnerIsChargedOnceAcrossTwoCaptures) {
+  WorldGenerationMemoryLedger ledger; auto world = StaticAccess::planet(numericConfig());
+  auto first = std::make_unique<StaticInputs>(world->captureBlockInfoStaticInputs(ledger, true));
+  auto bytes = ledger.snapshot().estimatedBytes; ASSERT_GT(bytes, 0u);
+  auto second = std::make_unique<StaticInputs>(world->captureBlockInfoStaticInputs(ledger, true));
+  EXPECT_TRUE(first->jsonStorageModelComplete()); EXPECT_TRUE(second->jsonStorageModelComplete());
+  EXPECT_EQ(bytes, ledger.snapshot().estimatedBytes); EXPECT_EQ(1u, ledger.snapshot().sharedResources);
+  first.reset(); EXPECT_EQ(bytes, ledger.snapshot().estimatedBytes); second.reset(); EXPECT_EQ(0u, ledger.snapshot().estimatedBytes);
+  // Untracked source ownership remains outside the tracked-handle scope.
+  EXPECT_EQ(bits(0.75f), bits(world->captureBlockInfoStaticInputs(ledger, false).configFloat("biomeTransitionThreshold", 0)));
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, StructuralMeasurementRetainsAndCountsUnusedValues) {
+  WorldGenerationMemoryLedger ledger; Json leaf(std::string(2048, 'x'));
+  Json config = numericConfig().set("unused", JsonObject{{"a", leaf}, {"b", leaf}});
+  auto inputs = captureConfig(config, ledger); EXPECT_TRUE(inputs.jsonStorageModelComplete());
+  EXPECT_EQ(3u, ledger.snapshot().sharedResources); // root object + nested object + shared String
+  EXPECT_GT(ledger.snapshot().estimatedBytes, 2048u);
+  EXPECT_EQ(bits(12), bits(inputs.configFloat("surfaceCaveAttenuationDist", 0)));
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, ZeroTraversalLimitDoesNotFilterConfiguration) {
+  WorldGenerationMemoryLedger ledger; auto inputs = captureConfig(numericConfig(), ledger, true, 0);
+  EXPECT_TRUE(inputs.jsonStorageMeasured()); EXPECT_FALSE(inputs.jsonStorageModelComplete()); EXPECT_EQ(0u, ledger.snapshot().reservedBytes);
+  EXPECT_EQ(bits(12), bits(inputs.configFloat("surfaceCaveAttenuationDist", 0)));
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, PartialTraversalDoesNotRegisterPartialRootBytes) {
+  WorldGenerationMemoryLedger ledger; auto inputs = captureConfig(numericConfig(), ledger, true, 1);
+  EXPECT_FALSE(inputs.jsonStorageModelComplete()); EXPECT_EQ(0u, ledger.snapshot().reservedBytes);
+  EXPECT_EQ(bits(2), bits(inputs.configFloat("surfaceCaveAttenuationFactor", 1)));
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, RefusedJsonChargeDoesNotHideOrConvertInputs) {
+  WorldGenerationMemoryLedger ledger(0); auto inputs = captureConfig(numericConfig(), ledger);
+  EXPECT_FALSE(inputs.jsonStorageModelComplete()); EXPECT_EQ(0u, ledger.snapshot().reservedBytes);
+  EXPECT_FALSE(compareStatic(numericConfig(), inputs, [](Fixture&) {}).failed);
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, PartialCaptureCannotPoisonLaterCanonicalCharge) {
+  WorldGenerationMemoryLedger ledger; auto world = StaticAccess::planet(numericConfig());
+  auto partial = world->captureBlockInfoStaticInputs(ledger, true, 1);
+  auto full = world->captureBlockInfoStaticInputs(ledger, true);
+  EXPECT_FALSE(partial.jsonStorageModelComplete()); EXPECT_TRUE(full.jsonStorageModelComplete()); EXPECT_EQ(1u, ledger.snapshot().sharedResources);
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, CaptureOutlivesOriginalLedgerFacade) {
+  auto ledger = std::make_unique<WorldGenerationMemoryLedger>(); auto view = *ledger;
+  auto inputs = std::make_unique<StaticInputs>(captureConfig(numericConfig(), *ledger)); ledger.reset();
+  EXPECT_GT(view.snapshot().reservedBytes, 0u); EXPECT_EQ(bits(12), bits(inputs->configFloat("surfaceCaveAttenuationDist", 0)));
+  inputs.reset(); EXPECT_EQ(0u, view.snapshot().reservedBytes);
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, MoveHandoffKeepsJsonAndCustomTerrain) {
+  WorldGenerationMemoryLedger ledger; auto world = StaticAccess::planet(numericConfig());
+  world->addCustomTerrainRegion(PolyF(RectF::withSize({0, 10}, {10, 10})));
+  auto first = world->captureBlockInfoStaticInputs(ledger, true); auto second = std::move(first); world.reset();
+  EXPECT_EQ(bits(12), bits(second.configFloat("surfaceCaveAttenuationDist", 0)));
+  EXPECT_EQ(bits(8), bits(second.customTerrainWeighting(7, 13).first));
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, ThreeReadersEvaluateKernelAfterTemplateDestruction) {
+  WorldGenerationMemoryLedger ledger; auto config = numericConfig(); auto inputs = captureConfig(config, ledger);
+  Fixture old; old.config = config; old.custom = inputs.customTerrainWeighting(7, 13); auto expected = fields(legacyBlockInfo(old, 7, 13));
+  std::array<std::future<WorldTemplate::BlockInfo>, 3> results;
+  for (auto& result : results) result = std::async(std::launch::async, [&inputs] { CapturedFixture f(inputs); return calculateWorldGenerationBlockInfo(f, 7, 13); });
+  for (auto& result : results) EXPECT_EQ(expected, fields(result.get()));
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, EveryQueryFailureStillHasTheSamePrefix) {
+  WorldGenerationMemoryLedger ledger; auto config = numericConfig(); auto inputs = captureConfig(config, ledger);
+  CapturedFixture probe(inputs); probe.blendPresent = probe.blockPresent = true; calculateWorldGenerationBlockInfo(probe, 7, 13);
+  for (size_t i = 1; i <= probe.trace.size(); ++i) {
+    SCOPED_TRACE(i);
+    EXPECT_TRUE(compareStatic(config, inputs, [&](Fixture& f) { f.blendPresent = f.blockPresent = true; f.failAt = i; }).failed);
+  }
+}
+TEST(WorldGenerationBlockInfoStaticInputsTest, ComposedKernelMatrixKeepsFieldsExceptionsAndQueries) {
+  // 1,024 combinations in ONE test: captured JSON/custom terrain are real;
+  // weighting/noise/selectors remain scripted boundaries, not real sectors.
+  for (unsigned mask = 0; mask < 1024; ++mask) {
+    SCOPED_TRACE(mask); WorldGenerationMemoryLedger ledger;
+    Json config = JsonObject{{"biomeTransitionThreshold", 0.5},
+      {"surfaceCaveAttenuationDist", mask & 128 ? Json("invalid") : Json(mask & 256 ? 12 : 0)},
+      {"surfaceCaveAttenuationFactor", mask & 512 ? Json("invalid") : Json(2)}};
+    auto world = StaticAccess::planet(config);
+    if (mask & 64) world->addCustomSpaceRegion(PolyF(RectF::withSize({0, 10}, {10, 10})));
+    auto inputs = world->captureBlockInfoStaticInputs(ledger, false); world.reset();
+    compareStatic(config, inputs, [&](Fixture& f) {
+      f.layoutPresent = !(mask & 1); if (mask & 2) f.weights[0].clear();
+      f.blockPresent = mask & 4; f.values[1] = mask & 8 ? -1 : 10;
+      f.values[2] = mask & 16 ? 1 : -1; f.values[3] = mask & 32 ? 1 : -1;
     });
   }
 }

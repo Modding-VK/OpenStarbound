@@ -187,6 +187,7 @@ SET (star_game_HEADERS
     StarWorldGenerationBaseTiles.hpp
     StarWorldGenerationBlockInfo.hpp
     StarWorldGenerationCustomTerrain.hpp
+    StarWorldGenerationBlockInfoStaticInputs.hpp
     StarWorldGenerationBufferAllocator.hpp
     StarWorldGenerationImmutableArray.hpp
     StarWorldGenerationNamePool.hpp
@@ -486,6 +487,7 @@ SET (star_game_SOURCES
     StarWorldGenerationMemory.cpp
     StarWorldGenerationBaseTiles.cpp
     StarWorldGenerationCustomTerrain.cpp
+    StarWorldGenerationBlockInfoStaticInputs.cpp
     StarTileDamageState.cpp
     StarWorldGenerationMemoryEnvelope.cpp
     StarWorldGenerationMemoryEstimate.cpp

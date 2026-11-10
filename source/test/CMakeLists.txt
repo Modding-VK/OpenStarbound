@@ -110,6 +110,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   ../game/StarLiquidTypes.cpp
   ../game/StarWorldGenerationBaseTiles.cpp
   ../game/StarWorldGenerationCustomTerrain.cpp
+  ../game/StarWorldGenerationBlockInfoStaticInputs.cpp
   ../game/StarWorldGenerationLookupReaders.cpp
   ../game/StarWorldGenerationLookupDefaults.cpp
   ../game/StarTileDamageState.cpp
@@ -177,6 +178,7 @@ FOREACH(world_region_test_suite
     WorldGenerationBaseTilesTest
     WorldGenerationBlockInfoTest
     WorldGenerationCustomTerrainTest
+    WorldGenerationBlockInfoStaticInputsTest
     WorldGenerationBaseTileInputsTest
     WorldGenerationBaseTileObservationTest
     WorldGenerationBaseTileLookupContextTest
