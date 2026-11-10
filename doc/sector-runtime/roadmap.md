@@ -373,6 +373,10 @@ independente, mods/saves/multiplayer e benchmark de streaming permanecem gates.
 A região real também foi comparada ao corpo pré-snapshot com bancos reais,
 incluindo falha parcial e próximo RNG; não é referência do planeta inteiro.
 
+A [referência terrestre pré-snapshot](../sector-runtime-h0-terrestrial-reference-2026-11-10.md)
+compara layout completo, tiles e próximo RNG em três seeds e falha, com assets
+mínimos. Contexto profundo, admissão, mods/saves/multiplayer e streaming permanecem abertos.
+
 Próximo trabalho executável: validar builder/assets e preservar a sequência
 observável e fechar ownership e admissão do contexto de produção.
 Não confundir a LRU validada com CacheSelector. Auditar também defaults

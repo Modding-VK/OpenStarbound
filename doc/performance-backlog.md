@@ -1,5 +1,9 @@
 # Backlog de desempenho da exploração
 
+CPU-01: a [referência terrestre](sector-runtime-h0-terrestrial-reference-2026-11-10.md)
+compara o builder pré-snapshot com o atual. Compor contexto profundo e admissão;
+validar com assets/mods representativos antes de execução em sombra.
+
 CPU-01: o [builder terrestre](sector-runtime-h0-terrestrial-builder-2026-11-10.md)
 foi exercitado com assets mínimos; comparação independente, mods/saves/multiplayer
 e benchmark de streaming ainda são necessários antes de adotar o contexto.

@@ -123,6 +123,221 @@ struct WorldGenerationRealBlockInfoTestAccess {
     return out;
   }
   static void emptyBlend(WorldLayout& layout) { layout.m_blendNoise = PerlinF(); }
+  // Independent inherited reference from f22cf9c9; only receiver access is adapted.
+  static WorldLayout legacyTerrestrialLayout(TerrestrialWorldParameters const& terrestrialParameters, uint64_t seed) {
+    auto& root = Root::singleton();
+    auto assets = root.assets();
+    auto terrainDatabase = root.terrainDatabase();
+    auto biomeDatabase = root.biomeDatabase();
+
+    RandomSource randSource(seed);
+
+    WorldLayout layout;
+    layout.m_worldSize = terrestrialParameters.worldSize;
+
+    auto addLayer = [&](TerrestrialWorldParameters::TerrestrialLayer const& terrestrialLayer) {
+      WorldLayout::RegionParams primaryRegionParams = {
+        terrestrialLayer.layerBaseHeight,
+        terrestrialParameters.threatLevel,
+        terrestrialLayer.primaryRegion.biome,
+        terrestrialLayer.primaryRegion.blockSelector,
+        terrestrialLayer.primaryRegion.fgCaveSelector,
+        terrestrialLayer.primaryRegion.bgCaveSelector,
+        terrestrialLayer.primaryRegion.fgOreSelector,
+        terrestrialLayer.primaryRegion.bgOreSelector,
+        terrestrialLayer.primaryRegion.subBlockSelector,
+        {
+          terrestrialLayer.primaryRegion.caveLiquid,
+          terrestrialLayer.primaryRegion.caveLiquidSeedDensity,
+          terrestrialLayer.primaryRegion.oceanLiquid,
+          terrestrialLayer.primaryRegion.oceanLiquidLevel,
+          terrestrialLayer.primaryRegion.encloseLiquids,
+          terrestrialLayer.primaryRegion.fillMicrodungeons
+        }
+      };
+
+      WorldLayout::RegionParams primarySubRegionParams = {
+        terrestrialLayer.layerBaseHeight,
+        terrestrialParameters.threatLevel,
+        terrestrialLayer.primarySubRegion.biome,
+        terrestrialLayer.primarySubRegion.blockSelector,
+        terrestrialLayer.primarySubRegion.fgCaveSelector,
+        terrestrialLayer.primarySubRegion.bgCaveSelector,
+        terrestrialLayer.primarySubRegion.fgOreSelector,
+        terrestrialLayer.primarySubRegion.bgOreSelector,
+        terrestrialLayer.primarySubRegion.subBlockSelector,
+        {
+          terrestrialLayer.primarySubRegion.caveLiquid,
+          terrestrialLayer.primarySubRegion.caveLiquidSeedDensity,
+          terrestrialLayer.primarySubRegion.oceanLiquid,
+          terrestrialLayer.primarySubRegion.oceanLiquidLevel,
+          terrestrialLayer.primarySubRegion.encloseLiquids,
+          terrestrialLayer.primarySubRegion.fillMicrodungeons
+        }
+      };
+
+      List<WorldLayout::RegionParams> secondaryRegions;
+      for (auto const& secondaryRegion : terrestrialLayer.secondaryRegions) {
+        WorldLayout::RegionParams secondaryRegionParams = {
+          terrestrialLayer.layerBaseHeight,
+          terrestrialParameters.threatLevel,
+          secondaryRegion.biome,
+          secondaryRegion.blockSelector,
+          secondaryRegion.fgCaveSelector,
+          secondaryRegion.bgCaveSelector,
+          secondaryRegion.fgOreSelector,
+          secondaryRegion.bgOreSelector,
+          secondaryRegion.subBlockSelector,
+          {
+            secondaryRegion.caveLiquid,
+            secondaryRegion.caveLiquidSeedDensity,
+            secondaryRegion.oceanLiquid,
+            secondaryRegion.oceanLiquidLevel,
+            secondaryRegion.encloseLiquids,
+            secondaryRegion.fillMicrodungeons
+          }
+        };
+
+        secondaryRegions.append(secondaryRegionParams);
+      }
+
+      List<WorldLayout::RegionParams> secondarySubRegions;
+      for (auto const& secondarySubRegion : terrestrialLayer.secondarySubRegions) {
+        WorldLayout::RegionParams secondarySubRegionParams = {
+          terrestrialLayer.layerBaseHeight,
+          terrestrialParameters.threatLevel,
+          secondarySubRegion.biome,
+          secondarySubRegion.blockSelector,
+          secondarySubRegion.fgCaveSelector,
+          secondarySubRegion.bgCaveSelector,
+          secondarySubRegion.fgOreSelector,
+          secondarySubRegion.bgOreSelector,
+          secondarySubRegion.subBlockSelector,
+          {
+            secondarySubRegion.caveLiquid,
+            secondarySubRegion.caveLiquidSeedDensity,
+            secondarySubRegion.oceanLiquid,
+            secondarySubRegion.oceanLiquidLevel,
+            secondarySubRegion.encloseLiquids,
+            secondarySubRegion.fillMicrodungeons
+          }
+        };
+
+        secondarySubRegions.append(secondarySubRegionParams);
+      }
+
+      legacyAddLayer(layout, seed,
+          terrestrialLayer.layerMinHeight,
+          terrestrialLayer.layerBaseHeight,
+          terrestrialParameters.primaryBiome,
+          primaryRegionParams,
+          primarySubRegionParams,
+          secondaryRegions,
+          secondarySubRegions,
+          terrestrialLayer.secondaryRegionSizeRange,
+          terrestrialLayer.subRegionSizeRange);
+    };
+
+    addLayer(terrestrialParameters.coreLayer);
+    for (auto const& undergroundLayer : reverseIterate(terrestrialParameters.undergroundLayers))
+      addLayer(undergroundLayer);
+
+    addLayer(terrestrialParameters.subsurfaceLayer);
+    addLayer(terrestrialParameters.surfaceLayer);
+    addLayer(terrestrialParameters.atmosphereLayer);
+    addLayer(terrestrialParameters.spaceLayer);
+
+    layout.m_regionBlending = terrestrialParameters.blendSize;
+    if (terrestrialParameters.blockNoiseConfig)
+      layout.m_blockNoise = WorldLayout::BlockNoise::build(terrestrialParameters.blockNoiseConfig, seed);
+    if (terrestrialParameters.blendNoiseConfig)
+      layout.m_blendNoise = PerlinF(terrestrialParameters.blendNoiseConfig, staticRandomU64(seed, "BlendNoise"));
+
+    layout.finalize(terrestrialParameters.skyColoring.mainColor);
+
+    return layout;
+  }
+
+  static void legacyAddLayer(WorldLayout& layout, uint64_t seed, int yStart, int yBase, String const& primaryBiome,
+      WorldLayout::RegionParams primaryRegionParams, WorldLayout::RegionParams primarySubRegionParams,
+      List<WorldLayout::RegionParams> secondaryRegions, List<WorldLayout::RegionParams> secondarySubRegions,
+      Vec2F secondaryRegionSize, Vec2F subRegionSize) {
+    WorldLayout::WorldLayer layer;
+    layer.yStart = yStart;
+
+    List<float> relativeRegionSizes;
+    float totalRelativeSize = 0.0;
+    int mix = 0;
+
+    BiomeIndex primaryEnvironmentBiomeIndex = legacyBuildRegion(layout, seed, primaryRegionParams).environmentBiomeIndex;
+
+    Set<BiomeIndex> spawnBiomeIndexes;
+
+    auto addRegion = [&](WorldLayout::RegionParams const& regionParams, WorldLayout::RegionParams const& subRegionParams, Vec2F const& regionSizeRange) {
+      WorldRegionPtr region = make_shared<WorldRegion>(legacyBuildRegion(layout, seed, regionParams));
+      WorldRegionPtr subRegion = make_shared<WorldRegion>(legacyBuildRegion(layout, seed, subRegionParams));
+      if (!Root::singleton().assets()->json("/terrestrial_worlds.config:useSecondaryEnvironmentBiomeIndex").toBool())
+        region->environmentBiomeIndex = primaryEnvironmentBiomeIndex;
+      subRegion->environmentBiomeIndex = region->environmentBiomeIndex;
+
+      if (regionParams.biomeName == primaryBiome)
+        spawnBiomeIndexes.add(region->blockBiomeIndex);
+      if (subRegionParams.biomeName == primaryBiome)
+        spawnBiomeIndexes.add(subRegion->blockBiomeIndex);
+
+      layer.cells.append(region);
+      layer.cells.append(subRegion);
+      layer.cells.append(region);
+
+      float regionRelativeSize = staticRandomFloatRange(regionSizeRange[0], regionSizeRange[1], seed, ++mix, yStart);
+      float subRegionRelativeSize = staticRandomFloatRange(subRegionSize[0], subRegionSize[1], seed, ++mix, yStart);
+      totalRelativeSize += regionRelativeSize;
+
+      if (subRegionRelativeSize >= 1.0f)
+        throw StarException("Relative size of subRegion must be less than 1.0!");
+
+      subRegionRelativeSize *= regionRelativeSize;
+      regionRelativeSize -= subRegionRelativeSize;
+
+      relativeRegionSizes.append(regionRelativeSize / 2);
+      relativeRegionSizes.append(subRegionRelativeSize);
+      relativeRegionSizes.append(regionRelativeSize / 2);
+    };
+
+    // construct list of region cells and relative sizes
+    addRegion(primaryRegionParams, primarySubRegionParams, Vec2F(1, 1));
+    for (size_t i = 0; i < secondaryRegions.size(); ++i)
+      addRegion(secondaryRegions[i], secondarySubRegions[i], secondaryRegionSize);
+
+    // construct boundaries based on normalized sizes
+    int nextBoundary = staticRandomI32Range(0, layout.m_worldSize[0] - 1, seed, yStart, "LayerOffset");
+    layer.boundaries.append(nextBoundary);
+    for (size_t i = 0; i + 1 < relativeRegionSizes.size(); ++i) {
+      int regionSize = (int)layout.m_worldSize[0] * (relativeRegionSizes[i] / totalRelativeSize);
+      nextBoundary += regionSize;
+      layer.boundaries.append(nextBoundary);
+    }
+
+    // wrap cells + boundaries
+    while (layer.boundaries.last() > (int)layout.m_worldSize[0]) {
+      layer.cells.prepend(layer.cells.takeLast());
+      layer.boundaries.prepend(layer.boundaries.takeLast() - layout.m_worldSize[0]);
+    }
+    layer.cells.prepend(layer.cells.last());
+
+    int yRange = Root::singleton().assets()->json("/world_template.config:playerStartSearchYRange").toInt();
+    int i = 0;
+    int lastBoundary = 0;
+    for (auto region : layer.cells) {
+      int nextBoundary = i < (int)layer.boundaries.size() ? layer.boundaries[i] : layout.m_worldSize[0];
+      if (spawnBiomeIndexes.contains(region->blockBiomeIndex))
+        layout.m_playerStartSearchRegions.append(RectI(lastBoundary, std::max(0, yBase - yRange), nextBoundary, std::min((int)layout.m_worldSize[1], yBase + yRange)));
+      lastBoundary = nextBoundary;
+      i++;
+    }
+
+    layout.m_layers.append(layer);
+  }
   // Independent reference copied from inherited f22cf9c9 before snapshot integration.
   static WorldRegion legacyBuildRegion(WorldLayout& layout, uint64_t seed, WorldLayout::RegionParams const& regionParams) {
     auto terrainDatabase = Root::singleton().terrainDatabase();
@@ -906,6 +1121,41 @@ TEST_F(WorldGenerationRealBlockInfoTest, TerrestrialSecondaryEnvironmentFollowsA
     }
   }
   EXPECT_GT(secondaryMatches, 0u);
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, TerrestrialBuilderMatchesIndependentPreSnapshotReference) {
+  writeTerrestrialAssets(); auto r = root();
+  r->terrainDatabase(); r->biomeDatabase(); r->materialDatabase();
+  TerrestrialWorldParameters params{}; setupTerrestrial(params);
+  Access::withRootMaintenanceLocked(*r, [&] {
+    for (uint64_t seed : {uint64_t(0), uint64_t(42), UINT64_MAX}) {
+      Random::init(918);
+      auto legacy = Access::legacyTerrestrialLayout(params, seed);
+      auto legacyNext = Random::randu64();
+      Random::init(918);
+      auto actual = WorldLayout::buildTerrestrialLayout(params, seed);
+      EXPECT_EQ(legacyNext, Random::randu64());
+      EXPECT_EQ(legacy.toJson(), actual.toJson());
+      auto legacyLayout = std::make_shared<WorldLayout>(std::move(legacy));
+      auto actualLayout = std::make_shared<WorldLayout>(std::move(actual));
+      auto world = planet(actualLayout);
+      grid(*world, legacyLayout);
+      sector(*world, legacyLayout, EmptyLiquidId, false);
+    }
+  });
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, TerrestrialBuilderFailureMatchesIndependentPreSnapshotReference) {
+  writeTerrestrialAssets(); auto r = root();
+  r->terrainDatabase(); r->biomeDatabase(); r->materialDatabase();
+  TerrestrialWorldParameters params{}; setupTerrestrial(params);
+  params.coreLayer.subRegionSizeRange = {1, 1};
+  Access::withRootMaintenanceLocked(*r, [&] {
+    Random::init(918); EXPECT_THROW(Access::legacyTerrestrialLayout(params, 42), StarException);
+    auto legacyNext = Random::randu64();
+    Random::init(918); EXPECT_THROW(WorldLayout::buildTerrestrialLayout(params, 42), StarException);
+    EXPECT_EQ(legacyNext, Random::randu64());
+  });
 }
 
 TEST_F(WorldGenerationRealBlockInfoTest, RealRegionBuilderPreservesOneGlobalDrawWithRootActive) {
