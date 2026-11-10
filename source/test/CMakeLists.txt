@@ -109,6 +109,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   ../game/StarWorldGenerationMemory.cpp
   ../game/StarLiquidTypes.cpp
   ../game/StarWorldGenerationBaseTiles.cpp
+  ../game/StarWorldGenerationCustomTerrain.cpp
   ../game/StarWorldGenerationLookupReaders.cpp
   ../game/StarWorldGenerationLookupDefaults.cpp
   ../game/StarTileDamageState.cpp
@@ -135,6 +136,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_base_tile_liquid_test.cpp
   world_generation_base_tiles_test.cpp
   world_generation_block_info_test.cpp
+  world_generation_custom_terrain_test.cpp
   world_generation_lookup_sources_test.cpp
   world_generation_lookup_readers_test.cpp
   byte_array_test.cpp
@@ -174,6 +176,7 @@ FOREACH(world_region_test_suite
     WorldGenerationBaseTileLiquidTest
     WorldGenerationBaseTilesTest
     WorldGenerationBlockInfoTest
+    WorldGenerationCustomTerrainTest
     WorldGenerationBaseTileInputsTest
     WorldGenerationBaseTileObservationTest
     WorldGenerationBaseTileLookupContextTest

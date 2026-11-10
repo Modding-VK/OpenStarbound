@@ -200,24 +200,6 @@ Maybe<Vec2I> WorldTemplate::findSensiblePlayerStart() const {
   return {};
 }
 
-void WorldTemplate::addCustomTerrainRegion(PolyF poly) {
-  m_customTerrainRegions.append({poly, poly.boundBox(), true});
-  m_blockCache.clear();
-  ++m_generationRevision;
-}
-
-void WorldTemplate::addCustomSpaceRegion(PolyF poly) {
-  m_customTerrainRegions.append({poly, poly.boundBox(), false});
-  m_blockCache.clear();
-  ++m_generationRevision;
-}
-
-void WorldTemplate::clearCustomTerrains() {
-  m_customTerrainRegions.clear();
-  m_blockCache.clear();
-  ++m_generationRevision;
-}
-
 List<RectI> WorldTemplate::previewAddBiomeRegion(Vec2I const& position, int width) {
   if (auto terrestrialParameters = as<TerrestrialWorldParameters>(m_worldParameters)) {
     auto regionRects = m_layout->previewAddBiomeRegion(position, width);
@@ -666,33 +648,8 @@ void WorldTemplate::setupWeatherDomains() {
 pair<float, float> WorldTemplate::customTerrainWeighting(int x, int y) const {
   auto assets = Root::singleton().assets();
 
-  float minimumDistance = highest<float>();
-  float finalSolidWeight = 0.0f;
-  float totalWeight = 0.0f;
-
-  for (auto const& region : m_customTerrainRegions) {
-    if (!m_geometry.rectContains(region.regionBounds.padded(m_customTerrainBlendSize), Vec2F(x, y)))
-      continue;
-
-    float distance = m_geometry.polyDistance(region.region, Vec2F(x, y));
-    if (distance >= m_customTerrainBlendSize)
-      continue;
-
-    float weight = 1.0f - distance / m_customTerrainBlendSize;
-    totalWeight += weight;
-    if (!region.solid)
-      weight *= -1.0f;
-
-    finalSolidWeight += weight;
-    minimumDistance = min(minimumDistance, distance);
-  }
-
-  if (minimumDistance > m_customTerrainBlendSize)
-    return {0.0f, 0.0f};
-
-  finalSolidWeight /= totalWeight;
-
-  return {finalSolidWeight * m_customTerrainBlendWeight, 1.0f - minimumDistance / m_customTerrainBlendSize};
+  return calculateWorldGenerationCustomTerrainWeighting(m_geometry, m_customTerrainRegions,
+      m_customTerrainBlendSize, m_customTerrainBlendWeight, x, y);
 }
 
 WorldTemplate::BlockInfo WorldTemplate::getBlockInfo(uint32_t x, uint32_t y) const {

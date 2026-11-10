@@ -4,6 +4,7 @@
 #include "StarLruCache.hpp"
 #include "StarWorldLayout.hpp"
 #include "StarWorldGeometry.hpp"
+#include "StarWorldGenerationCustomTerrain.hpp"
 #include "StarBiomePlacementTypes.hpp"
 #include "StarCelestialDatabase.hpp"
 #include "StarSkyParameters.hpp"
@@ -136,6 +137,10 @@ public:
   void addCustomSpaceRegion(PolyF poly);
   void clearCustomTerrains();
 
+  // Owner-thread only, allocates owned polygon copies. Custom-terrain values
+  // only, not a fully versioned/admitted context. Not used by normal jobs yet.
+  WorldGenerationCustomTerrainContext captureCustomTerrain() const;
+
   List<RectI> previewAddBiomeRegion(Vec2I const& position, int width);
   List<RectI> previewExpandBiomeRegion(Vec2I const& position, int newWidth);
 
@@ -203,6 +208,7 @@ public:
 
 private:
   friend struct WorldGenerationLookupTestAccess;
+  friend struct WorldGenerationCustomTerrainTestAccess;
   struct LookupFixtureTag {};
   explicit WorldTemplate(LookupFixtureTag);
   struct CustomTerrainRegion {
