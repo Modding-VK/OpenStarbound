@@ -315,8 +315,6 @@ WorldLayout WorldLayout::buildFloatingDungeonLayout(FloatingDungeonWorldParamete
   return layout;
 }
 
-WorldLayout::WorldLayout() : m_regionBlending(0.0f) {}
-
 WorldLayout::WorldLayout(Json const& store) : WorldLayout() {
   auto terrainDatabase = Root::singleton().terrainDatabase();
 

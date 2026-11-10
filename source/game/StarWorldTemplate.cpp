@@ -115,10 +115,6 @@ WorldLayoutPtr WorldTemplate::worldLayout() const {
   return m_layout;
 }
 
-uint64_t WorldTemplate::generationRevision() const {
-  return m_generationRevision;
-}
-
 size_t WorldTemplate::generationCacheStorageBytes() const {
   return sizeof(WorldTemplate) + m_blockCache.allocatorStorageBytes();
 }
@@ -126,12 +122,6 @@ size_t WorldTemplate::generationCacheStorageBytes() const {
 void WorldTemplate::setWorldParameters(VisitableWorldParametersPtr newParameters) {
   m_worldParameters = take(newParameters);
   setupWeatherDomains();
-  m_blockCache.clear();
-  ++m_generationRevision;
-}
-
-void WorldTemplate::setWorldLayout(WorldLayoutPtr newLayout) {
-  m_layout = take(newLayout);
   m_blockCache.clear();
   ++m_generationRevision;
 }
@@ -411,27 +401,6 @@ BiomeConstPtr WorldTemplate::blockBiome(int x, int y) const {
 
 BiomeConstPtr WorldTemplate::environmentBiome(int x, int y) const {
   return biome(environmentBiomeIndex(m_geometry.xwrap(x), y));
-}
-
-MaterialHue WorldTemplate::biomeMaterialHueShift(BiomeIndex biomeIndex, MaterialId material) const {
-  if (m_layout && biomeIndex != NullBiomeIndex) {
-    auto const& biome = m_layout->getBiome(biomeIndex);
-    if (material == biome->mainBlock)
-      return biome->materialHueShift;
-  }
-
-  return MaterialHue();
-}
-
-MaterialHue WorldTemplate::biomeModHueShift(BiomeIndex biomeIndex, ModId mod) const {
-  if (m_layout && biomeIndex != NullBiomeIndex) {
-    auto const& biome = m_layout->getBiome(biomeIndex);
-    if (mod == biome->surfacePlaceables.grassMod || mod == biome->surfacePlaceables.ceilingGrassMod
-        || mod == biome->undergroundPlaceables.grassMod
-        || mod == biome->undergroundPlaceables.ceilingGrassMod)
-      return biome->materialHueShift;
-  }
-  return MaterialHue();
 }
 
 WeatherPool WorldTemplate::weathers() const {

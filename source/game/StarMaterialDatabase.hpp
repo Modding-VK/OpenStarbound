@@ -6,6 +6,7 @@
 #include "StarTileDamage.hpp"
 #include "StarItemDescriptor.hpp"
 #include "StarGenerationVersion.hpp"
+#include "StarFormat.hpp"
 
 namespace Star {
 
@@ -103,6 +104,9 @@ public:
   Maybe<LiquidModInteraction> liquidModInteraction(LiquidId liquid, ModId modId) const;
 
 private:
+  friend struct WorldGenerationLookupTestAccess;
+  struct LookupFixtureTag {};
+  explicit MaterialDatabase(LookupFixtureTag);
   struct MetaMaterialInfo {
     MetaMaterialInfo(String name, MaterialId id, CollisionKind collisionKind, bool blocksLiquidFlow);
 
@@ -193,6 +197,16 @@ private:
   HashMap<pair<LiquidId, MaterialId>, LiquidMaterialInteraction> m_liquidMaterialInteractions;
   HashMap<pair<LiquidId, ModId>, LiquidModInteraction> m_liquidModInteractions;
 };
+
+// Shared unchanged reader body. Keep it visible to the existing hot material
+// accessors as well as the extracted supportsMod; do not force an extra call
+// boundary on those accessors merely to link the lookup contract tests.
+inline shared_ptr<MaterialDatabase::MaterialInfo const> const& MaterialDatabase::getMaterialInfo(MaterialId materialId) const {
+  if (materialId >= m_materials.size() || !m_materials[materialId])
+    throw MaterialException(strf("No such material id: {}\n", materialId));
+  else
+    return m_materials[materialId];
+}
 
 inline MaterialRenderProfileConstPtr MaterialDatabase::materialRenderProfile(MaterialId materialId) const {
   if (materialId < m_materials.size()) {

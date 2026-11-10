@@ -1,4 +1,5 @@
 #include "StarWorldGeneration.hpp"
+#include "StarWorldGenerationLookupResolver.hpp"
 #include "StarWorldGenerationBaseTileLiquid.hpp"
 #include "StarWorldGenerationBaseTileInput.hpp"
 #include "StarWorldGenerationMemoryEnvelope.hpp"
@@ -91,13 +92,7 @@ CollisionKind biomeForegroundCollision(MaterialDatabaseConstPtr const& materialD
 void prepareBaseTileArray(WorldTemplatePtr const& planet, MaterialDatabaseConstPtr const& materialDatabase,
     RectI const& sectorRegion, ServerTileSectorArray::Array& tiles) {
   STAR_TRACE_ZONE("Base tiles worker prepare");
-  struct Resolver {
-    WorldTemplate const& planet;
-    MaterialDatabase const& materials;
-    MaterialHue materialHue(BiomeIndex biome, MaterialId material) const { return planet.biomeMaterialHueShift(biome, material); }
-    bool supportsMod(MaterialId material, ModId mod) const { return materials.supportsMod(material, mod); }
-    MaterialHue modHue(BiomeIndex biome, ModId mod) const { return planet.biomeModHueShift(biome, mod); }
-  } resolver{*planet, *materialDatabase};
+  WorldGenerationLookupResolver resolver{*planet, *materialDatabase};
   for (int x = sectorRegion.xMin(); x < sectorRegion.xMax(); ++x) {
     for (int y = sectorRegion.yMin(); y < sectorRegion.yMax(); ++y) {
       ServerTile& tile = tiles(x - sectorRegion.xMin(), y - sectorRegion.yMin());

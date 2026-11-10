@@ -516,21 +516,8 @@ bool MaterialDatabase::isCascadingFallingMaterial(MaterialId materialId) const {
   return getMaterialInfo(materialId)->cascading;
 }
 
-bool MaterialDatabase::supportsMod(MaterialId materialId, ModId modId) const {
-  if (modId == NoModId)
-    return true;
-  if (!isRealMaterial(materialId))
-    return false;
-  if (!isRealMod(modId))
-    return false;
-
-  return getMaterialInfo(materialId)->supportsMods;
-}
-
 MaterialDatabase::MetaMaterialInfo::MetaMaterialInfo(String name, MaterialId id, CollisionKind collisionKind, bool blocksLiquidFlow)
   : name(name), id(id), collisionKind(collisionKind), blocksLiquidFlow(blocksLiquidFlow) {}
-
-MaterialDatabase::MaterialInfo::MaterialInfo() : id(NullMaterialId), tillableMod(NoModId), falling(), cascading() {}
 
 MaterialDatabase::ModInfo::ModInfo() : id(NoModId), tilled(), breaksWithTile() {}
 
@@ -577,13 +564,6 @@ shared_ptr<MaterialDatabase::MetaMaterialInfo const> const& MaterialDatabase::ge
     throw MaterialException(strf("No such metamaterial id: {}\n", materialId));
   else
     return m_metaMaterials[metaMaterialIndex(materialId)];
-}
-
-shared_ptr<MaterialDatabase::MaterialInfo const> const& MaterialDatabase::getMaterialInfo(MaterialId materialId) const {
-  if (materialId >= m_materials.size() || !m_materials[materialId])
-    throw MaterialException(strf("No such material id: {}\n", materialId));
-  else
-    return m_materials[materialId];
 }
 
 shared_ptr<MaterialDatabase::ModInfo const> const& MaterialDatabase::getModInfo(ModId modId) const {

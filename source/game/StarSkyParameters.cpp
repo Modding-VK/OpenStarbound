@@ -7,8 +7,6 @@
 
 namespace Star {
 
-SkyParameters::SkyParameters() : seed(), skyType(SkyType::Barren), skyColoring(makeRight(Color::Black)), settings(JsonObject()) {}
-
 SkyParameters::SkyParameters(CelestialCoordinate const& coordinate, CelestialDatabasePtr const& celestialDatabase)
   : SkyParameters() {
   if (!coordinate || coordinate.isSystem())

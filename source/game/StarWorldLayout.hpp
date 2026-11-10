@@ -109,6 +109,7 @@ public:
   pair<size_t, size_t> findLayerAndCell(int x, int y) const;
 
 private:
+  friend struct WorldGenerationLookupTestAccess;
   struct WorldLayer {
     WorldLayer();
 

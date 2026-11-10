@@ -16,6 +16,7 @@ SET (star_game_HEADERS
     StarBehaviorDatabase.hpp
     StarBehaviorState.hpp
     StarBiome.hpp
+    StarBiomeTypes.hpp
     StarBiomeDatabase.hpp
     StarBiomePlacement.hpp
     StarCelestialCoordinate.hpp
@@ -182,6 +183,7 @@ SET (star_game_HEADERS
     StarWorldGenerationBaseTileObservation.hpp
     StarWorldGenerationBaseTileLookupContext.hpp
     StarWorldGenerationLookupSources.hpp
+    StarWorldGenerationLookupResolver.hpp
     StarWorldGenerationBaseTiles.hpp
     StarWorldGenerationBufferAllocator.hpp
     StarWorldGenerationImmutableArray.hpp
@@ -207,6 +209,7 @@ SET (star_game_HEADERS
     StarWorldStorage.hpp
     StarWorldStructure.hpp
     StarWorldTemplate.hpp
+    StarWorldTemplateTypes.hpp
     StarWorldTiles.hpp
 
     interfaces/StarActorEntity.hpp
@@ -493,6 +496,8 @@ SET (star_game_SOURCES
     StarWorldStorage.cpp
     StarWorldStructure.cpp
     StarWorldTemplate.cpp
+    StarWorldGenerationLookupReaders.cpp
+    StarWorldGenerationLookupDefaults.cpp
     StarWorldTiles.cpp
 
     interfaces/StarAnchorableEntity.cpp

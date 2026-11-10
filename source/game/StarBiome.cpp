@@ -5,13 +5,6 @@
 
 namespace Star {
 
-BiomePlaceables::BiomePlaceables() {
-  grassMod = NoModId;
-  grassModDensity = 0.0f;
-  ceilingGrassMod = NoModId;
-  ceilingGrassModDensity = 0.0f;
-}
-
 BiomePlaceables::BiomePlaceables(Json const& variant) {
   grassMod = variant.getInt("grassMod");
   grassModDensity = variant.getFloat("grassModDensity");
@@ -38,12 +31,6 @@ Maybe<TreeVariant> BiomePlaceables::firstTreeType() const {
     }
   }
   return {};
-}
-
-Biome::Biome() {
-  mainBlock = EmptyMaterialId;
-  hueShift = 0.0f;
-  materialHueShift = MaterialHue();
 }
 
 Biome::Biome(Json const& store) : Biome() {
