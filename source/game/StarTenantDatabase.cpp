@@ -30,11 +30,6 @@ TenantDatabase::TenantDatabase() {
   }
 }
 
-void TenantDatabase::cleanup() {
-  MutexLocker locker(m_cacheMutex);
-  m_tenantCache.cleanup();
-}
-
 TenantPtr TenantDatabase::getTenant(String const& name) const {
   MutexLocker locker(m_cacheMutex);
   return m_tenantCache.get(name,

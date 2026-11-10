@@ -193,7 +193,9 @@ namespace Random {
   static Mutex g_randMutex;
 
   static uint64_t produceRandomSeed() {
-    int64_t seed = Time::monotonicTicks();
+    // Seed mixing intentionally wraps modulo 2^64. Signed multiplication here
+    // overflowed during normal Root maintenance, before any world generation.
+    uint64_t seed = static_cast<uint64_t>(Time::monotonicTicks());
     seed *= 1099511628211;
     seed ^= (((int64_t)rand()) << 32) | ((int64_t)rand());
     return seed;

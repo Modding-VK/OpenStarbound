@@ -142,15 +142,6 @@ ItemDatabase::ItemDatabase()
   addBlueprints();
 }
 
-void ItemDatabase::cleanup() {
-  {
-    MutexLocker locker(m_cacheMutex);
-    m_itemCache.cleanup([](ItemCacheEntry const&, ItemPtr const& item) {
-      return !item.unique();
-    });
-  }
-}
-
 ItemPtr ItemDatabase::diskLoad(Json const& diskStore) const {
   if (diskStore) {
     return item(ItemDescriptor::loadStore(diskStore));

@@ -426,6 +426,7 @@ SET (star_game_SOURCES
     StarRadioMessageDatabase.cpp
     StarRebuilder.cpp
     StarRoot.cpp
+    StarDatabaseMaintenance.cpp
     StarRootLoader.cpp
     StarServerClientContext.cpp
     StarSky.cpp

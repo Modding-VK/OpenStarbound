@@ -42,6 +42,7 @@ SET (star_core_tests_SOURCES
       periodic_test.cpp
       poly_test.cpp
       random_test.cpp
+      random_seed_test.cpp
       rect_test.cpp
       serialization_test.cpp
       static_vector_test.cpp
@@ -136,6 +137,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_lookup_sources_test.cpp
   world_generation_lookup_readers_test.cpp
   byte_array_test.cpp
+  random_seed_test.cpp
   world_generation_estimate_test.cpp
   world_generation_worker_cache_test.cpp
   world_generation_buffer_test.cpp
@@ -178,6 +180,7 @@ FOREACH(world_region_test_suite
     WorldGenerationLookupReadersTest
     WorldGenerationAssetsLifecycleTest
     ByteArrayTest
+    AutomaticRandomSeedTest
     WorldGenerationEstimateTest
     WorldGenerationWorkerCacheTest
     WorldGenerationBufferTest
@@ -197,3 +200,54 @@ FOREACH(world_region_test_suite
   SET_TESTS_PROPERTIES(world_generation_contract_${world_region_test_suite}
     PROPERTIES LABELS "NoAssets" TIMEOUT 120)
 ENDFOREACH()
+
+# Full Root lifecycle, deliberately opt-in: uses real game methods plus minimal
+# first-party fixture files, not an installed Starbound asset package. Section
+# GC drops unrelated services; it does not substitute symbols or sanitizers.
+OPTION(STAR_BUILD_ROOT_LIFECYCLE_TESTS "Build isolated real-Root lifecycle tests" OFF)
+IF(STAR_BUILD_ROOT_LIFECYCLE_TESTS)
+  ADD_EXECUTABLE(world_generation_root_lifecycle_tests
+    $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base>
+    ../game/StarRoot.cpp
+    ../game/StarDatabaseMaintenance.cpp
+    ../game/StarItemDescriptor.cpp
+    ../game/StarMaterialDatabase.cpp
+    ../game/StarWorldGenerationLookupReaders.cpp
+    ../game/StarWorldGenerationLookupDefaults.cpp
+    ../game/StarBiomePlacementDefaults.cpp
+    ../game/StarParticleDatabase.cpp
+    ../game/StarParticle.cpp
+    ../game/StarAnimation.cpp
+    ../game/StarMaterialRenderProfile.cpp
+    ../game/StarTileDamage.cpp
+    ../game/StarTileDamageState.cpp
+    ../game/StarImageMetadataDatabase.cpp
+    ../game/StarCollisionBlock.cpp
+    ../game/StarGameTypes.cpp
+    gtest/gtest-all.cc
+    core_tests_main.cpp
+    StarWorldGenerationTestDirectory.hpp
+    world_generation_root_lifecycle_test.cpp)
+  IF(MSVC)
+    TARGET_COMPILE_OPTIONS(world_generation_root_lifecycle_tests PRIVATE /Gy /Gw)
+    TARGET_LINK_OPTIONS(world_generation_root_lifecycle_tests PRIVATE /OPT:REF)
+  ELSE()
+    TARGET_COMPILE_OPTIONS(world_generation_root_lifecycle_tests PRIVATE -ffunction-sections -fdata-sections)
+    IF(APPLE)
+      TARGET_LINK_OPTIONS(world_generation_root_lifecycle_tests PRIVATE -Wl,-dead_strip)
+    ELSE()
+      # The project's -rdynamic otherwise keeps every unrelated game method
+      # alive. Keep DWARF/sanitizers; disable only the test's blanket export.
+      TARGET_LINK_OPTIONS(world_generation_root_lifecycle_tests PRIVATE -Wl,--no-export-dynamic -Wl,--gc-sections)
+    ENDIF()
+  ENDIF()
+  IF(STAR_ENABLE_TRACY)
+    TARGET_LINK_LIBRARIES(world_generation_root_lifecycle_tests PRIVATE ${STAR_EXT_LIBS} Tracy::TracyClient)
+    TARGET_COMPILE_DEFINITIONS(world_generation_root_lifecycle_tests PRIVATE STAR_ENABLE_TRACY)
+  ELSE()
+    TARGET_LINK_LIBRARIES(world_generation_root_lifecycle_tests PRIVATE ${STAR_EXT_LIBS})
+  ENDIF()
+  ADD_TEST(NAME world_generation_root_lifecycle
+    COMMAND $<TARGET_FILE:world_generation_root_lifecycle_tests>)
+  SET_TESTS_PROPERTIES(world_generation_root_lifecycle PROPERTIES LABELS "NoAssets;RootLifecycle" TIMEOUT 120)
+ENDIF()

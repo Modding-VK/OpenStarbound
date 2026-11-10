@@ -124,14 +124,6 @@ RectU ImageMetadataDatabase::nonEmptyRegion(AssetPath const& path) const {
   return region;
 }
 
-void ImageMetadataDatabase::cleanup() const {
-  MutexLocker locker(m_mutex);
-
-  m_sizeCache.cleanup();
-  m_spacesCache.cleanup();
-  m_regionCache.cleanup();
-}
-
 AssetPath ImageMetadataDatabase::filterProcessing(AssetPath const& path) {
   AssetPath newPath = { path.basePath, path.subPath, {} };
 

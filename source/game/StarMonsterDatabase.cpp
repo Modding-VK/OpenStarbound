@@ -142,11 +142,6 @@ MonsterDatabase::MonsterDatabase() : m_rebuilder(make_shared<Rebuilder>("monster
   }
 }
 
-void MonsterDatabase::cleanup() {
-  MutexLocker locker(m_cacheMutex);
-  m_monsterCache.cleanup();
-}
-
 StringList MonsterDatabase::monsterTypes() const {
   return m_monsterTypes.keys();
 }
