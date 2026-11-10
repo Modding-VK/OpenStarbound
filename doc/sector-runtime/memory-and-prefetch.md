@@ -211,8 +211,13 @@ O [recorte de Root real](../sector-runtime-h0-root-lifecycle-2026-11-10.md)
 confirma na factory e no parser de materiais a retenção de bancos antigos após
 reload, sua liberação no último handle e retire no encerramento de Root.
 Alvo opt-in com arquivos mínimos; não censo de heaps globais/Root::fullyLoad.
-Próximo: contexto de BaseTiles/blockInfo e seus inputs capturados, com admissão
-do escopo privado e revalidação antes da sombra por setor. Não ampliar cotas.
+O [kernel de blockInfo](../sector-runtime-h0-block-info-kernel-2026-11-10.md)
+separa cálculo e consultas sem fita residente por tile, std::function ou nova
+classe/cota do ledger. O adapter é não proprietário e depende do template atual
+do worker; não representa memória profunda congelada. Seletores ainda possuem
+caches mutáveis exclusivos. Próximo: capturar inputs de custom terrain/config,
+validar adapter/layout real e contabilizar o escopo privado antes da sombra.
+Não ampliar cotas ou compartilhar seletores por serem const.
 
 ### Inventário de ownership e cobertura atual
 

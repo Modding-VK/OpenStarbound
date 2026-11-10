@@ -301,8 +301,16 @@ wrap unsigned, preservando as sequências explícitas verificadas. Cinco corpos
 de manutenção relocados sem mudança. Opção de teste padrão OFF, sem alterar
 Actions ou executar Root::fullyLoad, assets completos ou streaming. H0 em 25%.
 
-Próximo trabalho executável: fechar contexto de BaseTiles/blockInfo, inicialização
-e inputs efetivamente capturados; o lifecycle de Root com fontes mínimas já foi
+O [kernel de blockInfo](../sector-runtime-h0-block-info-kernel-2026-11-10.md)
+(`0871d13c`) separa cálculo e cache no caminho normal; compara campos e consultas
+contra o corpo herdado, com fontes controladas e falhas lazy. Não transforma o
+adapter em snapshot: custom terrain ainda alcança Root/Assets e os seletores
+possuem caches mutáveis. 697 casos padrão +13 Root opt-in, 4.325 execuções
+adicionais e 36+1 grupos, ASan/UBSan. Sem novo marco completo ou throughput medido.
+
+Próximo trabalho executável: capturar inputs de custom terrain/config e testar
+adapter/layout real, mantendo caches exclusivos; fechar o contexto de BaseTiles,
+inicialização e inputs efetivamente capturados; o lifecycle de Root mínimo já foi
 testado, não repetir o mesmo recorte. Revalidar preparação e commit antes de
 sombra por setor, com admissão/
 bytes e outputs equivalentes. Não antecipar consultas,

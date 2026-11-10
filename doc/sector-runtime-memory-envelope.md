@@ -5,7 +5,12 @@ Estado: H0 / RAM-01, `Experimental`, 09/11/2026.
 · [Roadmap](sector-runtime/roadmap.md) · [Relatório da entrega](sector-runtime-h0-capacity-kernel-2026-11-09.md)
 
 Continuidade de identidade/equivalência: [contrato BaseTiles](sector-runtime-base-tiles-contract.md)
-e [último relatório](sector-runtime-h0-root-lifecycle-2026-11-10.md).
+e [último relatório](sector-runtime-h0-block-info-kernel-2026-11-10.md).
+
+Continuidade de blockInfo: kernel separado do cache, adapter não proprietário
+e fontes controladas em teste; sem snapshot profundo, classe de memória nova,
+fita residente por tile ou ampliação de cotas. Caches de seletores continuam
+privados; a contabilidade do contexto real é pendente.
 
 Continuidade de 10/11: leitores reais testados com metadata controlada não ampliam
 a cobertura do ledger. Catálogo/binding seguem fora do produtor normal; headers

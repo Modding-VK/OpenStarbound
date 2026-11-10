@@ -260,6 +260,14 @@ sequências explícitas preservadas. Cinco corpos de manutenção byte-idêntico
 foram relocados para ligação isolada, sem stubs ou sanitizers desativados.
 Três microexperimentos permaneceram desligados; sem ganho de setores/s medido.
 
+O [recorte de blockInfo](../sector-runtime-h0-block-info-kernel-2026-11-10.md)
+acrescenta **28 casos padrão**, com comparação dos 16 campos/consultas e falhas
+contra o corpo herdado, além de matriz de 4.096 inputs em UM caso. **697 casos
+padrão +13 Root opt-in** e **36+1 grupos CTest** aprovados com ASan/UBSan.
+Inputs e fronteiras são controlados; não é WorldLayout/Perlin real, setores ou
+throughput. O adapter normal compila na unidade real de WorldTemplate e mantém
+Root/custom terrain e caches privados. Contexto completo e streaming pendentes.
+
 ## VAL-01 — Benchmark de streaming
 
 Construir um harness que execute trajetória/interesse e ticks reprodutíveis,

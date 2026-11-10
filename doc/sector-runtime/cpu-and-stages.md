@@ -81,8 +81,13 @@ Root/listeners ainda estavam pendentes naquela etapa. clearCache pode atualizar
 conteúdo sem mudar generationRevision; essa versão cobre reload explícito,
 não congela leituras brutas. O [alvo opt-in de Root](../sector-runtime-h0-root-lifecycle-2026-11-10.md)
 já testa construtor/factory/reload/loadMods/listeners reais com fontes mínimas.
-Próximo: fechar os inputs efetivamente lidos por BaseTiles/blockInfo, depois
-revalidar antes de sombra por setor com admissão/bytes.
+O [kernel de blockInfo](../sector-runtime-h0-block-info-kernel-2026-11-10.md)
+agora separa o cálculo do cache e é usado no caminho normal. A interface mantém
+consultas lazy; o adapter ainda usa o WorldTemplate do worker e custom terrain
+com Root/Assets. CacheSelector, IslandSurfaceSelector, WormCaveSelector e
+KarstCaveSelector possuem caches mutáveis: const não autoriza compartilhamento.
+Próximo: inputs capturados de custom terrain/config e adapter/layout real,
+ownership exclusivo de caches e revalidação antes de sombra com admissão/bytes.
 Não otimizar consultas isoladas como fim em si mesmo.
 CPU-01 completo, contexto profundo/RNG e ganho de WorldTemplate seguem pendentes.
 

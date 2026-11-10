@@ -3,7 +3,7 @@
 Atualização: 10/11/2026. Branch: `Experimental`. Runtime de partida:
 `7ca7ed2a`; recortes de H0: `d72b7239`, `2131ead3`, `5c3c4c8f`, `65bae55c`,
 `803d4cf7`, `739067b1`, `1bd348e6`, `34c76ea3`, `887149c0`, `cad311d1`, `25cecf95`,
-`c4d7ddb3`, `730e36ba`, `45db2402`, `49a12fbf`, `ada755bf`, `0915af25`, `4b5aed18`, `dd59f3b4`, `8b68ab6a`, `8e190742`, `f7785963`, `2ea41cf8`, `abfc3834`, `4e5cc6c1`, `5413e13a`, `061ce68c`, `571bb01e` e `7001ae6d`;
+`c4d7ddb3`, `730e36ba`, `45db2402`, `49a12fbf`, `ada755bf`, `0915af25`, `4b5aed18`, `dd59f3b4`, `8b68ab6a`, `8e190742`, `f7785963`, `2ea41cf8`, `abfc3834`, `4e5cc6c1`, `5413e13a`, `061ce68c`, `571bb01e`, `7001ae6d` e `0871d13c`;
 documentação de arquitetura de partida: `8d3b0ade`.
 
 Este é o **programa principal de desenvolvimento**, adotado pelo usuário em
@@ -168,7 +168,7 @@ Corrige UB no fill vazio de ByteArray e janela de parada de workers Assets;
 não reconstrói Root ou bancos completos. ClearCache pode renovar conteúdo sem
 mudar a versão de reload; capturar inputs é gate para o próximo contexto.
 666 testes, 3.640 execuções adicionais e 34 grupos CTest, ASan/UBSan.
-O [relatório vigente](../sector-runtime-h0-root-lifecycle-2026-11-10.md) executa
+O [recorte de Root](../sector-runtime-h0-root-lifecycle-2026-11-10.md) executa
 Root real, sua factory e banco de materiais carregado, reload/hotReload/loadMods,
 listeners/falhas e retenção: 669 casos padrão +13 opt-in de Root, 3.960 execuções
 adicionais e 35+1 grupos CTest, ASan/UBSan. Corrige overflow da seed automática,
@@ -179,6 +179,15 @@ RAM-01/H0 seguem em 25%, sem ganho de setores/s medido.
 Orçamento processual completo, benchmark real e equivalência com assets
 continuam pendentes.
 Isso não implementa o executor, a nova WorldThread ou compute GPU.
+
+O [relatório vigente de blockInfo](../sector-runtime-h0-block-info-kernel-2026-11-10.md)
+(`0871d13c`) separa o cálculo do cache e o liga ao caminho normal. Kernel e referência
+herdada são comparados por campos/consultas, com fontes controladas; layout,
+Perlin e setores reais ainda não executados nesse recorte. O adapter mantém
+Root/custom terrain e caches de seletores exclusivos. Próximo: capturar inputs
+de custom terrain/config e testar adapter/layout real antes da sombra por setor.
+697 casos padrão +13 Root opt-in, 4.325 execuções adicionais e 36+1 grupos,
+ASan/UBSan. Não há contexto profundo concluído ou throughput novo demonstrado.
 
 ## Objetivo e decisões vigentes
 

@@ -1,5 +1,7 @@
 # H0: Root real, fontes carregadas e recuperação
 
+Continuidade: [kernel de blockInfo e fronteira do contexto](sector-runtime-h0-block-info-kernel-2026-11-10.md).
+
 Data: 10/11/2026 UTC. Entrega: `Experimental`; revisão local:
 `codex/experimental-regional-runtime`.
 Base: `ed190c1a0197f0acc39db8d94ed95e8add505591`.

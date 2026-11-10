@@ -188,7 +188,7 @@ bancos completos não executados. clearCache pode renovar conteúdo sem avançar
 geração: fechar os inputs lidos é gate de CPU-01. Próximo: Root/lifecycle real,
 contexto completo e sombra por setor com admissão/bytes. H0/RAM-01 em 25%.
 
-O [relatório vigente](sector-runtime-h0-root-lifecycle-2026-11-10.md) executa Root
+O [recorte de Root](sector-runtime-h0-root-lifecycle-2026-11-10.md) executa Root
 normal/manutenção/factory, banco de materiais via parser, reload/hotReload/
 loadMods, listeners e recuperação, com fontes mínimas. 669 casos padrão +13 Root
 opt-in (padrão OFF), 3.960 execuções adicionais e 35+1 grupos CTest, ASan/UBSan.
@@ -196,6 +196,16 @@ Corrige overflow da seed automática e preserva sequências explícitas verifica
 cinco corpos de manutenção relocados byte a byte. Próximo: contexto de BaseTiles/
 blockInfo, inicialização e inputs capturados; não repetir Root com a mesma hipótese.
 Root::fullyLoad, mods/scripts/saves/multiplayer reais e throughput continuam gates.
+
+O [relatório vigente de blockInfo](sector-runtime-h0-block-info-kernel-2026-11-10.md)
+extrai o kernel usado no miss do cache normal. Preserva ordem de consultas,
+aritmética/primeiro match e falhas lazy, sem novas flags/cotas ou fita por tile.
+O adapter ainda usa template do worker/Root/custom terrain e caches mutáveis
+exclusivos; não é snapshot profundo ou ganho de setores/s medido. Próximo
+recorte: inputs capturados de custom terrain/config, validação de adapter/layout
+real, depois contexto completo/revalidação/admissão antes de sombra por setor.
+Implementação `0871d13c`; 697 casos padrão +13 Root opt-in, 4.325 execuções
+adicionais e 36+1 grupos CTest, ASan/UBSan; H0/RAM-01 seguem em 25%.
 
 Achado adicional de inicialização/cópia, não corrigido: WorldTile não inicializa/
 copia biomeTransition no construtor/operador; BaseTiles sobrescreve o flag nos

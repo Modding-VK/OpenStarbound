@@ -1,11 +1,11 @@
 # Progressão do projeto — percentuais e ordem das tarefas
 
 Atualizado em **10/11/2026**. Branch: `Experimental`.
-Base inspecionada: `ed190c1a0197f0acc39db8d94ed95e8add505591`;
-última implementação: `7001ae6d`.
+Base inspecionada: `05b63092c0cc387ba9c72b65cea43cfe2cfc3865`;
+última implementação: `0871d13c`.
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h0-root-lifecycle-2026-11-10.md)
+· [Último relatório técnico](../sector-runtime-h0-block-info-kernel-2026-11-10.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -22,7 +22,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **3,1%** — 6 marcos verificados de 196 |
 | Contratos com avanço registrado | **6 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | 669 casos padrão +13 Root opt-in, 3.960 execuções adicionais e 35+1 grupos CTest, ASan/UBSan; fontes mínimas, não streaming |
+| Última evidência de testes | 697 casos padrão +13 Root opt-in, 4.325 execuções adicionais e 36+1 grupos CTest, ASan/UBSan; kernel blockInfo com fontes controladas, não streaming |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,1% não significam que o jogo esteja só 3,1% pronto.** O runtime anterior
@@ -101,8 +101,10 @@ autoritativa. GPU é opcional, com fallback CPU completo.
    reload/hotReload/loadMods e listeners/falhas/recuperação com fontes mínimas,
    em alvo opt-in padrão OFF. Versão de reload não congela conteúdo renovado por
    clearCache; capturar os inputs lidos. Fill vazio, stop Assets e overflow da seed
-   automática corrigidos. Próximo: contexto de BaseTiles/blockInfo, inicialização
-   e inputs capturados; revalidar preparação e commit antes de sombra por setor
+   automática corrigidos. O kernel de blockInfo já foi separado do cache no
+   caminho normal, com fontes controladas em teste. Próximo: capturar inputs de
+   custom terrain/config e testar adapter/layout real, com caches exclusivos;
+   fechar contexto/inicialização e revalidar antes de sombra por setor
    com admissão/bytes. Não repetir o mesmo recorte de Root como nova entrega.
    Não adotar fita por tile, antecipar consultas, usar tile parcial ou mudar
    cópias/RNG. Auditar biomeTransition e SkyParameters::horizonClouds
@@ -142,13 +144,13 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 1 | H0 | [DAG-01](dependency-scheduler.md) | Identidades estáveis | 25% | IDs de colocações e ticket BaseTiles testados; contexto profundo/integração geral pendentes |
 | 2 | H0 | [DAG-04](dependency-scheduler.md) | Conclusões e progresso dentro da passagem | 25% | Mailbox executiva/reação a conclusões; continuação/avanço já corrigidos no recorte |
 | 3 | H0 | [RAM-01](memory-and-prefetch.md) | Reserva e contabilização de bytes | 25% | Root/factory/retenção de bancos carregados testados; contexto/consumidor/demanda/provider/fairness pendentes |
-| 4 | H0 | [VAL-02](validation-and-telemetry.md) | Comparador de outputs e produtores controlados | 25% | Root/listeners reais com fontes mínimas opt-in; contexto/terreno/assets/mods completos/streaming pendentes |
-| 5 | H0 | [MOD-01](compatibility.md) | Classificar operações por efeito | 25% | Root/reload/loadMods testados; capturar inputs, auditar contexto completo e revalidar no dono |
+| 4 | H0 | [VAL-02](validation-and-telemetry.md) | Comparador de outputs e produtores controlados | 25% | Kernel blockInfo/corpo herdado com fontes controladas; adapter/layout/terreno/assets/mods reais e streaming pendentes |
+| 5 | H0 | [MOD-01](compatibility.md) | Classificar operações por efeito | 25% | Queries/falhas lazy de blockInfo preservadas; capturar inputs sem compartilhar caches de seletores mutáveis |
 | 6 | H0 | [VAL-01](validation-and-telemetry.md) | Benchmark de streaming | 25% | Rota/save/config fixos, streaming real e A/B equivalente |
 | 7 | H1 | [DAG-02](dependency-scheduler.md) | Grafo persistente e demanda compartilhada | 0% | Grafo executivo em sombra, separado das dependências de publicação |
 | 8 | H1 | [DAG-03](dependency-scheduler.md) | Prioridade, justiça e distância correta | 0% | Prioridade herdada e justiça entre consumidores com wrap |
 | 9 | H1 | [DAG-05](dependency-scheduler.md) | Cancelamento, falha e invalidação | 0% | Retry/drain e retenção até término físico no novo executor |
-| 10 | H1 | [CPU-01](cpu-and-stages.md) | Contexto privado de cálculo | 0% | Auditar inicialização/dependências/RNG do contexto completo |
+| 10 | H1 | [CPU-01](cpu-and-stages.md) | Contexto privado de cálculo | 0% | Kernel separado não é contexto; capturar custom terrain/config, testar adapter/layout e fechar inicialização/RNG |
 | 11 | H1 | [CPU-02](cpu-and-stages.md) | Produto PreparedSector | 0% | Produtos/versionamento compartilhados; continua em H2 |
 | 12 | H1 | [MD-01](microdungeons-and-tmx.md) | Seleção leve e identidade | 0% | Candidatos/vazio sem copiar halo não lido |
 | 13 | H1 | [CPU-03](cpu-and-stages.md) | Executor processual e granularidade | 0% | Capacidade global e tarefas com fronteira de publicação preservada |
@@ -195,12 +197,12 @@ de todas as implementações antigas para conceder crédito retroativo.
 | --- | --- | --- |
 | DAG-01 | `d72b7239`, [identidades de colocações](../sector-runtime-h0-placement-identities-2026-11-08.md) e [ticket BaseTiles](../sector-runtime-base-tiles-contract.md), `f7785963` | Não cobre contexto profundo/assets nem todo o contrato de identidade/integração |
 | DAG-04 | `2131ead3`, [passagem/continuação](../sector-runtime-h0-streaming-pass-2026-11-09.md) | Não implementa a mailbox executiva nem reação a conclusões na mesma passagem |
-| RAM-01 | Recortes `5c3c4c8f` a `7001ae6d`, [inventário](memory-and-prefetch.md), [envelope](../sector-runtime-memory-envelope.md) e [último relatório](../sector-runtime-h0-root-lifecycle-2026-11-10.md) | Root/factory/retenção de bancos carregados testados; contexto profundo, consumidor/demanda/provider/fairness e pressão externa pendentes |
-| VAL-02 | [Harness inicial](../sector-runtime-h0-streaming-pass-2026-11-09.md), [comparador de tiles](../sector-runtime-h0-base-tiles-identity-2026-11-09.md) e [Root real](../sector-runtime-h0-root-lifecycle-2026-11-10.md) | Fontes mínimas, sem Root::fullyLoad/terreno/assets/mods completos/streaming; controles de hash continuam gates |
+| RAM-01 | Recortes `5c3c4c8f` a `0871d13c`, [inventário](memory-and-prefetch.md), [envelope](../sector-runtime-memory-envelope.md) e [último relatório](../sector-runtime-h0-block-info-kernel-2026-11-10.md) | Kernel separado não congela layout/caches; contexto profundo, consumidor/demanda/provider/fairness e pressão externa pendentes |
+| VAL-02 | [Harness inicial](../sector-runtime-h0-streaming-pass-2026-11-09.md), [comparador de tiles](../sector-runtime-h0-base-tiles-identity-2026-11-09.md), [Root real](../sector-runtime-h0-root-lifecycle-2026-11-10.md) e [kernel blockInfo](../sector-runtime-h0-block-info-kernel-2026-11-10.md) | Fontes controladas, sem adapter/layout/terreno/assets/mods completos/streaming; controles de hash continuam gates |
 | MOD-01 | [Leitores imutáveis](../sector-runtime-h0-distribution-bundles-2026-11-09.md), [proteção da seleção](../sector-runtime-h0-planning-storage-2026-11-09.md) e [lifecycle/scope 2](../sector-runtime-h0-lookup-source-generations-2026-11-09.md) | Metadata não é sincronização/commit nem auditoria de toda mutação; fronteira biomeTransition e integração abertas |
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 
-Os 669 casos padrão e 13 opcionais e demais números provêm do **último relatório técnico**,
+Os 697 casos padrão e 13 opcionais e demais números provêm do **último relatório técnico**,
 no cenário NoAssets, não de streaming integrado. A criação original do painel
 foi documental; os avanços posteriores de runtime estão associados aos commits/
 relatórios do histórico. Atualizar este painel não acrescenta uma medição de
@@ -244,6 +246,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 10/11/2026 | Implementação `061ce68c` | H0: mesmos leitores de produção comparados a corpo independente/catálogo/fita, com metadata controlada; exceções/NoMod/revisão de layout e 1.024 tiles em quatro workers. 649 testes/32 grupos, 3.300 execuções adicionais; não Root/reload/assets ou streaming integrado. Sem marco adicional, RAM-01/H0 em 25% | 3,1% |
 | 10/11/2026 | Implementação `571bb01e` | H0: Assets real com arquivos locais, hotReload/cache/invalidação/retenção e workers; corrige fill vazio de ByteArray e janela de lost-wakeup no stop. 666 testes/34 grupos, 3.640 execuções adicionais; Root real/listeners/streaming ainda pendentes. Nenhum marco completo adicional, RAM-01/H0 em 25% | 3,1% |
 | 10/11/2026 | Implementação `7001ae6d` | H0: Root normal/factory/manutenção, materiais carregados, reload/hotReload/loadMods e listeners/falhas/recuperação/retire reais com arquivos mínimos. Corrige seed automática preservando sequências explícitas; 669 casos padrão +13 Root opt-in, 3.960 execuções adicionais, 35+1 grupos. Contexto/streaming pendentes, sem novo marco completo; H0/RAM-01 em 25% | 3,1% |
+| 10/11/2026 | Implementação `0871d13c` | H0: kernel blockInfo separado do cache no caminho normal; 28 testes novos, 4.096 inputs em um caso, campos/consultas/falhas contra corpo herdado. 697 padrão +13 Root opt-in, 4.325 execuções adicionais, 36+1 grupos, ASan/UBSan. Adapter/layout real e contexto privado pendentes; sem novo marco ou ganho medido, H0/RAM-01 em 25% | 3,1% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

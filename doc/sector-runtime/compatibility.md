@@ -208,6 +208,14 @@ default preservam os casos de referência; não é licença para alterar seleç�
 seeds persistidas ou ordem de RNG. Cinco corpos de cleanup foram movidos sem
 alteração de algoritmo/locks. Não há lease de leitura ou publicação paralela nova.
 
+O [recorte de blockInfo](../sector-runtime-h0-block-info-kernel-2026-11-10.md)
+preserva consultas e falhas lazy, ordem de floats e primeiro match de subblocos/
+minérios, inclusive quando uma lista posterior é inválida mas não alcançada.
+Não remove o acesso hoje não utilizado a Root/Assets em customTerrainWeighting:
+essa remoção exige decidir/testar lifecycle e falhas, não apenas observar que
+a variável não participa da matemática. Nenhum novo snapshot, RNG, formato,
+publicação paralela ou compartilhamento de cache de seletores foi introduzido.
+
 ## MOD-02 — Equivalência e versionamento
 
 Definir inputs que produzem um output: seed, template/layout, geração de

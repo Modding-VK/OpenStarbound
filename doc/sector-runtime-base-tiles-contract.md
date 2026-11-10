@@ -3,7 +3,7 @@
 Estado: H0, `Experimental`, 10/11/2026.
 [Programa](sector-runtime/README.md) · [Roadmap](sector-runtime/roadmap.md)
 · [Memória](sector-runtime-memory-envelope.md)
-· [Relatório](sector-runtime-h0-root-lifecycle-2026-11-10.md)
+· [Relatório](sector-runtime-h0-block-info-kernel-2026-11-10.md)
 
 ## Identidade não é autorização de commit nem chave de conteúdo
 
@@ -205,6 +205,24 @@ não emite binding válido; destruição retira o clock sem manter Root vivo.
 Seed automática passou a multiplicar em uint64_t para definir o wrap, corrigindo
 overflow reproduzido na manutenção; gerador com seed fixa e consumo de uma seed
 na construção default preservam sequências verificadas. Nenhum scope vira lease.
+
+## Cálculo de blockInfo e fronteira do contexto
+
+O [recorte de cálculo](sector-runtime-h0-block-info-kernel-2026-11-10.md) extrai
+calculateWorldGenerationBlockInfo e o conecta ao miss do cache normal de
+WorldTemplate. O cache, wrap de x, conversões de coordenadas, ordem de consultas
+e primeiro match continuam legados. O kernel não possui Root ou cache, mas o
+adapter normal **não é um snapshot puro**: usa o template do worker, seletores
+com caches mutáveis e customTerrainWeighting, cujo acesso a Root/Assets foi
+preservado no mesmo ponto. Não compartilhar esse adapter entre jobs.
+
+Config continua lazy: biomeTransitionThreshold depois dos pesos, dist somente
+para terreno positivo e factor somente abaixo de dist. Não antecipar leituras
+ou validar todos os arrays antes do ramo: isso muda falhas observáveis. A saída
+local só retorna quando completa; não há fallback/retry sobre tile parcial.
+O kernel não autoriza commit, amplia fila ou estabelece identidade profunda.
+Próximo: capturar custom terrain/config com lifecycle explícito e manter caches
+de seletores exclusivos, testando o adapter/layout real antes de sombra por setor.
 
 ## Comparação de campos, modelo 1
 
