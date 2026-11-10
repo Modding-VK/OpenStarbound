@@ -1,4 +1,5 @@
 #include "StarWorldLayout.hpp"
+#include "StarWorldGenerationSelectorSnapshot.hpp"
 #include "StarJsonExtra.hpp"
 #include "StarWorldGeometry.hpp"
 #include "StarAssets.hpp"
@@ -655,13 +656,10 @@ WorldRegion WorldLayout::buildRegion(uint64_t seed, RegionParams const& regionPa
 
   WorldRegion region;
 
-  TerrainSelectorParameters baseSelectorParameters;
-  baseSelectorParameters.worldWidth = m_worldSize[0];
-  baseSelectorParameters.baseHeight = regionParams.baseHeight;
-
-  TerrainSelectorParameters terrainSelectorParameters = baseSelectorParameters.withSeed(staticRandomU64(seed, "Terrain"));
-  TerrainSelectorParameters foregroundCaveSelectorParameters = baseSelectorParameters.withSeed(staticRandomU64(seed, "ForegroundCaveSeed"));
-  TerrainSelectorParameters backgroundCaveSelectorParameters = baseSelectorParameters.withSeed(staticRandomU64(seed, "BackgroundCave"));
+  auto selectorSnapshots = WorldGenerationRegionSelectorSnapshots::capture(m_worldSize[0], regionParams.baseHeight, seed);
+  TerrainSelectorParameters terrainSelectorParameters = selectorSnapshots.terrain.materialize();
+  TerrainSelectorParameters foregroundCaveSelectorParameters = selectorSnapshots.foregroundCave.materialize();
+  TerrainSelectorParameters backgroundCaveSelectorParameters = selectorSnapshots.backgroundCave.materialize();
 
   if (regionParams.terrainSelector)
     region.terrainSelectorIndex = registerTerrainSelector(terrainDatabase->createNamedSelector(*regionParams.terrainSelector, terrainSelectorParameters));

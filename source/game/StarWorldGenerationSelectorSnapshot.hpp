@@ -1,6 +1,7 @@
 #pragma once
 
 #include "StarTerrainDatabase.hpp"
+#include "StarStaticRandom.hpp"
 
 namespace Star {
 
@@ -18,6 +19,23 @@ struct WorldGenerationSelectorSnapshot {
 
   TerrainSelectorParameters materialize() const {
     return TerrainSelectorParameters(worldWidth, baseHeight, seed, commonality);
+  }
+};
+
+// Owner-only: preserves the single legacy global RNG draw before deriving
+// region seeds. Snapshots may be materialized privately after this returns.
+struct WorldGenerationRegionSelectorSnapshots {
+  WorldGenerationSelectorSnapshot terrain;
+  WorldGenerationSelectorSnapshot foregroundCave;
+  WorldGenerationSelectorSnapshot backgroundCave;
+
+  static WorldGenerationRegionSelectorSnapshots capture(unsigned width, float height, uint64_t regionSeed) {
+    TerrainSelectorParameters base;
+    base.worldWidth = width;
+    base.baseHeight = height;
+    return {WorldGenerationSelectorSnapshot::capture(base.withSeed(staticRandomU64(regionSeed, "Terrain"))),
+      WorldGenerationSelectorSnapshot::capture(base.withSeed(staticRandomU64(regionSeed, "ForegroundCaveSeed"))),
+      WorldGenerationSelectorSnapshot::capture(base.withSeed(staticRandomU64(regionSeed, "BackgroundCave")))};
   }
 };
 

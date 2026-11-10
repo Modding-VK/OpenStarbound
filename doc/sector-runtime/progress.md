@@ -5,7 +5,7 @@ Base inspecionada: `55b2d3691aad116f5421b5206faf170287b471fc`;
 última implementação: `b0caadce`.
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h0-selector-snapshot-2026-11-10.md)
+· [Último relatório técnico](../sector-runtime-h0-region-selector-capture-2026-11-10.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -22,7 +22,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **3,6%** — 7 marcos verificados de 196 |
 | Contratos com avanço registrado | **7 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | 763 casos padrão e 30 repetições adicionais dos três testes de captura, ASan/UBSan; integração com builder real e Root opt-in pendentes |
+| Última evidência de testes | 764 casos padrão; captura integrada a buildRegion, quatro testes repetidos dez vezes com ASan/UBSan e objeto normal compilado; builder real completo e Root opt-in pendentes |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,6% não significam que o jogo esteja só 3,6% pronto.** O runtime anterior
@@ -108,7 +108,7 @@ autoritativa. GPU é opcional, com fallback CPU completo.
    lazy já compõe essa captura com lifetime/modelo Json v2 opcional. Agora o
    construtor normal, layout/Constant/FlatSurface e LRU reais são comparados e
    produzem BaseTiles 32×32 completos sob metadata controlada. Próximo:
-   integrar ao dono a captura de parâmetros sem consumo adicional de RNG e
+   comparar a captura integrada no dono com o builder real/assets e
    preservar a seed global consumida pelo construtor default de parâmetros no
    builder real; a suspeita sobre a fixture foi confundida por entropia da
    thread de manutenção de Root;

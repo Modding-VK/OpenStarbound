@@ -49,3 +49,22 @@ TEST(WorldGenerationSelectorSnapshotTest, SnapshotSurvivesSourceAndSupportsPriva
   });
   for (auto& result : results) EXPECT_TRUE(result.get());
 }
+
+TEST(WorldGenerationSelectorSnapshotTest, RegionCaptureMatchesLegacyParametersAndGlobalRng) {
+  for (uint64_t seed : {uint64_t(0), uint64_t(1), uint64_t(917), UINT64_MAX}) {
+    Random::init(918);
+    TerrainSelectorParameters base;
+    base.worldWidth = 8192; base.baseHeight = -37;
+    auto terrain = base.withSeed(staticRandomU64(seed, "Terrain"));
+    auto foreground = base.withSeed(staticRandomU64(seed, "ForegroundCaveSeed"));
+    auto background = base.withSeed(staticRandomU64(seed, "BackgroundCave"));
+    auto legacyNext = Random::randu64();
+
+    Random::init(918);
+    auto snapshots = WorldGenerationRegionSelectorSnapshots::capture(8192, -37, seed);
+    EXPECT_EQ(terrain.toJson(), snapshots.terrain.materialize().toJson());
+    EXPECT_EQ(foreground.toJson(), snapshots.foregroundCave.materialize().toJson());
+    EXPECT_EQ(background.toJson(), snapshots.backgroundCave.materialize().toJson());
+    EXPECT_EQ(legacyNext, Random::randu64());
+  }
+}
