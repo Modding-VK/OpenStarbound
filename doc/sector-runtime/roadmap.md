@@ -366,6 +366,11 @@ agora é exercitado com bancos reais, assets mínimos, bioma, patch, cache e
 BaseTiles. Dez cenários cobrem um recorte de validação, não dez contratos.
 O builder procedural completo, streaming e equivalência integrada seguem abertos.
 
+O [ensaio do builder terrestre](../sector-runtime-h0-terrestrial-builder-2026-11-10.md)
+executa o builder procedural com cinco camadas e assets mínimos, cobrindo Json,
+oceano, patch, falha, RNG e layouts privados. Está em validação: referência
+independente, mods/saves/multiplayer e benchmark de streaming permanecem gates.
+
 Próximo trabalho executável: validar builder/assets e preservar a sequência
 observável e fechar ownership e admissão do contexto de produção.
 Não confundir a LRU validada com CacheSelector. Auditar também defaults

@@ -1,11 +1,11 @@
 # Progressão do projeto — percentuais e ordem das tarefas
 
 Atualizado em **10/11/2026**. Branch: `Experimental`.
-Base inspecionada: `55b2d3691aad116f5421b5206faf170287b471fc`;
-última implementação: `b0caadce`.
+Base inspecionada: `fe51d2513de39733dae0ff5fc99d029921cb61b1`;
+última implementação de runtime: `fe51d251` (relocação de funções).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h0-real-region-builder-2026-11-10.md)
+· [Último relatório técnico](../sector-runtime-h0-terrestrial-builder-2026-11-10.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -22,7 +22,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **3,6%** — 7 marcos verificados de 196 |
 | Contratos com avanço registrado | **7 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | 764 casos padrão +59 opcionais, 42 grupos CTest, ASan/UBSan; builder real de região em dez cenários, builder de planeta completo pendente |
+| Última evidência de testes | 764 casos padrão +69 opcionais, 42 grupos CTest, ASan/UBSan; builder terrestre com assets mínimos, matriz integrada pendente |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,6% não significam que o jogo esteja só 3,6% pronto.** O runtime anterior
@@ -108,7 +108,7 @@ autoritativa. GPU é opcional, com fallback CPU completo.
    lazy já compõe essa captura com lifetime/modelo Json v2 opcional. Agora o
    construtor normal, layout/Constant/FlatSurface e LRU reais são comparados e
    produzem BaseTiles 32×32 completos sob metadata controlada. Próximo:
-   comparar a captura integrada no dono com o builder procedural de planeta/assets e
+   comparar o builder terrestre contra referência anterior com assets/mods e
    preservar a seed global consumida pelo construtor default de parâmetros no
    builder real; a suspeita sobre a fixture foi confundida por entropia da
    thread de manutenção de Root;
@@ -267,6 +267,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 10/11/2026 | Investigação de RNG | Manutenção de Root explicava interferência na medição; com Root encerrado, fixture preserva RNG. Parâmetros default do builder real consomem uma seed antes do override. 33 casos opt-in e 30 repetições de RNG aprovados com ASan/UBSan; captura/admissão e equivalência integrada pendentes | 3,6% |
 | 10/11/2026 | Factory real em três recortes | Comparação dos seletores, caches de cavernas com eviction/reconstrução e falhas/RNG. 764 padrão +49 opcionais, 42 grupos e 15 repetições adicionais, ASan/UBSan; builder de planeta completo e admissão pendentes | 3,6% |
 | 10/11/2026 | Builder real de região | Dez cenários com bioma, patch, líquido, cache, falha e BaseTiles, 764 padrão +59 opcionais, ASan/UBSan. Não são dez contratos concluídos; builder procedural/streaming pendentes | 3,6% |
+| 10/11/2026 | Builder terrestre em validação | Dez verificações adicionais, 764 padrão +69 opcionais e 42 grupos CTest, ASan/UBSan. Builder terrestre com assets mínimos, Json/reload, RNG e layouts privados; comparação independente, mods/saves/multiplayer e streaming pendentes | 3,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

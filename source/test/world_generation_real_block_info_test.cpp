@@ -2,6 +2,7 @@
 #include "StarWorldTemplateTypes.hpp"
 #include "StarWorldGenerationBlockInfo.hpp"
 #include "StarWorldGenerationSelectorSnapshot.hpp"
+#include "StarWorldParameters.hpp"
 #include "StarWorldGenerationBaseTiles.hpp"
 #include "StarWorldGenerationBaseTileInput.hpp"
 #include "StarWorldGenerationLookupResolver.hpp"
@@ -147,6 +148,11 @@ struct WorldGenerationRealBlockInfoTestAccess {
     return layout;
   }
   static size_t selectorCount(WorldLayout const& layout) { return layout.m_terrainSelectors.size(); }
+  template <typename Function>
+  static void withRootMaintenanceLocked(Root& root, Function function) {
+    MutexLocker lock(root.m_maintenanceStopMutex);
+    function();
+  }
 };
 }
 
@@ -230,6 +236,31 @@ protected:
     source.write("flat.terrain", "{\"name\":\"fixture-flat\",\"type\":\"flatSurface\"}");
     source.write("cave.terrain", "{\"name\":\"fixture-cave\",\"type\":\"constant\",\"value\":-1}");
     source.write("fixture.biome", "{\"name\":\"fixture-biome\",\"mainBlock\":\"realfixture21\",\"subBlocks\":[\"realfixture22\"]}");
+  }
+  void writeTerrestrialAssets() {
+    writeRegionAssets();
+    source.write("terrestrial_worlds.config", "{\"useSecondaryEnvironmentBiomeIndex\":false}");
+    config = config.set("playerStartSearchYRange", 4);
+    source.write("world_template.config", config.repr());
+  }
+  static void setupTerrestrial(TerrestrialWorldParameters& params, bool ocean = false) {
+    params.worldSize = {64, 64}; params.primaryBiome = "fixture-biome";
+    params.blendSize = 8; params.skyColoring.mainColor = Color::Black;
+    auto setupLayer = [ocean](TerrestrialWorldParameters::TerrestrialLayer& layer, int start) {
+      layer.layerMinHeight = start; layer.layerBaseHeight = 16;
+      layer.subRegionSizeRange = {0.25f, 0.25f};
+      layer.primaryRegion.biome = layer.primarySubRegion.biome = "fixture-biome";
+      layer.primaryRegion.blockSelector = layer.primarySubRegion.blockSelector = "fixture-flat";
+      layer.primaryRegion.fgCaveSelector = layer.primarySubRegion.fgCaveSelector = "fixture-cave";
+      layer.primaryRegion.bgCaveSelector = layer.primarySubRegion.bgCaveSelector = "fixture-cave";
+      layer.primaryRegion.subBlockSelector = layer.primarySubRegion.subBlockSelector = "fixture-cave";
+      if (ocean) {
+        layer.primaryRegion.oceanLiquid = layer.primarySubRegion.oceanLiquid = 3;
+        layer.primaryRegion.oceanLiquidLevel = layer.primarySubRegion.oceanLiquidLevel = 24;
+      }
+    };
+    setupLayer(params.coreLayer, 0); setupLayer(params.subsurfaceLayer, 16);
+    setupLayer(params.surfaceLayer, 32); setupLayer(params.atmosphereLayer, 48); setupLayer(params.spaceLayer, 56);
   }
   void grid(WorldTemplate& world, WorldLayoutPtr privateLayout) {
     auto inputs = world.captureBlockInfoStaticInputs(ledger, true); RealSource candidate{inputs, privateLayout};
@@ -711,4 +742,146 @@ TEST_F(WorldGenerationRealBlockInfoTest, RealRegionInputsRemainUsableAfterTempla
   world.reset(); r.reset();
   RealSource candidate{inputs, privateLayout};
   for (int y = 0; y != 32; ++y) EXPECT_EQ(expected[y], fields(candidate.sample(8, y)));
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, TerrestrialBuilderWithMinimalAssetsProducesStableBaseTiles) {
+  writeTerrestrialAssets();
+  auto r = root();
+  TerrestrialWorldParameters params{};
+  setupTerrestrial(params);
+  auto first = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto second = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto world = planet(first);
+  grid(*world, second);
+  sector(*world, second, EmptyLiquidId, false);
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, TerrestrialLayoutJsonRoundTripPreservesBlockInfoAndBaseTiles) {
+  writeTerrestrialAssets(); auto r = root(); TerrestrialWorldParameters params{}; setupTerrestrial(params);
+  auto first = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto loaded = std::make_shared<WorldLayout>(first->toJson());
+  auto world = planet(first);
+  grid(*world, loaded); sector(*world, loaded, EmptyLiquidId, false);
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, TerrestrialBuilderOceanPreservesBaseTiles) {
+  writeTerrestrialAssets(); auto r = root(); TerrestrialWorldParameters params{}; setupTerrestrial(params, true);
+  auto first = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto second = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto world = planet(first);
+  sector(*world, second, 3, true, 0);
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, TerrestrialBuilderUsesPatchedCachedTerrain) {
+  writeTerrestrialAssets();
+  source.write("flat.terrain", "{\"name\":\"fixture-flat\",\"type\":\"cache\",\"source\":{\"type\":\"flatSurface\"}}");
+  source.write("flat.terrain.patch", "[{\"op\":\"add\",\"path\":\"/source/adjustment\",\"value\":4}]");
+  auto r = root(); TerrestrialWorldParameters params{}; setupTerrestrial(params);
+  auto first = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto second = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto world = planet(first);
+  EXPECT_EQ(21, world->blockInfo(8, 18).foreground);
+  grid(*world, second);
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, TerrestrialBuilderFailureLeavesDatabaseUsable) {
+  writeTerrestrialAssets(); auto r = root(); TerrestrialWorldParameters params{}; setupTerrestrial(params);
+  params.coreLayer.primaryRegion.fgCaveSelector = "fixture-missing";
+  EXPECT_THROW(WorldLayout::buildTerrestrialLayout(params, 42), TerrainException);
+  auto valid = r->terrainDatabase()->createNamedSelector("fixture-flat", Access::parameters());
+  EXPECT_EQ(bits(12.0f), bits(valid->get(8, 4)));
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, TerrestrialLayoutsRemainUsableAfterRootDestruction) {
+  writeTerrestrialAssets(); auto r = root(); TerrestrialWorldParameters params{}; setupTerrestrial(params);
+  auto first = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto world = planet(first); auto inputs = world->captureBlockInfoStaticInputs(ledger, true);
+  std::vector<decltype(fields(WorldTemplate::BlockInfo{}))> expected;
+  for (int x = 0; x != 64; ++x) expected.push_back(fields(world->blockInfo(x, 12)));
+  std::array<WorldLayoutPtr, 3> layouts;
+  for (auto& layout : layouts) layout = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  world.reset(); first.reset(); r.reset();
+  std::array<std::future<decltype(expected)>, 3> workers;
+  for (size_t i = 0; i != workers.size(); ++i) workers[i] = std::async(std::launch::async, [&inputs, layout = layouts[i]] {
+    RealSource candidate{inputs, layout}; decltype(expected) result;
+    for (int x = 0; x != 64; ++x) result.push_back(fields(candidate.sample(x, 12)));
+    return result;
+  });
+  for (auto& worker : workers) EXPECT_EQ(expected, worker.get());
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, TerrestrialSecondaryEnvironmentFollowsAssetConfiguration) {
+  writeTerrestrialAssets();
+  source.write("secondary.biome", "{\"name\":\"fixture-secondary\",\"mainBlock\":\"realfixture22\"}");
+  auto r = root(); TerrestrialWorldParameters params{}; setupTerrestrial(params);
+  auto secondary = params.coreLayer.primaryRegion;
+  secondary.biome = "fixture-secondary";
+  params.coreLayer.secondaryRegions.append(secondary);
+  params.coreLayer.secondarySubRegions.append(secondary);
+  params.coreLayer.secondaryRegionSizeRange = {1, 1};
+  auto primaryEnvironment = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto firstWorld = planet(primaryEnvironment);
+  size_t primaryMatches = 0;
+  for (int x = 0; x != 64; ++x) {
+    auto b = firstWorld->blockInfo(x, 4);
+    if (primaryEnvironment->getBiome(b.blockBiomeIndex)->baseName == "fixture-secondary") {
+      EXPECT_EQ(String("fixture-biome"), primaryEnvironment->getBiome(b.environmentBiomeIndex)->baseName);
+      ++primaryMatches;
+    }
+  }
+  EXPECT_GT(primaryMatches, 0u);
+
+  source.write("terrestrial_worlds.config", "{\"useSecondaryEnvironmentBiomeIndex\":true}");
+  r->hotReload();
+  auto secondaryEnvironment = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto secondWorld = planet(secondaryEnvironment);
+  size_t secondaryMatches = 0;
+  for (int x = 0; x != 64; ++x) {
+    auto b = secondWorld->blockInfo(x, 4);
+    if (secondaryEnvironment->getBiome(b.blockBiomeIndex)->baseName == "fixture-secondary") {
+      EXPECT_EQ(String("fixture-secondary"), secondaryEnvironment->getBiome(b.environmentBiomeIndex)->baseName);
+      ++secondaryMatches;
+    }
+  }
+  EXPECT_GT(secondaryMatches, 0u);
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, RealRegionBuilderPreservesOneGlobalDrawWithRootActive) {
+  writeRegionAssets(); auto r = root();
+  r->terrainDatabase(); r->biomeDatabase();
+  Access::withRootMaintenanceLocked(*r, [&] {
+    RandomSource reference(918); reference.randu64(); auto next = reference.randu64();
+    Random::init(918); WorldLayout layout;
+    auto region = Access::buildRealRegion(layout, 42);
+    EXPECT_EQ(staticRandomU64(uint64_t(42), "Terrain"), layout.getTerrainSelector(region.terrainSelectorIndex)->parameters.seed);
+    EXPECT_EQ(next, Random::randu64());
+  });
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, RealRegionBuilderFailurePreservesOneGlobalDrawWithRootActive) {
+  writeRegionAssets(); auto r = root();
+  r->terrainDatabase(); r->biomeDatabase();
+  Access::withRootMaintenanceLocked(*r, [&] {
+    RandomSource reference(918); reference.randu64(); auto next = reference.randu64();
+    Random::init(918); WorldLayout layout;
+    EXPECT_THROW(Access::buildRealRegion(layout, 42, false, true), TerrainException);
+    EXPECT_EQ(next, Random::randu64());
+  });
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, RegionSnapshotsBuildPrivateRealSelectorTreesConcurrently) {
+  writeRegionAssets(); auto r = root(); auto database = r->terrainDatabase(); r.reset();
+  auto snapshots = WorldGenerationRegionSelectorSnapshots::capture(64, 16, 42);
+  auto config = Access::treeConfig();
+  auto expected = database->createSelectorType("cache", config, snapshots.terrain.materialize());
+  std::vector<uint32_t> samples;
+  for (int x = 0; x != 64; ++x) samples.push_back(bits(expected->get(x, 12)));
+  std::array<std::future<std::vector<uint32_t>>, 3> workers;
+  for (auto& worker : workers) worker = std::async(std::launch::async, [database, config, snapshots] {
+    auto selector = database->createSelectorType("cache", config, snapshots.terrain.materialize());
+    std::vector<uint32_t> result;
+    for (int x = 0; x != 64; ++x) result.push_back(bits(selector->get(x, 12)));
+    return result;
+  });
+  for (auto& worker : workers) EXPECT_EQ(samples, worker.get());
 }

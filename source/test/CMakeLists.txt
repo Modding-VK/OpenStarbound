@@ -224,6 +224,9 @@ IF(STAR_BUILD_ROOT_LIFECYCLE_TESTS)
     ../game/StarWorldTemplateSampling.cpp
     ../game/StarWorldLayoutSampling.cpp
     ../game/StarWorldLayoutRegion.cpp
+    ../game/StarWorldLayout.cpp
+    ../game/StarWorldParameters.cpp
+    ../game/StarSkyTypes.cpp
     ../game/StarBiomeDatabase.cpp
     ../game/StarStoredFunctions.cpp
     ../game/StarAmbient.cpp

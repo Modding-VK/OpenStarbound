@@ -193,6 +193,7 @@ public:
   Settings& settings();
 
 private:
+  friend struct WorldGenerationRealBlockInfoTestAccess;
   static StringList scanForAssetSources(StringList const& directories, StringList const& manual = {});
   template <typename T, typename... Params>
   static shared_ptr<T> loadMember(shared_ptr<T>& ptr, Mutex& mutex, char const* name, Params&&... params);

@@ -1,5 +1,9 @@
 # Backlog de desempenho da exploração
 
+CPU-01: o [builder terrestre](sector-runtime-h0-terrestrial-builder-2026-11-10.md)
+foi exercitado com assets mínimos; comparação independente, mods/saves/multiplayer
+e benchmark de streaming ainda são necessários antes de adotar o contexto.
+
 CPU-01: o [builder real de região](sector-runtime-h0-real-region-builder-2026-11-10.md)
 passou dez cenários com bancos reais e assets mínimos. Executar builder procedural
 completo e comparar RNG/output antes de compor contexto e admissão para workers.
