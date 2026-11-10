@@ -1,5 +1,9 @@
 # Backlog de desempenho da exploração
 
+CPU-01: o [builder real de região](sector-runtime-h0-real-region-builder-2026-11-10.md)
+passou dez cenários com bancos reais e assets mínimos. Executar builder procedural
+completo e comparar RNG/output antes de compor contexto e admissão para workers.
+
 CPU-01: o [ensaio de factory real](sector-runtime-h0-region-selector-factory-2026-11-10.md)
 amplia a validação de parâmetros a seletores, caches de cavernas e falhas; o
 builder completo, assets/mods e admissão do contexto seguem pendentes.

@@ -121,6 +121,32 @@ struct WorldGenerationRealBlockInfoTestAccess {
     return out;
   }
   static void emptyBlend(WorldLayout& layout) { layout.m_blendNoise = PerlinF(); }
+  static WorldRegion buildRealRegion(WorldLayout& layout, uint64_t seed, bool withBiome = false, bool missingCave = false, bool ocean = false) {
+    layout.m_worldSize = {64, 64};
+    WorldLayout::RegionParams params{};
+    params.baseHeight = 16;
+    params.terrainSelector = String("fixture-flat");
+    params.fgCaveSelector = String(missingCave ? "fixture-missing" : "fixture-cave");
+    params.bgCaveSelector = String("fixture-cave");
+    if (withBiome) {
+      params.biomeName = String("fixture-biome");
+      params.subBlockSelector = String("fixture-cave");
+    }
+    params.regionLiquids = {0, 0, 0, 0, false, false};
+    if (ocean) params.regionLiquids = {0, 0, 3, 24, false, false};
+    return layout.buildRegion(seed, params);
+  }
+  static WorldLayoutPtr realRegionLayout(uint64_t seed, bool ocean = false) {
+    auto layout = std::make_shared<WorldLayout>();
+    auto region = buildRealRegion(*layout, seed, true, false, ocean);
+    WorldLayout::WorldLayer layer;
+    layer.yStart = 0;
+    layer.cells.append(std::make_shared<WorldRegion>(std::move(region)));
+    layout->m_layers.append(std::move(layer));
+    layout->m_regionBlending = 8;
+    return layout;
+  }
+  static size_t selectorCount(WorldLayout const& layout) { return layout.m_terrainSelectors.size(); }
 };
 }
 
@@ -200,12 +226,17 @@ protected:
   std::unique_ptr<WorldTemplate> planet(WorldLayoutPtr layout = {}) const {
     auto result = std::make_unique<WorldTemplate>(Vec2U{64, 64}); if (layout) result->setWorldLayout(std::move(layout)); return result;
   }
+  void writeRegionAssets() {
+    source.write("flat.terrain", "{\"name\":\"fixture-flat\",\"type\":\"flatSurface\"}");
+    source.write("cave.terrain", "{\"name\":\"fixture-cave\",\"type\":\"constant\",\"value\":-1}");
+    source.write("fixture.biome", "{\"name\":\"fixture-biome\",\"mainBlock\":\"realfixture21\",\"subBlocks\":[\"realfixture22\"]}");
+  }
   void grid(WorldTemplate& world, WorldLayoutPtr privateLayout) {
     auto inputs = world.captureBlockInfoStaticInputs(ledger, true); RealSource candidate{inputs, privateLayout};
     for (int x = -8; x <= 72; x += 2) for (int y = -2; y <= 66; y += 2)
       EXPECT_EQ(fields(world.blockInfo(x, y)), fields(candidate.sample(x, y))) << x << ',' << y;
   }
-  void sector(WorldTemplate& world, WorldLayoutPtr privateLayout, LiquidId ocean = EmptyLiquidId, bool flatExpectations = true) {
+  void sector(WorldTemplate& world, WorldLayoutPtr privateLayout, LiquidId ocean = EmptyLiquidId, bool flatExpectations = true, MaterialHue hue = 9) {
     auto inputs = world.captureBlockInfoStaticInputs(ledger, true); RealSource candidate{inputs, privateLayout};
     auto materials = Root::singleton().materialDatabase(); WorldGenerationLookupResolver resolver{world, *materials};
     auto expected = std::make_unique<ServerTileSectorArray::Array>(); auto actual = std::make_unique<ServerTileSectorArray::Array>();
@@ -229,7 +260,7 @@ protected:
       return;
     }
     EXPECT_EQ(21, (*actual)(8, 4).foreground); EXPECT_EQ(EmptyMaterialId, (*actual)(8, 20).foreground);
-    EXPECT_EQ(MaterialHue(9), (*actual)(8, 4).foregroundHueShift);
+    EXPECT_EQ(hue, (*actual)(8, 4).foregroundHueShift);
     EXPECT_EQ(EmptyLiquidId, (*actual)(8, 4).liquid.liquid);
     auto const& liquid = (*actual)(8, 20).liquid;
     EXPECT_EQ(ocean, liquid.liquid);
@@ -570,4 +601,114 @@ TEST_F(WorldGenerationRealBlockInfoTest, RegionSnapshotFactoryErrorsPreserveLega
   EXPECT_EQ(expectedNext, Random::randu64());
   auto valid = database->createSelectorType("constant", JsonObject{{"value", 1}}, snapshot.terrain.materialize());
   EXPECT_EQ(bits(1.0f), bits(valid->get(0, 0)));
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, RealRegionBuilderUsesNamedSelectorsAndExpectedParameters) {
+  writeRegionAssets();
+  auto r = root();
+  WorldLayout layout;
+  auto region = Access::buildRealRegion(layout, 42);
+  auto terrain = layout.getTerrainSelector(region.terrainSelectorIndex);
+  auto fg = layout.getTerrainSelector(region.foregroundCaveSelectorIndex);
+  auto bg = layout.getTerrainSelector(region.backgroundCaveSelectorIndex);
+  EXPECT_EQ(staticRandomU64(uint64_t(42), "Terrain"), terrain->parameters.seed);
+  EXPECT_EQ(staticRandomU64(uint64_t(42), "ForegroundCaveSeed"), fg->parameters.seed);
+  EXPECT_EQ(staticRandomU64(uint64_t(42), "BackgroundCave"), bg->parameters.seed);
+  EXPECT_EQ(64u, terrain->parameters.worldWidth); EXPECT_FLOAT_EQ(16, terrain->parameters.baseHeight);
+  EXPECT_EQ(bits(12.0f), bits(terrain->get(8, 4))); EXPECT_EQ(bits(-1.0f), bits(fg->get(8, 4)));
+  EXPECT_EQ(bits(-1.0f), bits(bg->get(8, 4)));
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, RealRegionBuilderLoadsBiomeAndSubBlockSelector) {
+  writeRegionAssets(); auto r = root(); WorldLayout layout;
+  auto region = Access::buildRealRegion(layout, 42, true);
+  ASSERT_NE(NullBiomeIndex, region.blockBiomeIndex);
+  EXPECT_EQ(region.blockBiomeIndex, region.environmentBiomeIndex);
+  auto biome = layout.getBiome(region.blockBiomeIndex);
+  EXPECT_EQ(21, biome->mainBlock);
+  ASSERT_EQ(1u, biome->subBlocks.size()); EXPECT_EQ(22, biome->subBlocks[0]);
+  ASSERT_EQ(1u, region.subBlockSelectorIndexes.size());
+  auto selector = layout.getTerrainSelector(region.subBlockSelectorIndexes[0]);
+  EXPECT_EQ(staticRandomU64(uint64_t(42), size_t(0), "subBlocks"), selector->parameters.seed);
+  EXPECT_EQ(bits(-1.0f), bits(selector->get(8, 4)));
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, RealRegionBuilderProducesEquivalentCompleteBaseTiles) {
+  writeRegionAssets(); auto r = root();
+  auto world = planet(Access::realRegionLayout(42));
+  auto privateLayout = Access::realRegionLayout(42);
+  grid(*world, privateLayout);
+  sector(*world, Access::realRegionLayout(42), EmptyLiquidId, false);
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, RealRegionBuilderPreservesPartialRegistrationOnMissingSelector) {
+  writeRegionAssets(); auto r = root(); WorldLayout layout;
+  EXPECT_THROW(Access::buildRealRegion(layout, 42, false, true), TerrainException);
+  EXPECT_EQ(1u, Access::selectorCount(layout));
+  auto first = layout.getTerrainSelector(1);
+  EXPECT_EQ(String("flatSurface"), first->type);
+  EXPECT_EQ(bits(12.0f), bits(first->get(8, 4)));
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, RealRegionBuilderPreservesOceanMetadataAndBaseTiles) {
+  writeRegionAssets(); auto r = root(); WorldLayout layout;
+  auto region = Access::buildRealRegion(layout, 42, true, false, true);
+  EXPECT_EQ(3, region.regionLiquids.oceanLiquid); EXPECT_EQ(24, region.regionLiquids.oceanLiquidLevel);
+  EXPECT_FALSE(region.regionLiquids.encloseLiquids); EXPECT_FALSE(region.regionLiquids.fillMicrodungeons);
+  auto world = planet(Access::realRegionLayout(42, true));
+  sector(*world, Access::realRegionLayout(42, true), 3, true, 0);
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, RealRegionBuilderRecoversAfterMissingSelectorWithoutDiscardingPriorWrites) {
+  writeRegionAssets(); auto r = root(); WorldLayout layout;
+  EXPECT_THROW(Access::buildRealRegion(layout, 42, false, true), TerrainException);
+  ASSERT_EQ(1u, Access::selectorCount(layout));
+  auto region = Access::buildRealRegion(layout, 42);
+  EXPECT_EQ(4u, Access::selectorCount(layout));
+  EXPECT_EQ(2, region.terrainSelectorIndex);
+  EXPECT_EQ(bits(12.0f), bits(layout.getTerrainSelector(region.terrainSelectorIndex)->get(8, 4)));
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, RealRegionBuilderAppliesTerrainAssetPatch) {
+  writeRegionAssets();
+  source.write("flat.terrain.patch", "[{\"op\":\"add\",\"path\":\"/adjustment\",\"value\":4}]");
+  auto r = root(); WorldLayout layout;
+  auto region = Access::buildRealRegion(layout, 42);
+  EXPECT_EQ(bits(16.0f), bits(layout.getTerrainSelector(region.terrainSelectorIndex)->get(8, 4)));
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, RealRegionBuilderUsesCachedTerrainSelector) {
+  writeRegionAssets();
+  source.write("flat.terrain", "{\"name\":\"fixture-flat\",\"type\":\"cache\",\"lruCacheSize\":2,\"source\":{\"type\":\"flatSurface\"}}");
+  auto r = root(); WorldLayout layout;
+  auto region = Access::buildRealRegion(layout, 42);
+  auto cached = std::dynamic_pointer_cast<CacheSelector const>(layout.getTerrainSelector(region.terrainSelectorIndex));
+  ASSERT_TRUE(cached); EXPECT_EQ(0u, cached->m_cache.currentSize());
+  EXPECT_EQ(bits(12.0f), bits(cached->get(8, 4))); EXPECT_EQ(bits(12.0f), bits(cached->get(8, 4)));
+  EXPECT_EQ(1u, cached->m_cache.currentSize());
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, RealRegionBuilderSeedsRemainStableAcrossSeparateLayouts) {
+  writeRegionAssets(); auto r = root();
+  for (uint64_t seed : {uint64_t(0), uint64_t(1), uint64_t(42), UINT64_MAX}) {
+    WorldLayout first, second;
+    auto a = Access::buildRealRegion(first, seed, true);
+    auto b = Access::buildRealRegion(second, seed, true);
+    auto sa = first.getTerrainSelector(a.terrainSelectorIndex);
+    auto sb = second.getTerrainSelector(b.terrainSelectorIndex);
+    EXPECT_NE(sa.get(), sb.get()); EXPECT_EQ(sa->parameters.toJson(), sb->parameters.toJson());
+    EXPECT_EQ(staticRandomU64(seed, "Terrain"), sa->parameters.seed);
+    for (int y = 0; y != 32; ++y) EXPECT_EQ(bits(sa->get(8, y)), bits(sb->get(8, y)));
+  }
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, RealRegionInputsRemainUsableAfterTemplateAndRootDestruction) {
+  writeRegionAssets(); auto r = root(); auto world = planet(Access::realRegionLayout(42));
+  auto inputs = world->captureBlockInfoStaticInputs(ledger, true);
+  std::vector<decltype(fields(WorldTemplate::BlockInfo{}))> expected;
+  for (int y = 0; y != 32; ++y) expected.push_back(fields(world->blockInfo(8, y)));
+  auto privateLayout = Access::realRegionLayout(42);
+  world.reset(); r.reset();
+  RealSource candidate{inputs, privateLayout};
+  for (int y = 0; y != 32; ++y) EXPECT_EQ(expected[y], fields(candidate.sample(8, y)));
 }

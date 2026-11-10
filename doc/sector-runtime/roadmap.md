@@ -361,6 +361,11 @@ compara parâmetros capturados em seletores de terreno, caches de cavernas após
 eviction/reconstrução e falhas com sequência de RNG. O builder de planeta completo
 e a equivalência com mods/saves/multiplayer continuam pendentes.
 
+O [builder real de região](../sector-runtime-h0-real-region-builder-2026-11-10.md)
+agora é exercitado com bancos reais, assets mínimos, bioma, patch, cache e
+BaseTiles. Dez cenários cobrem um recorte de validação, não dez contratos.
+O builder procedural completo, streaming e equivalência integrada seguem abertos.
+
 Próximo trabalho executável: validar builder/assets e preservar a sequência
 observável e fechar ownership e admissão do contexto de produção.
 Não confundir a LRU validada com CacheSelector. Auditar também defaults

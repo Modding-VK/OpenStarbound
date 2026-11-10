@@ -223,6 +223,16 @@ IF(STAR_BUILD_ROOT_LIFECYCLE_TESTS)
     ../game/StarRoot.cpp
     ../game/StarWorldTemplateSampling.cpp
     ../game/StarWorldLayoutSampling.cpp
+    ../game/StarWorldLayoutRegion.cpp
+    ../game/StarBiomeDatabase.cpp
+    ../game/StarStoredFunctions.cpp
+    ../game/StarAmbient.cpp
+    ../game/StarSpawnTypeDatabase.cpp
+    ../game/StarBiomePlacement.cpp
+    ../game/StarBiomePlacementSampling.cpp
+    ../game/StarBiome.cpp
+    ../game/StarParallax.cpp
+    ../game/StarPlantDatabase.cpp
     ../game/StarTerrainSelector.cpp
     ../game/StarTerrainDatabase.cpp
     ../game/terrain/StarCacheSelector.cpp

@@ -404,6 +404,7 @@ SET (star_game_SOURCES
     StarParticleManager.cpp
     StarPlant.cpp
     StarPlantDatabase.cpp
+    StarPlantDatabaseEntities.cpp
     StarPlantDrop.cpp
     StarPlatformerAStar.cpp
     StarPlatformerAStarTypes.cpp
@@ -504,6 +505,7 @@ SET (star_game_SOURCES
     StarWorldTemplate.cpp
     StarWorldTemplateSampling.cpp
     StarWorldLayoutSampling.cpp
+    StarWorldLayoutRegion.cpp
     StarTerrainSelector.cpp
     StarWorldGenerationLookupReaders.cpp
     StarWorldGenerationLookupDefaults.cpp
