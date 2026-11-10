@@ -1,4 +1,5 @@
 #include "StarRoot.hpp"
+#include "StarBiomeDatabase.hpp"
 #include "StarWorldTemplateTypes.hpp"
 #include "StarWorldGenerationBlockInfo.hpp"
 #include "StarWorldGenerationSelectorSnapshot.hpp"
@@ -122,8 +123,69 @@ struct WorldGenerationRealBlockInfoTestAccess {
     return out;
   }
   static void emptyBlend(WorldLayout& layout) { layout.m_blendNoise = PerlinF(); }
+  // Independent reference copied from inherited f22cf9c9 before snapshot integration.
+  static WorldRegion legacyBuildRegion(WorldLayout& layout, uint64_t seed, WorldLayout::RegionParams const& regionParams) {
+    auto terrainDatabase = Root::singleton().terrainDatabase();
+    auto biomeDatabase = Root::singleton().biomeDatabase();
+
+    WorldRegion region;
+
+    TerrainSelectorParameters baseSelectorParameters;
+    baseSelectorParameters.worldWidth = layout.m_worldSize[0];
+    baseSelectorParameters.baseHeight = regionParams.baseHeight;
+
+    TerrainSelectorParameters terrainSelectorParameters = baseSelectorParameters.withSeed(staticRandomU64(seed, "Terrain"));
+    TerrainSelectorParameters foregroundCaveSelectorParameters = baseSelectorParameters.withSeed(staticRandomU64(seed, "ForegroundCaveSeed"));
+    TerrainSelectorParameters backgroundCaveSelectorParameters = baseSelectorParameters.withSeed(staticRandomU64(seed, "BackgroundCave"));
+
+    if (regionParams.terrainSelector)
+      region.terrainSelectorIndex = layout.registerTerrainSelector(terrainDatabase->createNamedSelector(*regionParams.terrainSelector, terrainSelectorParameters));
+    if (regionParams.fgCaveSelector)
+      region.foregroundCaveSelectorIndex = layout.registerTerrainSelector(terrainDatabase->createNamedSelector(*regionParams.fgCaveSelector, foregroundCaveSelectorParameters));
+    if (regionParams.bgCaveSelector)
+      region.backgroundCaveSelectorIndex = layout.registerTerrainSelector(terrainDatabase->createNamedSelector(*regionParams.bgCaveSelector, backgroundCaveSelectorParameters));
+
+    if (regionParams.biomeName) {
+      auto biome = biomeDatabase->createBiome(*regionParams.biomeName, staticRandomU64(seed, "BiomeSeed"), regionParams.baseHeight, regionParams.threatLevel);
+
+      if (regionParams.subBlockSelector) {
+        for (size_t i = 0; i < biome->subBlocks.size(); ++i) {
+          auto selector = terrainDatabase->createNamedSelector(*regionParams.subBlockSelector, terrainSelectorParameters.withSeed(staticRandomU64(seed, i, "subBlocks")));
+          region.subBlockSelectorIndexes.append(layout.registerTerrainSelector(selector));
+        }
+      }
+
+      for (auto const& p : enumerateIterator(biome->ores)) {
+        auto oreSelectorTerrainParameters = terrainSelectorParameters.withCommonality(p.first.second);
+
+        if (regionParams.fgOreSelector) {
+          auto fgSelector = terrainDatabase->createNamedSelector(*regionParams.fgOreSelector, oreSelectorTerrainParameters.withSeed(staticRandomU64(seed, p.second, "FGOreSelector")));
+          region.foregroundOreSelectorIndexes.append(layout.registerTerrainSelector(fgSelector));
+        }
+
+        if (regionParams.bgOreSelector) {
+          auto bgSelector = terrainDatabase->createNamedSelector(*regionParams.bgOreSelector, oreSelectorTerrainParameters.withSeed(staticRandomU64(seed, p.second, "BGOreSelector")));
+          region.backgroundOreSelectorIndexes.append(layout.registerTerrainSelector(bgSelector));
+        }
+      }
+
+      region.blockBiomeIndex = layout.registerBiome(biome);
+      region.environmentBiomeIndex = region.blockBiomeIndex;
+    }
+
+    region.regionLiquids = regionParams.regionLiquids;
+
+    return region;
+  }
   static WorldRegion buildRealRegion(WorldLayout& layout, uint64_t seed, bool withBiome = false, bool missingCave = false, bool ocean = false) {
     layout.m_worldSize = {64, 64};
+    return layout.buildRegion(seed, realRegionParams(withBiome, missingCave, ocean));
+  }
+  static WorldRegion buildLegacyRealRegion(WorldLayout& layout, uint64_t seed, bool withBiome = false, bool missingCave = false, bool ocean = false) {
+    layout.m_worldSize = {64, 64};
+    return legacyBuildRegion(layout, seed, realRegionParams(withBiome, missingCave, ocean));
+  }
+  static WorldLayout::RegionParams realRegionParams(bool withBiome, bool missingCave, bool ocean) {
     WorldLayout::RegionParams params{};
     params.baseHeight = 16;
     params.terrainSelector = String("fixture-flat");
@@ -135,7 +197,7 @@ struct WorldGenerationRealBlockInfoTestAccess {
     }
     params.regionLiquids = {0, 0, 0, 0, false, false};
     if (ocean) params.regionLiquids = {0, 0, 3, 24, false, false};
-    return layout.buildRegion(seed, params);
+    return params;
   }
   static WorldLayoutPtr realRegionLayout(uint64_t seed, bool ocean = false) {
     auto layout = std::make_shared<WorldLayout>();
@@ -696,7 +758,7 @@ TEST_F(WorldGenerationRealBlockInfoTest, RealRegionBuilderRecoversAfterMissingSe
   ASSERT_EQ(1u, Access::selectorCount(layout));
   auto region = Access::buildRealRegion(layout, 42);
   EXPECT_EQ(4u, Access::selectorCount(layout));
-  EXPECT_EQ(2, region.terrainSelectorIndex);
+  EXPECT_EQ(2u, region.terrainSelectorIndex);
   EXPECT_EQ(bits(12.0f), bits(layout.getTerrainSelector(region.terrainSelectorIndex)->get(8, 4)));
 }
 
@@ -866,6 +928,42 @@ TEST_F(WorldGenerationRealBlockInfoTest, RealRegionBuilderFailurePreservesOneGlo
     Random::init(918); WorldLayout layout;
     EXPECT_THROW(Access::buildRealRegion(layout, 42, false, true), TerrainException);
     EXPECT_EQ(next, Random::randu64());
+  });
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, RealRegionBuilderMatchesIndependentPreSnapshotReference) {
+  writeRegionAssets(); auto r = root(); auto db = r->terrainDatabase(); r->biomeDatabase(); r->materialDatabase();
+  Access::withRootMaintenanceLocked(*r, [&] {
+    for (uint64_t seed : {uint64_t(0), uint64_t(42), UINT64_MAX}) {
+      WorldLayout legacyLayout, actualLayout;
+      Random::init(918);
+      auto legacy = Access::buildLegacyRealRegion(legacyLayout, seed, true, false, true);
+      auto legacyNext = Random::randu64();
+      Random::init(918);
+      auto actual = Access::buildRealRegion(actualLayout, seed, true, false, true);
+      EXPECT_EQ(legacyNext, Random::randu64());
+      EXPECT_EQ(legacy.toJson(), actual.toJson());
+      ASSERT_EQ(Access::selectorCount(legacyLayout), Access::selectorCount(actualLayout));
+      for (size_t index = 1; index <= Access::selectorCount(legacyLayout); ++index) {
+        auto left = legacyLayout.getTerrainSelector(index), right = actualLayout.getTerrainSelector(index);
+        EXPECT_EQ(db->storeSelector(left), db->storeSelector(right));
+        for (int y = 0; y != 32; ++y) EXPECT_EQ(bits(left->get(8, y)), bits(right->get(8, y)));
+      }
+      EXPECT_EQ(legacyLayout.getBiome(legacy.blockBiomeIndex)->toJson(), actualLayout.getBiome(actual.blockBiomeIndex)->toJson());
+    }
+  });
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, RealRegionBuilderFailureMatchesIndependentPreSnapshotReference) {
+  writeRegionAssets(); auto r = root(); r->terrainDatabase(); r->biomeDatabase();
+  Access::withRootMaintenanceLocked(*r, [&] {
+    WorldLayout legacy, actual;
+    Random::init(918); EXPECT_THROW(Access::buildLegacyRealRegion(legacy, 42, false, true), TerrainException);
+    auto legacyNext = Random::randu64();
+    Random::init(918); EXPECT_THROW(Access::buildRealRegion(actual, 42, false, true), TerrainException);
+    EXPECT_EQ(legacyNext, Random::randu64());
+    EXPECT_EQ(Access::selectorCount(legacy), Access::selectorCount(actual));
+    EXPECT_EQ(bits(legacy.getTerrainSelector(1)->get(8, 4)), bits(actual.getTerrainSelector(1)->get(8, 4)));
   });
 }
 

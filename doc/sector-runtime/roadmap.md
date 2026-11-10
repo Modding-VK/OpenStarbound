@@ -370,6 +370,8 @@ O [ensaio do builder terrestre](../sector-runtime-h0-terrestrial-builder-2026-11
 executa o builder procedural com cinco camadas e assets mínimos, cobrindo Json,
 oceano, patch, falha, RNG e layouts privados. Está em validação: referência
 independente, mods/saves/multiplayer e benchmark de streaming permanecem gates.
+A região real também foi comparada ao corpo pré-snapshot com bancos reais,
+incluindo falha parcial e próximo RNG; não é referência do planeta inteiro.
 
 Próximo trabalho executável: validar builder/assets e preservar a sequência
 observável e fechar ownership e admissão do contexto de produção.
