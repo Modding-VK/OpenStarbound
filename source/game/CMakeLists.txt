@@ -185,6 +185,7 @@ SET (star_game_HEADERS
     StarWorldGenerationLookupSources.hpp
     StarWorldGenerationLookupResolver.hpp
     StarWorldGenerationBaseTiles.hpp
+    StarWorldGenerationBlockInfo.hpp
     StarWorldGenerationBufferAllocator.hpp
     StarWorldGenerationImmutableArray.hpp
     StarWorldGenerationNamePool.hpp
