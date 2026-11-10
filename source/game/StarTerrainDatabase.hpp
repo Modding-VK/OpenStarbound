@@ -13,6 +13,7 @@ STAR_EXCEPTION(TerrainException, StarException);
 struct TerrainSelectorParameters {
   TerrainSelectorParameters();
   explicit TerrainSelectorParameters(Json const& v);
+  TerrainSelectorParameters(unsigned worldWidth, float baseHeight, uint64_t seed, float commonality);
 
   Json toJson() const;
 

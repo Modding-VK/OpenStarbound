@@ -347,7 +347,11 @@ A fixture preserva a sequência nesse cenário. `buildRegion` real, porém, usa
 parâmetros default que consomem uma seed antes do override; preservar esse
 consumo ao projetar o contexto privado e testar equivalência com assets/mods.
 
-Próximo trabalho executável: isolar o consumo de RNG, preservar a sequência
+O [snapshot de parâmetros](../sector-runtime-h0-selector-snapshot-2026-11-10.md)
+captura campos inicializados por valor e os materializa sem RNG adicional.
+Ainda está fora do builder e dos jobs, e não é contexto/lease completo.
+
+Próximo trabalho executável: integrar captura no dono, preservar a sequência
 observável e fechar ownership e admissão do contexto de produção.
 Não confundir a LRU validada com CacheSelector. Auditar também defaults
 baseHeight/regionLiquids. Manter caches exclusivos; fechar o contexto de BaseTiles,

@@ -18,6 +18,9 @@ TerrainSelectorParameters::TerrainSelectorParameters(Json const& v) {
   commonality = v.getFloat("commonality");
 }
 
+TerrainSelectorParameters::TerrainSelectorParameters(unsigned worldWidth, float baseHeight, uint64_t seed, float commonality)
+  : worldWidth(worldWidth), baseHeight(baseHeight), seed(seed), commonality(commonality) {}
+
 Json TerrainSelectorParameters::toJson() const {
   return JsonObject{
       {"worldWidth", worldWidth}, {"baseHeight", baseHeight}, {"seed", seed}, {"commonality", commonality}};

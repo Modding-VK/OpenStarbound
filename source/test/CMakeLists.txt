@@ -110,6 +110,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   ../game/StarLiquidTypes.cpp
   ../game/StarWorldGenerationBaseTiles.cpp
   ../game/StarWorldGenerationCustomTerrain.cpp
+  ../game/StarTerrainSelector.cpp
   ../game/StarWorldGenerationBlockInfoStaticInputs.cpp
   ../game/StarWorldGenerationLookupReaders.cpp
   ../game/StarWorldGenerationLookupDefaults.cpp
@@ -143,6 +144,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   byte_array_test.cpp
   random_seed_test.cpp
   perlin_lifecycle_test.cpp
+  world_generation_selector_snapshot_test.cpp
   world_generation_estimate_test.cpp
   world_generation_worker_cache_test.cpp
   world_generation_buffer_test.cpp
@@ -190,6 +192,7 @@ FOREACH(world_region_test_suite
     ByteArrayTest
     AutomaticRandomSeedTest
     PerlinLifecycleTest
+    WorldGenerationSelectorSnapshotTest
     WorldGenerationEstimateTest
     WorldGenerationWorkerCacheTest
     WorldGenerationBufferTest
