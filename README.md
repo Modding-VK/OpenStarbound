@@ -1,5 +1,43 @@
 # OpenStarbound
 
+## About the Experimental branch
+
+`Experimental` is the development branch of this OpenStarbound fork for
+improving world generation and sector delivery. Its primary goal is to load
+ordinary sectors substantially faster and reduce stalls while making effective
+use of the player's available hardware. The program is hardware-agnostic: it
+explores CPU parallelism and memory management, with GPU acceleration as an
+optional future backend and a complete CPU fallback.
+
+The work includes a redesigned sector generation pipeline and a more flexible
+world-thread architecture. Dedicated threads for logical 2×2 regions are a
+**long-term target**, not an already-completed regional simulation. Existing
+workers and opt-in previews are distinct from the proposed architecture;
+features described in the plan are not necessarily implemented or validated.
+Measured sector throughput and stutter, not hardware utilization alone, are
+the criteria for judging performance improvements.
+
+Preserving compatibility with **mods, existing saves and multiplayer** is a
+critical requirement. Changes must retain existing behavior or document and
+validate any compatibility impact. NPC externalization is currently suspended;
+Linux Clang validation is deferred until the end of the project. Work on
+microdungeon generation remains part of the broader plan, while ordinary
+sector delivery is the immediate performance priority.
+
+This branch is experimental, not a stable release. Back up saves before
+testing, and check the build and enabled options when reporting results. The
+stable and nightly downloads linked below refer to the upstream project and
+are not necessarily builds of this branch. GitHub Actions for this branch are
+run manually.
+
+For the current state and the next work, start here:
+
+- [Program overview and architecture](doc/sector-runtime/README.md)
+- [Roadmap and acceptance criteria](doc/sector-runtime/roadmap.md)
+- [Progress, evidence and next steps](doc/sector-runtime/progress.md)
+- [Operational checklist and current report](doc/regional-runtime-execution-checklist.md)
+- [Performance backlog](doc/performance-backlog.md)
+
 <details>
 <summary><b>What is this?</b></summary>
  
@@ -14,15 +52,6 @@ By a truly unbelievable coincidence, I was out for a walk when I saw a small pac
 </details>
 
 You must own Starbound for the game assets. The code is worked on whenever I rarely feel like it. Contributions are welcome!
-
-## Experimental sector runtime development
-
-The `Experimental` branch's **primary development program** is the
-[sector runtime documentation](doc/sector-runtime/README.md), adopted on
-2026-11-08. Follow its [roadmap](doc/sector-runtime/roadmap.md) for CPU/RAM/GPU
-generation, the WorldThread rework, dedicated regional threads and compatibility
-validation. Earlier plans remain supporting history. Proposed functionality
-is not considered implemented until its report records code and validation.
 
 ## Installation
 ### Download the [latest stable release](https://github.com/OpenStarbound/OpenStarbound/releases/latest).
