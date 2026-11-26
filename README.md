@@ -36,7 +36,7 @@ For the current state and the next work, start here:
 - [Roadmap and acceptance criteria](doc/sector-runtime/roadmap.md)
 - [Progress, evidence and next steps](doc/sector-runtime/progress.md)
 - [Operational checklist and current report](doc/regional-runtime-execution-checklist.md)
-- [Latest H0 report: selector context identity/admission](doc/sector-runtime-h0-selector-context-2026-11-26.md)
+- [Latest H0 report: composite selector/static/BaseTiles context](doc/sector-runtime-h0-composite-context-2026-11-26.md)
 - [Performance backlog](doc/performance-backlog.md)
 
 <details>

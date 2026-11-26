@@ -146,6 +146,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   perlin_lifecycle_test.cpp
   world_generation_selector_snapshot_test.cpp
   world_generation_selector_context_test.cpp
+  world_generation_composite_context_test.cpp
   world_generation_estimate_test.cpp
   world_generation_worker_cache_test.cpp
   world_generation_buffer_test.cpp
@@ -196,6 +197,7 @@ FOREACH(world_region_test_suite
     WorldGenerationSelectorSnapshotTest
     WorldGenerationSelectorContextTest
     WorldGenerationDefaultInitializationAuditTest
+    WorldGenerationCompositeContextTest
     WorldGenerationEstimateTest
     WorldGenerationWorkerCacheTest
     WorldGenerationBufferTest

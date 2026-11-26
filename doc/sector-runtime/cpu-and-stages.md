@@ -108,11 +108,12 @@ mutáveis de seletores. Adapter candidato só de teste, fora dos jobs normais.
 19 casos novos opt-in, 752 padrão +32 opcionais, 40 grupos; CPU-01 ainda 25%.
 CacheSelector/Perlin e a referência terrestre já avançaram; em 26/11/2026 o
 [contexto de seletores](../sector-runtime-h0-selector-context-2026-11-26.md)
-fecha admissão POD + identidade da captura de parâmetros, com auditoria de
-defaults. Próximo: compor com static inputs/custom terrain e identidade
-BaseTiles, estender noises/caches privados e revalidar antes de sombra com
-bytes/outputs equivalentes. Não criar outro accessor isolado como substituto.
-Não otimizar consultas isoladas como fim em si mesmo.
+e o [contexto composto](../sector-runtime-h0-composite-context-2026-11-26.md)
+fecham admissão POD + static inputs + identidade BaseTiles, com auditoria de
+defaults. Próximo: comparar ao builder/região reais (Root opt-in), estender
+noises/caches privados e revalidar antes de sombra com bytes/outputs
+equivalentes. Não criar outro accessor isolado como substituto. Não otimizar
+consultas isoladas como fim em si mesmo.
 CPU-01 completo, contexto profundo e ganho de WorldTemplate seguem pendentes.
 
 Aceitação: execução concorrente não alcança template vivo, callbacks ou RNG

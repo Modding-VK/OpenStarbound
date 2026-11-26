@@ -1,12 +1,12 @@
 # Progressão do projeto — percentuais e ordem das tarefas
 
 Atualizado em **26/11/2026**. Branch: `Experimental`.
-Base inspecionada: `d5788f61df95a1d4a126d95b8716637ba1bbbdee`;
-última implementação de runtime: `d1a3a9cc` (contexto de seletores com
-identidade/admissão).
+Base inspecionada: `48e39709`;
+última implementação de runtime: contexto composto seletores/static
+inputs/identidade BaseTiles (ver relatório de composição).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h0-selector-context-2026-11-26.md)
+· [Último relatório técnico](../sector-runtime-h0-composite-context-2026-11-26.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -23,7 +23,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **3,6%** — 7 marcos verificados de 196 |
 | Contratos com avanço registrado | **7 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | 772 casos padrão (8 novos de contexto/auditoria), ASan/UBSan; captura de seletores com identidade/admissão; Root opt-in e matriz integrada pendentes |
+| Última evidência de testes | 777 casos padrão (5 novos de composição), ASan/UBSan; seletores+static inputs+identidade BaseTiles no mesmo ledger; comparação Root/builder real pendente |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,6% não significam que o jogo esteja só 3,6% pronto.** O runtime anterior
@@ -104,15 +104,15 @@ autoritativa. GPU é opcional, com fallback CPU completo.
    compõem o primeiro recorte de CPU-01 (25%). Builder terrestre comparado à
    referência pré-snapshot com assets mínimos. Em 26/11/2026,
    [`WorldGenerationRegionSelectorContext`](../sector-runtime-h0-selector-context-2026-11-26.md)
-   admite bytes POD dos snapshots de parâmetros com identidade por admissão e
-   preserva o RNG legado; auditoria de `baseHeight`/`biomeTransition`/
-   `horizonClouds`/`regionLiquids` registrada, não corrigida. Próximo: compor
-   com inputs estáticos/custom terrain e identidade BaseTiles no mesmo ledger;
-   ampliar comparação a assets/mods representativos; revalidar antes de sombra
-   por setor. Não repetir o mesmo recorte de Root, não adotar fita por tile,
-   não mudar cópias/RNG nem normalizar defaults auditados sem decisão de
-   compatibilidade. Depois demanda real, mailbox/DAG, provider, promoção/
-   fairness e pressão externa. A
+   e em seguida
+   [`WorldGenerationCompositeContext`](../sector-runtime-h0-composite-context-2026-11-26.md)
+   compõem seletores admitidos, static inputs e identidade BaseTiles no mesmo
+   ledger; auditoria de defaults registrada, não corrigida. Próximo: comparar
+   materialização privada ao builder/região reais (Root opt-in) com fixtures
+   representativas; revalidar antes de sombra por setor. Não repetir o mesmo
+   recorte de Root, não adotar fita por tile, não mudar cópias/RNG nem
+   normalizar defaults auditados sem decisão de compatibilidade. Depois demanda
+   real, mailbox/DAG, provider, promoção/fairness e pressão externa. A
    [cobertura de memória](../sector-runtime-memory-envelope.md) não é heap completo;
    não ampliar filas/defaults por teste controlado.
 2. **VAL-02, próxima entrega e apoio à primeira:** ampliar o comparador para
@@ -153,7 +153,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 7 | H1 | [DAG-02](dependency-scheduler.md) | Grafo persistente e demanda compartilhada | 0% | Grafo executivo em sombra, separado das dependências de publicação |
 | 8 | H1 | [DAG-03](dependency-scheduler.md) | Prioridade, justiça e distância correta | 0% | Prioridade herdada e justiça entre consumidores com wrap |
 | 9 | H1 | [DAG-05](dependency-scheduler.md) | Cancelamento, falha e invalidação | 0% | Retry/drain e retenção até término físico no novo executor |
-| 10 | H1 | [CPU-01](cpu-and-stages.md) | Contexto privado de cálculo | 25% | Seletores com identidade/admissão POD; inputs estáticos/custom terrain e BaseTiles ainda separados; Perlin/caches, ownership completo e jobs pendentes |
+| 10 | H1 | [CPU-01](cpu-and-stages.md) | Contexto privado de cálculo | 25% | Composto seletores+static+identidade BaseTiles; falta comparação Root/builder, arrays, Perlin/caches e jobs |
 | 11 | H1 | [CPU-02](cpu-and-stages.md) | Produto PreparedSector | 0% | Produtos/versionamento compartilhados; continua em H2 |
 | 12 | H1 | [MD-01](microdungeons-and-tmx.md) | Seleção leve e identidade | 0% | Candidatos/vazio sem copiar halo não lido |
 | 13 | H1 | [CPU-03](cpu-and-stages.md) | Executor processual e granularidade | 0% | Capacidade global e tarefas com fronteira de publicação preservada |
@@ -204,7 +204,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | VAL-02 | [Harness inicial](../sector-runtime-h0-streaming-pass-2026-11-09.md), [comparador de tiles](../sector-runtime-h0-base-tiles-identity-2026-11-09.md), [kernel blockInfo](../sector-runtime-h0-block-info-kernel-2026-11-10.md) e [amostragem/BaseTiles reais](../sector-runtime-h0-real-sector-sampling-2026-11-10.md) | Noise/caches mutáveis, builder de planeta/assets/mods completos/streaming pendentes; controles de hash continuam gates |
 | MOD-01 | [Leitores imutáveis](../sector-runtime-h0-distribution-bundles-2026-11-09.md), [proteção da seleção](../sector-runtime-h0-planning-storage-2026-11-09.md) e [lifecycle/scope 2](../sector-runtime-h0-lookup-source-generations-2026-11-09.md) | Metadata não é sincronização/commit nem auditoria de toda mutação; fronteira biomeTransition e integração abertas |
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
-| CPU-01 | `bfbbf403`, [captura custom terrain](../sector-runtime-h0-custom-terrain-context-2026-11-10.md), `e076d96a`, [config lazy](../sector-runtime-h0-block-info-static-inputs-2026-11-10.md), `b0caadce`, [layout/cache reais e BaseTiles](../sector-runtime-h0-real-sector-sampling-2026-11-10.md), e [contexto de seletores](../sector-runtime-h0-selector-context-2026-11-26.md) | Admissão só do POD de parâmetros; Perlin/caches, ownership/contexto completo, composição com static inputs/BaseTiles e jobs pendentes |
+| CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta comparação Root/builder, arrays BaseTiles, Perlin/caches e adoção em jobs |
 
 CPU-01 recebe o primeiro marco porque agora existe cálculo com dados próprios
 que independe da origem/Root após captura, não só callbacks/catálogos ou contagem
@@ -264,6 +264,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 10/11/2026 | Builder terrestre em validação | Dez verificações e dois testes da região contra referência anterior; 764 padrão +71 opcionais, ASan/UBSan. Builder terrestre com assets mínimos, Json/reload, RNG e layouts privados; referência independente do planeta, mods/saves/multiplayer e streaming pendentes | 3,6% |
 | 10/11/2026 | Referência terrestre em validação | Builder terrestre comparado ao corpo pré-snapshot em três seeds e falha: layout, tiles e próximo RNG; 764 padrão +73 opcionais, ASan/UBSan. Contexto profundo/admissão, assets/mods representativos e streaming pendentes | 3,6% |
 | 26/11/2026 | Contexto de seletores | Identidade por admissão + reserva POD antes do RNG legado; 772 padrão, 8 novos, 10 repetições, ASan/UBSan. Auditoria de defaults registrada; composição com static inputs/BaseTiles e sombra pendentes. Sem novo marco completo; CPU-01/H0/RAM-01 em 25% | 3,6% |
+| 26/11/2026 | Contexto composto | Seletores+static inputs+identidade BaseTiles no mesmo ledger; 777 padrão, 5 novos, 10 repetições, ASan/UBSan. Comparação Root/builder e sombra pendentes. Sem novo marco completo; CPU-01/H0/RAM-01 em 25% | 3,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

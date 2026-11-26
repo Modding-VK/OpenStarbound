@@ -382,14 +382,16 @@ admite bytes POD dos parâmetros de região com identidade por admissão e
 preserva o RNG legado; defaults `baseHeight`/`biomeTransition`/`horizonClouds`/
 `regionLiquids` seguem auditados, não corrigidos.
 
-Próximo trabalho executável: compor seletores admitidos com inputs
-estáticos/custom terrain e identidade BaseTiles no mesmo ledger; comparar
-materialização privada ao builder real com fixtures representativas antes de
-sombra por setor. Não confundir a LRU validada com CacheSelector. Manter caches
-exclusivos; o lifecycle de Root mínimo já foi testado, não repetir o mesmo
-recorte. Não antecipar consultas, assumir resolver arbitrário puro ou alterar
-cópias/RNG. Não normalizar defaults auditados sem decisão de compatibilidade;
-versionar contexto profundo/assets e ligar demanda ao interesse real antes de
+O [contexto composto](../sector-runtime-h0-composite-context-2026-11-26.md)
+liga seletores admitidos, static inputs e identidade BaseTiles no mesmo ledger.
+
+Próximo trabalho executável: comparar materialização privada do composto ao
+builder/região reais com fixtures Root opt-in antes de sombra por setor. Não
+confundir a LRU validada com CacheSelector. Manter caches exclusivos; o
+lifecycle de Root mínimo já foi testado, não repetir o mesmo recorte. Não
+antecipar consultas, assumir resolver arbitrário puro ou alterar cópias/RNG.
+Não normalizar defaults auditados sem decisão de compatibilidade; versionar
+contexto profundo/assets e ligar demanda ao interesse real antes de
 replay/cache de produtos.
 Não repetir callbacks/Lua/mundo vivo por uma exceção.
 Depois, provider processual único configurável, promoção de demanda,
