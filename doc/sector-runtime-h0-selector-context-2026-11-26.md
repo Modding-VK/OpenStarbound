@@ -1,6 +1,7 @@
 # H0 / CPU-01: contexto de seletores com identidade e admissão
 
-Data: 26/11/2026 UTC. Branch `Experimental`, base `d5788f61df95a1d4a126d95b8716637ba1bbbdee`.
+Data: 26/11/2026 UTC. Branch `Experimental`, base `d5788f61df95a1d4a126d95b8716637ba1bbbdee`,
+implementação `d1a3a9cc`.
 
 [Referência terrestre](sector-runtime-h0-terrestrial-reference-2026-11-10.md) · [Roadmap](sector-runtime/roadmap.md) · [Progressão](sector-runtime/progress.md)
 

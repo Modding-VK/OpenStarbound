@@ -2,8 +2,8 @@
 
 Atualizado em **26/11/2026**. Branch: `Experimental`.
 Base inspecionada: `d5788f61df95a1d4a126d95b8716637ba1bbbdee`;
-última implementação de runtime: contexto de seletores com identidade/admissão
-(ver relatório de 26/11/2026).
+última implementação de runtime: `d1a3a9cc` (contexto de seletores com
+identidade/admissão).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
 · [Último relatório técnico](../sector-runtime-h0-selector-context-2026-11-26.md)
