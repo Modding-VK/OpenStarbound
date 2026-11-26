@@ -377,18 +377,20 @@ A [referência terrestre pré-snapshot](../sector-runtime-h0-terrestrial-referen
 compara layout completo, tiles e próximo RNG em três seeds e falha, com assets
 mínimos. Contexto profundo, admissão, mods/saves/multiplayer e streaming permanecem abertos.
 
-Próximo trabalho executável: validar builder/assets e preservar a sequência
-observável e fechar ownership e admissão do contexto de produção.
-Não confundir a LRU validada com CacheSelector. Auditar também defaults
-baseHeight/regionLiquids. Manter caches exclusivos; fechar o contexto de BaseTiles,
-inicialização e inputs efetivamente capturados; o lifecycle de Root mínimo já foi
-testado, não repetir o mesmo recorte. Revalidar preparação e commit antes de
-sombra por setor, com admissão/
-bytes e outputs equivalentes. Não antecipar consultas,
-assumir resolver arbitrário puro ou alterar cópias/RNG. Auditar biomeTransition e
-SkyParameters::horizonClouds default (achado registrado, não corrigido)
-antes de normalizar snapshots; versionar contexto profundo/assets e ligar demanda
-ao interesse real antes de replay/cache de produtos.
+O [contexto de seletores](../sector-runtime-h0-selector-context-2026-11-26.md)
+admite bytes POD dos parâmetros de região com identidade por admissão e
+preserva o RNG legado; defaults `baseHeight`/`biomeTransition`/`horizonClouds`/
+`regionLiquids` seguem auditados, não corrigidos.
+
+Próximo trabalho executável: compor seletores admitidos com inputs
+estáticos/custom terrain e identidade BaseTiles no mesmo ledger; comparar
+materialização privada ao builder real com fixtures representativas antes de
+sombra por setor. Não confundir a LRU validada com CacheSelector. Manter caches
+exclusivos; o lifecycle de Root mínimo já foi testado, não repetir o mesmo
+recorte. Não antecipar consultas, assumir resolver arbitrário puro ou alterar
+cópias/RNG. Não normalizar defaults auditados sem decisão de compatibilidade;
+versionar contexto profundo/assets e ligar demanda ao interesse real antes de
+replay/cache de produtos.
 Não repetir callbacks/Lua/mundo vivo por uma exceção.
 Depois, provider processual único configurável, promoção de demanda,
 fairness entre mundos e pressão externa/limites de hardware. Manter exclusões;
