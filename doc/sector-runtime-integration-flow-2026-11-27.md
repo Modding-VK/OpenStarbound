@@ -788,3 +788,7 @@ integração: **nenhum**.
 ## Revisão 2026-11-27T22:44Z
 - Merge H4 `3ebdf921` (HalfNibbleSum/Max/Min + discardFailedOpenTickets; 146/146).
 - Build `46077733827` @ `b862351c` intacto; 1 Build tip final após terminal; sem spam.
+
+## Revisão 2026-11-27T22:45Z
+- Merge H4 `9e93aa31` (HalfSwapAdjacentNibbles/Rol/Ror + discardCancelledOpenTickets; 148/148).
+- Build `46077733827` @ `b862351c` intacto; 1 Build tip final após terminal; sem spam.
