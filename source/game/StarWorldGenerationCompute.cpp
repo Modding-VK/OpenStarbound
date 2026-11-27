@@ -3692,6 +3692,13 @@ bool WorldGenerationComputeService::hasRejectedDuplicate(WorldGenerationComputeT
   return m_rejectedDuplicates.count(ticket.id) != 0;
 }
 
+bool WorldGenerationComputeService::removeRejectedDuplicate(WorldGenerationComputeTicket ticket) {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return false;
+  return m_rejectedDuplicates.erase(ticket.id) != 0;
+}
+
 size_t WorldGenerationComputeService::clearRejectedDuplicates() {
   std::lock_guard<std::mutex> lock(m_mutex);
   if (!ownerAllowsLocked())
