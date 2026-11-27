@@ -70,6 +70,14 @@ struct WorldGenerationComputeCapabilities {
   uint64_t maxStagingBytes = 32ull * 1024ull * 1024ull;
 };
 
+// GPU-04: explicit approved RNG stream (no float noise / no assets). Callers
+// must not invent ad-hoc streams; consume via drawRng to preserve order.
+struct WorldGenerationComputeRngStream {
+  uint64_t seed = 0;
+  uint64_t counter = 0;
+  uint32_t streamId = 0; // approved stream class / channel
+};
+
 struct WorldGenerationComputeInputIdentity {
   uint64_t worldEpoch = 0;
   uint64_t sequence = 0;
@@ -235,12 +243,26 @@ public:
   // Stable fingerprint of an immutable input buffer (asset-free; no mod payload).
   static uint64_t fingerprintInput(List<uint32_t> const& input) noexcept;
 
+  // GPU-04 approved RNG: deterministic uint32 draws; advances counter by 1.
+  static uint32_t drawRng(WorldGenerationComputeRngStream& stream) noexcept;
+  static List<uint32_t> fillRng(WorldGenerationComputeRngStream& stream, size_t count);
+
   // GPU-04: publish only after live identity + input fingerprint still match the
   // submitted ticket. Consumes the ticket like poll. Stale/mismatch revokes
   // publication and rejects later duplicate polls for that id.
   WorldGenerationComputeCommitReport commit(WorldGenerationComputeTicket ticket,
       WorldGenerationComputeInputIdentity const& liveIdentity, uint64_t liveInputFingerprint,
       WorldGenerationComputeResult* out = nullptr);
+
+  struct CommitBatchItem {
+    WorldGenerationComputeTicket ticket;
+    WorldGenerationComputeInputIdentity liveIdentity;
+    uint64_t liveInputFingerprint = 0;
+  };
+
+  // Commit many ready tickets; each item is independent (no partial rollback).
+  List<WorldGenerationComputeCommitReport> commitBatch(List<CommitBatchItem> items,
+      List<WorldGenerationComputeResult>* outs = nullptr);
 
   static List<uint32_t> runKernel(WorldGenerationComputeKernel kernel, uint32_t kernelVersion,
       List<uint32_t> const& input, uint32_t parameter);

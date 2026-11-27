@@ -408,6 +408,79 @@ TEST(WorldGenerationComputeTest, DenseUint32AndOrMulExactCpuAndShadow) {
 #endif
 }
 
+TEST(WorldGenerationComputeTest, CommitBatchAcceptsIndependentTickets) {
+  WorldGenerationComputeService service;
+  auto inputA = sampleInput();
+  auto inputB = edgeCorpus();
+  uint64_t fpA = WorldGenerationComputeService::fingerprintInput(inputA);
+  uint64_t fpB = WorldGenerationComputeService::fingerprintInput(inputB);
+  auto ticketA = service.submit(makeIdentity(160), inputA, 1u);
+  auto ticketB = service.submit(makeIdentity(161), inputB, 2u);
+  ASSERT_TRUE(ticketA);
+  ASSERT_TRUE(ticketB);
+
+  List<WorldGenerationComputeService::CommitBatchItem> items;
+  WorldGenerationComputeService::CommitBatchItem a;
+  a.ticket = *ticketA;
+  a.liveIdentity = makeIdentity(160);
+  a.liveInputFingerprint = fpA;
+  items.append(a);
+  WorldGenerationComputeService::CommitBatchItem b;
+  b.ticket = *ticketB;
+  b.liveIdentity = makeIdentity(161);
+  b.liveInputFingerprint = fpB ^ 1u; // stale on purpose
+  items.append(b);
+
+  List<WorldGenerationComputeResult> outs;
+  auto reports = service.commitBatch(std::move(items), &outs);
+  ASSERT_EQ(2u, reports.size());
+  ASSERT_EQ(2u, outs.size());
+  EXPECT_EQ(WorldGenerationComputeCommitVerdict::Accepted, reports[0].verdict);
+  EXPECT_EQ(inputA[0] ^ 1u, outs[0].values[0]);
+  EXPECT_EQ(WorldGenerationComputeCommitVerdict::StaleInput, reports[1].verdict);
+  EXPECT_TRUE(outs[1].values.empty());
+}
+
+TEST(WorldGenerationComputeTest, ApprovedRngStreamPreservesOrder) {
+  // GPU-04: explicit streams only; same seed/streamId/counter → same sequence.
+  WorldGenerationComputeRngStream a;
+  a.seed = 0xcafef00dull;
+  a.streamId = 7;
+  WorldGenerationComputeRngStream b = a;
+  auto seqA = WorldGenerationComputeService::fillRng(a, 8);
+  auto seqB = WorldGenerationComputeService::fillRng(b, 8);
+  ASSERT_EQ(8u, seqA.size());
+  for (size_t i = 0; i < seqA.size(); ++i)
+    EXPECT_EQ(seqA[i], seqB[i]) << i;
+  EXPECT_EQ(8u, a.counter);
+  EXPECT_EQ(8u, b.counter);
+
+  WorldGenerationComputeRngStream c;
+  c.seed = a.seed;
+  c.streamId = 8; // different approved channel
+  auto seqC = WorldGenerationComputeService::fillRng(c, 8);
+  bool differed = false;
+  for (size_t i = 0; i < seqA.size(); ++i) {
+    if (seqA[i] != seqC[i])
+      differed = true;
+  }
+  EXPECT_TRUE(differed);
+
+  // Feed RNG into dense kernel + commit fingerprint path without assets.
+  WorldGenerationComputeService service;
+  WorldGenerationComputeRngStream stream;
+  stream.seed = 1;
+  stream.streamId = 1;
+  auto input = WorldGenerationComputeService::fillRng(stream, 4);
+  uint64_t fp = WorldGenerationComputeService::fingerprintInput(input);
+  auto ticket = service.submit(makeIdentity(150), input, 0x11u);
+  ASSERT_TRUE(ticket);
+  WorldGenerationComputeResult result;
+  EXPECT_EQ(WorldGenerationComputeCommitVerdict::Accepted,
+      service.commit(*ticket, makeIdentity(150), fp, &result).verdict);
+  EXPECT_EQ(input[0] ^ 0x11u, result.values[0]);
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32MinMaxSubExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();

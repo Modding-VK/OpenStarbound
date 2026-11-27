@@ -476,6 +476,26 @@ uint64_t WorldGenerationComputeService::fingerprintInput(List<uint32_t> const& i
   return hash;
 }
 
+uint32_t WorldGenerationComputeService::drawRng(WorldGenerationComputeRngStream& stream) noexcept {
+  // SplitMix64-style step over (seed, streamId, counter); exact uint32 lane.
+  uint64_t z = stream.seed + 0x9e3779b97f4a7c15ull
+      + ((uint64_t)stream.streamId << 1) + stream.counter;
+  z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ull;
+  z = (z ^ (z >> 27)) * 0x94d049bb133111ebull;
+  z = z ^ (z >> 31);
+  ++stream.counter;
+  return (uint32_t)z;
+}
+
+List<uint32_t> WorldGenerationComputeService::fillRng(
+    WorldGenerationComputeRngStream& stream, size_t count) {
+  List<uint32_t> out;
+  out.reserve(count);
+  for (size_t i = 0; i < count; ++i)
+    out.append(drawRng(stream));
+  return out;
+}
+
 WorldGenerationComputeCommitReport WorldGenerationComputeService::commit(
     WorldGenerationComputeTicket ticket, WorldGenerationComputeInputIdentity const& liveIdentity,
     uint64_t liveInputFingerprint, WorldGenerationComputeResult* out) {
@@ -558,6 +578,24 @@ WorldGenerationComputeCommitReport WorldGenerationComputeService::commit(
   if (report.verdict != WorldGenerationComputeCommitVerdict::Accepted && out)
     *out = WorldGenerationComputeResult{};
   return report;
+}
+
+List<WorldGenerationComputeCommitReport> WorldGenerationComputeService::commitBatch(
+    List<CommitBatchItem> items, List<WorldGenerationComputeResult>* outs) {
+  List<WorldGenerationComputeCommitReport> reports;
+  reports.reserve(items.size());
+  if (outs) {
+    outs->clear();
+    outs->reserve(items.size());
+  }
+  for (auto const& item : items) {
+    WorldGenerationComputeResult result;
+    auto report = commit(item.ticket, item.liveIdentity, item.liveInputFingerprint, &result);
+    reports.append(report);
+    if (outs)
+      outs->append(std::move(result));
+  }
+  return reports;
 }
 
 WorldGenerationComputeShadowReport WorldGenerationComputeService::compareShadowBuffers(
