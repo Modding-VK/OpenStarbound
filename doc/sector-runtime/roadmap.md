@@ -434,14 +434,18 @@ Depende de H0 para identidade e comparação.
   [cancel/mailbox](../sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md)).
 - [ ] CPU-01: primeiro recorte proprietário de custom terrain em 25%; completar
   contexto privado com dependências/RNG de inicialização auditados e admissão.
-- [ ] CPU-02 e MD-01: candidatos leves e resultado vazio versionado.
+- [x] CPU-02 e MD-01: candidatos leves e resultado vazio versionado
+  (primeiro recorte 25% sombra; ver
+  [prepared sector](../sector-runtime-h1-prepared-sector-2026-11-27.md)).
 - [x] CPU-03: capacidade processual e granularidade inicial
   (primeiro recorte 25% sombra; ver
   [cancel/mailbox/scheduler](../sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md)).
 - [x] WT-01: drenagem produtiva via mailbox sombra (25%; mesmo relatório).
 - [x] WT-02: orçamento e motivos de saída explícitos
   (primeiro recorte 25% sombra via `runPass`; mesmo relatório).
-- [ ] CPU-05: primeira política baseada em fila executável e custo observado.
+- [x] CPU-05: primeira política baseada em fila executável e custo observado
+  (primeiro recorte 25% sombra; ver
+  [resource governor](../sector-runtime-h1-resource-governor-2026-11-27.md)).
 
 Saída: mais tarefas independentes em voo, menor pronto→commit e equivalência
 no streaming. Publicação mantém a ordem autoritativa aprovada.

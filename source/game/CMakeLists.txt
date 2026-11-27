@@ -178,6 +178,8 @@ SET (star_game_HEADERS
     StarWorldGenerationExecutivePriority.hpp
     StarWorldGenerationExecutiveMailbox.hpp
     StarWorldGenerationExecutiveScheduler.hpp
+    StarWorldGenerationPreparedSector.hpp
+    StarWorldGenerationResourceGovernor.hpp
     StarWorldGenerationMemory.hpp
     StarWorldGenerationMemoryEnvelope.hpp
     StarWorldGenerationMemoryPressure.hpp
@@ -493,6 +495,8 @@ SET (star_game_SOURCES
     StarWorldGenerationExecutivePriority.cpp
     StarWorldGenerationExecutiveMailbox.cpp
     StarWorldGenerationExecutiveScheduler.cpp
+    StarWorldGenerationPreparedSector.cpp
+    StarWorldGenerationResourceGovernor.cpp
     StarWorldGenerationMemory.cpp
     StarWorldGenerationBaseTiles.cpp
     StarWorldGenerationCustomTerrain.cpp

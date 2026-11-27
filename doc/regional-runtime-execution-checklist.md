@@ -39,7 +39,8 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa nesta branch H1: o relatório atual é
-[Executive cancel/mailbox/scheduler](sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md).
+[Resource governor](sector-runtime-h1-resource-governor-2026-11-27.md)
+(primeiro marco de todos os contratos de entrada H1 em sombra).
 H0 em `Experimental` permanece com
 [Concurrent ocean](sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
 e o [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).

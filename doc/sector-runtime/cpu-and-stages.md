@@ -141,6 +141,11 @@ BaseTiles e seleção de candidatos percorrem dados semelhantes; compartilhar
 cálculo e cache local antes de criar mais produtores independentes. Finalize
 continua filtrando pelo `dungeonId` e pelos efeitos reais da geração anterior.
 
+Primeiro recorte H1 sombra (27/11/2026): `WorldGenerationPreparedSectorStore`
+guarda Empty/OrderedCandidates versionados e compartilháveis; sem BaseTiles
+no produto nem install. Ver
+[prepared sector](../sector-runtime-h1-prepared-sector-2026-11-27.md).
+
 ## CPU-03 — Executor processual e granularidade
 
 Coordenar a capacidade CPU usada pelos mundos, decode, compressão e tarefas
@@ -202,6 +207,10 @@ e manual. Nomes são conceitos de produto, não chaves atuais. Alto throughput
 aceita consumo elevado conforme alvos escolhidos, sem exigir mudança do
 `dt`. GPU integrada e render também disputam banda/memória; medir a carga
 combinada é parte do controle.
+
+Primeiro recorte H1 sombra (27/11/2026): `WorldGenerationResourceGovernor`
+mapeia observação → orçamento de passagem. Ver
+[resource governor](../sector-runtime-h1-resource-governor-2026-11-27.md).
 
 ## Melhorias esperadas e aceitação
 
