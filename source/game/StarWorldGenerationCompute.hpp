@@ -42,7 +42,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32Popcount = 16, // population count; parameter ignored
   DenseUint32Eq = 17, // value == parameter ? 0xffffffff : 0
   DenseUint32Ne = 18, // value != parameter ? 0xffffffff : 0
-  DenseUint32BitReverse = 19 // bitfield reverse; parameter ignored
+  DenseUint32BitReverse = 19, // bitfield reverse; parameter ignored
+  DenseUint32Lt = 20, // unsigned value < parameter ? 0xffffffff : 0
+  DenseUint32Leu = 21, // unsigned value <= parameter ? 0xffffffff : 0
+  DenseUint32AbsDiff = 22 // unsigned |value - parameter|
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
