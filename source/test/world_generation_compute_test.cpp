@@ -1552,6 +1552,32 @@ TEST(WorldGenerationComputeTest, AnyFailedOpenTicketsTracksFailedPresence) {
 
 
 
+TEST(WorldGenerationComputeTest, ListTerminalOpenTicketsByKernelReturnsNonPendingMatches) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  auto xorA = service.submit(
+      makeIdentity(1670, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u);
+  auto xorB = service.submit(
+      makeIdentity(1671, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{2u}, 0u);
+  auto add = service.submit(
+      makeIdentity(1672, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{3u}, 0u);
+  ASSERT_TRUE((bool)xorA);
+  ASSERT_TRUE((bool)xorB);
+  ASSERT_TRUE((bool)add);
+  EXPECT_TRUE(service.complete(*xorA));
+  EXPECT_TRUE(service.cancel(*xorB));
+  auto terminalXor =
+      service.listTerminalOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor);
+  ASSERT_EQ(2u, terminalXor.size());
+  EXPECT_TRUE(terminalXor[0] == *xorA || terminalXor[0] == *xorB);
+  EXPECT_TRUE(terminalXor[1] == *xorA || terminalXor[1] == *xorB);
+  EXPECT_NE(terminalXor[0].id, terminalXor[1].id);
+  EXPECT_TRUE(
+      service.listTerminalOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add)
+          .empty());
+  EXPECT_EQ(1u, service.inFlightByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+}
+
 TEST(WorldGenerationComputeTest, AnyTerminalOpenKernelsTracksTerminalKernelPresence) {
   WorldGenerationComputeService service;
   service.setDeferredCpuCompletion(true);

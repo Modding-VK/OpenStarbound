@@ -530,6 +530,9 @@ public:
   // Cancelled open tickets whose identity.kernel matches (asset-free observation).
   List<WorldGenerationComputeTicket> listCancelledOpenTicketsByKernel(
       WorldGenerationComputeKernel kernel) const;
+  // Terminal open tickets whose identity.kernel matches (asset-free observation).
+  List<WorldGenerationComputeTicket> listTerminalOpenTicketsByKernel(
+      WorldGenerationComputeKernel kernel) const;
   // Pending open tickets whose identity.kernel matches (asset-free observation).
   List<WorldGenerationComputeTicket> listPendingOpenTicketsByKernel(
       WorldGenerationComputeKernel kernel) const;
