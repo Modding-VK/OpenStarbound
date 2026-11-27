@@ -19,4 +19,6 @@ ASan/UBSan: 1×10; **790/790** contrato.
 
 ## Próximo passo
 
-Gates H0 restantes antes de H1. Não disparar Actions.
+Root em
+[abandono Root terrestre](sector-runtime-h0-sector-shadow-preparation-abandon-root-2026-11-26.md).
+Segue gates H0 antes de H1. Não disparar Actions.
