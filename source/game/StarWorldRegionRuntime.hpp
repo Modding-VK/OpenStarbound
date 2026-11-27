@@ -43,6 +43,7 @@ public:
   WorldRegionThreadStubStopResult beginAuthoritativeThreadJoin(Vec2U const& region);
   WorldRegionThreadStubStopResult completeAuthoritativeThreadJoin(Vec2U const& region);
   WorldRegionThreadStubPhase threadStubPhase(Vec2U const& region) const;
+  uint64_t threadStubCpuTicks(Vec2U const& region) const;
   void setThreadStubCreationAllowed(bool allowed);
 
   WorldRegionBorderCaptureResult publishBorder(Vec2U const& region, List<WorldRegionBorderCell> cells);

@@ -512,9 +512,12 @@ propriedade e efeitos; não é liberada por um kernel GPU aprovado.
   sem thread OS; maturidade permanece 25%.
 - [x] R1: stub sombra de thread OS
   ([relatório](../sector-runtime-r1-thread-stub-shadow-2026-11-27.md));
-  sem pthread real; maturidade permanece 25%.
-- [ ] R1: REG-01/02 restantes + MOD-01 — pthread real / WorldStorage,
-  estado vivo e equivalência integrada.
+  maturidade permanece 25%.
+- [x] R1: stub OS thread em CPU (`Thread::invoke`)
+  ([relatório](../sector-runtime-r1-thread-stub-cpu-2026-11-27.md));
+  sem WorldServer vivo; maturidade permanece 25%.
+- [ ] R1: REG-01/02 restantes + MOD-01 — WorldStorage / mundo vivo
+  e equivalência integrada.
 - [ ] R1: WT-05 restante — integração WorldServerThread / legado.
 - [ ] R1/H3: IO-03 restante — journal/.world e recuperação pós-falha.
 - [ ] R2: REG-03/04/05 — intenções multirregião, handoff, falhas e custo real.

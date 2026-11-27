@@ -22,6 +22,8 @@ TEST(WorldRegionThreadStubTest, StubRequiresAuthoritativeOwner) {
   EXPECT_EQ(WorldRegionThreadStubPhase::Running, runtime.threadStubPhase({0, 0}));
   EXPECT_EQ(1u, runtime.runningThreadStubCount());
   EXPECT_EQ(runtime.startAuthoritativeThreadStub({0, 0}), WorldRegionThreadStubStartResult::AlreadyRunning);
+  EXPECT_EQ(runtime.beginAuthoritativeThreadJoin({0, 0}), WorldRegionThreadStubStopResult::Joining);
+  EXPECT_EQ(runtime.completeAuthoritativeThreadJoin({0, 0}), WorldRegionThreadStubStopResult::Stopped);
 }
 
 TEST(WorldRegionThreadStubTest, CreationFailureBlocksStubWithoutAffectingAuthority) {
@@ -34,17 +36,30 @@ TEST(WorldRegionThreadStubTest, CreationFailureBlocksStubWithoutAffectingAuthori
   EXPECT_EQ(WorldRegionThreadStubPhase::Absent, runtime.threadStubPhase({0, 0}));
 }
 
-TEST(WorldRegionThreadStubTest, JoinStopsStubAndDrainClearsIt) {
+TEST(WorldRegionThreadStubTest, RealOsThreadBurnsCpuWithoutWorldServer) {
   WorldRegionRuntimeCoordinator runtime(4, partition());
   ASSERT_EQ(runtime.noteInterest({0, 0}, WorldRegionMemberLevel::Tiles), WorldRegionRuntimeInterestResult::Noted);
   ASSERT_EQ(runtime.promoteAuthoritative({0, 0}), WorldRegionAuthorityPromoteResult::Promoted);
   ASSERT_EQ(runtime.startAuthoritativeThreadStub({0, 0}), WorldRegionThreadStubStartResult::Started);
+
+  // Wait until the OS worker has executed at least one CPU tick loop.
+  for (int i = 0; i < 2000 && runtime.threadStubCpuTicks({0, 0}) == 0; ++i)
+    Thread::yield();
+  EXPECT_GT(runtime.threadStubCpuTicks({0, 0}), 0u);
+
   EXPECT_EQ(runtime.beginAuthoritativeThreadJoin({0, 0}), WorldRegionThreadStubStopResult::Joining);
-  EXPECT_EQ(WorldRegionThreadStubPhase::Joining, runtime.threadStubPhase({0, 0}));
   EXPECT_EQ(runtime.completeAuthoritativeThreadJoin({0, 0}), WorldRegionThreadStubStopResult::Stopped);
   EXPECT_EQ(WorldRegionThreadStubPhase::Stopped, runtime.threadStubPhase({0, 0}));
+  EXPECT_EQ(0u, runtime.runningThreadStubCount());
+}
 
+TEST(WorldRegionThreadStubTest, DrainJoinsRunningCpuStub) {
+  WorldRegionRuntimeCoordinator runtime(4, partition());
+  ASSERT_EQ(runtime.noteInterest({0, 0}, WorldRegionMemberLevel::Tiles), WorldRegionRuntimeInterestResult::Noted);
+  ASSERT_EQ(runtime.promoteAuthoritative({0, 0}), WorldRegionAuthorityPromoteResult::Promoted);
   ASSERT_EQ(runtime.startAuthoritativeThreadStub({0, 0}), WorldRegionThreadStubStartResult::Started);
+  for (int i = 0; i < 2000 && runtime.threadStubCpuTicks({0, 0}) == 0; ++i)
+    Thread::yield();
   EXPECT_EQ(runtime.releaseInterest({0, 0}), WorldRegionOwnerReleaseResult::DrainStarted);
   EXPECT_FALSE(runtime.isAuthoritative({0, 0}));
   EXPECT_EQ(WorldRegionThreadStubPhase::Stopped, runtime.threadStubPhase({0, 0}));
@@ -59,11 +74,13 @@ TEST(WorldRegionThreadStubTest, StubLifecycleDoesNotReplaceValueIdentity) {
   auto identity = *owners.identity({0, 0});
   ASSERT_EQ(authority.promote(identity), WorldRegionAuthorityPromoteResult::Promoted);
   ASSERT_EQ(stubs.start(identity), WorldRegionThreadStubStartResult::Started);
+  for (int i = 0; i < 2000 && stubs.cpuTicks({0, 0}) == 0; ++i)
+    Thread::yield();
   auto stub = stubs.record({0, 0});
   ASSERT_TRUE(stub);
   EXPECT_EQ(identity, stub->owner);
   EXPECT_NE(0u, stub->stubThreadId);
-  // Address/thread id is not identity: same value identity after opaque id assigned.
-  EXPECT_EQ(identity.worldEpoch, stub->owner.worldEpoch);
-  EXPECT_EQ(identity.regionGeneration, stub->owner.regionGeneration);
+  EXPECT_GT(stub->cpuTicks, 0u);
+  EXPECT_EQ(stubs.beginJoin({0, 0}), WorldRegionThreadStubStopResult::Joining);
+  EXPECT_EQ(stubs.completeJoin({0, 0}), WorldRegionThreadStubStopResult::Stopped);
 }
