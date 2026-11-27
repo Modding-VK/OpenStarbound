@@ -72,7 +72,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32ExtractByte = 46, // (value >> ((parameter & 3) * 8)) & 0xff
   DenseUint32BitSet = 47, // value | (1u << (parameter & 31))
   DenseUint32BitClear = 48, // value & ~(1u << (parameter & 31))
-  DenseUint32BitToggle = 49 // value ^ (1u << (parameter & 31))
+  DenseUint32BitToggle = 49, // value ^ (1u << (parameter & 31))
+  DenseUint32Neg = 50, // 0 - value (two's complement); parameter ignored
+  DenseUint32Abs = 51, // signed absolute value as uint32 bits; parameter ignored
+  DenseUint32RolBytes = 52 // rotate left by 8 * (parameter & 3) bits
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
