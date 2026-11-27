@@ -39,11 +39,10 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[Composto vs região Root](sector-runtime-h0-composite-root-compare-2026-11-26.md),
+[Composto vs BaseTiles terrestre](sector-runtime-h0-composite-terrestrial-basetiles-2026-11-26.md),
 com antecedentes em
-[Contexto composto](sector-runtime-h0-composite-context-2026-11-26.md),
-[Contexto de seletores](sector-runtime-h0-selector-context-2026-11-26.md),
-[Referência do builder terrestre](sector-runtime-h0-terrestrial-reference-2026-11-10.md) e
+[Composto vs região Root](sector-runtime-h0-composite-root-compare-2026-11-26.md),
+[Contexto composto](sector-runtime-h0-composite-context-2026-11-26.md) e
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço

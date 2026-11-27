@@ -1034,6 +1034,59 @@ TEST_F(WorldGenerationRealBlockInfoTest, TerrestrialBuilderWithMinimalAssetsProd
   sector(*world, second, EmptyLiquidId, false);
 }
 
+TEST_F(WorldGenerationRealBlockInfoTest, CompositeContextStaticInputsMatchTerrestrialBaseTiles) {
+  writeTerrestrialAssets();
+  auto r = root();
+  TerrestrialWorldParameters params{};
+  setupTerrestrial(params);
+  auto first = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto second = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto world = planet(first);
+  world->addCustomTerrainRegion(PolyF(RectF::withSize({2, 2}, {6, 6})));
+  auto revision = world->generationRevision();
+
+  WorldGenerationSelectorContextIdentity selectors;
+  selectors.worldEpoch = 1;
+  selectors.sequence = 1;
+  selectors.templateRevision = revision;
+  selectors.worldWidth = 64;
+  selectors.baseHeight = 16;
+  selectors.regionSeed = 42;
+
+  WorldGenerationBaseTilesIdentity baseTiles;
+  baseTiles.task = {1, 1, {0, 0}, {0, 0}, WorldGenerationTaskStage::BaseTiles};
+  baseTiles.tileRevision = 1;
+  baseTiles.templateRevision = revision;
+  baseTiles.worldSize = {64, 64};
+  baseTiles.tileRegion = RectI(0, 0, int(WorldSectorSize), int(WorldSectorSize));
+
+  Random::init(918);
+  auto context = WorldGenerationCompositeContext::tryCapture(ledger, selectors, baseTiles, *world);
+  ASSERT_TRUE(context.has_value());
+  EXPECT_TRUE(context->matches(selectors, baseTiles));
+  EXPECT_EQ(1u, context->staticInputs().customTerrainRegionCount());
+
+  RealSource candidate{context->staticInputs(), second};
+  auto materials = Root::singleton().materialDatabase();
+  WorldGenerationLookupResolver resolver{*world, *materials};
+  auto expected = std::make_unique<ServerTileSectorArray::Array>();
+  auto actual = std::make_unique<ServerTileSectorArray::Array>();
+  for (int x = 0; x != 32; ++x) for (int y = 0; y != 32; ++y) {
+    auto normal = world->blockInfo(x, y), captured = candidate.sample(x, y);
+    EXPECT_EQ(fields(normal), fields(captured)) << x << ',' << y;
+    initialize((*expected)(x, y)); initialize((*actual)(x, y));
+    applyWorldGenerationBaseTile((*expected)(x, y), tileInput(normal, y), resolver);
+    applyWorldGenerationBaseTile((*actual)(x, y), tileInput(captured, y), resolver);
+  }
+  auto comparison = compareWorldGenerationBaseTiles(*expected, *actual, context->baseTilesIdentity());
+  EXPECT_TRUE(comparison.equal());
+  EXPECT_EQ(1024u, comparison.comparedTiles);
+
+  world.reset();
+  EXPECT_EQ(bits(0.75f), bits(context->configFloat("biomeTransitionThreshold", 0)));
+  EXPECT_GT(context->customTerrainWeighting(4, 4).second, 0);
+}
+
 TEST_F(WorldGenerationRealBlockInfoTest, TerrestrialLayoutJsonRoundTripPreservesBlockInfoAndBaseTiles) {
   writeTerrestrialAssets(); auto r = root(); TerrestrialWorldParameters params{}; setupTerrestrial(params);
   auto first = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
