@@ -9,7 +9,7 @@ using namespace Star;
 
 TEST(WorldGenerationEffectBoundaryTest, CatalogSatisfiesH0Invariants) {
   EXPECT_TRUE(worldGenerationEffectBoundaryCatalogValid());
-  EXPECT_GE(worldGenerationEffectBoundaryCount(), 45u);
+  EXPECT_GE(worldGenerationEffectBoundaryCount(), 70u);
 }
 
 TEST(WorldGenerationEffectBoundaryTest, IdsAreUniqueAndFindable) {
@@ -93,12 +93,30 @@ TEST(WorldGenerationEffectBoundaryTest, NoMultiRegionEffectInH0Catalog) {
 TEST(WorldGenerationEffectBoundaryTest, ExpandedSurfacesHaveCoverage) {
   char const* surfaces[] = {"BaseTiles", "SectorShadow", "Memory", "Distribution", "Planning", "Json",
       "Payload", "Lookup", "Tasks", "SelectorContext", "WorldRegion", "Perlin", "VAL-02", "VAL-01",
-      "Terrestrial", "RNG", "MicroDungeon"};
+      "Terrestrial", "RNG", "MicroDungeon", "Temporary", "Container", "Assets", "Root", "BlockInfo",
+      "Sampling", "WorkerCache", "Config", "PlacementQueue", "DAG-01", "DAG-04"};
   for (auto surface : surfaces) {
     EXPECT_GE(worldGenerationEffectBoundaryCountForSurface(surface), 1u) << surface;
   }
   EXPECT_EQ(0u, worldGenerationEffectBoundaryCountForSurface(nullptr));
   EXPECT_EQ(0u, worldGenerationEffectBoundaryCountForSurface("MissingSurface"));
+}
+
+TEST(WorldGenerationEffectBoundaryTest, RemainingH0FoundationSurfacesClassified) {
+  for (auto id : {"temporary-storage-copy", "container-factor-query", "memory-envelope-classify",
+           "memory-atomic-opt-in", "memory-composite-basetiles", "memory-variable-retry",
+           "memory-capacity-signal", "base-tiles-identity-ticket", "lookup-real-readers",
+           "assets-clear-cache", "root-reload-rebuild", "block-info-static-inputs",
+           "real-sector-sampling", "worker-cache-thread-local", "hash-collision-gate",
+           "config-lazy-json", "sector-shadow-ocean", "sector-shadow-island",
+           "sector-shadow-noise-cache", "dependency-identity", "pass-continuation"}) {
+    auto entry = worldGenerationEffectBoundaryFind(id);
+    ASSERT_TRUE(entry) << id;
+    EXPECT_FALSE(entry->kind == WorldGenerationEffectKind::MultiRegionEffect) << id;
+  }
+  EXPECT_GE(worldGenerationEffectBoundaryCountForSurface("Memory"), 6u);
+  EXPECT_GE(worldGenerationEffectBoundaryCountForSurface("SectorShadow"), 5u);
+  EXPECT_GE(worldGenerationEffectBoundaryCountForSurface("BaseTiles"), 6u);
 }
 
 TEST(WorldGenerationEffectBoundaryTest, StreamingPassIsNotRealBenchmark) {

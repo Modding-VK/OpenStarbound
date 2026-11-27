@@ -1,12 +1,12 @@
 # Progressão do projeto — percentuais e ordem das tarefas
 
 Atualizado em **27/11/2026**. Branch: `cursor/h0-foundations-9f77`.
-Base inspecionada: `be58fca3`;
-última implementação H0: 2ª expansão MOD-01 EffectBoundary
+Base inspecionada: `17176993`;
+última implementação H0: inventário razoável EffectBoundary MOD-01
 (ver relatório MOD-01).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h0-effect-boundary-expand2-2026-11-27.md)
+· [Último relatório técnico](../sector-runtime-h0-effect-boundary-complete-2026-11-27.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -23,7 +23,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **3,6%** — 7 marcos verificados de 196 |
 | Contratos com avanço registrado | **7 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | EffectBoundary 10/10 + CandidateSequence 13/13 +134 RealBlockInfo; ASan/UBSan; gates H0 |
+| Última evidência de testes | EffectBoundary 11/11 (~74 entradas) + CandidateSequence 13/13 +134 RealBlockInfo; ASan/UBSan |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,6% não significam que o jogo esteja só 3,6% pronto.** O runtime anterior
@@ -121,10 +121,9 @@ autoritativa. GPU é opcional, com fallback CPU completo.
    BiomeItem completo em diagnóstico; falta planeta/mods e streaming.
    Manter os controles de colisões de hash como gate de qualquer
    eliminação de cópias.
-3. **MOD-01:** catálogo `WorldGenerationEffectBoundary` classifica PureKernel/
-   PreparedDependency/AuthoritativeCallback no recorte H0; defaults auditados
-   (Perlin/biomeTransition/Sky/baseHeight) ficam sinalizados, não corrigidos.
-   Falta consumo/reconstrução completa do contexto e mais superfícies.
+3. **MOD-01:** inventário razoável de superfícies no catálogo EffectBoundary
+   (~74 entradas); defaults auditados sinalizados, não corrigidos. Falta
+   consumo/reconstrução completa do contexto (próximo profundo) — não VAL-01.
 4. **VAL-01 + validação de DAG-01/DAG-04:** executar streaming com rota, save,
    config, assets/mods e estado inicial fixos; medir setores inéditos entregues/s,
    interesse→entrega e resposta do update/frame. Não pedir apenas outra run
@@ -151,7 +150,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 2 | H0 | [DAG-04](dependency-scheduler.md) | Conclusões e progresso dentro da passagem | 25% | Mailbox executiva/reação a conclusões; continuação/avanço já corrigidos no recorte |
 | 3 | H0 | [RAM-01](memory-and-prefetch.md) | Reserva e contabilização de bytes | 25% | Json retido medido/deduplicado no contexto estático; polígonos/wrappers e admissão/contexto/consumidor globais pendentes |
 | 4 | H0 | [VAL-02](validation-and-telemetry.md) | Comparador de outputs e produtores controlados | 25% | BaseTiles + sombra 2×2 + candidatos BiomeItem (incl. TileDamage); falta planeta/mods e streaming |
-| 5 | H0 | [MOD-01](compatibility.md) | Classificar operações por efeito | 25% | EffectBoundary ≥45 (Memory/Lookup/Tasks/Terrestrial/RNG/MD…); falta consumo/reconstrução completa do contexto |
+| 5 | H0 | [MOD-01](compatibility.md) | Classificar operações por efeito | 25% | EffectBoundary inventário razoável (~74); falta consumo/reconstrução completa do contexto |
 | 6 | H0 | [VAL-01](validation-and-telemetry.md) | Benchmark de streaming | 25% | Rota/save/config fixos, streaming real e A/B equivalente |
 | 7 | H1 | [DAG-02](dependency-scheduler.md) | Grafo persistente e demanda compartilhada | 0% | Grafo executivo em sombra, separado das dependências de publicação |
 | 8 | H1 | [DAG-03](dependency-scheduler.md) | Prioridade, justiça e distância correta | 0% | Prioridade herdada e justiça entre consumidores com wrap |
@@ -322,6 +321,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | MOD-01 EffectBoundary | Catálogo PureKernel/Prepared/Authoritative + audits default; 6 testes contract. Sem normalizar defaults. Sem novo marco completo | 3,6% |
 | 27/11/2026 | MOD-01 EffectBoundary expand | Memory/Lookup/Tasks/Json/Planning/Selector/WorldRegion; 9 testes; countForSurface. Sem novo marco completo | 3,6% |
 | 27/11/2026 | MOD-01 EffectBoundary expand2 | Pass harness classificado (não VAL-01), Terrestrial/RNG/MD apply; 10 testes. Sem novo marco completo | 3,6% |
+| 27/11/2026 | MOD-01 EffectBoundary complete | Inventário razoável ~74 entradas / ~28 superfícies; 11 testes. Catálogo esgotado; contexto profundo pendente | 3,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

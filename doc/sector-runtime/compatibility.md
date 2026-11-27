@@ -238,9 +238,10 @@ Root, fila/handoff). PureKernel não invoca script nem muta o mundo vivo;
 callbacks autoritativos exigem thread dona; MultiRegionEffect fica fora do
 catálogo H0. `readsUninitializedDefault` registra biomeTransition/horizonClouds/
 baseHeight/Perlin Uninitialized sem normalizar constructors. A
-[expansão](../sector-runtime-h0-effect-boundary-expand-2026-11-27.md) acrescenta
-Memory/Lookup/Tasks/Json/Planning/Selector/WorldRegion e contagem por superfície.
-Não é inventário completo do motor nem autorização de workers Lua.
+[expansão](../sector-runtime-h0-effect-boundary-expand-2026-11-27.md) e o
+[fecho razoável](../sector-runtime-h0-effect-boundary-complete-2026-11-27.md)
+cobrem Memory/Lookup/Tasks/Json/Planning/Selector/Terrestrial/RNG/MD/Sampling
+(~74 entradas). Não é inventário completo do motor nem autorização de workers Lua.
 
 O [ensaio seguinte de amostragem real](../sector-runtime-h0-real-sector-sampling-2026-11-10.md)
 reloca 23 corpos herdados sem alteração, incluindo construtores/consulta normal
