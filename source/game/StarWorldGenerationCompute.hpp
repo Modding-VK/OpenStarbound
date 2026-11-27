@@ -132,7 +132,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32ExpandLowNibbles = 106, // expand low 16 packed nibbles into low half of each byte
   DenseUint32ExpandHighNibbles = 107, // expand low 16 packed nibbles into high half of each byte
   DenseUint32ReplaceNibble = 108, // replace nibbles==(parameter&0xf) with (parameter>>8)&0xf
-  DenseUint32MaskNibbles = 109 // keep nibbles whose bit in (parameter&0xff) is set; clear others
+  DenseUint32MaskNibbles = 109, // keep nibbles whose bit in (parameter&0xff) is set; clear others
+  DenseUint32AllNibblesEqual = 110, // 0xffffffff if all eight nibbles equal, else 0
+  DenseUint32NibbleRange = 111, // max(nibbles) - min(nibbles); parameter ignored
+  DenseUint32BroadcastNibbleAt = 112 // broadcast nibble (parameter & 7) across all nibbles
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -354,6 +357,10 @@ public:
   // GPU-02: poll+discard Cancelled tickets whose identity.kernel matches (owner-thread).
   // Does not complete Pending; leaves Ready/Failed/Pending untouched.
   size_t discardCancelledOpenTicketsByKernel(WorldGenerationComputeKernel kernel);
+
+  // GPU-02: poll+discard Ready/Failed/Cancelled tickets for one kernel (owner-thread).
+  // Does not complete Pending.
+  size_t discardTerminalOpenTicketsByKernel(WorldGenerationComputeKernel kernel);
 
   // GPU-02 accounting for RAM-01 consumers (asset-free observation only).
   WorldGenerationComputeStagingSnapshot stagingSnapshot() const;
