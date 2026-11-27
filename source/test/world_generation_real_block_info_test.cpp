@@ -4854,6 +4854,455 @@ TEST_F(WorldGenerationRealBlockInfoTest, ConcurrentVerticalAdjacentSectorShadowT
   EXPECT_EQ(before.resources - 2, ledger.snapshot().resources);
 }
 
+
+TEST_F(WorldGenerationRealBlockInfoTest, DiagonalAdjacentSectorShadowProducesPrivateBaseTilesThenDiscards) {
+  writeTerrestrialAssets();
+  auto r = root();
+  TerrestrialWorldParameters params{};
+  setupTerrestrial(params);
+  auto first = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto second = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto world = planet(first);
+  auto revision = world->generationRevision();
+
+  WorldGenerationSelectorContextIdentity selectors;
+  selectors.worldEpoch = 1;
+  selectors.sequence = 4;
+  selectors.templateRevision = revision;
+  selectors.worldWidth = 64;
+  selectors.baseHeight = 16;
+  selectors.regionSeed = 42;
+
+  WorldGenerationBaseTilesIdentity baseTiles;
+  baseTiles.task = {1, 4, {1, 1}, {0, 0}, WorldGenerationTaskStage::BaseTiles};
+  baseTiles.tileRevision = 1;
+  baseTiles.templateRevision = revision;
+  baseTiles.worldSize = {64, 64};
+  baseTiles.tileRegion = RectI(int(WorldSectorSize), int(WorldSectorSize), int(WorldSectorSize) * 2, int(WorldSectorSize) * 2);
+
+  Random::init(918);
+  auto context = WorldGenerationCompositeContext::tryCapture(ledger, selectors, baseTiles, *world);
+  ASSERT_TRUE(context.has_value());
+  auto beforeShadow = ledger.snapshot();
+  auto shadow = WorldGenerationSectorShadow::tryAdmit(ledger, *context);
+  ASSERT_TRUE(shadow.has_value());
+  EXPECT_EQ(Vec2U(1, 1), shadow->identity().task.sector);
+  EXPECT_EQ(RectI(32, 32, 64, 64), shadow->identity().tileRegion);
+
+  RealSource candidate{context->staticInputs(), second};
+  auto materials = Root::singleton().materialDatabase();
+  WorldGenerationLookupResolver resolver{*world, *materials};
+  auto expected = std::make_unique<ServerTileSectorArray::Array>();
+  for (int x = 0; x != 32; ++x) for (int y = 0; y != 32; ++y) {
+    int wx = x + int(WorldSectorSize), wy = y + int(WorldSectorSize);
+    auto normal = world->blockInfo(wx, wy), captured = candidate.sample(wx, wy);
+    EXPECT_EQ(fields(normal), fields(captured)) << wx << ',' << wy;
+    initialize((*expected)(x, y));
+    initialize(shadow->tiles()(x, y));
+    applyWorldGenerationBaseTile((*expected)(x, y), tileInput(normal, wy), resolver);
+    applyWorldGenerationBaseTile(shadow->tiles()(x, y), tileInput(captured, wy), resolver);
+  }
+  EXPECT_TRUE(compareWorldGenerationBaseTiles(*expected, shadow->tiles(), context->baseTilesIdentity()).equal());
+  EXPECT_TRUE(shadow->matches(context->baseTilesIdentity()));
+  shadow->discard();
+  EXPECT_EQ(beforeShadow.resources, ledger.snapshot().resources);
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, DiagonalAdjacentShadowTaskHandoffRetiresStale) {
+  writeTerrestrialAssets();
+  auto r = root();
+  TerrestrialWorldParameters params{};
+  setupTerrestrial(params);
+  auto first = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto second = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto world = planet(first);
+  auto revision = world->generationRevision();
+
+  WorldGenerationTasks tasks(1, WorldRegionPartition(WorldGeometry(Vec2U{64, 64})), 1,
+      WorldGenerationSectorShadow::retainedBytes());
+  auto task = tasks.reserve({1, 1}, WorldGenerationTaskStage::BaseTiles,
+      WorldGenerationSectorShadow::retainedBytes());
+  ASSERT_TRUE(task);
+
+  WorldGenerationSelectorContextIdentity selectors;
+  selectors.worldEpoch = 1;
+  selectors.sequence = task->identity.sequence;
+  selectors.templateRevision = revision;
+  selectors.worldWidth = 64;
+  selectors.baseHeight = 16;
+  selectors.regionSeed = 42;
+
+  WorldGenerationBaseTilesIdentity baseTiles;
+  baseTiles.task = task->identity;
+  baseTiles.tileRevision = 1;
+  baseTiles.templateRevision = revision;
+  baseTiles.worldSize = {64, 64};
+  baseTiles.tileRegion = RectI(int(WorldSectorSize), int(WorldSectorSize), int(WorldSectorSize) * 2, int(WorldSectorSize) * 2);
+
+  Random::init(918);
+  auto context = WorldGenerationCompositeContext::tryCapture(ledger, selectors, baseTiles, *world);
+  ASSERT_TRUE(context.has_value());
+  auto admitted = WorldGenerationSectorShadow::tryAdmit(ledger, *context);
+  ASSERT_TRUE(admitted.has_value());
+  auto shadow = std::make_shared<WorldGenerationSectorShadow>(std::move(*admitted));
+
+  RealSource candidate{context->staticInputs(), second};
+  auto materials = Root::singleton().materialDatabase();
+  WorldGenerationLookupResolver resolver{*world, *materials};
+  auto expected = std::make_unique<ServerTileSectorArray::Array>();
+  for (int x = 0; x != 32; ++x) for (int y = 0; y != 32; ++y) {
+    int wx = x + int(WorldSectorSize), wy = y + int(WorldSectorSize);
+    auto normal = world->blockInfo(wx, wy), captured = candidate.sample(wx, wy);
+    EXPECT_EQ(fields(normal), fields(captured)) << wx << ',' << wy;
+    initialize((*expected)(x, y));
+    initialize(shadow->tiles()(x, y));
+    applyWorldGenerationBaseTile((*expected)(x, y), tileInput(normal, wy), resolver);
+    applyWorldGenerationBaseTile(shadow->tiles()(x, y), tileInput(captured, wy), resolver);
+  }
+  EXPECT_TRUE(compareWorldGenerationBaseTiles(*expected, shadow->tiles(), context->baseTilesIdentity()).equal());
+
+  WorkerPool pool("Diagonal adjacent sector shadow handoff", 1);
+  auto promise = pool.addProducer<std::shared_ptr<WorldGenerationSectorShadow>>([task, shadow] {
+    EXPECT_TRUE(task->start());
+    EXPECT_TRUE(task->ready());
+    return shadow;
+  });
+  auto owner = context->baseTilesIdentity();
+  ++owner.tileRevision;
+  auto const& result = promise.get();
+  EXPECT_FALSE(result->matches(owner));
+  EXPECT_TRUE(tasks.retire(task, WorldGenerationTaskOutcome::Stale));
+  pool.finish();
+  result->discard();
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, DiagonalAdjacentShadowTaskInvalidateDiscardsFilled) {
+  writeTerrestrialAssets();
+  auto r = root();
+  TerrestrialWorldParameters params{};
+  setupTerrestrial(params);
+  auto first = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto second = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto world = planet(first);
+  auto revision = world->generationRevision();
+
+  WorldGenerationTasks tasks(1, WorldRegionPartition(WorldGeometry(Vec2U{64, 64})), 1,
+      WorldGenerationSectorShadow::retainedBytes());
+  auto task = tasks.reserve({1, 1}, WorldGenerationTaskStage::BaseTiles,
+      WorldGenerationSectorShadow::retainedBytes());
+  ASSERT_TRUE(task);
+
+  WorldGenerationSelectorContextIdentity selectors;
+  selectors.worldEpoch = 1;
+  selectors.sequence = task->identity.sequence;
+  selectors.templateRevision = revision;
+  selectors.worldWidth = 64;
+  selectors.baseHeight = 16;
+  selectors.regionSeed = 42;
+
+  WorldGenerationBaseTilesIdentity baseTiles;
+  baseTiles.task = task->identity;
+  baseTiles.tileRevision = 1;
+  baseTiles.templateRevision = revision;
+  baseTiles.worldSize = {64, 64};
+  baseTiles.tileRegion = RectI(int(WorldSectorSize), int(WorldSectorSize), int(WorldSectorSize) * 2, int(WorldSectorSize) * 2);
+
+  Random::init(918);
+  auto context = WorldGenerationCompositeContext::tryCapture(ledger, selectors, baseTiles, *world);
+  ASSERT_TRUE(context.has_value());
+  auto admitted = WorldGenerationSectorShadow::tryAdmit(ledger, *context);
+  ASSERT_TRUE(admitted.has_value());
+  auto shadow = std::make_shared<WorldGenerationSectorShadow>(std::move(*admitted));
+
+  RealSource candidate{context->staticInputs(), second};
+  auto materials = Root::singleton().materialDatabase();
+  WorldGenerationLookupResolver resolver{*world, *materials};
+  auto expected = std::make_unique<ServerTileSectorArray::Array>();
+  for (int x = 0; x != 32; ++x) for (int y = 0; y != 32; ++y) {
+    int wx = x + int(WorldSectorSize), wy = y + int(WorldSectorSize);
+    auto normal = world->blockInfo(wx, wy), captured = candidate.sample(wx, wy);
+    EXPECT_EQ(fields(normal), fields(captured)) << wx << ',' << wy;
+    initialize((*expected)(x, y));
+    initialize(shadow->tiles()(x, y));
+    applyWorldGenerationBaseTile((*expected)(x, y), tileInput(normal, wy), resolver);
+    applyWorldGenerationBaseTile(shadow->tiles()(x, y), tileInput(captured, wy), resolver);
+  }
+  EXPECT_TRUE(compareWorldGenerationBaseTiles(*expected, shadow->tiles(), context->baseTilesIdentity()).equal());
+
+  WorkerPool pool("Diagonal adjacent sector shadow invalidate", 1);
+  auto promise = pool.addProducer<std::shared_ptr<WorldGenerationSectorShadow>>([task, shadow] {
+    EXPECT_TRUE(task->start());
+    if (!task->valid()) {
+      EXPECT_TRUE(task->fail());
+      return shadow;
+    }
+    EXPECT_TRUE(task->ready());
+    return shadow;
+  });
+  task->invalidate();
+  auto const& result = promise.get();
+  EXPECT_FALSE(task->valid());
+  EXPECT_TRUE(result->active());
+  EXPECT_TRUE(tasks.retire(task, WorldGenerationTaskOutcome::Cancelled));
+  pool.finish();
+  result->discard();
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, AbandonedPreparationDiscardsFilledDiagonalAdjacentShadow) {
+  writeTerrestrialAssets();
+  auto r = root();
+  TerrestrialWorldParameters params{};
+  setupTerrestrial(params);
+  auto first = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto second = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto world = planet(first);
+  auto revision = world->generationRevision();
+
+  WorldGenerationTasks tasks(1, WorldRegionPartition(WorldGeometry(Vec2U{64, 64})), 1,
+      WorldGenerationSectorShadow::retainedBytes());
+  std::optional<WorldGenerationSectorShadow> shadow;
+  std::unique_ptr<ServerTileSectorArray::Array> expected;
+  size_t beforeResources = 0;
+  {
+    WorldGenerationTaskPreparation preparation(tasks, {1, 1}, WorldGenerationTaskStage::BaseTiles,
+        WorldGenerationSectorShadow::retainedBytes());
+    ASSERT_TRUE(preparation.task());
+
+    WorldGenerationSelectorContextIdentity selectors;
+    selectors.worldEpoch = 1;
+    selectors.sequence = preparation.task()->identity.sequence;
+    selectors.templateRevision = revision;
+    selectors.worldWidth = 64;
+    selectors.baseHeight = 16;
+    selectors.regionSeed = 42;
+
+    WorldGenerationBaseTilesIdentity baseTiles;
+    baseTiles.task = preparation.task()->identity;
+    baseTiles.tileRevision = 1;
+    baseTiles.templateRevision = revision;
+    baseTiles.worldSize = {64, 64};
+    baseTiles.tileRegion = RectI(int(WorldSectorSize), int(WorldSectorSize), int(WorldSectorSize) * 2, int(WorldSectorSize) * 2);
+
+    Random::init(918);
+    auto context = WorldGenerationCompositeContext::tryCapture(ledger, selectors, baseTiles, *world);
+    ASSERT_TRUE(context.has_value());
+    shadow = WorldGenerationSectorShadow::tryAdmit(ledger, *context);
+    ASSERT_TRUE(shadow.has_value());
+    beforeResources = ledger.snapshot().resources;
+
+    RealSource candidate{context->staticInputs(), second};
+    auto materials = Root::singleton().materialDatabase();
+    WorldGenerationLookupResolver resolver{*world, *materials};
+    expected = std::make_unique<ServerTileSectorArray::Array>();
+    for (int x = 0; x != 32; ++x) for (int y = 0; y != 32; ++y) {
+      int wx = x + int(WorldSectorSize), wy = y + int(WorldSectorSize);
+      auto normal = world->blockInfo(wx, wy), captured = candidate.sample(wx, wy);
+      EXPECT_EQ(fields(normal), fields(captured)) << wx << ',' << wy;
+      initialize((*expected)(x, y));
+      initialize(shadow->tiles()(x, y));
+      applyWorldGenerationBaseTile((*expected)(x, y), tileInput(normal, wy), resolver);
+      applyWorldGenerationBaseTile(shadow->tiles()(x, y), tileInput(captured, wy), resolver);
+    }
+    EXPECT_TRUE(compareWorldGenerationBaseTiles(*expected, shadow->tiles(), context->baseTilesIdentity()).equal());
+    EXPECT_EQ(1u, tasks.size());
+  }
+  EXPECT_EQ(0u, tasks.size());
+  EXPECT_TRUE(shadow->active());
+  EXPECT_EQ(1u, ledger.snapshot().resources);
+  shadow->discard();
+  EXPECT_EQ(0u, ledger.snapshot().resources);
+  EXPECT_GT(beforeResources, 0u);
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, ProducerFailureDiscardsFilledDiagonalAdjacentShadow) {
+  writeTerrestrialAssets();
+  auto r = root();
+  TerrestrialWorldParameters params{};
+  setupTerrestrial(params);
+  auto first = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto second = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto world = planet(first);
+  auto revision = world->generationRevision();
+
+  WorldGenerationTasks tasks(1, WorldRegionPartition(WorldGeometry(Vec2U{64, 64})), 1,
+      WorldGenerationSectorShadow::retainedBytes());
+  auto task = tasks.reserve({1, 1}, WorldGenerationTaskStage::BaseTiles,
+      WorldGenerationSectorShadow::retainedBytes());
+  ASSERT_TRUE(task);
+
+  WorldGenerationSelectorContextIdentity selectors;
+  selectors.worldEpoch = 1;
+  selectors.sequence = task->identity.sequence;
+  selectors.templateRevision = revision;
+  selectors.worldWidth = 64;
+  selectors.baseHeight = 16;
+  selectors.regionSeed = 42;
+
+  WorldGenerationBaseTilesIdentity baseTiles;
+  baseTiles.task = task->identity;
+  baseTiles.tileRevision = 1;
+  baseTiles.templateRevision = revision;
+  baseTiles.worldSize = {64, 64};
+  baseTiles.tileRegion = RectI(int(WorldSectorSize), int(WorldSectorSize), int(WorldSectorSize) * 2, int(WorldSectorSize) * 2);
+
+  Random::init(918);
+  auto context = WorldGenerationCompositeContext::tryCapture(ledger, selectors, baseTiles, *world);
+  ASSERT_TRUE(context.has_value());
+  auto admitted = WorldGenerationSectorShadow::tryAdmit(ledger, *context);
+  ASSERT_TRUE(admitted.has_value());
+  auto shadow = std::make_shared<WorldGenerationSectorShadow>(std::move(*admitted));
+
+  RealSource candidate{context->staticInputs(), second};
+  auto materials = Root::singleton().materialDatabase();
+  WorldGenerationLookupResolver resolver{*world, *materials};
+  auto expected = std::make_unique<ServerTileSectorArray::Array>();
+  for (int x = 0; x != 32; ++x) for (int y = 0; y != 32; ++y) {
+    int wx = x + int(WorldSectorSize), wy = y + int(WorldSectorSize);
+    auto normal = world->blockInfo(wx, wy), captured = candidate.sample(wx, wy);
+    EXPECT_EQ(fields(normal), fields(captured)) << wx << ',' << wy;
+    initialize((*expected)(x, y));
+    initialize(shadow->tiles()(x, y));
+    applyWorldGenerationBaseTile((*expected)(x, y), tileInput(normal, wy), resolver);
+    applyWorldGenerationBaseTile(shadow->tiles()(x, y), tileInput(captured, wy), resolver);
+  }
+  EXPECT_TRUE(compareWorldGenerationBaseTiles(*expected, shadow->tiles(), context->baseTilesIdentity()).equal());
+
+  WorkerPool pool("Diagonal adjacent sector shadow producer failure", 1);
+  auto promise = pool.addProducer<std::shared_ptr<WorldGenerationSectorShadow>>(
+      [task, shadow]() -> std::shared_ptr<WorldGenerationSectorShadow> {
+        EXPECT_TRUE(task->start());
+        EXPECT_TRUE(task->fail());
+        throw StarException("controlled diagonal adjacent sector shadow failure");
+      });
+  EXPECT_THROW(promise.get(), StarException);
+  EXPECT_TRUE(shadow->active());
+  EXPECT_TRUE(tasks.retire(task, WorldGenerationTaskOutcome::Failed));
+  pool.finish();
+  shadow->discard();
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, DiagonalAdjacentSectorShadowSurvivesAssetHotReloadUntilOwnerDiscards) {
+  writeTerrestrialAssets();
+  auto r = root();
+  TerrestrialWorldParameters params{};
+  setupTerrestrial(params);
+  auto first = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto second = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto world = planet(first);
+  auto revision = world->generationRevision();
+  auto sources = r->worldGenerationLookupSources();
+  ASSERT_TRUE(sources.valid());
+  auto sourcesScope = sources.scope(1, revision);
+  ASSERT_TRUE(sourcesScope.has_value());
+
+  WorldGenerationSelectorContextIdentity selectors;
+  selectors.worldEpoch = 1;
+  selectors.sequence = 4;
+  selectors.templateRevision = revision;
+  selectors.worldWidth = 64;
+  selectors.baseHeight = 16;
+  selectors.regionSeed = 42;
+
+  WorldGenerationBaseTilesIdentity baseTiles;
+  baseTiles.task = {1, 4, {1, 1}, {0, 0}, WorldGenerationTaskStage::BaseTiles};
+  baseTiles.tileRevision = 1;
+  baseTiles.templateRevision = revision;
+  baseTiles.worldSize = {64, 64};
+  baseTiles.tileRegion = RectI(int(WorldSectorSize), int(WorldSectorSize), int(WorldSectorSize) * 2, int(WorldSectorSize) * 2);
+
+  Random::init(918);
+  auto context = WorldGenerationCompositeContext::tryCapture(ledger, selectors, baseTiles, *world);
+  ASSERT_TRUE(context.has_value());
+  auto beforeShadow = ledger.snapshot();
+  auto shadow = WorldGenerationSectorShadow::tryAdmit(ledger, *context);
+  ASSERT_TRUE(shadow.has_value());
+
+  RealSource candidate{context->staticInputs(), second};
+  auto materials = Root::singleton().materialDatabase();
+  WorldGenerationLookupResolver resolver{*world, *materials};
+  auto expected = std::make_unique<ServerTileSectorArray::Array>();
+  for (int x = 0; x != 32; ++x) for (int y = 0; y != 32; ++y) {
+    int wx = x + int(WorldSectorSize), wy = y + int(WorldSectorSize);
+    auto normal = world->blockInfo(wx, wy), captured = candidate.sample(wx, wy);
+    EXPECT_EQ(fields(normal), fields(captured)) << wx << ',' << wy;
+    initialize((*expected)(x, y));
+    initialize(shadow->tiles()(x, y));
+    applyWorldGenerationBaseTile((*expected)(x, y), tileInput(normal, wy), resolver);
+    applyWorldGenerationBaseTile(shadow->tiles()(x, y), tileInput(captured, wy), resolver);
+  }
+  EXPECT_TRUE(compareWorldGenerationBaseTiles(*expected, shadow->tiles(), context->baseTilesIdentity()).equal());
+
+  source.write("world_template.config", config.set("biomeTransitionThreshold", 0.5).repr());
+  r->hotReload();
+  EXPECT_FALSE(sources.valid());
+  auto after = r->worldGenerationLookupSources();
+  ASSERT_TRUE(after.valid());
+  auto afterScope = after.scope(1, revision);
+  ASSERT_TRUE(afterScope.has_value());
+  EXPECT_FALSE(*sourcesScope == *afterScope);
+  EXPECT_TRUE(shadow->matches(context->baseTilesIdentity()));
+  shadow->discard();
+  EXPECT_EQ(beforeShadow.resources, ledger.snapshot().resources);
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, DiagonalAdjacentSectorShadowDiscardsWhenTemplateRevisionGoesStale) {
+  writeTerrestrialAssets();
+  auto r = root();
+  TerrestrialWorldParameters params{};
+  setupTerrestrial(params);
+  auto first = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto second = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto world = planet(first);
+  auto revision = world->generationRevision();
+
+  WorldGenerationSelectorContextIdentity selectors;
+  selectors.worldEpoch = 1;
+  selectors.sequence = 4;
+  selectors.templateRevision = revision;
+  selectors.worldWidth = 64;
+  selectors.baseHeight = 16;
+  selectors.regionSeed = 42;
+
+  WorldGenerationBaseTilesIdentity baseTiles;
+  baseTiles.task = {1, 4, {1, 1}, {0, 0}, WorldGenerationTaskStage::BaseTiles};
+  baseTiles.tileRevision = 1;
+  baseTiles.templateRevision = revision;
+  baseTiles.worldSize = {64, 64};
+  baseTiles.tileRegion = RectI(int(WorldSectorSize), int(WorldSectorSize), int(WorldSectorSize) * 2, int(WorldSectorSize) * 2);
+
+  Random::init(918);
+  auto context = WorldGenerationCompositeContext::tryCapture(ledger, selectors, baseTiles, *world);
+  ASSERT_TRUE(context.has_value());
+  auto beforeShadow = ledger.snapshot();
+  auto shadow = WorldGenerationSectorShadow::tryAdmit(ledger, *context);
+  ASSERT_TRUE(shadow.has_value());
+
+  RealSource candidate{context->staticInputs(), second};
+  auto materials = Root::singleton().materialDatabase();
+  WorldGenerationLookupResolver resolver{*world, *materials};
+  auto expected = std::make_unique<ServerTileSectorArray::Array>();
+  for (int x = 0; x != 32; ++x) for (int y = 0; y != 32; ++y) {
+    int wx = x + int(WorldSectorSize), wy = y + int(WorldSectorSize);
+    auto normal = world->blockInfo(wx, wy), captured = candidate.sample(wx, wy);
+    EXPECT_EQ(fields(normal), fields(captured)) << wx << ',' << wy;
+    initialize((*expected)(x, y));
+    initialize(shadow->tiles()(x, y));
+    applyWorldGenerationBaseTile((*expected)(x, y), tileInput(normal, wy), resolver);
+    applyWorldGenerationBaseTile(shadow->tiles()(x, y), tileInput(captured, wy), resolver);
+  }
+  EXPECT_TRUE(compareWorldGenerationBaseTiles(*expected, shadow->tiles(), context->baseTilesIdentity()).equal());
+
+  world->addCustomTerrainRegion(PolyF(RectF::withSize({8, 8}, {4, 4})));
+  EXPECT_NE(revision, world->generationRevision());
+  auto liveExpectation = context->baseTilesIdentity();
+  liveExpectation.templateRevision = world->generationRevision();
+  EXPECT_FALSE(shadow->matches(liveExpectation));
+  shadow->discard();
+  EXPECT_EQ(beforeShadow.resources, ledger.snapshot().resources);
+  EXPECT_EQ(revision, context->baseTilesIdentity().templateRevision);
+}
+
+
 TEST_F(WorldGenerationRealBlockInfoTest, VerticalAdjacentSectorShadowProducesPrivateBaseTilesThenDiscards) {
   writeTerrestrialAssets();
   auto r = root();

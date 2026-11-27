@@ -23,4 +23,6 @@ ASan/UBSan: 1×5; **125/125** RealBlockInfo.
 
 ## Próximo passo
 
-Setor diagonal `{1,1}` e/ou VAL-02 além de BaseTiles. Não disparar Actions.
+Diagonal em
+[diagonal adjacent](sector-runtime-h0-sector-shadow-diagonal-adjacent-2026-11-27.md).
+Segue VAL-02 além de BaseTiles. Não disparar Actions.
