@@ -202,3 +202,36 @@ Política: Project define caminhos; Integrador mergeia tips `ready-for-integrati
 - H5: hold (ResourceGovernor vs H1).
 
 Compares: [H0](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/h0-foundations-9f77?expand=1) · [H3](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/h3-kernels-publication-9f77?expand=1) · [H4](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/h4-gpu-shadow-9f77?expand=1) · [R1](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/r1-regional-owners-9f77?expand=1) · [R2](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/r2-regional-ops-9f77?expand=1)
+
+## Revisão sync 27/11/2026 ~02:30 UTC
+
+Bases: Exp `e55c008f` · INT `486be7d4`. Frentes **não** editadas. Sem Actions / sem `main`.
+PRs com base na integração: **nenhum**.
+
+| Frente | Tip **remoto** | vs Exp | vs INT | Conflitos | phase (store) | Delta vs sync 02:00 |
+| --- | --- | ---: | ---: | ---: | --- | --- |
+| H0 | `8206aa7d` | 20 | 5 | 4 docs/CMake | standby | remoto igual; store local `c124f899` **não pushed** (401) |
+| H1 | `7ed91dec` | 7 | 0 | 0 | standby | sem mudança (já na INT) |
+| H2 | `b9572592` | 2 | 0 | 0 | standby | sem mudança (já na INT) |
+| H3 | `db3753a8` | 9 | **9** | 11 docs/CMake | local-ready | +1 remoto (IO-02); store local `b3b7deee` ahead 3 **não pushed** (401) |
+| H4 | `80825c7c` | 2 | 2 | 9 | standby | sem mudança |
+| H5 | `cfd1aa5e` | 3 | 3 | 16 (+ResourceGovernor) | blocked | sem mudança |
+| R1 | `94acf8eb` | 3 | 3 | 8 | standby | remoto igual; store local `bfd2c23a` **não pushed** (401) |
+| R2 | `dd9e3b58` | 3 | 3 | 9 | ready-for-integration | espera ordem H4→R1 |
+
+### Commits locais não pushed (Project / 401)
+
+| Frente | SHA local | Relação ao remoto |
+| --- | --- | --- |
+| H0 | `c124f899` | além de `8206aa7d` (não visível neste clone) |
+| H3 | `b3b7deee` | ahead 3 de `db3753a8` (IO-03..05 sombra no store) |
+| R1 | `bfd2c23a` | ahead 1 de `94acf8eb` |
+
+Integrador **não** pode mergear tips locais até o push; `local-ready` ≠ `ready-for-integration`.
+
+### Vereditos
+
+- Sem merge neste ciclo.
+- H3 remoto avançou (IO-02 em `db3753a8`); tip completa H3 25% ainda presa no push.
+- Fila inalterada: H0-delta/`ready` quando tip remota + phase; H3 quando tip remota + ready; depois H4→R1→R2.
+
