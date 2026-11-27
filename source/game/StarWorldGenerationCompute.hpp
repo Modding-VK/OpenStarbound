@@ -213,7 +213,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32HalfNibbleAnd = 187, // AND of four nibbles of low16; parameter ignored
   DenseUint32HalfNibbleSum = 188, // sum of four nibbles of low16; parameter ignored
   DenseUint32HalfNibbleMax = 189, // max of four nibbles of low16; parameter ignored
-  DenseUint32HalfNibbleMin = 190 // min of four nibbles of low16; parameter ignored
+  DenseUint32HalfNibbleMin = 190, // min of four nibbles of low16; parameter ignored
+  DenseUint32HalfSwapAdjacentNibbles = 191, // swap nibble pairs in low16; parameter ignored
+  DenseUint32HalfRolNibbles = 192, // rotate low16 left by (parameter & 3) nibbles
+  DenseUint32HalfRorNibbles = 193 // rotate low16 right by (parameter & 3) nibbles
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
