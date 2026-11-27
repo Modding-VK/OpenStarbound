@@ -193,6 +193,9 @@ GLuint g_halfMulProgram = 0;
 GLuint g_halfSatAddProgram = 0;
 GLuint g_halfSatSubProgram = 0;
 GLuint g_halfMulHiProgram = 0;
+GLuint g_halfDivProgram = 0;
+GLuint g_halfModProgram = 0;
+GLuint g_halfCeilDivProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -2346,6 +2349,57 @@ void main() {
 }
 )GLSL";
 
+char const* HalfDivShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  uint lo = v & 0xffffu;
+  uint hi = v >> 16;
+  values[i] = (hi == 0u) ? 0u : (lo / hi);
+}
+)GLSL";
+
+char const* HalfModShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  uint lo = v & 0xffffu;
+  uint hi = v >> 16;
+  values[i] = (hi == 0u) ? 0u : (lo % hi);
+}
+)GLSL";
+
+char const* HalfCeilDivShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  uint lo = v & 0xffffu;
+  uint hi = v >> 16;
+  values[i] = (hi == 0u) ? 0u : ((lo + hi - 1u) / hi);
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -2926,6 +2980,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfMulHiProgram);
     g_halfMulHiProgram = 0;
   }
+  if (g_halfDivProgram) {
+    glDeleteProgram(g_halfDivProgram);
+    g_halfDivProgram = 0;
+  }
+  if (g_halfModProgram) {
+    glDeleteProgram(g_halfModProgram);
+    g_halfModProgram = 0;
+  }
+  if (g_halfCeilDivProgram) {
+    glDeleteProgram(g_halfCeilDivProgram);
+    g_halfCeilDivProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -3161,7 +3227,10 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfMulProgram, HalfMulShader, "DenseUint32HalfMul")
       || !requireProgram(g_halfSatAddProgram, HalfSatAddShader, "DenseUint32HalfSatAdd")
       || !requireProgram(g_halfSatSubProgram, HalfSatSubShader, "DenseUint32HalfSatSub")
-      || !requireProgram(g_halfMulHiProgram, HalfMulHiShader, "DenseUint32HalfMulHi"))
+      || !requireProgram(g_halfMulHiProgram, HalfMulHiShader, "DenseUint32HalfMulHi")
+      || !requireProgram(g_halfDivProgram, HalfDivShader, "DenseUint32HalfDiv")
+      || !requireProgram(g_halfModProgram, HalfModShader, "DenseUint32HalfMod")
+      || !requireProgram(g_halfCeilDivProgram, HalfCeilDivShader, "DenseUint32HalfCeilDiv"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -3492,6 +3561,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfSatSubProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfMulHi)
     program = g_halfMulHiProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfDiv)
+    program = g_halfDivProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfMod)
+    program = g_halfModProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfCeilDiv)
+    program = g_halfCeilDivProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))

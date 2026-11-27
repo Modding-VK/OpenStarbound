@@ -685,3 +685,10 @@ integração: **nenhum**.
 - **Hold frentes** (nada ahead). Sem conflito/bloqueio.
 - H4 continua. Sem comentários em PR.
 - Sem `build.yml` neste ciclo docs (Build tip já em voo).
+
+## Revisão 2026-11-27T21:02Z
+- INT tip pré-merge: `eeb70ccd`; pós-merge H4 `0eb034a9` → tip nova (este commit).
+- Ahead vs INT pré-merge: H0/H1/H2/H3/H5/R1/R2 = 0; H4 = 3 (`0eb034a9` HalfDiv/Mod/CeilDiv + countFailedOpenKernels).
+- Build `46067036173` @ `2d4b047f` in_progress — intacto; 1 Build tip final após terminal; sem spam.
+- Conflito só `progress.md` (padrão 4 blocos); reconciliado. Sem PRs abertos para INT nesta checagem.
+- H3 remoto presente (`3bdf1927`) ahead=0.
