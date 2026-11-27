@@ -40,9 +40,10 @@ marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H2 em `cursor/h2-products-prefetch-9f77` (H0 permanece em
 `Experimental`). O relatório atual é
-[H2 product revision cache](sector-runtime-h2-product-revision-cache-2026-11-27.md),
+[H2 PreparedSector / CPU-02](sector-runtime-h2-prepared-sector-2026-11-27.md),
 com antecedentes em
-[Concurrent ocean](sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md),
+[H2 resident/prefetch/batch/IO](sector-runtime-h2-resident-prefetch-batch-io-2026-11-27.md),
+[H2 product revision cache](sector-runtime-h2-product-revision-cache-2026-11-27.md),
 [Memory/prefetch](sector-runtime/memory-and-prefetch.md) e
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
@@ -245,8 +246,13 @@ executivo e o planejador menor são propostas, ainda não implementadas.
 
 - [ ] H0/H1: estabilizar IDs, baseline de streaming e grafo executivo com
   preparação CPU/limites processuais; verificar entrega e ordem dos efeitos.
-- [ ] H2: produtos `PreparedSector`, caches versionadas e prefetch por rota,
-  com orçamento de RAM e contabilização de memória compartilhada.
+- [x] H2 (primeiro marco dos 6 contratos): cache versionada, retenção,
+  prefetch planejado, batch regional e ticket de promoção Prefetch→Visible em
+  `cursor/h2-products-prefetch-9f77`.
+- [x] CPU-02 (primeiro marco, entrada H1 / continua em H2): identidade e
+  handle `PreparedSector` residente sem publicação.
+- [ ] H2 restante: payloads `PreparedSector`/BaseTiles reais, WorldStorage,
+  WorldThread startup e justiça multi-mundo.
 - [ ] H3: ampliar kernels CPU e preparar batches de publicação validáveis.
 - [ ] H4/H5: GPU compute opcional, comparação CPU/GPU em sombra, seleção por
   custo e orçamento de VRAM/latência; manter execução CPU independente.

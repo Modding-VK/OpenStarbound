@@ -122,6 +122,14 @@ global; comparador de outputs cobre a mudança de contexto e de worker.
 
 ## CPU-02 — Produto `PreparedSector`
 
+Primeiro recorte em `cursor/h2-products-prefetch-9f77`:
+`WorldGenerationPreparedSectorIdentity` + `WorldGenerationPreparedSector`
+retêm chave/revisão na cache residente, com `tryConsume` só após
+revalidação do dono e sem publicação. Ver
+[relatório](../sector-runtime-h2-prepared-sector-2026-11-27.md). Payloads
+reais (tiles/campos/candidatos/vazio/delta) e consumo compartilhado entre
+etapas continuam abertos.
+
 Representar resultados independentes num produto versionado:
 
 | Produto | Inputs | Consumo autoritativo |

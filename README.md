@@ -37,7 +37,7 @@ For the current state and the next work, start here:
 - [Progress, evidence and next steps](doc/sector-runtime/progress.md)
 - [Operational checklist and current report](doc/regional-runtime-execution-checklist.md)
 - [Latest H0 report: concurrent ocean sector shadows](doc/sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
-- [Latest H2 report: product revision cache (RAM-02)](doc/sector-runtime-h2-product-revision-cache-2026-11-27.md)
+- [Latest H2 report: PreparedSector identity (CPU-02)](doc/sector-runtime-h2-prepared-sector-2026-11-27.md)
 - [Performance backlog](doc/performance-backlog.md)
 
 <details>

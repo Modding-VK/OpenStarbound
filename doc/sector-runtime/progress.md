@@ -1,12 +1,12 @@
 # Progressão do projeto — percentuais e ordem das tarefas
 
-Atualizado em **26/11/2026**. Branch: `Experimental`.
-Base inspecionada: `5e2e2297`;
-última implementação de runtime: sombra por setor com BaseTiles privados
-admitidos a partir do composto (ver relatório de sombra).
+Atualizado em **27/11/2026**. Branch: `cursor/h2-products-prefetch-9f77`
+(H0 permanece em `Experimental`).
+Última implementação de runtime nesta frente: identidade/`PreparedSector`
+residente (CPU-02) sobre a cache H2.
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h2-product-revision-cache-2026-11-27.md)
+· [Último relatório técnico](../sector-runtime-h2-prepared-sector-2026-11-27.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -20,17 +20,18 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | --- | --- |
 | Frente ativa | H2 — produtos residentes e prefetch (branch `cursor/h2-products-prefetch-9f77`); H0 segue em `Experimental` |
 | Progresso de maturidade de H0 | **25,0%** — 6 marcos verificados de 24 |
-| Progresso de maturidade de H2 | **4,2%** — 1 marco verificado de 24 |
-| Progresso de maturidade do programa | **4,1%** — 8 marcos verificados de 196 |
-| Contratos com avanço registrado | **8 de 49**; todos ainda parciais |
+| Progresso de maturidade de H1 | **5,0%** — 2 marcos verificados de 40 |
+| Progresso de maturidade de H2 | **25,0%** — 6 marcos verificados de 24 |
+| Progresso de maturidade do programa | **7,1%** — 14 marcos verificados de 196 |
+| Contratos com avanço registrado | **14 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | RAM-02: 7 ProductRevisionCache; H0 inalterado nesta branch |
+| Última evidência de testes | H2/CPU-02: 27 testes NoAssets (cache/prefetch/batch/IO + PreparedSector); H0 inalterado nesta branch |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
-**Os 4,1% não significam que o jogo esteja só 4,1% pronto.** O runtime anterior
+**Os 7,1% não significam que o jogo esteja só 7,1% pronto.** O runtime anterior
 já possui workers, schedulers, IO/decode e previews. O denominador aqui são os
 49 contratos completos do rework, incluindo GPU e simulação regional futura.
-Recortes de RAM-01/RAM-02 podem estar implementados/testados e o contrato
+Recortes de RAM/WT/IO/CPU-02 podem estar implementados/testados e o contrato
 abrangente ainda permanecer em 25%. Quantidade de commits/testes não aumenta
 essa nota automaticamente. Ver o [baseline](baseline.md) para o que já existia.
 
@@ -56,8 +57,8 @@ Fórmulas:
 - **Contrato:** número de marcos consecutivos verificados × 25%.
 - **Fase de entrada:** soma das notas dos contratos nela cadastrados ÷ número
   desses contratos.
-- **Programa:** soma das notas dos 49 contratos ÷ 49. Hoje: 200 ÷ 49 = 4,1%
-  arredondado; equivalentemente, 8 ÷ (49 × 4) × 100.
+- **Programa:** soma das notas dos 49 contratos ÷ 49. Hoje: 350 ÷ 49 = 7,1%
+  arredondado; equivalentemente, 14 ÷ (49 × 4) × 100.
 - **Aceitação integral:** contratos em 100% ÷ 49. Hoje: 0%.
 
 São percentuais de **maturidade comprovada**, não de horas, esforço, linhas de
@@ -76,14 +77,14 @@ obriga concluir todo trabalho transversal para iniciar um protótipo em sombra.
 | Ordem | Fase de entrada | Contratos | Marcos verificados / total | Progresso | Condição de avanço |
 | ---: | --- | ---: | ---: | ---: | --- |
 | 1 | H0 — fundações e validação | 6 | 6 / 24 | 25,0% | Invariantes, limites explicitados, comparador e baseline reproduzível para o escopo que será ampliado |
-| 2 | H1 — grafo executivo, CPU e entrega | 10 | 1 / 40 | 2,5% | Primeiro recorte proprietário de CPU-01 em apoio a H0; grafo/executor ainda pendentes |
-| 3 | H2 — produtos residentes e prefetch | 6 | 1 / 24 | 4,2% | Identidade/versionamento de H1 e orçamento de RAM |
+| 2 | H1 — grafo executivo, CPU e entrega | 10 | 2 / 40 | 5,0% | CPU-01 + primeiro PreparedSector; grafo/executor ainda pendentes |
+| 3 | H2 — produtos residentes e prefetch | 6 | 6 / 24 | 25,0% | Identidade/versionamento de H1 e orçamento de RAM |
 | 4 | H3 — kernels adicionais, estruturas e publicação | 10 | 0 / 40 | 0% | Contrato por kernel e publicação validável; TMX não bloqueia setor comum |
 | 5 | H4 — backend GPU e comparação em sombra | 4 | 0 / 16 | 0% | Protótipo pode acompanhar H1/H2; publicação depende do kernel CPU equivalente |
 | 6 | H5 — seleção de hardware e escala | 7 | 0 / 28 | 0% | Produtos/backends validados e custo completo de entrega medido |
 | 7 | R1 — donos regionais e coordenadora | 3 | 0 / 12 | 0% | Auditoria de autoridade/efeitos e checkpoint; não basta aprovar GPU |
 | 8 | R2 — operações e transferências entre regiões | 3 | 0 / 12 | 0% | Lifecycle/estado de R1, recovery e matriz de multiplayer |
-| — | **Total** | **49** | **8 / 196** | **4,1%** | Não equivale a ganho de desempenho ou autorização de release |
+| — | **Total** | **49** | **14 / 196** | **7,1%** | Não equivale a ganho de desempenho ou autorização de release |
 
 Essa é uma ordem de prioridade/dependência, não uma proibição de frentes
 paralelas autorizadas pelo roadmap. Setores comuns permanecem prioritários.
@@ -140,7 +141,7 @@ concorrente.
 
 ## Catálogo ordenado das 49 tarefas
 
-As oito notas de 25% usam as evidências indicadas após o catálogo. Demais 0%
+As quatorze notas de 25% usam as evidências indicadas após o catálogo. Demais 0%
 significam **sem marco do novo contrato reconhecido nesta leitura do roadmap**,
 não ausência de código relacionado no baseline. Não foi feita nova auditoria
 de todas as implementações antigas para conceder crédito retroativo.
@@ -157,18 +158,18 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 8 | H1 | [DAG-03](dependency-scheduler.md) | Prioridade, justiça e distância correta | 0% | Prioridade herdada e justiça entre consumidores com wrap |
 | 9 | H1 | [DAG-05](dependency-scheduler.md) | Cancelamento, falha e invalidação | 0% | Retry/drain e retenção até término físico no novo executor |
 | 10 | H1 | [CPU-01](cpu-and-stages.md) | Contexto privado de cálculo | 25% | Composto+sombra+handoff+hotReload/loadMods; falta gates H0 antes de H1 |
-| 11 | H1 | [CPU-02](cpu-and-stages.md) | Produto PreparedSector | 0% | Produtos/versionamento compartilhados; continua em H2 |
+| 11 | H1 | [CPU-02](cpu-and-stages.md) | Produto PreparedSector | 25% | Identidade/handle residente; payloads e compartilhamento entre etapas pendentes |
 | 12 | H1 | [MD-01](microdungeons-and-tmx.md) | Seleção leve e identidade | 0% | Candidatos/vazio sem copiar halo não lido |
 | 13 | H1 | [CPU-03](cpu-and-stages.md) | Executor processual e granularidade | 0% | Capacidade global e tarefas com fronteira de publicação preservada |
 | 14 | H1 | [WT-01](worldthread.md) | Serviço de conclusões e drenagem | 0% | Drenar trabalho elegível sem esperar rodadas artificiais |
 | 15 | H1 | [WT-02](worldthread.md) | Orçamento produtivo e resposta do jogo | 0% | Usar o orçamento em progresso útil, com motivos de saída explícitos |
 | 16 | H1 | [CPU-05](cpu-and-stages.md) | Governador de recursos e perfis | 0% | Primeira política por fila executável/custo; política completa em H5 |
-| 17 | H2 | [RAM-02](memory-and-prefetch.md) | Camadas de cache e invalidação | 25% | Cache por kind/setor/revisões + invalidação; payloads reais e retenção pendentes |
-| 18 | H2 | [RAM-03](memory-and-prefetch.md) | Política de retenção | 0% | Benefício, pressão, histerese e justiça entre mundos |
-| 19 | H2 | [RAM-04](memory-and-prefetch.md) | Prefetch previsto e dependências | 0% | Antecipar rota e auxiliares com prioridade controlada |
-| 20 | H2 | [RAM-05](memory-and-prefetch.md) | Cancelamento e reaproveitamento | 0% | Preservar produtos úteis a outros consumidores |
-| 21 | H2 | [WT-03](worldthread.md) | Entrada síncrona em lote | 0% | Admissão consistente da região inteira |
-| 22 | H2 | [IO-01](io-persistence-network.md) | Pipeline único de leitura e promoção | 0% | Promover tiles decodificados sem refazer leitura/decode |
+| 17 | H2 | [RAM-02](memory-and-prefetch.md) | Camadas de cache e invalidação | 25% | Cache por kind/setor/revisões + invalidação; payloads reais pendentes |
+| 18 | H2 | [RAM-03](memory-and-prefetch.md) | Política de retenção | 25% | Soft/hard + histerese + demanda/benefício; justiça multi-mundo pendente |
+| 19 | H2 | [RAM-04](memory-and-prefetch.md) | Prefetch previsto e dependências | 25% | Plano por velocidade/wrap/orçamento; sem WorldStorage |
+| 20 | H2 | [RAM-05](memory-and-prefetch.md) | Cancelamento e reaproveitamento | 25% | Consumidores ativos preservados; limpeza de processo pendente |
+| 21 | H2 | [WT-03](worldthread.md) | Entrada síncrona em lote | 25% | Batch plan/admit/ready; sem WorldThread/startup bench |
+| 22 | H2 | [IO-01](io-persistence-network.md) | Pipeline único de leitura e promoção | 25% | Ticket Prefetch→Visible; sem SQLite/install |
 | 23 | H3 | [CPU-04](cpu-and-stages.md) | Extração por etapa | 0% | Partes puras de CaveLiquid/Finalize, cada uma com seu contrato |
 | 24 | H3 | [MD-02](microdungeons-and-tmx.md) | Formato intermediário estático TMX | 0% | Separar conteúdo estático da ligação autoritativa |
 | 25 | H3 | [MD-03](microdungeons-and-tmx.md) | Ligação e RNG autoritativos | 0% | Preservar ordem/RNG/efeitos na aplicação |
@@ -208,13 +209,21 @@ de todas as implementações antigas para conceder crédito retroativo.
 | MOD-01 | [Leitores imutáveis](../sector-runtime-h0-distribution-bundles-2026-11-09.md), [proteção da seleção](../sector-runtime-h0-planning-storage-2026-11-09.md) e [lifecycle/scope 2](../sector-runtime-h0-lookup-source-generations-2026-11-09.md) | Metadata não é sincronização/commit nem auditoria de toda mutação; fronteira biomeTransition e integração abertas |
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
-| RAM-02 | [Product revision cache](../sector-runtime-h2-product-revision-cache-2026-11-27.md) | Sem payloads BaseTiles/candidatos, retenção/benefício (RAM-03) nem prefetch (RAM-04) |
+| CPU-02 | [PreparedSector](../sector-runtime-h2-prepared-sector-2026-11-27.md) | Sem payloads tiles/campos/candidatos nem install |
+| RAM-02 | [Product revision cache](../sector-runtime-h2-product-revision-cache-2026-11-27.md) | Sem payloads BaseTiles/candidatos reais |
+| RAM-03 | [Retenção/prefetch/batch/IO](../sector-runtime-h2-resident-prefetch-batch-io-2026-11-27.md) | Sem justiça multi-mundo nem pressão RSS externa |
+| RAM-04 | idem | Sem carga WorldStorage nem encolher por stale de rota ao vivo |
+| RAM-05 | idem | Sem limpeza de fechamento de mundo/processo |
+| WT-03 | idem | Sem WorldThread nem benchmark de startup |
+| IO-01 | idem | Sem SQLite, install de tiles nem callbacks |
 
 CPU-01 recebe o primeiro marco porque agora existe cálculo com dados próprios
 que independe da origem/Root após captura, não só callbacks/catálogos ou contagem
 de testes. Não recebe 50%; não ativa jobs, orçamento ou nova fase de executor.
+CPU-02 recebe o primeiro marco pela identidade/handle residente testada; não
+recebe 50% sem produtos compartilhados reais entre consumidores/etapas.
 RAM-02 recebe o primeiro marco pela camada de chave/invalidação testada; não
-recebe 50% sem produtos residentes reais e política de retenção.
+recebe 50% sem payloads residentes reais.
 
 Os números de testes e seus limites provêm dos relatórios das respectivas etapas,
 no cenário NoAssets, não de streaming integrado. A criação original do painel
@@ -308,6 +317,8 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 26/11/2026 | Noise/adjacent stale | TemplateRevision bump sob noise e setor {1,0}; 105 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 26/11/2026 | Concurrent ocean | Duas sombras oceano no ledger; 106 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 27/11/2026 | H2 RAM-02 cache | `WorldGenerationProductRevisionCache` kind/setor/revisões + invalidação; 7 testes NoAssets. RAM-02 0→25%; H2 4,2%; programa 4,1% | 4,1% |
+| 27/11/2026 | H2 RAM-03/04/05 + WT-03 + IO-01 | Retenção/histerese, prefetch, consumidores, batch regional, promoção Prefetch→Visible; 23 testes NoAssets. H2 25%; programa 6,6% | 6,6% |
+| 27/11/2026 | H2/CPU-02 PreparedSector | Identidade/handle residente sem publicação; 27 testes NoAssets (4 novos). CPU-02 0→25%; H1 5,0%; programa 7,1%. H2 independente esgotado | 7,1% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

@@ -331,10 +331,13 @@ puro não pode substituir um setor salvo modificado pelo jogador.
 
 Primeiro recorte de H2 (`cursor/h2-products-prefetch-9f77`):
 `WorldGenerationProductRevisionCache` admite entradas por kind/setor/revisões,
-invalida por template/tile/asset, evicta a inserção mais antiga sob capacidade e
-recusa placeholders de 0 bytes. Ver
-[relatório](../sector-runtime-h2-product-revision-cache-2026-11-27.md). Ainda
-não amarra payloads de BaseTiles/candidatos nem política de retenção (RAM-03).
+invalida por template/tile/asset, evicta sob capacidade e recusa placeholders
+de 0 bytes. Ver
+[relatório inicial](../sector-runtime-h2-product-revision-cache-2026-11-27.md) e
+[retenção/prefetch/lote/IO](../sector-runtime-h2-resident-prefetch-batch-io-2026-11-27.md).
+`PreparedSector` amarra identidade/handle à cache
+([relatório](../sector-runtime-h2-prepared-sector-2026-11-27.md)); payloads
+de BaseTiles/candidatos reais ainda não.
 
 ## RAM-03 — Política de retenção
 
@@ -348,6 +351,10 @@ Limites soft/hard e histerese evitam oscilações. Estimar pressão externa com
 memória própria reclamável em conta: ocupar uma cache não deve disparar o
 esvaziamento da mesma cache numa sequência infinita. Expiração de cache e
 TTL de setor ativo são mecanismos distintos.
+
+Primeiro recorte: demanda/benefício na cache residente, soft drain só de
+`Speculative`, hard eviction ordenada, latch de histerese até `resumeBytes`.
+Sem justiça multi-mundo nem pressão de RSS externa.
 
 ## RAM-04 — Prefetch previsto e cobertura de dependências
 
@@ -365,6 +372,10 @@ O prefetch atual de `WorldStorage`, que efetivamente carrega Tiles, conserva
 seu lifecycle. A futura cache privada deve usar um estado distinto de carga;
 misturar ambos alteraria TTL, callbacks e número de regiões carregadas.
 
+Primeiro recorte: `planWorldGenerationPrefetch` gera setores ordenados com
+wrap em X e teto de bytes especulativos, alimentando a cache sob demanda
+`Speculative`. Não carrega Tiles nem altera `WorldStorage`.
+
 ## RAM-05 — Cancelamento e reaproveitamento
 
 Retirar um consumidor não descarta um produto usado por outro pedido.
@@ -375,6 +386,9 @@ muda o input, recomputar ou revalidar apenas pelo contrato da camada.
 Definir política de limpeza no fechamento de mundo e processo. Contextos
 privados por worker precisam de teto e métricas de reconstrução para evitar
 reter todos os mundos já visitados indefinidamente.
+
+Primeiro recorte: `acquireConsumer`/`releaseConsumer` na cache; entradas com
+consumidores ativos sobrevivem a eviction/invalidação/clear parcial.
 
 ## Interfaces, métricas e aceitação
 

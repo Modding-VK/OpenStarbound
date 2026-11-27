@@ -16,7 +16,9 @@ Data: 27/11/2026 UTC. Branch `cursor/h2-products-prefetch-9f77`, base `e55c008f`
 - rejeita placeholder de 0 bytes (não imita setor salvo)
 
 Não publica no mundo vivo, não substitui setor salvo modificado e não é
-`PreparedSector` completo (CPU-02 continua em 0%).
+`PreparedSector` completo (CPU-02 recebeu identidade/handle em
+[prepared-sector](sector-runtime-h2-prepared-sector-2026-11-27.md); payloads
+reais ainda pendentes).
 
 ## Validação
 

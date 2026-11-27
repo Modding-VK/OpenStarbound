@@ -3,6 +3,7 @@
 #include "StarHash.hpp"
 #include "StarMap.hpp"
 #include "StarVector.hpp"
+#include "StarWorldGenerationMemoryPressure.hpp"
 #include "StarWorldGenerationTasks.hpp"
 
 #include <cstdint>
@@ -27,6 +28,13 @@ enum class WorldGenerationProductCacheInvalidation : uint8_t {
   TileRevision = 1,
   AssetGeneration = 2,
   All = 3
+};
+
+struct WorldGenerationProductRetentionLimits {
+  bool enabled = false;
+  size_t resumeBytes = 0;
+  size_t softBytes = 0;
+  size_t hardBytes = 0;
 };
 
 // Minimum resident key: product kind + sector + revisions that gate reuse.
@@ -63,15 +71,29 @@ struct hash<WorldGenerationProductRevisionKey> {
 struct WorldGenerationProductCacheEntry {
   size_t retainedBytes = 0;
   uint64_t insertionSequence = 0;
+  uint64_t lastAccessSequence = 0;
+  WorldGenerationMemoryDemand demand = WorldGenerationMemoryDemand::Speculative;
+  uint32_t benefit = 0;
+  uint32_t activeConsumers = 0;
 };
 
-// Opt-in private product/revision cache. Owner-thread only unless the caller
-// provides external synchronization. Hit requires exact key equality; a
-// revision bump cannot revive a stale entry. Capacity eviction drops the
-// oldest insertion and never claims saved-sector authority.
+// Opt-in private product/revision cache with retention (RAM-03) and consumer
+// reuse (RAM-05). Owner-thread only unless the caller synchronizes externally.
+// Hit requires exact key equality. Active consumers are never evicted. Soft/hard
+// byte limits drain speculative/cheap residents first and use hysteresis so a
+// soft drain does not immediately re-admit the same speculation.
 class WorldGenerationProductRevisionCache {
 public:
-  explicit WorldGenerationProductRevisionCache(size_t maxEntries = 64) : m_maxEntries(maxEntries ? maxEntries : 1) {}
+  explicit WorldGenerationProductRevisionCache(size_t maxEntries = 64,
+      WorldGenerationProductRetentionLimits retention = {})
+    : m_maxEntries(maxEntries ? maxEntries : 1), m_retention(retention) {
+    if (m_retention.enabled) {
+      if (m_retention.hardBytes < m_retention.softBytes
+          || m_retention.softBytes < m_retention.resumeBytes
+          || m_retention.hardBytes == 0)
+        m_retention.enabled = false;
+    }
+  }
 
   size_t maxEntries() const { return m_maxEntries; }
   size_t size() const { return m_entries.size(); }
@@ -80,9 +102,23 @@ public:
   uint64_t misses() const { return m_misses; }
   uint64_t evictions() const { return m_evictions; }
   uint64_t invalidations() const { return m_invalidations; }
+  uint64_t retentionDrains() const { return m_retentionDrains; }
+  uint64_t refusedInserts() const { return m_refusedInserts; }
+  bool retentionEnabled() const { return m_retention.enabled; }
+  bool softPressureLatched() const { return m_softPressureLatched; }
 
   bool contains(WorldGenerationProductRevisionKey const& key) const {
     return m_entries.contains(key);
+  }
+
+  std::optional<WorldGenerationProductCacheEntry> find(WorldGenerationProductRevisionKey const& key) {
+    if (auto* entry = m_entries.ptr(key)) {
+      entry->lastAccessSequence = ++m_sequence;
+      ++m_hits;
+      return *entry;
+    }
+    ++m_misses;
+    return std::nullopt;
   }
 
   std::optional<WorldGenerationProductCacheEntry> find(WorldGenerationProductRevisionKey const& key) const {
@@ -94,39 +130,87 @@ public:
     return std::nullopt;
   }
 
-  // Insert or replace an exact key. Replacing the same key does not evict
-  // another resident. Returns false only when retainedBytes is zero (no
-  // empty placeholder that could look like a free saved sector).
-  bool insert(WorldGenerationProductRevisionKey const& key, size_t retainedBytes) {
+  bool insert(WorldGenerationProductRevisionKey const& key, size_t retainedBytes,
+      WorldGenerationMemoryDemand demand = WorldGenerationMemoryDemand::Speculative,
+      uint32_t benefit = 0) {
     if (retainedBytes == 0)
       return false;
     if (auto* existing = m_entries.ptr(key)) {
       m_retainedBytes -= existing->retainedBytes;
       existing->retainedBytes = retainedBytes;
+      existing->demand = demand;
+      existing->benefit = benefit;
       existing->insertionSequence = ++m_sequence;
+      existing->lastAccessSequence = existing->insertionSequence;
       m_retainedBytes += retainedBytes;
+      drainToLimits();
       return true;
     }
-    while (m_entries.size() >= m_maxEntries)
-      evictOldest();
-    WorldGenerationProductCacheEntry entry{retainedBytes, ++m_sequence};
+    if (m_retention.enabled && m_softPressureLatched
+        && demand == WorldGenerationMemoryDemand::Speculative
+        && m_retainedBytes + retainedBytes > m_retention.resumeBytes) {
+      ++m_refusedInserts;
+      return false;
+    }
+    while (m_entries.size() >= m_maxEntries) {
+      if (!evictVictim(false)) {
+        ++m_refusedInserts;
+        return false;
+      }
+    }
+    if (m_retention.enabled && m_retainedBytes + retainedBytes > m_retention.hardBytes) {
+      while (m_retainedBytes + retainedBytes > m_retention.hardBytes) {
+        if (!evictVictim(false)) {
+          ++m_refusedInserts;
+          return false;
+        }
+      }
+    }
+    WorldGenerationProductCacheEntry entry;
+    entry.retainedBytes = retainedBytes;
+    entry.insertionSequence = ++m_sequence;
+    entry.lastAccessSequence = entry.insertionSequence;
+    entry.demand = demand;
+    entry.benefit = benefit;
     m_entries.add(key, entry);
     m_retainedBytes += retainedBytes;
+    drainToLimits();
     return true;
   }
 
-  bool erase(WorldGenerationProductRevisionKey const& key) {
+  bool acquireConsumer(WorldGenerationProductRevisionKey const& key) {
     if (auto* existing = m_entries.ptr(key)) {
-      m_retainedBytes -= existing->retainedBytes;
-      m_entries.remove(key);
-      ++m_invalidations;
+      ++existing->activeConsumers;
+      existing->lastAccessSequence = ++m_sequence;
       return true;
     }
     return false;
   }
 
-  // Drop entries whose matching revision field differs from the live value.
-  // Exact matches stay; this never republishes or widens validity.
+  // Dropping a consumer never discards a still-referenced resident (RAM-05).
+  bool releaseConsumer(WorldGenerationProductRevisionKey const& key) {
+    if (auto* existing = m_entries.ptr(key)) {
+      if (existing->activeConsumers == 0)
+        return false;
+      --existing->activeConsumers;
+      return true;
+    }
+    return false;
+  }
+
+  bool erase(WorldGenerationProductRevisionKey const& key) {
+    if (auto* existing = m_entries.ptr(key)) {
+      if (existing->activeConsumers != 0)
+        return false;
+      m_retainedBytes -= existing->retainedBytes;
+      m_entries.remove(key);
+      ++m_invalidations;
+      updateSoftLatch();
+      return true;
+    }
+    return false;
+  }
+
   size_t invalidate(WorldGenerationProductCacheInvalidation kind, uint64_t liveValue) {
     size_t removed = 0;
     List<WorldGenerationProductRevisionKey> doomed;
@@ -146,7 +230,7 @@ public:
           drop = true;
           break;
       }
-      if (drop)
+      if (drop && pair.second.activeConsumers == 0)
         doomed.append(pair.first);
     }
     for (auto const& key : doomed) {
@@ -157,41 +241,99 @@ public:
   }
 
   void clear() {
-    m_entries.clear();
-    m_retainedBytes = 0;
-    ++m_invalidations;
+    List<WorldGenerationProductRevisionKey> doomed;
+    for (auto const& pair : m_entries) {
+      if (pair.second.activeConsumers == 0)
+        doomed.append(pair.first);
+    }
+    for (auto const& key : doomed)
+      erase(key);
+    if (m_entries.empty())
+      ++m_invalidations;
+    updateSoftLatch();
   }
 
 private:
-  void evictOldest() {
+  static int demandRank(WorldGenerationMemoryDemand demand) {
+    switch (demand) {
+      case WorldGenerationMemoryDemand::Visible: return 3;
+      case WorldGenerationMemoryDemand::Dependency: return 2;
+      case WorldGenerationMemoryDemand::Speculative: return 1;
+      default: return 0;
+    }
+  }
+
+  bool betterVictim(WorldGenerationProductCacheEntry const& candidate,
+      WorldGenerationProductCacheEntry const& incumbent) const {
+    if (demandRank(candidate.demand) != demandRank(incumbent.demand))
+      return demandRank(candidate.demand) < demandRank(incumbent.demand);
+    if (candidate.benefit != incumbent.benefit)
+      return candidate.benefit < incumbent.benefit;
+    return candidate.lastAccessSequence < incumbent.lastAccessSequence;
+  }
+
+  // softOnly: drain speculation first so visible/dependency residents are not
+  // oscillated by soft pressure (RAM-03 hysteresis contract).
+  bool evictVictim(bool softOnly) {
     if (m_entries.empty())
-      return;
-    WorldGenerationProductRevisionKey oldestKey;
-    uint64_t oldestSequence = (uint64_t)-1;
-    bool found = false;
+      return false;
+    WorldGenerationProductRevisionKey victimKey;
+    WorldGenerationProductCacheEntry const* victim = nullptr;
     for (auto const& pair : m_entries) {
-      if (!found || pair.second.insertionSequence < oldestSequence) {
-        oldestKey = pair.first;
-        oldestSequence = pair.second.insertionSequence;
-        found = true;
+      if (pair.second.activeConsumers != 0)
+        continue;
+      if (softOnly && pair.second.demand != WorldGenerationMemoryDemand::Speculative)
+        continue;
+      if (!victim || betterVictim(pair.second, *victim)) {
+        victimKey = pair.first;
+        victim = &pair.second;
       }
     }
-    if (!found)
+    if (!victim)
+      return false;
+    m_retainedBytes -= victim->retainedBytes;
+    m_entries.remove(victimKey);
+    ++m_evictions;
+    updateSoftLatch();
+    return true;
+  }
+
+  void drainToLimits() {
+    if (!m_retention.enabled)
       return;
-    if (auto* existing = m_entries.ptr(oldestKey)) {
-      m_retainedBytes -= existing->retainedBytes;
-      m_entries.remove(oldestKey);
-      ++m_evictions;
+    if (m_retainedBytes > m_retention.softBytes) {
+      m_softPressureLatched = true;
+      while (m_retainedBytes > m_retention.softBytes) {
+        if (!evictVictim(true))
+          break;
+        ++m_retentionDrains;
+      }
     }
+    updateSoftLatch();
+  }
+
+  void updateSoftLatch() {
+    if (!m_retention.enabled) {
+      m_softPressureLatched = false;
+      return;
+    }
+    if (m_retainedBytes <= m_retention.resumeBytes)
+      m_softPressureLatched = false;
+    else if (m_retainedBytes > m_retention.softBytes)
+      m_softPressureLatched = true;
   }
 
   size_t m_maxEntries = 1;
   size_t m_retainedBytes = 0;
-  uint64_t m_sequence = 0;
+  WorldGenerationProductRetentionLimits m_retention;
+  bool m_softPressureLatched = false;
+  mutable uint64_t m_sequence = 0;
   mutable uint64_t m_hits = 0;
   mutable uint64_t m_misses = 0;
   uint64_t m_evictions = 0;
   uint64_t m_invalidations = 0;
+  uint64_t m_retentionDrains = 0;
+  uint64_t m_refusedInserts = 0;
   HashMap<WorldGenerationProductRevisionKey, WorldGenerationProductCacheEntry> m_entries;
 };
 

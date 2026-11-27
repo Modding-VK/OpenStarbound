@@ -95,3 +95,47 @@ TEST(WorldGenerationProductRevisionCacheTest, ClearAndAllInvalidationEmptyTheRes
   EXPECT_EQ(0u, cache.size());
   EXPECT_GE(cache.invalidations(), 1u);
 }
+
+TEST(WorldGenerationProductRevisionCacheTest, RetentionPrefersEvictingSpeculativeOverVisible) {
+  WorldGenerationProductRetentionLimits limits{true, 40, 50, 80};
+  WorldGenerationProductRevisionCache cache(8, limits);
+  auto speculative = key(WorldGenerationResidentProductKind::PureField, {0, 0}, 1);
+  auto visible = key(WorldGenerationResidentProductKind::PrivateBaseTiles, {1, 0}, 1);
+  ASSERT_TRUE(cache.insert(speculative, 40, WorldGenerationMemoryDemand::Speculative, 1));
+  ASSERT_TRUE(cache.insert(visible, 20, WorldGenerationMemoryDemand::Visible, 10));
+  ASSERT_TRUE(cache.insert(key(WorldGenerationResidentProductKind::CandidatePlan, {2, 0}, 1), 20,
+      WorldGenerationMemoryDemand::Speculative, 0));
+  EXPECT_FALSE(cache.contains(speculative));
+  EXPECT_TRUE(cache.contains(visible));
+  EXPECT_GT(cache.retentionDrains() + cache.evictions(), 0u);
+}
+
+TEST(WorldGenerationProductRevisionCacheTest, SoftHysteresisRefusesSpeculationUntilResume) {
+  WorldGenerationProductRetentionLimits limits{true, 30, 40, 100};
+  WorldGenerationProductRevisionCache cache(8, limits);
+  ASSERT_TRUE(cache.insert(key(WorldGenerationResidentProductKind::PrivateBaseTiles, {0, 0}, 1), 45,
+      WorldGenerationMemoryDemand::Visible, 5));
+  EXPECT_TRUE(cache.softPressureLatched());
+  EXPECT_FALSE(cache.insert(key(WorldGenerationResidentProductKind::PureField, {1, 0}, 1), 10,
+      WorldGenerationMemoryDemand::Speculative, 0));
+  EXPECT_GT(cache.refusedInserts(), 0u);
+  ASSERT_TRUE(cache.erase(key(WorldGenerationResidentProductKind::PrivateBaseTiles, {0, 0}, 1)));
+  EXPECT_FALSE(cache.softPressureLatched());
+  EXPECT_TRUE(cache.insert(key(WorldGenerationResidentProductKind::PureField, {1, 0}, 1), 10,
+      WorldGenerationMemoryDemand::Speculative, 0));
+}
+
+TEST(WorldGenerationProductRevisionCacheTest, ActiveConsumersSurviveEvictionAndInvalidation) {
+  WorldGenerationProductRevisionCache cache(1);
+  auto pinned = key(WorldGenerationResidentProductKind::PrivateBaseTiles, {0, 0}, 1);
+  auto other = key(WorldGenerationResidentProductKind::PrivateBaseTiles, {1, 0}, 1);
+  ASSERT_TRUE(cache.insert(pinned, 16, WorldGenerationMemoryDemand::Dependency, 1));
+  ASSERT_TRUE(cache.acquireConsumer(pinned));
+  EXPECT_FALSE(cache.insert(other, 16));
+  EXPECT_TRUE(cache.contains(pinned));
+  EXPECT_FALSE(cache.erase(pinned));
+  EXPECT_EQ(0u, cache.invalidate(WorldGenerationProductCacheInvalidation::All, 0));
+  EXPECT_TRUE(cache.contains(pinned));
+  ASSERT_TRUE(cache.releaseConsumer(pinned));
+  EXPECT_TRUE(cache.erase(pinned));
+}
