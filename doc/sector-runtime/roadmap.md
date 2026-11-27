@@ -476,10 +476,10 @@ do kernel CPU e do resultado versionado.
   `STAR_ENABLE_WORLDGEN_GL_COMPUTE`, evidência RTX pendente).
 - [x] GPU-02: fila/buffers em voo/pump/failContext + stagingSnapshot +
   adoptOwnerThread (primeiro recorte 25%; integração WorldThread pendente).
-- [x] GPU-03: kernels exatos DenseUint32Xor/Add/And/Or/Mul + submitBatch
-  (primeiro recorte 25%; shaders densos no opt-in; terreno/bioma/ganho pendentes).
-- [x] GPU-04: compareShadow + corpus/reprodutor + commit revalidate
-  (primeiro recorte 25%; fingerprintInput/commit; multi-driver pendente).
+- [x] GPU-03: kernels exatos DenseUint32Xor/Add/And/Or/Mul/Min/Max/Sub +
+  submitBatch (primeiro recorte 25%; terreno/bioma/ganho pendentes).
+- [x] GPU-04: compareShadow + corpus/reprodutor + commit/commitBatch +
+  RngStream (primeiro recorte 25%; multi-driver pendente).
 
 Saída: equivalência e custo completo demonstrados, sem publicar divergências.
 A existência de shaders/uso de GPU no gráfico não conclui esta entrega.
