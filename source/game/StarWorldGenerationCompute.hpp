@@ -284,6 +284,8 @@ public:
   bool anyInFlightByKernel(WorldGenerationComputeKernel kernel) const;
   // Ready open tickets whose identity.kernel matches (asset-free observation).
   size_t readyOpenTicketsByKernel(WorldGenerationComputeKernel kernel) const;
+  // True while any Ready ticket matches identity.kernel (asset-free observation).
+  bool anyReadyOpenTicketsByKernel(WorldGenerationComputeKernel kernel) const;
   // Cancelled open tickets whose identity.kernel matches (asset-free observation).
   size_t cancelledOpenTicketsByKernel(WorldGenerationComputeKernel kernel) const;
   // True while any open ticket matches identity.kernel (asset-free observation).
