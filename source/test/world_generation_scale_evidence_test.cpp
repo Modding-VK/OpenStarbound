@@ -125,6 +125,31 @@ TEST(WorldGenerationScaleEvidenceTest, ProfileAdviceNeverSilentRename) {
   EXPECT_TRUE(aggressive.requiresExplicitUserOptIn);
 }
 
+TEST(WorldGenerationScaleEvidenceTest, FingerprintStableAndSensitive) {
+  WorldGenerationScaleMetricsRecorder scale;
+  WorldGenerationScenarioCampaignRecorder campaign;
+  fillCpuOnlyCampaign(campaign);
+  WorldGenerationDeliveryMetricsRecorder delivery;
+  auto equivalence = worldGenerationScaleEvidenceEquivalence(1, 1, 1);
+  auto bundle = buildWorldGenerationScaleEvidenceFromRecorders(
+      scale, campaign, delivery.snapshot(), true, equivalence);
+  auto again = buildWorldGenerationScaleEvidenceFromRecorders(
+      scale, campaign, delivery.snapshot(), true, equivalence);
+  EXPECT_EQ(fingerprintWorldGenerationScaleEvidence(bundle),
+      fingerprintWorldGenerationScaleEvidence(again));
+
+  auto otherEpoch = worldGenerationScaleEvidenceEquivalence(2, 1, 1);
+  auto changed = buildWorldGenerationScaleEvidenceFromRecorders(
+      scale, campaign, delivery.snapshot(), true, otherEpoch);
+  EXPECT_NE(fingerprintWorldGenerationScaleEvidence(bundle),
+      fingerprintWorldGenerationScaleEvidence(changed));
+
+  auto manifest = manifestWorldGenerationScaleEvidence(bundle);
+  EXPECT_EQ(manifest.fingerprint, fingerprintWorldGenerationScaleEvidence(bundle));
+  EXPECT_TRUE(manifest.readyForIntegratorReview);
+  EXPECT_EQ(manifest.generationEpoch, 1u);
+}
+
 TEST(WorldGenerationScaleEvidenceTest, TipPrefixParsesEightHexDigits) {
   EXPECT_EQ(worldGenerationTipPrefixFromHex8("da430a98"), 0xda430a98u);
   EXPECT_EQ(worldGenerationTipPrefixFromHex8("DA430A98"), 0xda430a98u);

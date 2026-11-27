@@ -227,4 +227,51 @@ inline WorldGenerationScaleProfileRecommendation recommendWorldGenerationProfile
   return rec;
 }
 
+// Deterministic integrity stamp for Integrator continuity. Not a cryptographic
+// hash and not a merge/publish authorization.
+inline uint64_t fingerprintWorldGenerationScaleEvidence(
+    WorldGenerationScaleEvidenceBundle const& bundle) noexcept {
+  auto mix = [](uint64_t h, uint64_t v) noexcept {
+    h ^= v + 0x9e3779b97f4a7c15ull + (h << 6) + (h >> 2);
+    return h;
+  };
+  uint64_t h = 0xcbf29ce484222325ull;
+  h = mix(h, WorldGenerationScaleEvidenceBundle::ModelVersion);
+  h = mix(h, bundle.equivalence.generationEpoch);
+  h = mix(h, bundle.equivalence.profileEpoch);
+  h = mix(h, bundle.equivalence.comparatorEpoch);
+  h = mix(h, static_cast<uint64_t>(bundle.probePlatform));
+  h = mix(h, static_cast<uint64_t>(bundle.platformStatus));
+  h = mix(h, static_cast<uint64_t>(bundle.hardwareComputeStatus));
+  h = mix(h, bundle.cpuFallbackRequired ? 1u : 0u);
+  h = mix(h, bundle.scaleCapabilitiesClaimed ? 1u : 0u);
+  h = mix(h, bundle.scaleMeasuredGain ? 1u : 0u);
+  h = mix(h, bundle.campaignCpuOnlyCovered ? 1u : 0u);
+  h = mix(h, bundle.campaignHasFailures ? 1u : 0u);
+  h = mix(h, bundle.gatesAdopt ? 1u : 0u);
+  h = mix(h, bundle.gatesAuthoritativeGpuBlocked ? 1u : 0u);
+  h = mix(h, bundle.shadowOutputComparison ? 1u : 0u);
+  h = mix(h, bundle.desktopAttested ? 1u : 0u);
+  h = mix(h, bundle.readyForIntegratorReview ? 1u : 0u);
+  return h;
+}
+
+struct WorldGenerationScaleEvidenceManifest {
+  static constexpr unsigned ModelVersion = 1;
+  uint64_t fingerprint = 0;
+  bool readyForIntegratorReview = false;
+  bool desktopAttested = false;
+  uint32_t generationEpoch = 0;
+};
+
+inline WorldGenerationScaleEvidenceManifest manifestWorldGenerationScaleEvidence(
+    WorldGenerationScaleEvidenceBundle const& bundle) noexcept {
+  WorldGenerationScaleEvidenceManifest manifest;
+  manifest.fingerprint = fingerprintWorldGenerationScaleEvidence(bundle);
+  manifest.readyForIntegratorReview = bundle.readyForIntegratorReview;
+  manifest.desktopAttested = bundle.desktopAttested;
+  manifest.generationEpoch = bundle.equivalence.generationEpoch;
+  return manifest;
+}
+
 }

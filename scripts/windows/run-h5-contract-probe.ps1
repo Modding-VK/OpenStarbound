@@ -1,4 +1,4 @@
-# H5 Windows contract probe - pure model suites (48 tests).
+# H5 Windows contract probe - pure model suites (49 tests).
 # Does not enable STAR_ENABLE_WORLDGEN_GL_COMPUTE or claim GPU compute.
 param(
   [Parameter(Mandatory = $false)]

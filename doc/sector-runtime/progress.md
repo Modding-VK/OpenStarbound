@@ -3,10 +3,10 @@
 Atualizado em **27/11/2026**. Branch ativa desta frente: `cursor/h5-hardware-scale-9f77`
 (H0 continua em `Experimental`).
 Base inspecionada H5: `720f51e5` + fundações VAL/MOD/CPU;
-última implementação H5: Desktop probe attestation no evidence pack.
+última implementação H5: evidence fingerprint/manifest para o Integrador.
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico H5](../sector-runtime-h5-desktop-probe-attestation-2026-11-27.md)
+· [Último relatório técnico H5](../sector-runtime-h5-scale-evidence-fingerprint-2026-11-27.md)
 · [Último relatório H0](../sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
 · [Backlog geral](../performance-backlog.md)
 
@@ -26,7 +26,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **7,7%** — 15 marcos verificados de 196 |
 | Contratos com avanço registrado | **15 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | 48/48 H5 contract suites (desktop attestation); H0 ainda 791 padrão +106 RealBlockInfo |
+| Última evidência de testes | 49/49 H5 contract suites (evidence fingerprint); H0 ainda 791 padrão +106 RealBlockInfo |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 7,7% não significam que o jogo esteja só 7,7% pronto.** O runtime anterior
@@ -322,6 +322,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | H5 scale evidence bundle | Integrator review pack; 44 testes. H5 25%; programa 7,7% | 7,7% |
 | 27/11/2026 | H5 scale profile advice | MOD-03 recommend + materializeMs; 46 testes. H5 25%; programa 7,7% | 7,7% |
 | 27/11/2026 | H5 desktop attestation | tipPrefix + contract counts no evidence pack; 48 testes. H5 25%; programa 7,7% | 7,7% |
+| 27/11/2026 | H5 evidence fingerprint | manifest deterministico; 49 testes. H5 25%; puros esgotados ate WorldThread/ganho | 7,7% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.
