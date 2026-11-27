@@ -75,7 +75,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32BitToggle = 49, // value ^ (1u << (parameter & 31))
   DenseUint32Neg = 50, // 0 - value (two's complement); parameter ignored
   DenseUint32Abs = 51, // signed absolute value as uint32 bits; parameter ignored
-  DenseUint32RolBytes = 52 // rotate left by 8 * (parameter & 3) bits
+  DenseUint32RolBytes = 52, // rotate left by 8 * (parameter & 3) bits
+  DenseUint32RorBytes = 53, // rotate right by 8 * (parameter & 3) bits
+  DenseUint32SignMask = 54, // (int32)value < 0 ? 0xffffffff : 0; parameter ignored
+  DenseUint32IsZero = 55 // value == 0 ? 0xffffffff : 0; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
