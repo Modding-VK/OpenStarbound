@@ -268,6 +268,9 @@ GLuint g_halfReverseNibblesProgram = 0;
 GLuint g_halfWidenNibblesProgram = 0;
 GLuint g_halfDupNibblesProgram = 0;
 GLuint g_halfFoldAdjacentNibblesProgram = 0;
+GLuint g_halfCountNonzeroNibblesProgram = 0;
+GLuint g_halfAddNibbleProgram = 0;
+GLuint g_halfSatAddNibbleProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -3705,6 +3708,70 @@ void main() {
 }
 )GLSL";
 
+char const* HalfCountNonzeroNibblesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  uint count = 0u;
+  for (uint shift = 0u; shift < 16u; shift += 4u) {
+    if (((lo >> shift) & 0xfu) != 0u)
+      ++count;
+  }
+  values[i] = count;
+}
+)GLSL";
+
+char const* HalfAddNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint add = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint nib = (((lo >> (n * 4u)) & 0xfu) + add) & 0xfu;
+    result |= nib << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfSatAddNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint add = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint nib = ((lo >> (n * 4u)) & 0xfu) + add;
+    if (nib > 0xfu)
+      nib = 0xfu;
+    result |= nib << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -4585,6 +4652,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfFoldAdjacentNibblesProgram);
     g_halfFoldAdjacentNibblesProgram = 0;
   }
+  if (g_halfCountNonzeroNibblesProgram) {
+    glDeleteProgram(g_halfCountNonzeroNibblesProgram);
+    g_halfCountNonzeroNibblesProgram = 0;
+  }
+  if (g_halfAddNibbleProgram) {
+    glDeleteProgram(g_halfAddNibbleProgram);
+    g_halfAddNibbleProgram = 0;
+  }
+  if (g_halfSatAddNibbleProgram) {
+    glDeleteProgram(g_halfSatAddNibbleProgram);
+    g_halfSatAddNibbleProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -4916,7 +4995,12 @@ bool createContext(std::string& failure) {
             "DenseUint32HalfWidenNibbles")
       || !requireProgram(g_halfDupNibblesProgram, HalfDupNibblesShader, "DenseUint32HalfDupNibbles")
       || !requireProgram(g_halfFoldAdjacentNibblesProgram, HalfFoldAdjacentNibblesShader,
-            "DenseUint32HalfFoldAdjacentNibbles"))
+            "DenseUint32HalfFoldAdjacentNibbles")
+      || !requireProgram(g_halfCountNonzeroNibblesProgram, HalfCountNonzeroNibblesShader,
+            "DenseUint32HalfCountNonzeroNibbles")
+      || !requireProgram(g_halfAddNibbleProgram, HalfAddNibbleShader, "DenseUint32HalfAddNibble")
+      || !requireProgram(g_halfSatAddNibbleProgram, HalfSatAddNibbleShader,
+            "DenseUint32HalfSatAddNibble"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -5397,6 +5481,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfDupNibblesProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfFoldAdjacentNibbles)
     program = g_halfFoldAdjacentNibblesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfCountNonzeroNibbles)
+    program = g_halfCountNonzeroNibblesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfAddNibble)
+    program = g_halfAddNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSatAddNibble)
+    program = g_halfSatAddNibbleProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
