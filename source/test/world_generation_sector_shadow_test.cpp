@@ -127,6 +127,22 @@ TEST(WorldGenerationSectorShadowTest, TryAdmitFromCompositeReusesBaseTilesIdenti
   EXPECT_EQ(before.resources, ledger.snapshot().resources);
 }
 
+TEST(WorldGenerationSectorShadowTest, TemplateRevisionBumpFailsOwnerMatchesWithoutDroppingPayload) {
+  WorldGenerationMemoryLedger ledger;
+  auto identity = baseTilesIdentity(3, {64, 64});
+  auto shadow = WorldGenerationSectorShadow::tryAdmit(ledger, identity);
+  ASSERT_TRUE(shadow.has_value());
+  shadow->tiles()(2, 2).foreground = MaterialId(44);
+  auto live = identity;
+  ++live.templateRevision;
+  EXPECT_FALSE(shadow->matches(live));
+  EXPECT_TRUE(shadow->active());
+  EXPECT_EQ(MaterialId(44), shadow->tiles()(2, 2).foreground);
+  EXPECT_EQ(1u, ledger.snapshot().resources);
+  shadow->discard();
+  EXPECT_EQ(0u, ledger.snapshot().resources);
+}
+
 TEST(WorldGenerationSectorShadowTest, TightLedgerAdmitsOneShadowAndRefusesTheSecond) {
   WorldGenerationMemoryLedger ledger(WorldGenerationSectorShadow::retainedBytes());
   auto origin = baseTilesIdentity(1, {64, 64});

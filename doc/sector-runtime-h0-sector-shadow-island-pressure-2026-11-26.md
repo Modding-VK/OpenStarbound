@@ -22,5 +22,6 @@ ASan/UBSan: 7 sombras × 10 → **784/784** contrato; Island × 5; **68/68** Rea
 
 ## Próximo passo
 
-Revisão de template stale com sombra ativa, ou fechar lacunas restantes de
-CPU-01 antes de H1. Não disparar Actions.
+Feito em
+[sombra template stale](sector-runtime-h0-sector-shadow-stale-template-2026-11-26.md).
+Segue contexto profundo/jobs de CPU-01. Não disparar Actions.

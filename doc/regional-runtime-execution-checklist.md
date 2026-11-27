@@ -39,9 +39,9 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[IslandSurface+pressão](sector-runtime-h0-sector-shadow-island-pressure-2026-11-26.md),
+[Sombra template stale](sector-runtime-h0-sector-shadow-stale-template-2026-11-26.md),
 com antecedentes em
-[Sombras concorrentes](sector-runtime-h0-sector-shadow-concurrent-2026-11-26.md),
+[IslandSurface+pressão](sector-runtime-h0-sector-shadow-island-pressure-2026-11-26.md),
 [Sombra por setor](sector-runtime-h0-sector-shadow-2026-11-26.md) e
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
