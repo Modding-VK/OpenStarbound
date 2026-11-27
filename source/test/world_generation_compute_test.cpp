@@ -1324,6 +1324,26 @@ TEST(WorldGenerationComputeTest, AnyReadyOpenTicketsTracksReadyPresence) {
 }
 
 
+TEST(WorldGenerationComputeTest, DiscardReadyOpenTicketsDrainsAllReady) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  EXPECT_EQ(0u, service.discardReadyOpenTickets());
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(1320, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(1321, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{2u}, 0u));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(1322, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{3u}, 0u));
+  EXPECT_EQ(0u, service.discardReadyOpenTickets());
+  EXPECT_EQ(2u, service.completeOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(1u, service.completeOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+  EXPECT_EQ(3u, service.countReadyOpenTickets());
+  EXPECT_EQ(3u, service.discardReadyOpenTickets());
+  EXPECT_EQ(0u, service.countReadyOpenTickets());
+  EXPECT_EQ(0u, service.openTickets());
+  EXPECT_EQ(0u, service.discardReadyOpenTickets());
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32HalfSumMaxMinExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();
