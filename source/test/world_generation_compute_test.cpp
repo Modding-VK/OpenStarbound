@@ -487,9 +487,9 @@ TEST(WorldGenerationComputeTest, SupportedKernelsCatalogListsDenseFamily) {
   EXPECT_FALSE(WorldGenerationComputeService::isKernelSupported(
       WorldGenerationComputeKernel::DenseUint32Xor, 99u));
   auto kernels = WorldGenerationComputeService::supportedKernels();
-  ASSERT_EQ(82u, kernels.size());
+  ASSERT_EQ(85u, kernels.size());
   EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32Xor, kernels[0]);
-  EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32SwapAdjacentBits, kernels[kernels.size() - 1]);
+  EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32ExpandLow16ToOdd, kernels[kernels.size() - 1]);
   EXPECT_TRUE(WorldGenerationComputeService::supportedKernels(2u).empty());
 }
 
@@ -509,12 +509,54 @@ TEST(WorldGenerationComputeTest, CompareShadowBatchRunsIndependentKernels) {
     items.append(item);
   }
   auto reports = service.compareShadowBatch(input, std::move(items));
-  ASSERT_EQ(82u, reports.size());
+  ASSERT_EQ(85u, reports.size());
   for (auto const& report : reports) {
     EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal, report.verdict)
         << (int)report.identity.kernel;
     EXPECT_FALSE(report.reproducer.valid);
   }
+}
+
+TEST(WorldGenerationComputeTest, DenseUint32CompressExpandOddBitsExactCpuAndShadow) {
+  WorldGenerationComputeService service;
+  auto input = edgeCorpus();
+  // 0xff odd mask 0x55 -> compress -> 0x0f; expand restores 0x55
+  EXPECT_EQ(0x0fu,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32CompressOddBits, 1u, List<uint32_t>{0xffu},
+          0u)[0]);
+  EXPECT_EQ(0x0fu,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32CompressEvenBits, 1u, List<uint32_t>{0xffu},
+          0u)[0]);
+  EXPECT_EQ(0x55u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32ExpandLow16ToOdd, 1u, List<uint32_t>{0x0fu},
+          0u)[0]);
+  auto roundTrip = WorldGenerationComputeService::runKernel(
+      WorldGenerationComputeKernel::DenseUint32ExpandLow16ToOdd, 1u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32CompressOddBits, 1u, List<uint32_t>{0x55aa55aau},
+          0u),
+      0u);
+  ASSERT_EQ(1u, roundTrip.size());
+  EXPECT_EQ(0x55aa55aau & 0x55555555u, roundTrip[0]);
+
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(630, WorldGenerationComputeKernel::DenseUint32CompressOddBits), input, 0u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(631, WorldGenerationComputeKernel::DenseUint32CompressEvenBits), input, 0u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(632, WorldGenerationComputeKernel::DenseUint32ExpandLow16ToOdd), input, 0u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
+          .verdict);
 }
 
 TEST(WorldGenerationComputeTest, DenseUint32KeepOddEvenSwapAdjacentExactCpuAndShadow) {
@@ -1203,6 +1245,35 @@ TEST(WorldGenerationComputeTest, CancelledOpenTicketsByKernelCountsRevokedMatche
   EXPECT_EQ(1u, service.inFlightByKernel(WorldGenerationComputeKernel::DenseUint32Add));
 }
 
+TEST(WorldGenerationComputeTest, ListCancelledOpenTicketsByKernelReturnsCancelledIdsOnly) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  auto xorA = service.submit(
+      makeIdentity(640, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u);
+  auto xorB = service.submit(
+      makeIdentity(641, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{2u}, 0u);
+  auto add = service.submit(
+      makeIdentity(642, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{3u}, 0u);
+  ASSERT_TRUE((bool)xorA);
+  ASSERT_TRUE((bool)xorB);
+  ASSERT_TRUE((bool)add);
+
+  EXPECT_TRUE(
+      service.listCancelledOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor)
+          .empty());
+  EXPECT_EQ(2u, service.cancelOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  auto cancelledXor =
+      service.listCancelledOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor);
+  ASSERT_EQ(2u, cancelledXor.size());
+  EXPECT_TRUE(cancelledXor[0] == *xorA || cancelledXor[0] == *xorB);
+  EXPECT_TRUE(cancelledXor[1] == *xorA || cancelledXor[1] == *xorB);
+  EXPECT_NE(cancelledXor[0].id, cancelledXor[1].id);
+  EXPECT_TRUE(
+      service.listCancelledOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add)
+          .empty());
+  EXPECT_EQ(1u, service.inFlightByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+}
+
 TEST(WorldGenerationComputeTest, ReadyOpenTicketsByKernelCountsCompletedMatches) {
   WorldGenerationComputeService service;
   service.setDeferredCpuCompletion(true);
@@ -1601,7 +1672,7 @@ TEST(WorldGenerationComputeTest, DenseUint32OrNotAvgIsPow2ExactCpuAndShadow) {
 }
 
 TEST(WorldGenerationComputeTest, FingerprintCapabilitiesAndSupportedKernelCount) {
-  EXPECT_EQ(82u, WorldGenerationComputeService::supportedKernelCount());
+  EXPECT_EQ(85u, WorldGenerationComputeService::supportedKernelCount());
   EXPECT_EQ(0u, WorldGenerationComputeService::supportedKernelCount(2u));
   EXPECT_EQ(WorldGenerationComputeService::supportedKernels().size(),
       WorldGenerationComputeService::supportedKernelCount());

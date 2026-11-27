@@ -219,6 +219,12 @@ int main() {
       "DenseUint32KeepEvenBits");
   rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32SwapAdjacentBits, 0u,
       "DenseUint32SwapAdjacentBits");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32CompressOddBits, 0u,
+      "DenseUint32CompressOddBits");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32CompressEvenBits, 0u,
+      "DenseUint32CompressEvenBits");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32ExpandLow16ToOdd, 0u,
+      "DenseUint32ExpandLow16ToOdd");
 
   auto ticket = service.submit(makeIdentity(99, WorldGenerationComputeKernel::DenseUint32Xor),
       edgeCorpus(), 0x55aa55aau, WorldGenerationComputeBackend::GpuOpenGlCompute);
