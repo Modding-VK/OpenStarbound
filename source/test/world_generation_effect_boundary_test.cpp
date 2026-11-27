@@ -1,0 +1,230 @@
+#include "StarWorldGenerationEffectBoundary.hpp"
+
+#include <set>
+#include <string>
+
+#include "gtest/gtest.h"
+
+using namespace Star;
+
+TEST(WorldGenerationEffectBoundaryTest, CatalogSatisfiesH0Invariants) {
+  EXPECT_TRUE(worldGenerationEffectBoundaryCatalogValid());
+  EXPECT_GE(worldGenerationEffectBoundaryCount(), 76u);
+}
+
+TEST(WorldGenerationEffectBoundaryTest, IdsAreUniqueAndFindable) {
+  std::set<std::string> seen;
+  for (size_t i = 0; i != worldGenerationEffectBoundaryCount(); ++i) {
+    auto const* entry = worldGenerationEffectBoundaryAt(i);
+    ASSERT_TRUE(entry);
+    ASSERT_TRUE(entry->id);
+    EXPECT_TRUE(seen.insert(entry->id).second) << entry->id;
+    auto found = worldGenerationEffectBoundaryFind(entry->id);
+    ASSERT_TRUE(found);
+    EXPECT_STREQ(entry->id, found->id);
+    EXPECT_EQ(entry->kind, found->kind);
+  }
+  EXPECT_TRUE(worldGenerationEffectBoundaryFind("missing-operation").isNothing());
+  EXPECT_TRUE(worldGenerationEffectBoundaryFind(nullptr).isNothing());
+}
+
+TEST(WorldGenerationEffectBoundaryTest, PureKernelsNeverTouchLiveWorldOrScripts) {
+  size_t pure = 0;
+  for (size_t i = 0; i != worldGenerationEffectBoundaryCount(); ++i) {
+    auto const* entry = worldGenerationEffectBoundaryAt(i);
+    ASSERT_TRUE(entry);
+    if (entry->kind != WorldGenerationEffectKind::PureKernel)
+      continue;
+    ++pure;
+    EXPECT_FALSE(entry->mayInvokeScript) << entry->id;
+    EXPECT_FALSE(entry->mutatesLiveWorld) << entry->id;
+    EXPECT_FALSE(entry->requiresOwnerThread) << entry->id;
+    EXPECT_FALSE(entry->readsUninitializedDefault) << entry->id;
+  }
+  EXPECT_GE(pure, 4u);
+}
+
+TEST(WorldGenerationEffectBoundaryTest, AuditedUninitializedDefaultsRemainClassified) {
+  auto biome = worldGenerationEffectBoundaryFind("world-tile-assign-biome-transition");
+  ASSERT_TRUE(biome);
+  EXPECT_TRUE(biome->readsUninitializedDefault);
+  EXPECT_EQ(biome->kind, WorldGenerationEffectKind::PreparedDependency);
+
+  auto sky = worldGenerationEffectBoundaryFind("sky-parameters-horizon-clouds");
+  ASSERT_TRUE(sky);
+  EXPECT_TRUE(sky->readsUninitializedDefault);
+
+  auto baseHeight = worldGenerationEffectBoundaryFind("terrain-selector-base-height");
+  ASSERT_TRUE(baseHeight);
+  EXPECT_TRUE(baseHeight->readsUninitializedDefault);
+
+  auto perlin = worldGenerationEffectBoundaryFind("perlin-uninitialized-copy");
+  ASSERT_TRUE(perlin);
+  EXPECT_TRUE(perlin->readsUninitializedDefault);
+  EXPECT_EQ(perlin->kind, WorldGenerationEffectKind::PreparedDependency);
+}
+
+TEST(WorldGenerationEffectBoundaryTest, AuthoritativeCallbacksStayOnOwnerThread) {
+  size_t callbacks = 0;
+  size_t liveMutators = 0;
+  for (size_t i = 0; i != worldGenerationEffectBoundaryCount(); ++i) {
+    auto const* entry = worldGenerationEffectBoundaryAt(i);
+    ASSERT_TRUE(entry);
+    if (entry->kind != WorldGenerationEffectKind::AuthoritativeCallback)
+      continue;
+    ++callbacks;
+    EXPECT_TRUE(entry->requiresOwnerThread) << entry->id;
+    // Owner-thread live mutation is allowed; workers must not claim it.
+    if (entry->mutatesLiveWorld)
+      ++liveMutators;
+  }
+  EXPECT_GE(callbacks, 2u);
+  EXPECT_GE(liveMutators, 1u);
+}
+
+TEST(WorldGenerationEffectBoundaryTest, NoMultiRegionEffectInH0Catalog) {
+  for (size_t i = 0; i != worldGenerationEffectBoundaryCount(); ++i) {
+    auto const* entry = worldGenerationEffectBoundaryAt(i);
+    ASSERT_TRUE(entry);
+    EXPECT_NE(entry->kind, WorldGenerationEffectKind::MultiRegionEffect) << entry->id;
+  }
+}
+
+TEST(WorldGenerationEffectBoundaryTest, ExpandedSurfacesHaveCoverage) {
+  char const* surfaces[] = {"BaseTiles", "SectorShadow", "Memory", "Distribution", "Planning", "Json",
+      "Payload", "Lookup", "Tasks", "SelectorContext", "WorldRegion", "Perlin", "VAL-02", "VAL-01",
+      "Terrestrial", "RNG", "MicroDungeon", "Temporary", "Container", "Assets", "Root", "BlockInfo",
+      "Sampling", "WorkerCache", "Config", "PlacementQueue", "DAG-01", "DAG-04"};
+  for (auto surface : surfaces) {
+    EXPECT_GE(worldGenerationEffectBoundaryCountForSurface(surface), 1u) << surface;
+  }
+  EXPECT_EQ(0u, worldGenerationEffectBoundaryCountForSurface(nullptr));
+  EXPECT_EQ(0u, worldGenerationEffectBoundaryCountForSurface("MissingSurface"));
+}
+
+TEST(WorldGenerationEffectBoundaryTest, RemainingH0FoundationSurfacesClassified) {
+  for (auto id : {"temporary-storage-copy", "container-factor-query", "memory-envelope-classify",
+           "memory-atomic-opt-in", "memory-composite-basetiles", "memory-variable-retry",
+           "memory-capacity-signal", "base-tiles-identity-ticket", "lookup-real-readers",
+           "assets-clear-cache", "root-reload-rebuild", "block-info-static-inputs",
+           "real-sector-sampling", "worker-cache-thread-local", "hash-collision-gate",
+           "config-lazy-json", "sector-shadow-ocean", "sector-shadow-island",
+           "sector-shadow-noise-cache", "dependency-identity", "pass-continuation"}) {
+    auto entry = worldGenerationEffectBoundaryFind(id);
+    ASSERT_TRUE(entry) << id;
+    EXPECT_FALSE(entry->kind == WorldGenerationEffectKind::MultiRegionEffect) << id;
+  }
+  EXPECT_GE(worldGenerationEffectBoundaryCountForSurface("Memory"), 6u);
+  EXPECT_GE(worldGenerationEffectBoundaryCountForSurface("SectorShadow"), 5u);
+  EXPECT_GE(worldGenerationEffectBoundaryCountForSurface("BaseTiles"), 6u);
+}
+
+TEST(WorldGenerationEffectBoundaryTest, StreamingPassIsNotRealBenchmark) {
+  auto pass = worldGenerationEffectBoundaryFind("streaming-pass-harness");
+  ASSERT_TRUE(pass);
+  EXPECT_EQ(pass->kind, WorldGenerationEffectKind::PreparedDependency);
+  EXPECT_FALSE(pass->mutatesLiveWorld);
+  auto apply = worldGenerationEffectBoundaryFind("microdungeon-plan-apply");
+  ASSERT_TRUE(apply);
+  EXPECT_EQ(apply->kind, WorldGenerationEffectKind::AuthoritativeCallback);
+  EXPECT_TRUE(apply->mutatesLiveWorld);
+  EXPECT_TRUE(apply->requiresOwnerThread);
+}
+
+TEST(WorldGenerationEffectBoundaryTest, MemoryAndLookupRefuseWithoutLiveMutation) {
+  auto admit = worldGenerationEffectBoundaryFind("memory-ledger-admit");
+  ASSERT_TRUE(admit);
+  EXPECT_FALSE(admit->mutatesLiveWorld);
+  EXPECT_TRUE(admit->requiresOwnerThread);
+
+  auto refuse = worldGenerationEffectBoundaryFind("memory-ledger-refuse");
+  ASSERT_TRUE(refuse);
+  EXPECT_FALSE(refuse->mutatesLiveWorld);
+
+  auto binding = worldGenerationEffectBoundaryFind("lookup-source-binding");
+  ASSERT_TRUE(binding);
+  EXPECT_EQ(binding->kind, WorldGenerationEffectKind::PreparedDependency);
+  EXPECT_TRUE(binding->requiresOwnerThread);
+
+  auto stale = worldGenerationEffectBoundaryFind("lookup-source-stale");
+  ASSERT_TRUE(stale);
+  EXPECT_FALSE(stale->mutatesLiveWorld);
+
+  auto regionLiquids = worldGenerationEffectBoundaryFind("world-region-liquids-default");
+  ASSERT_TRUE(regionLiquids);
+  EXPECT_TRUE(regionLiquids->readsUninitializedDefault);
+}
+
+TEST(WorldGenerationEffectBoundaryTest, TaskLifecycleBoundariesStayPrivate) {
+  for (auto id : {"task-preparation-abandon", "task-producer-failure", "task-invalidate"}) {
+    auto entry = worldGenerationEffectBoundaryFind(id);
+    ASSERT_TRUE(entry) << id;
+    EXPECT_FALSE(entry->mutatesLiveWorld) << id;
+    EXPECT_TRUE(entry->requiresOwnerThread) << id;
+  }
+  auto invalidate = worldGenerationEffectBoundaryFind("task-invalidate");
+  ASSERT_TRUE(invalidate);
+  EXPECT_EQ(invalidate->kind, WorldGenerationEffectKind::AuthoritativeCallback);
+}
+
+TEST(WorldGenerationEffectBoundaryTest, WorkerAllowsPureKernelRefusesAuthoritative) {
+  EXPECT_TRUE(worldGenerationEffectBoundaryAllows(
+      "base-tiles-apply", WorldGenerationEffectExecutionRole::Worker));
+  EXPECT_TRUE(worldGenerationEffectBoundaryAllows(
+      "composite-context-reconstruct", WorldGenerationEffectExecutionRole::Worker));
+  EXPECT_TRUE(worldGenerationEffectBoundaryAllows(
+      "effect-boundary-enforce", WorldGenerationEffectExecutionRole::Worker));
+
+  EXPECT_EQ(worldGenerationEffectBoundaryDecide(
+                "microdungeon-plan-apply", WorldGenerationEffectExecutionRole::Worker),
+      WorldGenerationEffectBoundaryDecision::RefuseWorkerAuthoritative);
+  EXPECT_FALSE(worldGenerationEffectBoundaryAllows(
+      "root-load-mods", WorldGenerationEffectExecutionRole::Worker));
+  EXPECT_FALSE(worldGenerationEffectBoundaryAllows(
+      "placement-queue-take", WorldGenerationEffectExecutionRole::Worker));
+
+  EXPECT_TRUE(worldGenerationEffectBoundaryAllows(
+      "microdungeon-plan-apply", WorldGenerationEffectExecutionRole::Owner));
+  EXPECT_TRUE(worldGenerationEffectBoundaryAllows(
+      "root-load-mods", WorldGenerationEffectExecutionRole::Diagnostic));
+}
+
+TEST(WorldGenerationEffectBoundaryTest, WorkerRefusesOwnerThreadPreparedDependency) {
+  EXPECT_EQ(worldGenerationEffectBoundaryDecide(
+                "composite-context-capture", WorldGenerationEffectExecutionRole::Worker),
+      WorldGenerationEffectBoundaryDecision::RefuseWorkerOwnerThread);
+  EXPECT_EQ(worldGenerationEffectBoundaryDecide(
+                "sector-shadow-admit", WorldGenerationEffectExecutionRole::Worker),
+      WorldGenerationEffectBoundaryDecision::RefuseWorkerOwnerThread);
+  // PreparedDependency without owner/script/live flags remains worker-safe.
+  EXPECT_TRUE(worldGenerationEffectBoundaryAllows(
+      "region-selector-snapshot", WorldGenerationEffectExecutionRole::Worker));
+  EXPECT_TRUE(worldGenerationEffectBoundaryAllows(
+      "container-factor-query", WorldGenerationEffectExecutionRole::Worker));
+}
+
+TEST(WorldGenerationEffectBoundaryTest, EnforcementRefusesUnknownAndNamesDecisions) {
+  EXPECT_EQ(worldGenerationEffectBoundaryDecide(
+                "missing-operation", WorldGenerationEffectExecutionRole::Owner),
+      WorldGenerationEffectBoundaryDecision::RefuseUnknown);
+  EXPECT_EQ(worldGenerationEffectBoundaryDecide(
+                nullptr, WorldGenerationEffectExecutionRole::Worker),
+      WorldGenerationEffectBoundaryDecision::RefuseUnknown);
+  EXPECT_STREQ("Allow",
+      worldGenerationEffectBoundaryDecisionName(WorldGenerationEffectBoundaryDecision::Allow));
+  EXPECT_STREQ("RefuseWorkerAuthoritative",
+      worldGenerationEffectBoundaryDecisionName(
+          WorldGenerationEffectBoundaryDecision::RefuseWorkerAuthoritative));
+  EXPECT_STREQ("RefuseWorkerOwnerThread",
+      worldGenerationEffectBoundaryDecisionName(
+          WorldGenerationEffectBoundaryDecision::RefuseWorkerOwnerThread));
+
+  auto reconstruct = worldGenerationEffectBoundaryFind("composite-context-reconstruct");
+  ASSERT_TRUE(reconstruct);
+  EXPECT_EQ(reconstruct->kind, WorldGenerationEffectKind::PureKernel);
+  auto enforce = worldGenerationEffectBoundaryFind("effect-boundary-enforce");
+  ASSERT_TRUE(enforce);
+  EXPECT_EQ(enforce->kind, WorldGenerationEffectKind::PureKernel);
+  EXPECT_GE(worldGenerationEffectBoundaryCountForSurface("EffectBoundary"), 1u);
+  EXPECT_GE(worldGenerationEffectBoundaryCountForSurface("CompositeContext"), 3u);
+}

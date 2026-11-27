@@ -116,6 +116,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   ../game/StarLiquidTypes.cpp
   ../game/StarWorldGenerationBaseTiles.cpp
   ../game/StarWorldGenerationCandidateSequence.cpp
+  ../game/StarWorldGenerationEffectBoundary.cpp
   ../game/StarWorldGenerationCustomTerrain.cpp
   ../game/StarTerrainSelector.cpp
   ../game/StarWorldGenerationBlockInfoStaticInputs.cpp
@@ -142,6 +143,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   StarWorldGenerationPassHarness.hpp
   world_generation_placement_queue_test.cpp
   world_generation_candidate_sequence_test.cpp
+  world_generation_effect_boundary_test.cpp
   world_generation_tasks_test.cpp
   world_generation_memory_test.cpp
   world_generation_memory_envelope_test.cpp
@@ -199,6 +201,7 @@ FOREACH(world_region_test_suite
     WorldGenerationPassTest
     WorldGenerationPlacementQueueTest
     WorldGenerationCandidateSequenceTest
+    WorldGenerationEffectBoundaryTest
     WorldGenerationTasksTest
     WorldGenerationMemoryTest
     WorldGenerationMemoryEnvelopeTest

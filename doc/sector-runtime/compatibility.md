@@ -231,6 +231,23 @@ config para acomodar limite de medição; schema válido e medição completa s�
 coisas distintas. Composição de config/custom terrain é privada e fora dos jobs.
 Naquela entrega, adapter normal e WorldTemplate.cpp permaneceram byte-idênticos à base.
 
+O [catálogo EffectBoundary](../sector-runtime-h0-effect-boundary-2026-11-27.md)
+classifica em código PureKernel/PreparedDependency/AuthoritativeCallback para o
+recorte H0 (BaseTiles, sombra, candidatos, Perlin, defaults auditados, Assets/
+Root, fila/handoff). PureKernel não invoca script nem muta o mundo vivo;
+callbacks autoritativos exigem thread dona; MultiRegionEffect fica fora do
+catálogo H0. `readsUninitializedDefault` registra biomeTransition/horizonClouds/
+baseHeight/Perlin Uninitialized sem normalizar constructors. A
+[expansão](../sector-runtime-h0-effect-boundary-expand-2026-11-27.md) e o
+[fecho razoável](../sector-runtime-h0-effect-boundary-complete-2026-11-27.md)
+cobrem Memory/Lookup/Tasks/Json/Planning/Selector/Terrestrial/RNG/MD/Sampling.
+O [recorte profundo](../sector-runtime-h0-effect-boundary-deep-2026-11-27.md)
+adiciona enforcement por papel (Worker recusa AuthoritativeCallback e
+PreparedDependency owner/script/live) e
+`reconstructPureInputs()` no composto admitido (PODs de seletor + identidade
+BaseTiles, sem RNG/Assets). ~76 entradas. Não amarra ainda todos os call sites
+de produção nem autoriza workers Lua.
+
 O [ensaio seguinte de amostragem real](../sector-runtime-h0-real-sector-sampling-2026-11-10.md)
 reloca 23 corpos herdados sem alteração, incluindo construtores/consulta normal
 e LRU. Testa exceções e cache reais: hit após retirar Root não consulta Assets,
