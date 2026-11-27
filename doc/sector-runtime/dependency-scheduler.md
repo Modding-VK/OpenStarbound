@@ -100,9 +100,11 @@ Registrar quem foi escolhido, qual razão e qual bloqueador impediu o avanço,
 com cardinalidade limitada. Não confundir total de bloqueios com quantidade
 de dungeons executadas.
 
-Primeiro recorte H1 (27/11/2026): `WorldGenerationExecutivePriority` pontua
-interesse/distância(wrap)/idade e `selectFair` escolhe na frontier sem deixar
-Background denso apagar Visible antigo. Sem executor vivo. Ver
+Recorte H1 sombra (27/11/2026): `WorldGenerationExecutivePriority` pontua
+interesse/distância(wrap)/idade/eta/unlock e `selectFair` / `selectFairTraced`
+aplicam TTL e teto de Background sem renovar `ageTick`. Auxiliares herdam
+urgência do consumidor Visible. Contrato em 50% local; 75% exige integração
+viva. Ver
 [interest/priority](../sector-runtime-h1-executive-interest-priority-2026-11-27.md).
 
 ## DAG-04 — Conclusões e progresso dentro da passagem

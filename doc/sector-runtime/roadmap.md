@@ -427,7 +427,7 @@ Depende de H0 para identidade e comparação.
   (primeiro recorte 25%; ver
   [executive shadow](../sector-runtime-h1-executive-shadow-2026-11-27.md)).
 - [x] DAG-03: prioridade herdada, justiça e distância com wrap
-  (primeiro recorte 25%; ver
+  (50% sombra: TTL/load/eta/unlock/trace; ver
   [interest/priority](../sector-runtime-h1-executive-interest-priority-2026-11-27.md)).
 - [x] DAG-04/05: mailbox, revalidação, retry e cancelamento com drain
   (sombra 25% em DAG-05; mailbox sombra adicional em DAG-04; ver
