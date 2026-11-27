@@ -923,6 +923,40 @@ TEST(WorldGenerationComputeTest, ListFailedOpenKernelsReturnsFailedDistinctKerne
 #endif
 }
 
+TEST(WorldGenerationComputeTest, CountFailedOpenKernelsTracksFailedDistinctKernels) {
+  WorldGenerationComputeCapabilities caps = WorldGenerationComputeService::probeCapabilities();
+  caps.gpuOpenGlCompute = true;
+  WorldGenerationComputeService service(caps);
+  service.setDeferredCpuCompletion(true);
+  EXPECT_EQ(0u, service.countFailedOpenKernels());
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(980, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(981, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{2u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(982, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{3u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute));
+  EXPECT_EQ(0u, service.countFailedOpenKernels());
+  EXPECT_EQ(2u, service.completeOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+#ifndef STAR_ENABLE_WORLDGEN_GL_COMPUTE
+  EXPECT_EQ(1u, service.countFailedOpenKernels());
+  EXPECT_EQ(service.listFailedOpenKernels().size(), service.countFailedOpenKernels());
+  EXPECT_EQ(1u, service.completeOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+  EXPECT_EQ(2u, service.countFailedOpenKernels());
+  EXPECT_EQ(service.listFailedOpenKernels().size(), service.countFailedOpenKernels());
+  EXPECT_EQ(3u, service.drainOpenTickets());
+  EXPECT_EQ(0u, service.countFailedOpenKernels());
+#else
+  EXPECT_EQ(service.listFailedOpenKernels().size(), service.countFailedOpenKernels());
+  EXPECT_EQ(1u, service.completeOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+  EXPECT_EQ(service.listFailedOpenKernels().size(), service.countFailedOpenKernels());
+  EXPECT_EQ(3u, service.drainOpenTickets());
+  EXPECT_EQ(0u, service.countFailedOpenKernels());
+#endif
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32HalfSumMaxMinExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();
