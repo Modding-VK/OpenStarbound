@@ -70,6 +70,9 @@ GLuint g_maxProgram = 0;
 GLuint g_subProgram = 0;
 GLuint g_shlProgram = 0;
 GLuint g_shrProgram = 0;
+GLuint g_rotlProgram = 0;
+GLuint g_rotrProgram = 0;
+GLuint g_notProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -217,6 +220,50 @@ void main() {
 }
 )GLSL";
 
+char const* RotlShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint r = uParameter & 31u;
+  values[i] = (values[i] << r) | (values[i] >> ((32u - r) & 31u));
+}
+)GLSL";
+
+char const* RotrShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint r = uParameter & 31u;
+  values[i] = (values[i] >> r) | (values[i] << ((32u - r) & 31u));
+}
+)GLSL";
+
+char const* NotShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = ~values[i];
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -304,6 +351,18 @@ void destroyContextUnlocked() {
   if (g_shrProgram) {
     glDeleteProgram(g_shrProgram);
     g_shrProgram = 0;
+  }
+  if (g_rotlProgram) {
+    glDeleteProgram(g_rotlProgram);
+    g_rotlProgram = 0;
+  }
+  if (g_rotrProgram) {
+    glDeleteProgram(g_rotrProgram);
+    g_rotrProgram = 0;
+  }
+  if (g_notProgram) {
+    glDeleteProgram(g_notProgram);
+    g_notProgram = 0;
   }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
@@ -401,7 +460,10 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_maxProgram, MaxShader, "DenseUint32Max")
       || !requireProgram(g_subProgram, SubShader, "DenseUint32Sub")
       || !requireProgram(g_shlProgram, ShlShader, "DenseUint32Shl")
-      || !requireProgram(g_shrProgram, ShrShader, "DenseUint32Shr"))
+      || !requireProgram(g_shrProgram, ShrShader, "DenseUint32Shr")
+      || !requireProgram(g_rotlProgram, RotlShader, "DenseUint32Rotl")
+      || !requireProgram(g_rotrProgram, RotrShader, "DenseUint32Rotr")
+      || !requireProgram(g_notProgram, NotShader, "DenseUint32Not"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -486,6 +548,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_shlProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32Shr)
     program = g_shrProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Rotl)
+    program = g_rotlProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Rotr)
+    program = g_rotrProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Not)
+    program = g_notProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))

@@ -53,7 +53,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32Max
       || kernel == WorldGenerationComputeKernel::DenseUint32Sub
       || kernel == WorldGenerationComputeKernel::DenseUint32Shl
-      || kernel == WorldGenerationComputeKernel::DenseUint32Shr;
+      || kernel == WorldGenerationComputeKernel::DenseUint32Shr
+      || kernel == WorldGenerationComputeKernel::DenseUint32Rotl
+      || kernel == WorldGenerationComputeKernel::DenseUint32Rotr
+      || kernel == WorldGenerationComputeKernel::DenseUint32Not;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -71,7 +74,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32Max,
       WorldGenerationComputeKernel::DenseUint32Sub,
       WorldGenerationComputeKernel::DenseUint32Shl,
-      WorldGenerationComputeKernel::DenseUint32Shr};
+      WorldGenerationComputeKernel::DenseUint32Shr,
+      WorldGenerationComputeKernel::DenseUint32Rotl,
+      WorldGenerationComputeKernel::DenseUint32Rotr,
+      WorldGenerationComputeKernel::DenseUint32Not};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -119,6 +125,17 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
     uint32_t shift = parameter & 31u;
     for (uint32_t value : input)
       out.append(value >> shift);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Rotl) {
+    uint32_t rot = parameter & 31u;
+    for (uint32_t value : input)
+      out.append((value << rot) | (value >> ((32u - rot) & 31u)));
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Rotr) {
+    uint32_t rot = parameter & 31u;
+    for (uint32_t value : input)
+      out.append((value >> rot) | (value << ((32u - rot) & 31u)));
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Not) {
+    for (uint32_t value : input)
+      out.append(~value);
   }
   return out;
 }

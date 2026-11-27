@@ -33,7 +33,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32Max = 7,
   DenseUint32Sub = 8, // wrapping uint32 subtract (value - parameter)
   DenseUint32Shl = 9, // value << (parameter & 31)
-  DenseUint32Shr = 10 // logical value >> (parameter & 31)
+  DenseUint32Shr = 10, // logical value >> (parameter & 31)
+  DenseUint32Rotl = 11, // rotate left by (parameter & 31)
+  DenseUint32Rotr = 12, // rotate right by (parameter & 31)
+  DenseUint32Not = 13 // bitwise complement (~value); parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
