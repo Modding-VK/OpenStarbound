@@ -101,6 +101,25 @@ A cada ciclo:
 
 Sem commits à frente da base.
 
+## Revisão 27/11/2026 01:30 UTC
+
+Base integração: `5388ed72`. PRs GitHub com base na integração: **nenhum**.
+
+| Frente | Ahead | Novos desde revisão inicial | Veredito |
+| --- | ---: | --- | --- |
+| H0 | 6 | +2: setores adjacentes `{0,1}` e `{1,1}` lifecycle/assets | Mantém: **integrar primeiro** (rebase) |
+| H1 | 5 | +3: cancel/mailbox/scheduler, WT-02 `runPass`, PreparedSector + governor sombra | Mantém: **após H0** |
+| H2 | 2 | +1: milestones H2 + identidade PreparedSector | Mantém: **hold até H1** na integração |
+| H3 | 0 | — | Sem trabalho |
+| H4 | 2 | (sem novos) | Hold / protótipo após H0/H1 |
+| H5 | 3 | (sem novos) | Hold |
+| R1 | 3 | (sem novos) | Após H0(/H1) |
+| R2 | 3 | (sem novos) | Após R1 |
+
+Conflito documental (`progress.md`/checklist/roadmap) permanece o principal risco
+de merge. Nenhuma frente editada por este coordenador; sem Actions; sem merge
+em `main`.
+
 ## Próximo passo do coordenador
 
 Reabrir este relatório a cada push das frentes; quando os PRs existirem no
