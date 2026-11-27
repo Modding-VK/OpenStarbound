@@ -78,3 +78,16 @@ TEST(WorldRegionRuntimeTest, CoordinatorExposesLocalInventoryAndSharedCheckpoint
   EXPECT_EQ(runtime.advanceCheckpoint(1), WorldRegionCheckpointAdvanceResult::Advanced);
   EXPECT_EQ(1u, runtime.committedCheckpoint());
 }
+
+TEST(WorldRegionRuntimeTest, PerimeterSkeletonAndEpochRetireStayHarnessOnly) {
+  WorldRegionRuntimeCoordinator runtime(21, partition());
+  ASSERT_EQ(runtime.noteInterest({0, 0}, WorldRegionMemberLevel::Tiles), WorldRegionRuntimeInterestResult::Noted);
+  EXPECT_EQ(runtime.publishPerimeterSkeleton({0, 0}), WorldRegionBorderCaptureResult::Captured);
+  auto border = runtime.border({0, 0});
+  ASSERT_TRUE(border);
+  EXPECT_FALSE(border->cells.empty());
+  EXPECT_FALSE(border->cells[0].present);
+  EXPECT_EQ(1u, runtime.retireAllOwners());
+  EXPECT_EQ(0u, runtime.ownerCount());
+  EXPECT_FALSE(runtime.activeOwner({0, 0}));
+}

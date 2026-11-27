@@ -196,4 +196,10 @@ WorldRegionOwnerReleaseResult WorldRegionOwnerRegistry::completeDrain(Vec2U cons
   return WorldRegionOwnerReleaseResult::OwnerRetired;
 }
 
+size_t WorldRegionOwnerRegistry::retireAll() {
+  auto count = m_owners.size();
+  m_owners.clear();
+  return count;
+}
+
 }

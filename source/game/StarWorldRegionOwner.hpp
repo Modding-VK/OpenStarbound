@@ -71,6 +71,11 @@ public:
   WorldRegionOwnerReleaseResult release(Vec2U const& sector);
   WorldRegionOwnerReleaseResult completeDrain(Vec2U const& region);
 
+  // Simulated world-epoch boundary: drop every owner without OS-thread join.
+  // Callers must construct a new registry (or recreate identities) for the next
+  // epoch; object addresses are never reused as identity.
+  size_t retireAll();
+
   bool addPendingWork(Vec2U const& region, uint64_t units = 1);
   bool clearPendingWork(Vec2U const& region, uint64_t units = 1);
   uint64_t pendingWork(Vec2U const& region) const;

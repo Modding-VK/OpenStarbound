@@ -50,8 +50,19 @@ WorldRegionBorderCaptureResult WorldRegionRuntimeCoordinator::publishBorder(Vec2
   return m_borders.capture(region, m_clock, m_clock, std::move(cells));
 }
 
+WorldRegionBorderCaptureResult WorldRegionRuntimeCoordinator::publishPerimeterSkeleton(Vec2U const& region) {
+  auto positions = WorldRegionBorderOutline::perimeterPositions(m_owners.partition(), region);
+  if (!positions)
+    return WorldRegionBorderCaptureResult::RegionAbsent;
+  return publishBorder(region, WorldRegionBorderOutline::unavailableSkeleton(*positions));
+}
+
 Maybe<WorldRegionBorderSnapshot> WorldRegionRuntimeCoordinator::border(Vec2U const& region) const {
   return m_borders.latest(region);
+}
+
+size_t WorldRegionRuntimeCoordinator::retireAllOwners() {
+  return m_owners.retireAll();
 }
 
 Maybe<WorldRegionOwnerIdentity> WorldRegionRuntimeCoordinator::activeOwner(Vec2U const& region) const {

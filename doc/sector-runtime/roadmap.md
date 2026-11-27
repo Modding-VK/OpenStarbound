@@ -504,6 +504,9 @@ propriedade e efeitos; não é liberada por um kernel GPU aprovado.
   [bordas/coordenadora](../sector-runtime-r1-border-runtime-2026-11-27.md)).
 - [x] R1: inventário local de kinds + barreira IO-03
   ([relatório](../sector-runtime-r1-local-checkpoint-2026-11-27.md)).
+- [x] R1: harness residual outline/ForeignCell/retireAll
+  ([relatório](../sector-runtime-r1-border-outline-epoch-2026-11-27.md));
+  maturidade permanece 25%.
 - [ ] R1: REG-01/02 restantes + MOD-01 — lifecycle autoritativo com
   WorldStorage, estado vivo e equivalência integrada.
 - [ ] R1: WT-05 restante — integração WorldServerThread / legado.

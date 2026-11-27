@@ -113,3 +113,20 @@ TEST(WorldRegionOwnerTest, UnknownSectorAndForeignReleaseStayRejected) {
   EXPECT_EQ(registry.admit({0, 0}, WorldRegionMemberLevel::Tiles), WorldRegionOwnerAdmitResult::Created);
   EXPECT_EQ(registry.release({1, 0}), WorldRegionOwnerReleaseResult::NotMember);
 }
+
+TEST(WorldRegionOwnerTest, RetireAllClearsOwnersAtSimulatedEpochBoundary) {
+  WorldRegionOwnerRegistry registry(42, partition());
+  EXPECT_EQ(registry.admit({0, 0}, WorldRegionMemberLevel::Tiles), WorldRegionOwnerAdmitResult::Created);
+  EXPECT_EQ(registry.admit({2, 0}, WorldRegionMemberLevel::Entities), WorldRegionOwnerAdmitResult::Created);
+  EXPECT_EQ(2u, registry.ownerCount());
+  auto previous = registry.identity({0, 0});
+  ASSERT_TRUE(previous);
+  EXPECT_EQ(2u, registry.retireAll());
+  EXPECT_EQ(0u, registry.ownerCount());
+  EXPECT_EQ(WorldRegionOwnerPhase::Absent, registry.phase({0, 0}));
+  EXPECT_EQ(registry.admit({0, 0}, WorldRegionMemberLevel::Tiles), WorldRegionOwnerAdmitResult::Created);
+  auto next = registry.identity({0, 0});
+  ASSERT_TRUE(next);
+  EXPECT_EQ(previous->worldEpoch, next->worldEpoch);
+  EXPECT_NE(previous->regionGeneration, next->regionGeneration);
+}

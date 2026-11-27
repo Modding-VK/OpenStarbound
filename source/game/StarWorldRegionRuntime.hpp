@@ -33,8 +33,10 @@ public:
   bool clearPendingWork(Vec2U const& region, uint64_t units = 1);
 
   WorldRegionBorderCaptureResult publishBorder(Vec2U const& region, List<WorldRegionBorderCell> cells);
+  WorldRegionBorderCaptureResult publishPerimeterSkeleton(Vec2U const& region);
   Maybe<WorldRegionBorderSnapshot> border(Vec2U const& region) const;
   Maybe<WorldRegionOwnerIdentity> activeOwner(Vec2U const& region) const;
+  size_t retireAllOwners();
 
   WorldRegionLocalDeclareResult declareLocalKinds(Vec2U const& region, uint8_t kinds);
   Maybe<WorldRegionLocalInventorySnapshot> localInventory(Vec2U const& region) const;

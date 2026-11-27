@@ -27,12 +27,22 @@ enum class WorldRegionBorderCaptureResult {
   RegionAbsent,
   RegionDraining,
   EmptyCells,
-  OwnerMismatch
+  OwnerMismatch,
+  ForeignCell
 };
 
-// First REG-02 harness: capture a value-only border snapshot from an active
-// owner. Does not grant write access to neighbors and does not copy live world
-// tiles or entities.
+// REG-02 residual harness: perimeter tile positions from WorldGeometry bounds,
+// including partial edge regions. Horizontal wrap is resolved by partition
+// position queries, not by inventing neighbor ownership.
+class WorldRegionBorderOutline {
+public:
+  static Maybe<List<Vec2I>> perimeterPositions(WorldRegionPartition const& partition, Vec2U const& region);
+  static List<WorldRegionBorderCell> unavailableSkeleton(List<Vec2I> const& positions);
+};
+
+// REG-02 harness: capture a value-only border snapshot from an active owner.
+// Cells outside the owner's region bounds are rejected (neighbor write denied).
+// Does not copy live world tiles or entities.
 class WorldRegionBorderLedger {
 public:
   explicit WorldRegionBorderLedger(WorldRegionOwnerRegistry const& owners);
