@@ -291,7 +291,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfReverseBitsNibble
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfIsolateLsbNibble
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfClearLsbNibble
-      || kernel == WorldGenerationComputeKernel::DenseUint32HalfSmearLsbNibble;
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfSmearLsbNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfIsolateMsbNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfClearMsbNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfSmearMsbNibble;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -546,7 +549,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32HalfReverseBitsNibble,
       WorldGenerationComputeKernel::DenseUint32HalfIsolateLsbNibble,
       WorldGenerationComputeKernel::DenseUint32HalfClearLsbNibble,
-      WorldGenerationComputeKernel::DenseUint32HalfSmearLsbNibble};
+      WorldGenerationComputeKernel::DenseUint32HalfSmearLsbNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfIsolateMsbNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfClearMsbNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfSmearMsbNibble};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -556,7 +562,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 247u;
+  return 250u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -825,6 +831,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32HalfIsolateLsbNibble: return "DenseUint32HalfIsolateLsbNibble";
     case WorldGenerationComputeKernel::DenseUint32HalfClearLsbNibble: return "DenseUint32HalfClearLsbNibble";
     case WorldGenerationComputeKernel::DenseUint32HalfSmearLsbNibble: return "DenseUint32HalfSmearLsbNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfIsolateMsbNibble: return "DenseUint32HalfIsolateMsbNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfClearMsbNibble: return "DenseUint32HalfClearMsbNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfSmearMsbNibble: return "DenseUint32HalfSmearMsbNibble";
   }
   return nullptr;
 }
@@ -2714,6 +2723,51 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
       for (uint32_t i = 0; i < 4; ++i) {
         uint32_t n = (lo >> (i * 4u)) & 0xfu;
         n = (n | ((n - 1u) & 0xfu)) & 0xfu;
+        result |= n << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfIsolateMsbNibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t n = (lo >> (i * 4u)) & 0xfu;
+        if (n != 0u) {
+          uint32_t bit = 8u;
+          while ((n & bit) == 0u)
+            bit >>= 1;
+          n = bit;
+        }
+        result |= n << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfClearMsbNibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t n = (lo >> (i * 4u)) & 0xfu;
+        if (n != 0u) {
+          uint32_t bit = 8u;
+          while ((n & bit) == 0u)
+            bit >>= 1;
+          n ^= bit;
+        }
+        result |= n << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSmearMsbNibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t n = (lo >> (i * 4u)) & 0xfu;
+        n |= n >> 1;
+        n |= n >> 2;
+        n &= 0xfu;
         result |= n << (i * 4u);
       }
       out.append(result);

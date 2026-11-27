@@ -270,7 +270,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32HalfReverseBitsNibble = 244, // reverse 4 bits of each low16 nibble; parameter ignored
   DenseUint32HalfIsolateLsbNibble = 245, // nibble & -nibble for each low16 nibble; parameter ignored
   DenseUint32HalfClearLsbNibble = 246, // nibble & (nibble-1) for each low16 nibble; parameter ignored
-  DenseUint32HalfSmearLsbNibble = 247 // nibble | (nibble-1) for each low16 nibble; parameter ignored
+  DenseUint32HalfSmearLsbNibble = 247, // nibble | (nibble-1) for each low16 nibble; parameter ignored
+  DenseUint32HalfIsolateMsbNibble = 248, // highest set bit of each low16 nibble; 0 stays 0
+  DenseUint32HalfClearMsbNibble = 249, // clear highest set bit of each low16 nibble; 0 stays 0
+  DenseUint32HalfSmearMsbNibble = 250 // fill ones downward from MSB of each low16 nibble; 0 stays 0
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
