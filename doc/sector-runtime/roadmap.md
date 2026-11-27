@@ -439,7 +439,8 @@ Depende de H0 para identidade e comparação.
   (primeiro recorte 25% sombra; ver
   [cancel/mailbox/scheduler](../sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md)).
 - [x] WT-01: drenagem produtiva via mailbox sombra (25%; mesmo relatório).
-- [ ] WT-02: orçamento e motivos de saída explícitos.
+- [x] WT-02: orçamento e motivos de saída explícitos
+  (primeiro recorte 25% sombra via `runPass`; mesmo relatório).
 - [ ] CPU-05: primeira política baseada em fila executável e custo observado.
 
 Saída: mais tarefas independentes em voo, menor pronto→commit e equivalência

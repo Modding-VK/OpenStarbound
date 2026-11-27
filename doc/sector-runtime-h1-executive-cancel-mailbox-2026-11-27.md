@@ -24,8 +24,12 @@ mínimo com drenagem (CPU-03 / WT-01), sem escrever o mundo vivo.
   mailbox limita backlog; sem pool física nem afinidade.
 - **WT-01** 0→25%: `complete` + `drainMailbox` aplicam sucesso/falha à sombra
   sem esperar rodadas artificiais; falha invalida sem publish.
+- **WT-02** 0→25%: `runPass` drena e inicia sob orçamento (`maxStarts` /
+  `maxDrainMessages` / `deadlineTick`) e devolve
+  `WorldGenerationExecutivePassExitReason` comparável; sem dt de simulação
+  acelerado.
 
-21 testes `WorldGenerationExecutive*` (ASan/UBSan, `STAR_BUILD_GUI=OFF`). Sem
+24 testes `WorldGenerationExecutive*` (ASan/UBSan, `STAR_BUILD_GUI=OFF`). Sem
 Actions. Sem ganho de setores/s medido.
 
 ## Artefatos
@@ -39,11 +43,11 @@ Actions. Sem ganho de setores/s medido.
 
 ## Limitações
 
-Sem WorldStorage, WorkerPool, orçamento de frame (WT-02), política TTL/load,
-herança completa de cadeia auxiliar nem publicação autoritativa. Capacidade
-global multi-mundo e classes IO/GPU ficam fora deste recorte.
+Sem WorldStorage, WorkerPool, política TTL/load, herança completa de cadeia
+auxiliar nem publicação autoritativa. Capacidade global multi-mundo, classes
+IO/GPU e separação completa sim/prep/publish no WorldThread vivo ficam fora.
 
 ## Próximo passo
 
-WT-02 (motivos de saída/orçamento) em sombra, ou CPU-02/MD-01 leves. Não
-disparar Actions nem merge em `main`.
+CPU-02/MD-01 leves ou integração controlada. Não disparar Actions nem merge
+em `main`.

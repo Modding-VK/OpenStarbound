@@ -53,4 +53,64 @@ size_t WorldGenerationExecutiveScheduler::drainMailbox() {
   return applied;
 }
 
+WorldGenerationExecutivePassResult WorldGenerationExecutiveScheduler::runPass(
+    WorldGenerationDependencyGraph::CurrentLevel const& currentLevel,
+    List<WorldGenerationExecutiveDemand> const& demands,
+    WorldGenerationExecutivePassBudget const& budget,
+    uint64_t nowTick,
+    uint64_t firstResultToken) {
+  WorldGenerationExecutivePassResult result;
+  result.beganTick = nowTick;
+  result.endedTick = nowTick;
+  if (!m_shadow || !m_mailbox) {
+    result.reason = WorldGenerationExecutivePassExitReason::Error;
+    return result;
+  }
+
+  if (budget.deadlineTick != 0 && nowTick >= budget.deadlineTick) {
+    result.reason = WorldGenerationExecutivePassExitReason::DeadlineReached;
+    return result;
+  }
+
+  size_t drainLimit = budget.maxDrainMessages;
+  while (drainLimit > 0) {
+    auto message = m_mailbox->consume();
+    if (!message)
+      break;
+    ++result.drained;
+    --drainLimit;
+    if (m_mailbox->applyToShadow(*m_shadow, *message))
+      ++result.applied;
+  }
+  if (!m_mailbox->empty() && drainLimit == 0) {
+    result.reason = WorldGenerationExecutivePassExitReason::DrainBudgetExhausted;
+    result.endedTick = nowTick;
+    return result;
+  }
+
+  uint64_t nextToken = firstResultToken;
+  while (result.starts < budget.maxStarts) {
+    if (budget.deadlineTick != 0 && nowTick >= budget.deadlineTick) {
+      result.reason = WorldGenerationExecutivePassExitReason::DeadlineReached;
+      result.endedTick = nowTick;
+      return result;
+    }
+    auto step = startNext(currentLevel, demands, nextToken);
+    if (!step) {
+      if (result.starts == 0 && result.drained == 0)
+        result.reason = WorldGenerationExecutivePassExitReason::EmptyMailboxAndFrontier;
+      else
+        result.reason = WorldGenerationExecutivePassExitReason::NoEligibleNode;
+      result.endedTick = nowTick;
+      return result;
+    }
+    ++result.starts;
+    ++nextToken;
+  }
+
+  result.reason = WorldGenerationExecutivePassExitReason::StepBudgetExhausted;
+  result.endedTick = nowTick;
+  return result;
+}
+
 }
