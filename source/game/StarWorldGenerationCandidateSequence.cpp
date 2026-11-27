@@ -97,12 +97,32 @@ bool validBiomeItemMode(WorldGenerationBiomeItemComparisonMode mode) {
       || mode == WorldGenerationBiomeItemComparisonMode::SupportedPayload;
 }
 
-// TileDamageParameters excluded: contract target does not link PlantDatabase
-// toJson path; document in the H0 report.
+}
+
+struct WorldGenerationTileDamageParametersAccess {
+  static bool same(TileDamageParameters const& a, TileDamageParameters const& b) {
+    if (a.m_damages.size() != b.m_damages.size())
+      return false;
+    for (auto const& entry : a.m_damages) {
+      auto it = b.m_damages.find(entry.first);
+      if (it == b.m_damages.end())
+        return false;
+      if (std::memcmp(&entry.second, &it->second, sizeof(float)) != 0)
+        return false;
+    }
+    return std::memcmp(&a.m_damageRecoveryPerSecond, &b.m_damageRecoveryPerSecond, sizeof(float)) == 0
+        && std::memcmp(&a.m_maximumEffectTime, &b.m_maximumEffectTime, sizeof(float)) == 0
+        && std::memcmp(&a.m_totalHealth, &b.m_totalHealth, sizeof(float)) == 0
+        && a.m_requiredHarvestLevel == b.m_requiredHarvestLevel;
+  }
+};
+
+namespace {
 bool sameGrass(GrassVariant const& a, GrassVariant const& b) {
   return a.name == b.name && a.directory == b.directory && a.images == b.images
       && sameFloat(a.hueShift, b.hueShift) && a.descriptions == b.descriptions
-      && a.ceiling == b.ceiling && a.ephemeral == b.ephemeral;
+      && a.ceiling == b.ceiling && a.ephemeral == b.ephemeral
+      && WorldGenerationTileDamageParametersAccess::same(a.tileDamageParameters, b.tileDamageParameters);
 }
 
 bool sameBushShape(BushVariant::BushShape const& a, BushVariant::BushShape const& b) {
@@ -113,7 +133,8 @@ bool sameBush(BushVariant const& a, BushVariant const& b) {
   if (a.bushName != b.bushName || a.modName != b.modName || a.directory != b.directory
       || a.shapes.size() != b.shapes.size() || !sameFloat(a.baseHueShift, b.baseHueShift)
       || !sameFloat(a.modHueShift, b.modHueShift) || a.descriptions != b.descriptions
-      || a.ceiling != b.ceiling || a.ephemeral != b.ephemeral)
+      || a.ceiling != b.ceiling || a.ephemeral != b.ephemeral
+      || !WorldGenerationTileDamageParametersAccess::same(a.tileDamageParameters, b.tileDamageParameters))
     return false;
   for (size_t i = 0; i != a.shapes.size(); ++i) {
     if (!sameBushShape(a.shapes[i], b.shapes[i]))
@@ -128,7 +149,8 @@ bool sameTree(TreeVariant const& a, TreeVariant const& b) {
       && sameFloat(a.stemHueShift, b.stemHueShift) && a.foliageDirectory == b.foliageDirectory
       && a.foliageSettings == b.foliageSettings && sameFloat(a.foliageHueShift, b.foliageHueShift)
       && a.descriptions == b.descriptions && a.ceiling == b.ceiling && a.ephemeral == b.ephemeral
-      && a.stemDropConfig == b.stemDropConfig && a.foliageDropConfig == b.foliageDropConfig;
+      && a.stemDropConfig == b.stemDropConfig && a.foliageDropConfig == b.foliageDropConfig
+      && WorldGenerationTileDamageParametersAccess::same(a.tileDamageParameters, b.tileDamageParameters);
 }
 
 bool sameDouble(double const& a, double const& b) {

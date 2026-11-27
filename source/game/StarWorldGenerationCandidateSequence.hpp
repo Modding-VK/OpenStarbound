@@ -54,7 +54,7 @@ enum class WorldGenerationBiomeItemField : uint32_t {
 
 enum class WorldGenerationBiomeItemComparisonMode {
   KindOnly,
-  // All BiomeItem kinds except TileDamageParameters on plant variants.
+  // All BiomeItem kinds including plant TileDamageParameters (bit-exact factors).
   // ObjectPool compares weight/name/Json entries in order.
   SupportedPayload
 };
