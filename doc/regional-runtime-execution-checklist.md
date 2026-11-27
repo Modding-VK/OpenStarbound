@@ -38,11 +38,11 @@ histórico, sem outra fila de prioridades. O
 [painel de progressão](sector-runtime/progress.md) consolida percentuais por
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
-Frente desta branch (`cursor/r2-regional-ops-9f77`): R2 / REG-05. O relatório
-atual é
-[recovery sombra](sector-runtime-r2-recovery-shadow-2026-11-27.md),
+Frente desta branch (`cursor/r2-regional-ops-9f77`): R2 AuthoritativeOps. O
+relatório atual é
+[ops autoritativas](sector-runtime-r2-authoritative-ops-2026-11-27.md),
 com antecedentes em
-[entity handoff sombra](sector-runtime-r2-entity-handoff-shadow-2026-11-27.md) e
+[recovery sombra](sector-runtime-r2-recovery-shadow-2026-11-27.md) e
 [cross-op sombra](sector-runtime-r2-cross-op-shadow-2026-11-27.md).
 H0 permanece na `Experimental` / forks H0.
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação

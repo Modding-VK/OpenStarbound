@@ -6,7 +6,7 @@ Base inspecionada: `5e2e2297`;
 admitidos a partir do composto (ver relatório de sombra).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-r2-recovery-shadow-2026-11-27.md)
+· [Último relatório técnico](../sector-runtime-r2-authoritative-ops-2026-11-27.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -23,7 +23,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **5,1%** — 10 marcos verificados de 196 |
 | Contratos com avanço registrado | **10 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | +5 CrossOp +4 Handoff +3 Recovery (REG-03/04/05 sombra); ASan/UBSan; R2 |
+| Última evidência de testes | +4 AuthoritativeOps (gate R1) +12 regressão REG-03/04/05; ASan/UBSan; R2 |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,6% não significam que o jogo esteja só 3,6% pronto.** O runtime anterior
@@ -81,7 +81,7 @@ obriga concluir todo trabalho transversal para iniciar um protótipo em sombra.
 | 5 | H4 — backend GPU e comparação em sombra | 4 | 0 / 16 | 0% | Protótipo pode acompanhar H1/H2; publicação depende do kernel CPU equivalente |
 | 6 | H5 — seleção de hardware e escala | 7 | 0 / 28 | 0% | Produtos/backends validados e custo completo de entrega medido |
 | 7 | R1 — donos regionais e coordenadora | 3 | 0 / 12 | 0% | Auditoria de autoridade/efeitos e checkpoint; não basta aprovar GPU |
-| 8 | R2 — operações e transferências entre regiões | 3 | 3 / 12 | 25,0% | REG-03/04/05 sombra; lifecycle R1 e custo real pendentes |
+| 8 | R2 — operações e transferências entre regiões | 3 | 3 / 12 | 25,0% | Gate autoritativo R1; rede/custo real e 50% ainda pendentes |
 | — | **Total** | **49** | **10 / 196** | **5,1%** | Não equivale a ganho de desempenho ou autorização de release |
 
 Essa é uma ordem de prioridade/dependência, não uma proibição de frentes
@@ -192,9 +192,9 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 44 | R1 | [REG-01](regional-threads.md) | Lifecycle e identidade da dona | 0% | Donos regionais autoritativos, não apenas preview observacional |
 | 45 | R1 | [REG-02](regional-threads.md) | Estado local e visões de borda | 0% | Ownership local, snapshots de borda e passo comum |
 | 46 | R1 | [WT-05](worldthread.md) | Coordenadora do runtime regional | 0% | WorldThread coordenando donos, não publicando tudo centralmente |
-| 47 | R2 | [REG-03](regional-threads.md) | Tempo e operações entre regiões | 25% | Ledger sombra de intenções/reserva; autoridade R1 e rede pendentes |
-| 48 | R2 | [REG-04](regional-threads.md) | Transferência de entidades | 25% | Handoff sombra prepare/commit/stale; rede/índice vivo pendentes |
-| 49 | R2 | [REG-05](regional-threads.md) | Falha, checkpoint e custo de escala | 25% | Falha/checkpoint/legado em sombra; métricas de custo e R1 pendentes |
+| 47 | R2 | [REG-03](regional-threads.md) | Tempo e operações entre regiões | 25% | Sombra + gate `Authoritative`; rede/passo vivo pendentes |
+| 48 | R2 | [REG-04](regional-threads.md) | Transferência de entidades | 25% | Handoff + gate `Authoritative`; índice/rede vivos pendentes |
+| 49 | R2 | [REG-05](regional-threads.md) | Falha, checkpoint e custo de escala | 25% | Recovery + gate `Authoritative`; custo medido pendente |
 
 ## Evidências das notas atuais
 
@@ -207,9 +207,9 @@ de todas as implementações antigas para conceder crédito retroativo.
 | MOD-01 | [Leitores imutáveis](../sector-runtime-h0-distribution-bundles-2026-11-09.md), [proteção da seleção](../sector-runtime-h0-planning-storage-2026-11-09.md) e [lifecycle/scope 2](../sector-runtime-h0-lookup-source-generations-2026-11-09.md) | Metadata não é sincronização/commit nem auditoria de toda mutação; fronteira biomeTransition e integração abertas |
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
-| REG-03 | [cross-op sombra](../sector-runtime-r2-cross-op-shadow-2026-11-27.md) | Sem dona R1, rede, checkpoint ou passos independentes |
-| REG-04 | [entity handoff sombra](../sector-runtime-r2-entity-handoff-shadow-2026-11-27.md) | Sem índice/rede vivos, tipos de autoridade por entidade ou NPC externo |
-| REG-05 | [recovery sombra](../sector-runtime-r2-recovery-shadow-2026-11-27.md) | Sem custo de threads medido, save real ou passos independentes |
+| REG-03 | [cross-op sombra](../sector-runtime-r2-cross-op-shadow-2026-11-27.md) + [ops autoritativas](../sector-runtime-r2-authoritative-ops-2026-11-27.md) | Rede, mailbox viva e passos independentes |
+| REG-04 | [entity handoff sombra](../sector-runtime-r2-entity-handoff-shadow-2026-11-27.md) + [ops autoritativas](../sector-runtime-r2-authoritative-ops-2026-11-27.md) | Índice/rede vivos, tipos por entidade, NPC externo |
+| REG-05 | [recovery sombra](../sector-runtime-r2-recovery-shadow-2026-11-27.md) + [ops autoritativas](../sector-runtime-r2-authoritative-ops-2026-11-27.md) | Custo de threads medido, save real |
 
 CPU-01 recebe o primeiro marco porque agora existe cálculo com dados próprios
 que independe da origem/Root após captura, não só callbacks/catálogos ou contagem
@@ -309,6 +309,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | REG-03 sombra | Intenções multirregião + reserva/conflito/commit; 5 CrossOp. REG-03 0→25% | 4,1% |
 | 27/11/2026 | REG-04 sombra | Handoff prepare/commit/stale/idempotência; 4 Handoff. REG-04 0→25% | 4,6% |
 | 27/11/2026 | REG-05 sombra | Falha/checkpoint/legado; 3 Recovery. REG-05 0→25%; R2 entrada 25% | 5,1% |
+| 27/11/2026 | Gate AuthoritativeOps | Consome `WorldRegionAuthoritativeOwner` @ 00285fe7; 4 testes. Notas REG-* mantidas 25% | 5,1% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

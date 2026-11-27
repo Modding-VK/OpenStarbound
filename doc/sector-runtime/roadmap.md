@@ -503,8 +503,9 @@ propriedade e efeitos; não é liberada por um kernel GPU aprovado.
   snapshots de borda e checkpoint, inicialmente com passo lógico comum.
 - [ ] R1: WT-05 — WorldThread como coordenadora dos donos regionais.
 - [ ] R2: REG-03/04/05 — intenções multirregião, handoff, falhas e custo real.
-  Cada um tem primeiro recorte em sombra (CrossOp / EntityHandoff / Recovery);
-  autoridade R1, custo medido e passos independentes seguem abertos.
+  Sombra + gate `WorldRegionAuthoritativeOps` (consome R1
+  `WorldRegionAuthoritativeOwner`); rede/custo medido/passos independentes
+  seguem abertos.
 - [ ] R2 posterior: avaliar independência de passos após relógio/rede/save
   específicos; registrar decisão antes de remover barreira comum.
 

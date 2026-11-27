@@ -62,6 +62,11 @@ footprint em ordem lexicográfica, Conflict sem hold parcial e
 commit/rejeição/timeout. Não concede dona autoritativa nem remove a barreira
 de passo. Ver [relatório](../sector-runtime-r2-cross-op-shadow-2026-11-27.md).
 
+Além da sombra: `WorldRegionAuthoritativeOps` exige
+`WorldRegionAuthoritativeOwner` (R1) em origem/alvos antes de propor. Harness
+Active sozinho é recusado. Ver
+[ops autoritativas](../sector-runtime-r2-authoritative-ops-2026-11-27.md).
+
 Operações multirregião reservam footprint completo numa ordem estável, sem
 Lua segurando locks de outros donos e sem espera circular entre threads.
 Definir commit/rejeição, timeout e recuperação. Fios, líquidos e roteadores
@@ -83,6 +88,9 @@ um Prepared por entidade, commit com checagem de geração, rejeição e
 idempotência por passo. Sem índice/rede vivos. Ver
 [relatório](../sector-runtime-r2-entity-handoff-shadow-2026-11-27.md).
 
+Além da sombra: prepare via `WorldRegionAuthoritativeOps` exige origem e
+destino Authoritative.
+
 Manter a autoridade atual de jogadores, entidades master do cliente,
 monstros, veículos e stagehands conforme o tipo. Projeções de leitura não
 executam IA. Essa tarefa não retoma externalização de NPCs, que segue suspensa.
@@ -97,6 +105,8 @@ Primeiro recorte em sombra (`WorldRegionRecoveryShadow`): unconfirmed → fail
 (invalida e mantém marca parcial) → checkpoint consistente ou `reloadLegacy`.
 Sem métricas de custo de threads. Ver
 [relatório](../sector-runtime-r2-recovery-shadow-2026-11-27.md).
+
+Além da sombra: `noteUnconfirmed` via gate exige região Authoritative.
 
 Medir pilhas, memória por thread, criação/join, latência de acordar, threads
 simultaneamente prontas, custo da barreira, mensagens e regiões lentas. Threads

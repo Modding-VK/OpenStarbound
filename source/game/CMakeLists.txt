@@ -205,6 +205,9 @@ SET (star_game_HEADERS
     StarWorldRegionCrossOp.hpp
     StarWorldRegionEntityHandoff.hpp
     StarWorldRegionRecovery.hpp
+    StarWorldRegionOwner.hpp
+    StarWorldRegionAuthority.hpp
+    StarWorldRegionAuthoritativeOps.hpp
     StarWorldImpl.hpp
     StarWorldLayout.hpp
     StarWorldParameters.hpp
@@ -501,6 +504,9 @@ SET (star_game_SOURCES
     StarWorldRegionCrossOp.cpp
     StarWorldRegionEntityHandoff.cpp
     StarWorldRegionRecovery.cpp
+    StarWorldRegionOwner.cpp
+    StarWorldRegionAuthority.cpp
+    StarWorldRegionAuthoritativeOps.cpp
     StarWorldLayout.cpp
     StarWorldParameters.cpp
     StarWorldPerformance.cpp
