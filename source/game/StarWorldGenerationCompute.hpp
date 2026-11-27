@@ -69,7 +69,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32ByteSum = 43, // sum of four bytes as uint32; parameter ignored
   DenseUint32Sext8 = 44, // sign-extend low 8 bits; parameter ignored
   DenseUint32Sext16 = 45, // sign-extend low 16 bits; parameter ignored
-  DenseUint32ExtractByte = 46 // (value >> ((parameter & 3) * 8)) & 0xff
+  DenseUint32ExtractByte = 46, // (value >> ((parameter & 3) * 8)) & 0xff
+  DenseUint32BitSet = 47, // value | (1u << (parameter & 31))
+  DenseUint32BitClear = 48, // value & ~(1u << (parameter & 31))
+  DenseUint32BitToggle = 49 // value ^ (1u << (parameter & 31))
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -269,6 +272,12 @@ public:
 
   Maybe<WorldGenerationComputeTicket> submit(WorldGenerationComputeInputIdentity identity,
       List<uint32_t> input, uint32_t parameter,
+      WorldGenerationComputeBackend backend = WorldGenerationComputeBackend::CpuReference);
+
+  // GPU-01: submit using a stable ASCII kernel name; fills identity.kernel.
+  // Empty when the name is unknown or submit refuses the work.
+  Maybe<WorldGenerationComputeTicket> submitNamed(char const* kernelName,
+      WorldGenerationComputeInputIdentity identity, List<uint32_t> input, uint32_t parameter,
       WorldGenerationComputeBackend backend = WorldGenerationComputeBackend::CpuReference);
 
   // One ticket per item; fails entirely (no partial admit) if capacity is short.

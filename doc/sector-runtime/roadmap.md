@@ -531,15 +531,15 @@ do kernel CPU e do resultado versionado.
 
 - [x] GPU-01: interface CPU/GPU, capacidades e build CPU independente
   (primeiro recorte 25%: serviço + names + fingerprintCapabilities +
-  supportedKernelCount + runNamedKernel/isBackendSupported + probe GL
-  opt-in).
+  supportedKernelCount + runNamedKernel/isBackendSupported + submitNamed +
+  probe GL opt-in).
 - [x] GPU-02: fila/buffers em voo/pump/failContext + stagingSnapshot +
   adoptOwnerThread + cancel/poll/completeBatch + listOpenTickets +
   cancelAll + ticketIsOpen/clearRejectedDuplicates + drainOpenTickets +
   peakOpenTickets + list/countOpenTicketsByKernel +
   cancelOpenTicketsByKernel + drainOpenTicketsByKernel (primeiro recorte
   25%; integração WorldThread pendente).
-- [x] GPU-03: kernels densos DenseUint32* incl. Sext8/Sext16/ExtractByte +
+- [x] GPU-03: kernels densos DenseUint32* incl. BitSet/BitClear/BitToggle +
   submitBatch (primeiro recorte 25%; terreno/bioma/ganho pendentes).
 - [x] GPU-04: compareShadow/compareShadowBatch + commit/RngStream +
   fingerprintIdentity + summarizeShadowReports (primeiro recorte 25%;
