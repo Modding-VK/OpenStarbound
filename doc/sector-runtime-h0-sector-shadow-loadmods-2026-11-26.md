@@ -20,5 +20,6 @@ ASan/UBSan: 1×5; **73/73** RealBlockInfo (após suite completa).
 
 ## Próximo passo
 
-Gates H0 restantes antes de H1, ou pressão/mailbox sem Actions. Não disparar
-Actions.
+Invalidate coberto em
+[invalidate no handoff](sector-runtime-h0-sector-shadow-task-invalidate-2026-11-26.md).
+Segue gates H0 antes de H1. Não disparar Actions.
