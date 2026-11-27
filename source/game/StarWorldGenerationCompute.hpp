@@ -367,6 +367,8 @@ public:
   size_t countFailedOpenKernels() const;
   // True while any Failed open ticket exists (asset-free observation).
   bool anyFailedOpenKernels() const;
+  // Distinct identity.kernel values among Cancelled open tickets (asset-free).
+  List<WorldGenerationComputeKernel> listCancelledOpenKernels() const;
   // Open tickets whose identity.kernel matches (asset-free observation).
   List<WorldGenerationComputeTicket> listOpenTicketsByKernel(
       WorldGenerationComputeKernel kernel) const;

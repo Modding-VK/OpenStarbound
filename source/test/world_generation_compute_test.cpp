@@ -983,6 +983,33 @@ TEST(WorldGenerationComputeTest, AnyFailedOpenKernelsTracksFailedPresence) {
 #endif
 }
 
+TEST(WorldGenerationComputeTest, ListCancelledOpenKernelsReturnsCancelledDistinctKernels) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  EXPECT_TRUE(service.listCancelledOpenKernels().empty());
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(1020, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(1021, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{2u}, 0u));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(1022, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{3u}, 0u));
+  EXPECT_TRUE(service.listCancelledOpenKernels().empty());
+  EXPECT_EQ(2u, service.cancelOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  auto cancelled = service.listCancelledOpenKernels();
+  ASSERT_EQ(1u, cancelled.size());
+  EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32Xor, cancelled[0]);
+  EXPECT_EQ(1u, service.cancelOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+  cancelled = service.listCancelledOpenKernels();
+  ASSERT_EQ(2u, cancelled.size());
+  EXPECT_TRUE(cancelled[0] == WorldGenerationComputeKernel::DenseUint32Xor
+      || cancelled[0] == WorldGenerationComputeKernel::DenseUint32Add);
+  EXPECT_TRUE(cancelled[1] == WorldGenerationComputeKernel::DenseUint32Xor
+      || cancelled[1] == WorldGenerationComputeKernel::DenseUint32Add);
+  EXPECT_NE(cancelled[0], cancelled[1]);
+  EXPECT_EQ(3u, service.drainOpenTickets());
+  EXPECT_TRUE(service.listCancelledOpenKernels().empty());
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32HalfSumMaxMinExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();
