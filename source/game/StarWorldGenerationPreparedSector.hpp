@@ -9,16 +9,41 @@
 
 namespace Star {
 
-// CPU-02 first slice: versioned product identity for a private prepared sector.
-// Preparing never mutates the live world; consume requires an owner revalidation
-// of ticket/revisions. Not a full pipeline product set (fields/candidates/empty
-// deltas remain future slices).
+// CPU-02: versioned product identity for a private prepared sector (H2 resident
+// cache handle) plus H1-shaped payload / WorldStorage path consumption APIs.
+// Preparing never mutates the live world; probeHandoff never writes WorldStorage.
 enum class WorldGenerationPreparedProduct : uint8_t {
   PrivateBaseTiles = 0,
   TerrainField = 1,
   OrderedCandidates = 2,
   EmptyProof = 3,
   StageDelta = 4
+};
+
+// H1-compatible payload kind tags for decode/promotion consumers.
+enum class WorldGenerationPreparedProductKind : uint8_t {
+  Empty = 0,
+  OrderedCandidates,
+  BaseTilesPrivate,
+  TerrainFields,
+  StepDelta
+};
+
+using WorldGenerationPreparedProductId = uint64_t;
+
+// Compact product identity for payload/path views (H1 shape). Derived from the
+// H2 sector identity; not a substitute for WorldGenerationPreparedSectorIdentity.
+struct WorldGenerationPreparedProductIdentity {
+  Vec2I sector;
+  uint64_t templateRevision = 0;
+  uint64_t distributionRevision = 0;
+  uint64_t placementEpoch = 0;
+
+  bool operator==(WorldGenerationPreparedProductIdentity const& other) const {
+    return sector == other.sector && templateRevision == other.templateRevision
+        && distributionRevision == other.distributionRevision
+        && placementEpoch == other.placementEpoch;
+  }
 };
 
 struct WorldGenerationPreparedSectorIdentity {
@@ -31,6 +56,9 @@ struct WorldGenerationPreparedSectorIdentity {
   Vec2U worldSize{};
   RectI tileRegion;
   unsigned productVersion = ProductVersion;
+  // Opaque TerrainField / StageDelta payload metadata (H1 makeTerrainFields /
+  // makeStepDelta). Ignored for BaseTiles/Empty/Candidates in this slice.
+  uint64_t opaqueContentToken = 0;
 
   bool valid() const {
     return productVersion == ProductVersion
@@ -46,7 +74,8 @@ struct WorldGenerationPreparedSectorIdentity {
         && templateRevision == other.templateRevision
         && worldSize == other.worldSize
         && tileRegion == other.tileRegion
-        && productVersion == other.productVersion;
+        && productVersion == other.productVersion
+        && opaqueContentToken == other.opaqueContentToken;
   }
 
   bool matches(WorldGenerationPreparedSectorIdentity const& expectation) const {
@@ -54,6 +83,12 @@ struct WorldGenerationPreparedSectorIdentity {
   }
 
   WorldGenerationProductRevisionKey residentKey() const {
+    // assetGeneration stays 0 for BaseTiles/Empty/Candidates so existing H2
+    // cache keys remain stable; opaque tokens distinguish Terrain/Delta only.
+    uint64_t assetGeneration = 0;
+    if (product == WorldGenerationPreparedProduct::TerrainField
+        || product == WorldGenerationPreparedProduct::StageDelta)
+      assetGeneration = opaqueContentToken;
     return {
         product == WorldGenerationPreparedProduct::PrivateBaseTiles
             ? WorldGenerationResidentProductKind::PrivateBaseTiles
@@ -61,11 +96,34 @@ struct WorldGenerationPreparedSectorIdentity {
                 ? WorldGenerationResidentProductKind::PureField
                 : product == WorldGenerationPreparedProduct::OrderedCandidates
                     ? WorldGenerationResidentProductKind::CandidatePlan
-                    : WorldGenerationResidentProductKind::LiveSnapshot,
+                    : product == WorldGenerationPreparedProduct::EmptyProof
+                        ? WorldGenerationResidentProductKind::StaticStructure
+                        : WorldGenerationResidentProductKind::LiveSnapshot,
         task.sector,
         templateRevision,
         tileRevision,
-        0};
+        assetGeneration};
+  }
+
+  WorldGenerationPreparedProductKind payloadKind() const {
+    switch (product) {
+      case WorldGenerationPreparedProduct::PrivateBaseTiles:
+        return WorldGenerationPreparedProductKind::BaseTilesPrivate;
+      case WorldGenerationPreparedProduct::TerrainField:
+        return WorldGenerationPreparedProductKind::TerrainFields;
+      case WorldGenerationPreparedProduct::OrderedCandidates:
+        return WorldGenerationPreparedProductKind::OrderedCandidates;
+      case WorldGenerationPreparedProduct::EmptyProof:
+        return WorldGenerationPreparedProductKind::Empty;
+      case WorldGenerationPreparedProduct::StageDelta:
+        return WorldGenerationPreparedProductKind::StepDelta;
+    }
+    return WorldGenerationPreparedProductKind::Empty;
+  }
+
+  WorldGenerationPreparedProductIdentity productIdentity() const {
+    return {Vec2I((int)task.sector[0], (int)task.sector[1]), templateRevision, 0,
+        task.worldEpoch};
   }
 
   static WorldGenerationPreparedSectorIdentity fromBaseTiles(WorldGenerationBaseTilesIdentity const& base) {
@@ -80,8 +138,50 @@ struct WorldGenerationPreparedSectorIdentity {
   }
 };
 
+// Opaque immutable payload descriptor for H2 decode/promotion. Not a live
+// pointer into WorldStorage or a worker buffer.
+struct WorldGenerationPreparedPayloadView {
+  WorldGenerationPreparedProductId productId = 0;
+  WorldGenerationPreparedProductKind kind = WorldGenerationPreparedProductKind::Empty;
+  WorldGenerationPreparedProductIdentity identity;
+  size_t payloadBytes = 0;
+  uint64_t contentToken = 0;
+  bool installAuthorized = false;
+};
+
+// Logical WorldStorage path key. Sector + epoch + product id; no filesystem
+// path and no mutation of WorldStorage.
+struct WorldGenerationPreparedWorldStoragePath {
+  uint64_t worldEpoch = 0;
+  Vec2I sector;
+  WorldGenerationPreparedProductId productId = 0;
+  WorldGenerationPreparedProductKind kind = WorldGenerationPreparedProductKind::Empty;
+
+  bool operator==(WorldGenerationPreparedWorldStoragePath const& other) const {
+    return worldEpoch == other.worldEpoch && sector == other.sector && productId == other.productId
+        && kind == other.kind;
+  }
+};
+
+enum class WorldGenerationPreparedHandoffOutcome : uint8_t {
+  Ready = 0,
+  MissingProduct,
+  StaleIdentity,
+  NotAuthorized,
+  EmptyPayload
+};
+
+struct WorldGenerationPreparedHandoff {
+  WorldGenerationPreparedHandoffOutcome outcome = WorldGenerationPreparedHandoffOutcome::MissingProduct;
+  WorldGenerationPreparedWorldStoragePath path;
+  WorldGenerationPreparedPayloadView payload;
+  // True only when Ready; still does not write WorldStorage in this slice.
+  bool writesWorldStorage = false;
+};
+
 // Owner-local prepared handle: retains a resident cache entry by identity and
-// never installs. Stale expectation → refuse consume without mutating live tiles.
+// never installs. Consumes H1 payload/WorldStorage path shapes without a live
+// store write. Stale expectation → refuse consume / StaleIdentity handoff.
 class WorldGenerationPreparedSector {
 public:
   static std::optional<WorldGenerationPreparedSector> tryPrepare(
@@ -90,7 +190,13 @@ public:
       size_t retainedBytes,
       WorldGenerationMemoryDemand demand = WorldGenerationMemoryDemand::Dependency,
       uint32_t benefit = 1) {
-    if (!identity.valid() || retainedBytes == 0)
+    if (!identity.valid())
+      return std::nullopt;
+    // EmptyProof payload bytes are zero; retain a sentinel budget so the
+    // resident entry exists for path/view without implying WorldStorage writes.
+    if (identity.product == WorldGenerationPreparedProduct::EmptyProof && retainedBytes == 0)
+      retainedBytes = 1;
+    if (retainedBytes == 0)
       return std::nullopt;
     if (!cache.insert(identity.residentKey(), retainedBytes, demand, benefit))
       return std::nullopt;
@@ -136,10 +242,107 @@ public:
 
   void discard() { release(); }
 
+  // Stable id for path/view (hash of resident key). Not a store allocation id.
+  WorldGenerationPreparedProductId productId() const {
+    if (!active())
+      return 0;
+    return hashResidentKey(m_identity.residentKey());
+  }
+
+  // H1 payloadView / worldStoragePath / probeHandoff consumption. Never writes.
+  WorldGenerationPreparedPayloadView payloadView() const {
+    WorldGenerationPreparedPayloadView view;
+    if (!active())
+      return view;
+    view.productId = productId();
+    view.kind = m_identity.payloadKind();
+    view.identity = m_identity.productIdentity();
+    view.installAuthorized = false;
+    switch (m_identity.product) {
+      case WorldGenerationPreparedProduct::EmptyProof:
+        view.payloadBytes = 0;
+        view.contentToken = hashResidentKey(m_identity.residentKey());
+        break;
+      case WorldGenerationPreparedProduct::OrderedCandidates:
+        view.payloadBytes = m_retainedBytes;
+        view.contentToken = hashResidentKey(m_identity.residentKey()) ^ (uint64_t)m_retainedBytes;
+        break;
+      case WorldGenerationPreparedProduct::PrivateBaseTiles:
+        view.payloadBytes = m_retainedBytes;
+        view.contentToken = hashResidentKey(m_identity.residentKey()) ^ m_identity.tileRevision
+            ^ (m_identity.templateRevision << 1);
+        break;
+      case WorldGenerationPreparedProduct::TerrainField:
+      case WorldGenerationPreparedProduct::StageDelta:
+        view.payloadBytes = m_retainedBytes;
+        view.contentToken = m_identity.opaqueContentToken
+            ? m_identity.opaqueContentToken
+            : hashResidentKey(m_identity.residentKey());
+        break;
+    }
+    return view;
+  }
+
+  WorldGenerationPreparedWorldStoragePath worldStoragePath(uint64_t worldEpoch) const {
+    WorldGenerationPreparedWorldStoragePath path;
+    path.worldEpoch = worldEpoch;
+    if (!active())
+      return path;
+    path.productId = productId();
+    path.sector = m_identity.productIdentity().sector;
+    path.kind = m_identity.payloadKind();
+    return path;
+  }
+
+  WorldGenerationPreparedHandoff probeHandoff(uint64_t worldEpoch,
+      WorldGenerationPreparedSectorIdentity const& liveExpectation) const {
+    WorldGenerationPreparedHandoff handoff;
+    handoff.path = worldStoragePath(worldEpoch);
+    if (!active()) {
+      handoff.outcome = WorldGenerationPreparedHandoffOutcome::MissingProduct;
+      return handoff;
+    }
+    handoff.payload = payloadView();
+    if (!m_identity.matches(liveExpectation)) {
+      handoff.outcome = WorldGenerationPreparedHandoffOutcome::StaleIdentity;
+      return handoff;
+    }
+    // Shadow BaseTiles never authorize install in this H2 slice.
+    if (m_identity.product == WorldGenerationPreparedProduct::PrivateBaseTiles) {
+      handoff.outcome = WorldGenerationPreparedHandoffOutcome::NotAuthorized;
+      handoff.writesWorldStorage = false;
+      return handoff;
+    }
+    if (m_identity.product != WorldGenerationPreparedProduct::EmptyProof
+        && m_identity.product != WorldGenerationPreparedProduct::OrderedCandidates
+        && handoff.payload.payloadBytes == 0) {
+      handoff.outcome = WorldGenerationPreparedHandoffOutcome::EmptyPayload;
+      return handoff;
+    }
+    handoff.outcome = WorldGenerationPreparedHandoffOutcome::Ready;
+    handoff.writesWorldStorage = false;
+    return handoff;
+  }
+
 private:
   WorldGenerationPreparedSector(WorldGenerationPreparedSectorIdentity identity,
       WorldGenerationProductRevisionCache* cache, size_t retainedBytes)
     : m_identity(std::move(identity)), m_cache(cache), m_retainedBytes(retainedBytes) {}
+
+  static uint64_t hashResidentKey(WorldGenerationProductRevisionKey const& key) {
+    uint64_t h = 14695981039346656037ull;
+    auto mix = [&](uint64_t v) {
+      h ^= v;
+      h *= 1099511628211ull;
+    };
+    mix((uint64_t)key.kind);
+    mix((uint64_t)key.sector[0]);
+    mix((uint64_t)key.sector[1]);
+    mix(key.templateRevision);
+    mix(key.tileRevision);
+    mix(key.assetGeneration);
+    return h ? h : 1;
+  }
 
   void moveFrom(WorldGenerationPreparedSector&& other) noexcept {
     m_identity = std::move(other.m_identity);

@@ -40,8 +40,9 @@ marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H2 em `cursor/h2-products-prefetch-9f77` (H0 permanece em
 `Experimental`). O relatório atual é
-[H2 PreparedSector / CPU-02](sector-runtime-h2-prepared-sector-2026-11-27.md),
+[H2 PreparedSector consume](sector-runtime-h2-prepared-sector-consume-2026-11-27.md),
 com antecedentes em
+[H2 PreparedSector / CPU-02](sector-runtime-h2-prepared-sector-2026-11-27.md),
 [H2 resident/prefetch/batch/IO](sector-runtime-h2-resident-prefetch-batch-io-2026-11-27.md),
 [H2 product revision cache](sector-runtime-h2-product-revision-cache-2026-11-27.md),
 [Memory/prefetch](sector-runtime/memory-and-prefetch.md) e

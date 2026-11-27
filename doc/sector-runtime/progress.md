@@ -2,8 +2,8 @@
 
 Atualizado em **27/11/2026**. Branch: `cursor/h2-products-prefetch-9f77`
 (H0 permanece em `Experimental`).
-Última implementação de runtime nesta frente: identidade/`PreparedSector`
-residente (CPU-02) sobre a cache H2.
+Última implementação de runtime nesta frente: consumo PreparedSector
+(payload/WorldStorage path H1-shaped) no handle H2.
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
 · [Último relatório técnico](../sector-runtime-h2-prepared-sector-2026-11-27.md)
@@ -25,7 +25,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **7,1%** — 14 marcos verificados de 196 |
 | Contratos com avanço registrado | **14 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | H2/CPU-02: 27 testes NoAssets (cache/prefetch/batch/IO + PreparedSector); H0 inalterado nesta branch |
+| Última evidência de testes | H2/CPU-02 consume: 30 testes NoAssets (7 PreparedSector + 23 adjacentes); sem install |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 7,1% não significam que o jogo esteja só 7,1% pronto.** O runtime anterior
@@ -158,7 +158,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 8 | H1 | [DAG-03](dependency-scheduler.md) | Prioridade, justiça e distância correta | 0% | Prioridade herdada e justiça entre consumidores com wrap |
 | 9 | H1 | [DAG-05](dependency-scheduler.md) | Cancelamento, falha e invalidação | 0% | Retry/drain e retenção até término físico no novo executor |
 | 10 | H1 | [CPU-01](cpu-and-stages.md) | Contexto privado de cálculo | 25% | Composto+sombra+handoff+hotReload/loadMods; falta gates H0 antes de H1 |
-| 11 | H1 | [CPU-02](cpu-and-stages.md) | Produto PreparedSector | 25% | Identidade/handle residente; payloads e compartilhamento entre etapas pendentes |
+| 11 | H1 | [CPU-02](cpu-and-stages.md) | Produto PreparedSector | 25% | Handle H2 consome payload/path/handoff H1; store unificado e install autorizados pendentes |
 | 12 | H1 | [MD-01](microdungeons-and-tmx.md) | Seleção leve e identidade | 0% | Candidatos/vazio sem copiar halo não lido |
 | 13 | H1 | [CPU-03](cpu-and-stages.md) | Executor processual e granularidade | 0% | Capacidade global e tarefas com fronteira de publicação preservada |
 | 14 | H1 | [WT-01](worldthread.md) | Serviço de conclusões e drenagem | 0% | Drenar trabalho elegível sem esperar rodadas artificiais |
@@ -209,7 +209,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | MOD-01 | [Leitores imutáveis](../sector-runtime-h0-distribution-bundles-2026-11-09.md), [proteção da seleção](../sector-runtime-h0-planning-storage-2026-11-09.md) e [lifecycle/scope 2](../sector-runtime-h0-lookup-source-generations-2026-11-09.md) | Metadata não é sincronização/commit nem auditoria de toda mutação; fronteira biomeTransition e integração abertas |
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
-| CPU-02 | [PreparedSector](../sector-runtime-h2-prepared-sector-2026-11-27.md) | Sem payloads tiles/campos/candidatos nem install |
+| CPU-02 | [PreparedSector](../sector-runtime-h2-prepared-sector-2026-11-27.md) + [consume](../sector-runtime-h2-prepared-sector-consume-2026-11-27.md) | Consumo H1-shaped no handle; sem install / store unificado |
 | RAM-02 | [Product revision cache](../sector-runtime-h2-product-revision-cache-2026-11-27.md) | Sem payloads BaseTiles/candidatos reais |
 | RAM-03 | [Retenção/prefetch/batch/IO](../sector-runtime-h2-resident-prefetch-batch-io-2026-11-27.md) | Sem justiça multi-mundo nem pressão RSS externa |
 | RAM-04 | idem | Sem carga WorldStorage nem encolher por stale de rota ao vivo |
@@ -319,6 +319,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | H2 RAM-02 cache | `WorldGenerationProductRevisionCache` kind/setor/revisões + invalidação; 7 testes NoAssets. RAM-02 0→25%; H2 4,2%; programa 4,1% | 4,1% |
 | 27/11/2026 | H2 RAM-03/04/05 + WT-03 + IO-01 | Retenção/histerese, prefetch, consumidores, batch regional, promoção Prefetch→Visible; 23 testes NoAssets. H2 25%; programa 6,6% | 6,6% |
 | 27/11/2026 | H2/CPU-02 PreparedSector | Identidade/handle residente sem publicação; 27 testes NoAssets (4 novos). CPU-02 0→25%; H1 5,0%; programa 7,1%. H2 independente esgotado | 7,1% |
+| 27/11/2026 | H2/CPU-02 consume | payloadView/worldStoragePath/probeHandoff no handle (H1 @4d014af2); 30 testes; sem install. Sem novo marco completo | 7,1% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.
