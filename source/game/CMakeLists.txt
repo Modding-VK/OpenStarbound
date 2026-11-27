@@ -197,6 +197,17 @@ SET (star_game_HEADERS
     StarWorldGenerationBaseTiles.hpp
     StarWorldGenerationCandidateSequence.hpp
     StarWorldGenerationEffectBoundary.hpp
+    StarWorldGenerationCaveLiquidPlan.hpp
+    StarWorldGenerationFinalizePlan.hpp
+    StarWorldGenerationTmxStaticProduct.hpp
+    StarWorldGenerationTmxBindingPlan.hpp
+    StarWorldGenerationStructureCommandPlan.hpp
+    StarWorldGenerationStructureBatchStaging.hpp
+    StarWorldGenerationPublicationPass.hpp
+    StarWorldGenerationShadowDb.hpp
+    StarWorldGenerationShadowCheckpoint.hpp
+    StarWorldGenerationShadowUnload.hpp
+    StarWorldGenerationShadowPacket.hpp
     StarWorldGenerationBlockInfo.hpp
     StarWorldGenerationCustomTerrain.hpp
     StarWorldGenerationBlockInfoStaticInputs.hpp

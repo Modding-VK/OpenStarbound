@@ -475,12 +475,36 @@ de crescimento persistente após mudança de rota ou fechamento do mundo.
 
 Propósito: reduzir trabalho serial após o desbloqueio do pipeline.
 
-- [ ] CPU-04: extrair parte pura de CaveLiquid e Finalize por contrato.
-- [ ] MD-02/03: formato estático TMX separado da ligação que consome RNG.
-- [ ] MD-04: mapa completo de efeitos, footprints e comandos de estruturas.
-- [ ] MD-05 e WT-04: aplicação em batches e staging quando necessário.
-- [ ] IO-02/03/04: banco, checkpoint e unload coerentes com novos produtos.
-- [ ] IO-05: pacote confirmado e medição até aplicação no cliente.
+- [x] CPU-04 (recortes sombra): CaveLiquid plan/delta e Finalize normalização
+  em `cursor/h3-kernels-publication-9f77`
+  ([CaveLiquid](../sector-runtime-h3-cave-liquid-plan-2026-11-27.md),
+  [Finalize](../sector-runtime-h3-finalize-normalize-2026-11-27.md)); flora e
+  equivalência viva pendentes.
+- [x] MD-02 (primeiro recorte): produto TMX estático em sombra em
+  `cursor/h3-kernels-publication-9f77`
+  ([relatório](../sector-runtime-h3-tmx-static-product-2026-11-27.md)).
+- [x] MD-03 (primeiro recorte): plano de ligação/escolhas em sombra
+  ([relatório](../sector-runtime-h3-tmx-binding-plan-2026-11-27.md)); stream
+  RNG vivo e efeitos pendentes.
+- [x] MD-04 (primeiro recorte): footprint/comandos/reservas em sombra
+  ([relatório](../sector-runtime-h3-structure-command-plan-2026-11-27.md));
+  writer vivo pendente.
+- [x] MD-05 (primeiro recorte): batches/staging invisível em sombra
+  ([relatório](../sector-runtime-h3-structure-batch-staging-2026-11-27.md)).
+- [x] WT-04 (primeiro recorte): passagem orçada + dirty diferido em sombra
+  ([relatório](../sector-runtime-h3-publication-pass-2026-11-27.md));
+  WorldThread vivo pendente.
+- [x] IO-02 (primeiro recorte): harness de banco/transações em sombra
+  ([relatório](../sector-runtime-h3-shadow-db-2026-11-27.md)); sem `.world`.
+- [x] IO-03 (primeiro recorte): checkpoint/recovery coerente em sombra
+  ([relatório](../sector-runtime-h3-shadow-checkpoint-2026-11-27.md));
+  sem `.world`.
+- [x] IO-04 (primeiro recorte): unload/drain em sombra
+  ([relatório](../sector-runtime-h3-shadow-unload-2026-11-27.md));
+  sem `.world`.
+- [x] IO-05 (primeiro recorte): pacotes confirmados em sombra
+  ([relatório](../sector-runtime-h3-shadow-packet-2026-11-27.md));
+  sem rede/`.world`.
 
 Saída: custo serial menor por setor/estrutura, com save, scripts e rede
 equivalentes. Cada kernel pode avançar separadamente; uma dungeon composta

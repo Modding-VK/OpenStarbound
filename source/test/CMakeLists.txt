@@ -157,6 +157,17 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_decode_promotion_test.cpp
   world_generation_prepared_sector_test.cpp
   world_generation_base_tile_liquid_test.cpp
+  world_generation_cave_liquid_plan_test.cpp
+  world_generation_finalize_plan_test.cpp
+  world_generation_tmx_static_product_test.cpp
+  world_generation_tmx_binding_plan_test.cpp
+  world_generation_structure_command_plan_test.cpp
+  world_generation_structure_batch_staging_test.cpp
+  world_generation_publication_pass_test.cpp
+  world_generation_shadow_db_test.cpp
+  world_generation_shadow_checkpoint_test.cpp
+  world_generation_shadow_unload_test.cpp
+  world_generation_shadow_packet_test.cpp
   world_generation_base_tiles_test.cpp
   world_generation_block_info_test.cpp
   world_generation_custom_terrain_test.cpp

@@ -165,17 +165,20 @@ TEST(WorldGenerationTasksTest, InvalidSectorAndStageDoNotReserve) {
 }
 
 TEST(WorldGenerationTasksTest, EachDeclaredStageCanReserveTheSameSector) {
-  WorldGenerationTasks tasks(1, partition(), 3, 1024);
+  WorldGenerationTasks tasks(1, partition(), 4, 1024);
   auto baseTiles = tasks.reserve({0, 0}, WorldGenerationTaskStage::BaseTiles, 1);
   auto microDungeon = tasks.reserve({0, 0}, WorldGenerationTaskStage::MicroDungeonPlan, 1);
   auto caveLiquid = tasks.reserve({0, 0}, WorldGenerationTaskStage::CaveLiquidPlan, 1);
+  auto finalize = tasks.reserve({0, 0}, WorldGenerationTaskStage::FinalizePlan, 1);
+  ASSERT_TRUE(finalize);
 
   ASSERT_TRUE(baseTiles);
   ASSERT_TRUE(microDungeon);
   ASSERT_TRUE(caveLiquid);
-  EXPECT_EQ(tasks.size(), 3u);
+  EXPECT_EQ(tasks.size(), 4u);
   EXPECT_NE(baseTiles->identity.sequence, microDungeon->identity.sequence);
   EXPECT_NE(microDungeon->identity.sequence, caveLiquid->identity.sequence);
+  EXPECT_NE(caveLiquid->identity.sequence, finalize->identity.sequence);
 }
 
 TEST(WorldGenerationTasksTest, MutationBatchRequiresMatchingRevisionsAndOrder) {

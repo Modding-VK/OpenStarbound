@@ -10,6 +10,7 @@ bool validTaskStage(WorldGenerationTaskStage stage) {
     case WorldGenerationTaskStage::BaseTiles:
     case WorldGenerationTaskStage::MicroDungeonPlan:
     case WorldGenerationTaskStage::CaveLiquidPlan:
+    case WorldGenerationTaskStage::FinalizePlan:
       return true;
     default:
       return false;

@@ -32,6 +32,11 @@ sem halo. Ver
 
 ## MD-02 — Formato intermediário estático de TMX
 
+Primeiro recorte em `cursor/h3-kernels-publication-9f77`:
+`WorldGenerationTmxStaticProduct` retém camadas GID, objetos e conectores
+com identidade assetGeneration/contentHash, sem RandomBrush/NpcBrush nem
+facade. Ver [relatório](../sector-runtime-h3-tmx-static-product-2026-11-27.md).
+
 Separar leitura dos dados e decodificação estática de instanciação de brushes.
 O produto intermediário pode conter camadas decodificadas, geometria,
 propriedades, conectores e índices por fase. Dados de arquivos já resolvidos
@@ -44,6 +49,11 @@ selecionadas e demanda do grafo, com limite de memória, não de varredura
 indiscriminada de todo o conteúdo instalado.
 
 ## MD-03 — Ligação e RNG autoritativos
+
+Primeiro recorte em `cursor/h3-kernels-publication-9f77`:
+`WorldGenerationTmxBindingPlan` registra escolhas ordenadas sobre o produto
+estático sem facade. Ver
+[relatório](../sector-runtime-h3-tmx-binding-plan-2026-11-27.md).
 
 `RandomBrush` e `NpcBrush` podem consumir RNG compartilhado durante a
 materialização. Preserve uma fase de ligação com escolhas/identidades
@@ -59,6 +69,11 @@ Aceitação: retorno invertido de preparação não muda seleção, sementes de
 entidades nem conteúdo de estrutura. Retries não repetem escolhas ou efeitos.
 
 ## MD-04 — Comandos, footprint e reserva
+
+Primeiro recorte em `cursor/h3-kernels-publication-9f77`:
+`WorldGenerationStructureCommandPlan` descreve comandos, footprint
+read/write/entityReach e reservas regionais ordenadas sem install.
+Ver [relatório](../sector-runtime-h3-structure-command-plan-2026-11-27.md).
 
 Converter a facade/writer em descrição completa de leituras e efeitos:
 materiais, mods, líquidos, IDs, proteção, player start, limpeza de entidades,
@@ -76,6 +91,11 @@ compatível. Ativar publicação por regiões exige o contrato de
 [threads regionais](regional-threads.md) e [checkpoint](io-persistence-network.md).
 
 ## MD-05 — Reduzir aplicação e permitir retomada
+
+Primeiro recorte em `cursor/h3-kernels-publication-9f77`:
+`WorldGenerationStructureBatchStaging` fatia comandos, aplica em staging
+privado, retoma via token e só completa a unidade lógica sem publish vivo.
+Ver [relatório](../sector-runtime-h3-structure-batch-staging-2026-11-27.md).
 
 Avaliar representação compacta de tiles relevantes, operações por fase e
 índices de conectores, preservando ordem de opções e RNG. Agrupar escritas e

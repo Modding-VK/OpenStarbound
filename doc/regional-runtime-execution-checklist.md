@@ -38,7 +38,7 @@ histórico, sem outra fila de prioridades. O
 [painel de progressão](sector-runtime/progress.md) consolida percentuais por
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
-Branch de integração: `cursor/integration-sector-runtime-7342` (H0+H1+H2 + H0 MOD-01 profundo).
+Branch de integração: `cursor/integration-sector-runtime-7342` (H0+H1+H2+H3 + H0 MOD-01).
 Relatório H1 atual:
 [Interest/priority DAG-03 50%](sector-runtime-h1-executive-interest-priority-2026-11-27.md).
 H2 na mesma linha (PreparedSector canônico = H1; extras H2 em headers dedicados):
@@ -260,10 +260,24 @@ executivo e o planejador menor são propostas, ainda não implementadas.
   prefetch planejado, batch regional e ticket de promoção Prefetch→Visible em
   `cursor/h2-products-prefetch-9f77`.
 - [x] CPU-02 (primeiro marco, entrada H1 / continua em H2): identidade e
-  handle `PreparedSector` residente sem publicação.
+  handle `PreparedSector` residente sem publicação (API canônica H1 na integração).
 - [ ] H2 restante: payloads `PreparedSector`/BaseTiles reais, WorldStorage,
   WorldThread startup e justiça multi-mundo.
-- [ ] H3: ampliar kernels CPU e preparar batches de publicação validáveis.
+- [x] H3 (CPU-04 + MD-02..05 + WT-04 + IO-02..05 sombra): kernels/
+  estruturas/IO harness em `cursor/h3-kernels-publication-9f77`
+  ([CaveLiquid](sector-runtime-h3-cave-liquid-plan-2026-11-27.md),
+  [Finalize](sector-runtime-h3-finalize-normalize-2026-11-27.md),
+  [TMX static](sector-runtime-h3-tmx-static-product-2026-11-27.md),
+  [TMX binding](sector-runtime-h3-tmx-binding-plan-2026-11-27.md),
+  [Structure commands](sector-runtime-h3-structure-command-plan-2026-11-27.md),
+  [Batch staging](sector-runtime-h3-structure-batch-staging-2026-11-27.md),
+  [Publication pass](sector-runtime-h3-publication-pass-2026-11-27.md),
+  [Shadow DB](sector-runtime-h3-shadow-db-2026-11-27.md),
+  [Shadow checkpoint](sector-runtime-h3-shadow-checkpoint-2026-11-27.md),
+  [Shadow unload](sector-runtime-h3-shadow-unload-2026-11-27.md),
+  [Shadow packet](sector-runtime-h3-shadow-packet-2026-11-27.md)).
+- [ ] H3 além do primeiro recorte: equivalência viva / publish autoritativo
+  só com `apis_ready` live-publish.
 - [ ] H4/H5: GPU compute opcional, comparação CPU/GPU em sombra, seleção por
   custo e orçamento de VRAM/latência; manter execução CPU independente.
 

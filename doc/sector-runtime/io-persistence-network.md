@@ -39,6 +39,11 @@ Sem SQLite/`WorldStorage`. Ver
 
 ## IO-02 — Serviço de banco e transações
 
+Primeiro recorte em `cursor/h3-kernels-publication-9f77`:
+`WorldGenerationShadowDbService` serializa ops in-memory, isola checkpoint de
+writes não commitados e versiona conteúdo separado do ticket. Sem
+SQLite/`.world`. Ver [relatório](../sector-runtime-h3-shadow-db-2026-11-27.md).
+
 O objetivo futuro é retirar espera bloqueante da dona através de um serviço
 que serialize operações do mesmo banco e devolva bytes/snapshots. A instância
 mutável de `m_db` não vai diretamente para workers.
@@ -53,6 +58,13 @@ Aceitação: histórias de operações concorrentes equivalem a uma sequência
 autorizada, sem leitura obsoleta aceita nem deadlock entre serviço e dona.
 
 ## IO-03 — Checkpoint e recuperação
+
+Primeiro recorte em `cursor/h3-kernels-publication-9f77`:
+`WorldGenerationShadowCheckpointHarness` exige unidade lógica completa,
+journal de intenção selada, recovery idempotente ou rejeição de parcial, e
+bloqueia `stepEpoch` incompatível — tudo sobre o harness IO-02, sem
+`.world`/SQLite. Ver
+[relatório](../sector-runtime-h3-shadow-checkpoint-2026-11-27.md).
 
 Salvar apenas estado confirmado de uma fronteira consistente. Tiles,
 entidades, índices únicos, metadata e estado Lua exigem definição de alcance
@@ -73,6 +85,12 @@ estrutura parcial ou geração repetida de setor salvo.
 
 ## IO-04 — Unload, drain e retorno ao legado
 
+Primeiro recorte em `cursor/h3-kernels-publication-9f77`:
+`WorldGenerationShadowUnloadHarness` revoga publish no unload, drena/descarta
+conclusões, protege `keepAlive`, bloqueia handoff parcial sem checkpoint e
+libera buffers só após drain — sobre o harness IO-03, sem `.world`/SQLite.
+Ver [relatório](../sector-runtime-h3-shadow-unload-2026-11-27.md).
+
 Unload retira autorização de publicar, preserva reservas usadas e aguarda ou
 descarta conclusões pelo protocolo do produtor. Entidades `keepAlive`, índices
 únicos e referências de scripts conservam seus contratos.
@@ -83,6 +101,12 @@ Buffers privados tardios podem ser liberados após conclusão sem alcançar o
 mundo destruído. GPU precisa de conclusão física antes da reciclagem.
 
 ## IO-05 — Pacotes e aplicação no cliente
+
+Primeiro recorte em `cursor/h3-kernels-publication-9f77`:
+`WorldGenerationShadowPacketHarness` monta pacotes só de checkpoint
+confirmado, exige `TileArrayInitial` antes de deltas, rastreia marcos até
+apply e separa relógios servidor/cliente — sem rede/`.world`. Ver
+[relatório](../sector-runtime-h3-shadow-packet-2026-11-27.md).
 
 O protocolo atual pressupõe um `TileArrayUpdate` inicial antes de outros
 updates daquele setor. `sectorActive` exige carga e geração completas. O
