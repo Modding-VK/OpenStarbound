@@ -235,6 +235,9 @@ GLuint g_halfSmearLsbProgram = 0;
 GLuint g_halfClearMsbProgram = 0;
 GLuint g_halfSmearMsbProgram = 0;
 GLuint g_halfKeepOddBitsProgram = 0;
+GLuint g_halfKeepEvenBitsProgram = 0;
+GLuint g_halfSwapAdjacentBitsProgram = 0;
+GLuint g_halfCompressOddBitsProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -3070,6 +3073,53 @@ void main() {
 }
 )GLSL";
 
+char const* HalfKeepEvenBitsShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = (values[i] & 0xffffu) & 0xaaaau;
+}
+)GLSL";
+
+char const* HalfSwapAdjacentBitsShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  values[i] = (((lo & 0x5555u) << 1) | ((lo & 0xaaaau) >> 1)) & 0xffffu;
+}
+)GLSL";
+
+char const* HalfCompressOddBitsShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint x = (values[i] & 0xffffu) & 0x5555u;
+  x = (x | (x >> 1)) & 0x3333u;
+  x = (x | (x >> 2)) & 0x0f0fu;
+  x = (x | (x >> 4)) & 0x00ffu;
+  values[i] = x;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -3818,6 +3868,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfKeepOddBitsProgram);
     g_halfKeepOddBitsProgram = 0;
   }
+  if (g_halfKeepEvenBitsProgram) {
+    glDeleteProgram(g_halfKeepEvenBitsProgram);
+    g_halfKeepEvenBitsProgram = 0;
+  }
+  if (g_halfSwapAdjacentBitsProgram) {
+    glDeleteProgram(g_halfSwapAdjacentBitsProgram);
+    g_halfSwapAdjacentBitsProgram = 0;
+  }
+  if (g_halfCompressOddBitsProgram) {
+    glDeleteProgram(g_halfCompressOddBitsProgram);
+    g_halfCompressOddBitsProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -4095,7 +4157,12 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfSmearLsbProgram, HalfSmearLsbShader, "DenseUint32HalfSmearLsb")
       || !requireProgram(g_halfClearMsbProgram, HalfClearMsbShader, "DenseUint32HalfClearMsb")
       || !requireProgram(g_halfSmearMsbProgram, HalfSmearMsbShader, "DenseUint32HalfSmearMsb")
-      || !requireProgram(g_halfKeepOddBitsProgram, HalfKeepOddBitsShader, "DenseUint32HalfKeepOddBits"))
+      || !requireProgram(g_halfKeepOddBitsProgram, HalfKeepOddBitsShader, "DenseUint32HalfKeepOddBits")
+      || !requireProgram(g_halfKeepEvenBitsProgram, HalfKeepEvenBitsShader, "DenseUint32HalfKeepEvenBits")
+      || !requireProgram(g_halfSwapAdjacentBitsProgram, HalfSwapAdjacentBitsShader,
+            "DenseUint32HalfSwapAdjacentBits")
+      || !requireProgram(g_halfCompressOddBitsProgram, HalfCompressOddBitsShader,
+            "DenseUint32HalfCompressOddBits"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -4510,6 +4577,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfSmearMsbProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfKeepOddBits)
     program = g_halfKeepOddBitsProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfKeepEvenBits)
+    program = g_halfKeepEvenBitsProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSwapAdjacentBits)
+    program = g_halfSwapAdjacentBitsProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfCompressOddBits)
+    program = g_halfCompressOddBitsProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
