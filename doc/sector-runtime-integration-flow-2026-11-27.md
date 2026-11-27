@@ -235,3 +235,25 @@ Integrador **não** pode mergear tips locais até o push; `local-ready` ≠ `rea
 - H3 remoto avançou (IO-02 em `db3753a8`); tip completa H3 25% ainda presa no push.
 - Fila inalterada: H0-delta/`ready` quando tip remota + phase; H3 quando tip remota + ready; depois H4→R1→R2.
 
+## Revisão sync 27/11/2026 ~03:00 UTC
+
+Bases: Exp `e55c008f` · INT **`34c11ed7`** (H0+H1+H2+H3 mergeados). Frentes não editadas.
+PRs com base na integração: **nenhum**. Sem Actions / sem `main`.
+
+| Frente | Tip remoto | vs INT | Conflitos | phase (store) |
+| --- | --- | ---: | ---: | --- |
+| H0 | `c124f899` | 0 | 0 | ready-for-integration (já ancestral) |
+| H1 | `7ed91dec` | 0 | 0 | active (já ancestral) |
+| H2 | `b9572592` | 0 | 0 | standby (já ancestral) |
+| H3 | `b3b7deee` | 0 | 0 | ready-for-integration (já ancestral) |
+| H4 | `80825c7c` | **+2** | 10 — README/docs/CMake | standby |
+| H5 | `cfd1aa5e` | **+3** | 16 — docs/CMake + ResourceGovernor add/add | blocked(h4) |
+| R1 | `bfd2c23a` | **+4** | 9 — README/docs/CMake | standby (tip pushed) |
+| R2 | `dd9e3b58` | **+3** | 9 — README/docs/CMake | ready-for-integration (espera H4→R1) |
+
+### Vereditos
+
+- Sem merge neste ciclo (nada novo em ordem com `ready-for-integration` aplicável).
+- Próximo quando ready: **H4** → R1 → R2; H5 por último (ResourceGovernor = H1).
+- H3 commits: já integrados em `34c11ed7` (CPU-04..IO-05 sombra).
+
