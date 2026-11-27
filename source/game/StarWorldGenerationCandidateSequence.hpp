@@ -1,9 +1,11 @@
 #pragma once
 
+#include "StarBiomePlacementTypes.hpp"
 #include "StarMaybe.hpp"
 #include "StarVector.hpp"
 #include "StarWorldGenerationPlacementQueue.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
@@ -39,6 +41,14 @@ struct WorldGenerationCandidateSequenceComparison {
         && (differentFields & static_cast<uint32_t>(WorldGenerationCandidateField::Length)) == 0;
   }
 };
+
+// Copies position/priority only; never retains BiomeItem or live queue state.
+WorldGenerationCandidateRecord worldGenerationCandidateRecord(BiomeItemPlacement const& placement,
+    Maybe<WorldGenerationPlacementId> placementId = {});
+
+// Stable order matching BiomeItemPlacement::operator< (priority ascending).
+// Equal priorities keep relative order (stable_sort). Does not mutate item.
+void sortWorldGenerationCandidateRecords(std::vector<WorldGenerationCandidateRecord>& records);
 
 // Bit-exact priority (signed zero/NaN payloads). Never memcmp the record:
 // padding is not state. Sequences compare in the given order; callers that

@@ -1,5 +1,7 @@
 #include "StarWorldGenerationCandidateSequence.hpp"
+#include "StarBiomePlacementTypes.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <limits>
@@ -112,4 +114,53 @@ TEST(WorldGenerationCandidateSequenceTest, AbsentVersusPresentPlacementIdDiffers
   auto result = compareWorldGenerationCandidateSequences({withId}, {withoutId});
   EXPECT_FALSE(result.equal());
   EXPECT_EQ(result.differentFields, mask(Field::PlacementId));
+}
+
+TEST(WorldGenerationCandidateSequenceTest, PlacementAdapterCopiesPositionPriorityAndOptionalId) {
+  BiomeItemPlacement placement{BiomeItem{MicroDungeonNames(StringSet{"alpha"})}, Vec2I(4, 9), 2.25f};
+  auto withoutId = worldGenerationCandidateRecord(placement);
+  EXPECT_FALSE(withoutId.placementId);
+  EXPECT_EQ(withoutId.position, Vec2I(4, 9));
+  EXPECT_EQ(withoutId.priority, 2.25f);
+
+  auto withId = worldGenerationCandidateRecord(placement, WorldGenerationPlacementId(42));
+  ASSERT_TRUE(withId.placementId);
+  EXPECT_EQ(*withId.placementId, 42u);
+  EXPECT_EQ(withId.position, placement.position);
+  EXPECT_EQ(withId.priority, placement.priority);
+}
+
+TEST(WorldGenerationCandidateSequenceTest, StablePrioritySortMatchesBiomeItemPlacementOrder) {
+  BiomeItemPlacement high{BiomeItem{MicroDungeonNames(StringSet{"high"})}, Vec2I(1, 0), 3.0f};
+  BiomeItemPlacement midA{BiomeItem{MicroDungeonNames(StringSet{"mid-a"})}, Vec2I(2, 0), 1.0f};
+  BiomeItemPlacement midB{BiomeItem{MicroDungeonNames(StringSet{"mid-b"})}, Vec2I(3, 0), 1.0f};
+  BiomeItemPlacement low{BiomeItem{MicroDungeonNames(StringSet{"low"})}, Vec2I(0, 0), 0.5f};
+
+  std::vector<BiomeItemPlacement> placements{high, midA, midB, low};
+  std::stable_sort(placements.begin(), placements.end());
+
+  std::vector<WorldGenerationCandidateRecord> records{
+      worldGenerationCandidateRecord(high, WorldGenerationPlacementId(1)),
+      worldGenerationCandidateRecord(midA, WorldGenerationPlacementId(2)),
+      worldGenerationCandidateRecord(midB, WorldGenerationPlacementId(3)),
+      worldGenerationCandidateRecord(low, WorldGenerationPlacementId(4))};
+  sortWorldGenerationCandidateRecords(records);
+
+  ASSERT_EQ(records.size(), placements.size());
+  for (size_t i = 0; i != records.size(); ++i) {
+    EXPECT_EQ(records[i].position, placements[i].position) << i;
+    EXPECT_EQ(records[i].priority, placements[i].priority) << i;
+  }
+  // Equal priorities keep relative input order (midA before midB).
+  EXPECT_EQ(records[1].position, Vec2I(2, 0));
+  EXPECT_EQ(records[2].position, Vec2I(3, 0));
+
+  std::vector<WorldGenerationCandidateRecord> expected;
+  for (auto const& placement : placements)
+    expected.push_back(worldGenerationCandidateRecord(placement));
+  // IDs were assigned only on the unsorted path; strip for content compare.
+  for (auto& entry : records)
+    entry.placementId = {};
+  auto result = compareWorldGenerationCandidateSequences(records, expected);
+  EXPECT_TRUE(result.equal());
 }

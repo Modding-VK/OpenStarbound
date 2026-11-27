@@ -31,6 +31,6 @@ não é VAL-01 de streaming nem MOD-01.
 
 ## Próximo passo
 
-Integrar registros a partir de `BiomeItemPlacement`/planos sem alterar
-seleção; manter controles de hash como gate. Ou MOD-01/VAL-01 conforme
-autorização do Project. Não disparar Actions.
+Fechado pelo
+[adapter BiomeItemPlacement](sector-runtime-h0-candidate-placement-adapter-2026-11-27.md).
+Não disparar Actions.
