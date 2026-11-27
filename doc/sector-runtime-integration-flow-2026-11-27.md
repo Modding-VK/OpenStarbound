@@ -733,3 +733,8 @@ integração: **nenhum**.
 - FREEZE user: STOP merges H4 e novos Build; sem próximas frentes até liberar pós in-game.
 - Build em voo único: `46069374906` @ tip (acompanhar; sem spam). Build `460670` SUCCESS (ThreadStub PASS).
 - Sem PRs abertos com base na INT nesta checagem. Sem merge; sem dispatch.
+
+## Revisão 2026-11-27T22:00Z (FREEZE)
+- INT tip `ef1c6ead`. Ahead h0–h5/r1/r2/H3 = 0. Sem PRs abertos na base INT.
+- FREEZE mantido: STOP merges H4 e novos Build; sem frentes até liberar pós in-game.
+- Build `46069374906` SUCCESS @ `41aa2c64` (ThreadStub PASS). CI tip docs verdes. Sem dispatch.
