@@ -202,6 +202,9 @@ GLuint g_halfSelectProgram = 0;
 GLuint g_halfLcmProgram = 0;
 GLuint g_halfCoprimeProgram = 0;
 GLuint g_halfAlignUpProgram = 0;
+GLuint g_halfAlignDownProgram = 0;
+GLuint g_halfRotlProgram = 0;
+GLuint g_halfRotrProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -2525,6 +2528,54 @@ void main() {
 }
 )GLSL";
 
+char const* HalfAlignDownShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  uint hi = values[i] >> 16;
+  values[i] = (hi == 0u) ? lo : (lo / hi) * hi;
+}
+)GLSL";
+
+char const* HalfRotlShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  uint rot = (values[i] >> 16) & 15u;
+  values[i] = ((lo << rot) | (lo >> ((16u - rot) & 15u))) & 0xffffu;
+}
+)GLSL";
+
+char const* HalfRotrShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  uint rot = (values[i] >> 16) & 15u;
+  values[i] = ((lo >> rot) | (lo << ((16u - rot) & 15u))) & 0xffffu;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -3141,6 +3192,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfAlignUpProgram);
     g_halfAlignUpProgram = 0;
   }
+  if (g_halfAlignDownProgram) {
+    glDeleteProgram(g_halfAlignDownProgram);
+    g_halfAlignDownProgram = 0;
+  }
+  if (g_halfRotlProgram) {
+    glDeleteProgram(g_halfRotlProgram);
+    g_halfRotlProgram = 0;
+  }
+  if (g_halfRotrProgram) {
+    glDeleteProgram(g_halfRotrProgram);
+    g_halfRotrProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -3385,7 +3448,10 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfSelectProgram, HalfSelectShader, "DenseUint32HalfSelect")
       || !requireProgram(g_halfLcmProgram, HalfLcmShader, "DenseUint32HalfLcm")
       || !requireProgram(g_halfCoprimeProgram, HalfCoprimeShader, "DenseUint32HalfCoprime")
-      || !requireProgram(g_halfAlignUpProgram, HalfAlignUpShader, "DenseUint32HalfAlignUp"))
+      || !requireProgram(g_halfAlignUpProgram, HalfAlignUpShader, "DenseUint32HalfAlignUp")
+      || !requireProgram(g_halfAlignDownProgram, HalfAlignDownShader, "DenseUint32HalfAlignDown")
+      || !requireProgram(g_halfRotlProgram, HalfRotlShader, "DenseUint32HalfRotl")
+      || !requireProgram(g_halfRotrProgram, HalfRotrShader, "DenseUint32HalfRotr"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -3734,6 +3800,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfCoprimeProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfAlignUp)
     program = g_halfAlignUpProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfAlignDown)
+    program = g_halfAlignDownProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfRotl)
+    program = g_halfRotlProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfRotr)
+    program = g_halfRotrProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
