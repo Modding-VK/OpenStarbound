@@ -386,6 +386,8 @@ public:
 
   // GPU-02 observation (any thread under mutex): open ticket ids snapshot.
   List<WorldGenerationComputeTicket> listOpenTickets() const;
+  // Pending open ticket ids snapshot (asset-free observation).
+  List<WorldGenerationComputeTicket> listPendingOpenTickets() const;
   // Distinct identity.kernel values among currently open tickets (asset-free).
   List<WorldGenerationComputeKernel> listOpenKernels() const;
   // Count of distinct identity.kernel values among open tickets (asset-free).

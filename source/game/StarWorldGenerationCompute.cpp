@@ -1806,6 +1806,19 @@ List<WorldGenerationComputeTicket> WorldGenerationComputeService::listOpenTicket
   return out;
 }
 
+List<WorldGenerationComputeTicket> WorldGenerationComputeService::listPendingOpenTickets() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  List<WorldGenerationComputeTicket> out;
+  for (auto const& pair : m_entries) {
+    if (pair.second.state != EntryState::Pending)
+      continue;
+    WorldGenerationComputeTicket ticket;
+    ticket.id = pair.first;
+    out.append(ticket);
+  }
+  return out;
+}
+
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::listOpenKernels() const {
   std::lock_guard<std::mutex> lock(m_mutex);
   List<WorldGenerationComputeKernel> out;
