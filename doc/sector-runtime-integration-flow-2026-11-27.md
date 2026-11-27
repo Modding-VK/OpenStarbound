@@ -549,3 +549,35 @@ H4 `c44b1a38` · H5 `a2ec01f0` · R1 `6947bbb9` · R2 `f86b4d17`.
 
 - Hold frentes. Hold smoke local. Sem `build.yml`.
 - PR #4: aguardar CI → merge YAML docs.
+
+## Revisão sync 27/11/2026 ~19:00 UTC
+
+Bases: INT **`7e4a5baa`**. Frentes **não** editadas; **sem** merge em `main`;
+**sem** disparo de Actions neste ciclo. PRs GitHub com base na integração:
+**nenhum**.
+
+| Frente | Tip remoto | vs INT | Ancestral INT |
+| --- | --- | ---: | --- |
+| H0 | `c124f899` | 0 | sim |
+| H1 | `4d014af2` | 0 | sim |
+| H2 | `b1162b5d` | 0 | sim |
+| H3 | `3bdf1927` | 0 | sim |
+| H4 | `2bbbda52` | 0 | sim |
+| H5 | `a2ec01f0` | 0 | sim |
+| R1 | `da79144b` | 0 | sim |
+| R2 | `f86b4d17` | 0 | sim |
+
+### Delta desde sync ~18:15
+
+- H4 mergeado na INT até `2bbbda52` (Gt/Geu/Xnor + cancelAll + verdict names;
+  36/36) e fatias anteriores (Lt…/AbsDiff…).
+- R1 `da79144b` (ThreadStub Windows CI wait harden) mergeado; conteúdo já
+  presente na INT.
+- Tip INT atual: `7e4a5baa`. Build `46053000345` @ `6cf7cd4b` ainda
+  **in_progress** (intacto); política: 1 Build na tip final após terminal.
+- Frentes **ahead=0**; H3 sem commits novos.
+
+### Vereditos
+
+- **Hold frentes** (nada ahead). Sem conflito/bloqueio de merge.
+- Sem comentários em PR (fila vazia). Sem `build.yml` neste ciclo docs.
