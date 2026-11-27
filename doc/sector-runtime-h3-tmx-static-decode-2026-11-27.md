@@ -32,4 +32,5 @@ equivalência a `TMXMap`+tilesets vivos. Não concede 50%.
 
 ## Próximo
 
-Assets-backed decode sombra, ou equivalência viva só com live-publish.
+Entregue: [Assets-fixture sombra](sector-runtime-h3-tmx-shadow-assets-2026-11-27.md).
+Seguinte: cache/reload ou equivalência viva só com live-publish.

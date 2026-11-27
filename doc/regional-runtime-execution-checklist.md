@@ -269,7 +269,9 @@ executivo e o planejador menor são propostas, ainda não implementadas.
   ([TMX decode](sector-runtime-h3-tmx-static-decode-2026-11-27.md)).
 - [x] H3 codec TMX gzip/zlib/zstd sombra (MD-02 adicional; sem elevação a 50%)
   ([TMX codec](sector-runtime-h3-tmx-static-codec-2026-11-27.md)).
-- [ ] H3 além do primeiro recorte: decode TMX via Assets; equivalência viva /
+- [x] H3 Assets-backed TMX decode sombra (fixture in-memory; sem elevação a 50%)
+  ([TMX Assets-fixture](sector-runtime-h3-tmx-shadow-assets-2026-11-27.md)).
+- [ ] H3 além do primeiro recorte: cache/reload TMX; equivalência viva /
   publish autoritativo só com `apis_ready` live-publish.
 - [ ] H4/H5: GPU compute opcional, comparação CPU/GPU em sombra, seleção por
   custo e orçamento de VRAM/latência; manter execução CPU independente.

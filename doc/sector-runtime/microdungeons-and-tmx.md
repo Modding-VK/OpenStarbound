@@ -30,10 +30,12 @@ Ordenação e sementes usam o contrato existente de coordenadas canônicas.
 Recortes em `cursor/h3-kernels-publication-9f77`:
 `WorldGenerationTmxStaticProduct` retém camadas GID/objetos/conectores, e
 `tryDecodeWorldGenerationTmxStaticProduct` decodifica Json TMX controlado
-(array ou base64 gzip/zlib/zstd) sem Root/tilesets. Ver
+(array ou base64 gzip/zlib/zstd). `tryDecode…WithAssets` resolve tilesets
+via fixture in-memory sem Root. Ver
 [produto](../sector-runtime-h3-tmx-static-product-2026-11-27.md),
-[decode](../sector-runtime-h3-tmx-static-decode-2026-11-27.md) e
-[codec](../sector-runtime-h3-tmx-static-codec-2026-11-27.md).
+[decode](../sector-runtime-h3-tmx-static-decode-2026-11-27.md),
+[codec](../sector-runtime-h3-tmx-static-codec-2026-11-27.md) e
+[Assets-fixture](../sector-runtime-h3-tmx-shadow-assets-2026-11-27.md).
 
 Separar leitura dos dados e decodificação estática de instanciação de brushes.
 O produto intermediário pode conter camadas decodificadas, geometria,

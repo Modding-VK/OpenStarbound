@@ -191,6 +191,7 @@ SET (star_game_HEADERS
     StarWorldGenerationReplaceBiomePlan.hpp
     StarWorldGenerationTmxStaticProduct.hpp
     StarWorldGenerationTmxStaticDecode.hpp
+    StarWorldGenerationTmxShadowAssets.hpp
     StarWorldGenerationTmxBindingPlan.hpp
     StarWorldGenerationStructureCommandPlan.hpp
     StarWorldGenerationStructureBatchStaging.hpp

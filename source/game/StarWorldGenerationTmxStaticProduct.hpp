@@ -77,10 +77,27 @@ struct WorldGenerationTmxStaticConnector {
   String direction;
 };
 
+struct WorldGenerationTmxStaticTilesetRef {
+  uint32_t firstGid = 0;
+  String assetPath;
+  uint32_t tileCount = 0;
+  uint64_t tilesetContentHash = 0;
+
+  bool valid() const {
+    return firstGid != 0 && !assetPath.empty() && tileCount != 0 && tilesetContentHash != 0;
+  }
+
+  bool operator==(WorldGenerationTmxStaticTilesetRef const& other) const {
+    return firstGid == other.firstGid && assetPath == other.assetPath
+        && tileCount == other.tileCount && tilesetContentHash == other.tilesetContentHash;
+  }
+};
+
 struct WorldGenerationTmxStaticBlueprint {
   WorldGenerationTmxStaticIdentity identity;
   List<WorldGenerationTmxStaticLayer> layers;
   List<WorldGenerationTmxStaticObject> objects;
+  List<WorldGenerationTmxStaticTilesetRef> tilesetRefs;
 };
 
 inline uint64_t worldGenerationTmxStaticContentHash(WorldGenerationTmxStaticBlueprint const& blueprint) {
@@ -107,6 +124,12 @@ inline uint64_t worldGenerationTmxStaticContentHash(WorldGenerationTmxStaticBlue
     mix(object.connector ? 1ull : 0ull);
     mix((uint64_t)stringHash(object.connectorDirection));
   }
+  for (auto const& ref : blueprint.tilesetRefs) {
+    mix(ref.firstGid);
+    mix((uint64_t)stringHash(ref.assetPath));
+    mix(ref.tileCount);
+    mix(ref.tilesetContentHash);
+  }
   return acc ? acc : 1ull;
 }
 
@@ -125,19 +148,24 @@ public:
     if (!blueprint.identity.valid())
       return std::nullopt;
 
+    for (auto const& ref : blueprint.tilesetRefs) {
+      if (!ref.valid())
+        return std::nullopt;
+    }
     List<WorldGenerationTmxStaticConnector> connectors;
     for (auto const& object : blueprint.objects) {
       if (object.connector)
         connectors.append({object.name, object.position, object.connectorDirection});
     }
     return WorldGenerationTmxStaticProduct(std::move(blueprint.identity), std::move(blueprint.layers),
-        std::move(blueprint.objects), std::move(connectors));
+        std::move(blueprint.objects), std::move(connectors), std::move(blueprint.tilesetRefs));
   }
 
   WorldGenerationTmxStaticIdentity const& identity() const { return m_identity; }
   List<WorldGenerationTmxStaticLayer> const& layers() const { return m_layers; }
   List<WorldGenerationTmxStaticObject> const& objects() const { return m_objects; }
   List<WorldGenerationTmxStaticConnector> const& connectors() const { return m_connectors; }
+  List<WorldGenerationTmxStaticTilesetRef> const& tilesetRefs() const { return m_tilesetRefs; }
   bool active() const { return m_active; }
 
   size_t retainedBytesEstimate() const {
@@ -146,6 +174,7 @@ public:
       bytes += layer.gids.size() * sizeof(uint32_t);
     bytes += m_objects.size() * sizeof(WorldGenerationTmxStaticObject);
     bytes += m_connectors.size() * sizeof(WorldGenerationTmxStaticConnector);
+    bytes += m_tilesetRefs.size() * sizeof(WorldGenerationTmxStaticTilesetRef);
     return bytes;
   }
 
@@ -165,6 +194,7 @@ public:
     m_layers.clear();
     m_objects.clear();
     m_connectors.clear();
+    m_tilesetRefs.clear();
     m_identity = {};
   }
 
@@ -172,17 +202,20 @@ private:
   WorldGenerationTmxStaticProduct(WorldGenerationTmxStaticIdentity identity,
       List<WorldGenerationTmxStaticLayer> layers,
       List<WorldGenerationTmxStaticObject> objects,
-      List<WorldGenerationTmxStaticConnector> connectors)
+      List<WorldGenerationTmxStaticConnector> connectors,
+      List<WorldGenerationTmxStaticTilesetRef> tilesetRefs)
     : m_identity(std::move(identity))
     , m_layers(std::move(layers))
     , m_objects(std::move(objects))
     , m_connectors(std::move(connectors))
+    , m_tilesetRefs(std::move(tilesetRefs))
     , m_active(true) {}
 
   WorldGenerationTmxStaticIdentity m_identity;
   List<WorldGenerationTmxStaticLayer> m_layers;
   List<WorldGenerationTmxStaticObject> m_objects;
   List<WorldGenerationTmxStaticConnector> m_connectors;
+  List<WorldGenerationTmxStaticTilesetRef> m_tilesetRefs;
   bool m_active = false;
 };
 

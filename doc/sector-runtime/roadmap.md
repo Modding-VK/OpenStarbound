@@ -462,11 +462,12 @@ Propósito: reduzir trabalho serial após o desbloqueio do pipeline.
   [ReplaceBiome](../sector-runtime-h3-replace-biome-plan-2026-11-27.md));
   equivalência viva / collision pendentes (permanece 25%).
 - [x] MD-02 (recortes sombra): produto TMX + decode Json + codec gzip/zlib/zstd
-  em `cursor/h3-kernels-publication-9f77`
+  + Assets-fixture in-memory em `cursor/h3-kernels-publication-9f77`
   ([produto](../sector-runtime-h3-tmx-static-product-2026-11-27.md),
   [decode](../sector-runtime-h3-tmx-static-decode-2026-11-27.md),
-  [codec](../sector-runtime-h3-tmx-static-codec-2026-11-27.md));
-  Assets/vivo pendentes (permanece 25%).
+  [codec](../sector-runtime-h3-tmx-static-codec-2026-11-27.md),
+  [Assets-fixture](../sector-runtime-h3-tmx-shadow-assets-2026-11-27.md));
+  cache/reload e vivo pendentes (permanece 25%).
 - [x] MD-03 (primeiro recorte): plano de ligação/escolhas em sombra
   ([relatório](../sector-runtime-h3-tmx-binding-plan-2026-11-27.md)); stream
   RNG vivo e efeitos pendentes.
