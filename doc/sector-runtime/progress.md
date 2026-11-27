@@ -1,12 +1,12 @@
 # Progressão do projeto — percentuais e ordem das tarefas
 
 Atualizado em **27/11/2026**. Branch: `cursor/h0-foundations-9f77`.
-Base inspecionada: `54f69cd2`;
-última implementação H0: catálogo MOD-01 de fronteiras de efeito
+Base inspecionada: `7cc3098f`;
+última implementação H0: expansão do catálogo MOD-01 EffectBoundary
 (ver relatório MOD-01).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h0-effect-boundary-2026-11-27.md)
+· [Último relatório técnico](../sector-runtime-h0-effect-boundary-expand-2026-11-27.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -23,7 +23,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **3,6%** — 7 marcos verificados de 196 |
 | Contratos com avanço registrado | **7 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | EffectBoundary 6/6 + CandidateSequence 13/13 +134 RealBlockInfo; ASan/UBSan; gates H0 |
+| Última evidência de testes | EffectBoundary 9/9 + CandidateSequence 13/13 +134 RealBlockInfo; ASan/UBSan; gates H0 |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,6% não significam que o jogo esteja só 3,6% pronto.** O runtime anterior
@@ -151,7 +151,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 2 | H0 | [DAG-04](dependency-scheduler.md) | Conclusões e progresso dentro da passagem | 25% | Mailbox executiva/reação a conclusões; continuação/avanço já corrigidos no recorte |
 | 3 | H0 | [RAM-01](memory-and-prefetch.md) | Reserva e contabilização de bytes | 25% | Json retido medido/deduplicado no contexto estático; polígonos/wrappers e admissão/contexto/consumidor globais pendentes |
 | 4 | H0 | [VAL-02](validation-and-telemetry.md) | Comparador de outputs e produtores controlados | 25% | BaseTiles + sombra 2×2 + candidatos BiomeItem (incl. TileDamage); falta planeta/mods e streaming |
-| 5 | H0 | [MOD-01](compatibility.md) | Classificar operações por efeito | 25% | Catálogo EffectBoundary H0 + audits de default; falta consumo/reconstrução completa do contexto e mais superfícies |
+| 5 | H0 | [MOD-01](compatibility.md) | Classificar operações por efeito | 25% | EffectBoundary ≥30 entradas (Memory/Lookup/Tasks/Json…); falta consumo/reconstrução completa do contexto |
 | 6 | H0 | [VAL-01](validation-and-telemetry.md) | Benchmark de streaming | 25% | Rota/save/config fixos, streaming real e A/B equivalente |
 | 7 | H1 | [DAG-02](dependency-scheduler.md) | Grafo persistente e demanda compartilhada | 0% | Grafo executivo em sombra, separado das dependências de publicação |
 | 8 | H1 | [DAG-03](dependency-scheduler.md) | Prioridade, justiça e distância correta | 0% | Prioridade herdada e justiça entre consumidores com wrap |
@@ -320,6 +320,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | Candidate ObjectPool payload | ObjectPool peso/nome/Json ordenado; 13 testes contract. TileDamage plantas ainda fora. Sem novo marco completo | 3,6% |
 | 27/11/2026 | Candidate TileDamage payload | TileDamageParameters bit-a-bit em Grass/Bush/Tree; 13 testes contract. Sem planeta/streaming. Sem novo marco completo | 3,6% |
 | 27/11/2026 | MOD-01 EffectBoundary | Catálogo PureKernel/Prepared/Authoritative + audits default; 6 testes contract. Sem normalizar defaults. Sem novo marco completo | 3,6% |
+| 27/11/2026 | MOD-01 EffectBoundary expand | Memory/Lookup/Tasks/Json/Planning/Selector/WorldRegion; 9 testes; countForSurface. Sem novo marco completo | 3,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

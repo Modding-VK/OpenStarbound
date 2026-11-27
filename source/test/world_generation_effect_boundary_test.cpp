@@ -9,7 +9,7 @@ using namespace Star;
 
 TEST(WorldGenerationEffectBoundaryTest, CatalogSatisfiesH0Invariants) {
   EXPECT_TRUE(worldGenerationEffectBoundaryCatalogValid());
-  EXPECT_GE(worldGenerationEffectBoundaryCount(), 10u);
+  EXPECT_GE(worldGenerationEffectBoundaryCount(), 30u);
 }
 
 TEST(WorldGenerationEffectBoundaryTest, IdsAreUniqueAndFindable) {
@@ -84,4 +84,50 @@ TEST(WorldGenerationEffectBoundaryTest, NoMultiRegionEffectInH0Catalog) {
     ASSERT_TRUE(entry);
     EXPECT_NE(entry->kind, WorldGenerationEffectKind::MultiRegionEffect) << entry->id;
   }
+}
+
+TEST(WorldGenerationEffectBoundaryTest, ExpandedSurfacesHaveCoverage) {
+  char const* surfaces[] = {"BaseTiles", "SectorShadow", "Memory", "Distribution", "Planning", "Json",
+      "Payload", "Lookup", "Tasks", "SelectorContext", "WorldRegion", "Perlin", "VAL-02"};
+  for (auto surface : surfaces) {
+    EXPECT_GE(worldGenerationEffectBoundaryCountForSurface(surface), 1u) << surface;
+  }
+  EXPECT_EQ(0u, worldGenerationEffectBoundaryCountForSurface(nullptr));
+  EXPECT_EQ(0u, worldGenerationEffectBoundaryCountForSurface("MissingSurface"));
+}
+
+TEST(WorldGenerationEffectBoundaryTest, MemoryAndLookupRefuseWithoutLiveMutation) {
+  auto admit = worldGenerationEffectBoundaryFind("memory-ledger-admit");
+  ASSERT_TRUE(admit);
+  EXPECT_FALSE(admit->mutatesLiveWorld);
+  EXPECT_TRUE(admit->requiresOwnerThread);
+
+  auto refuse = worldGenerationEffectBoundaryFind("memory-ledger-refuse");
+  ASSERT_TRUE(refuse);
+  EXPECT_FALSE(refuse->mutatesLiveWorld);
+
+  auto binding = worldGenerationEffectBoundaryFind("lookup-source-binding");
+  ASSERT_TRUE(binding);
+  EXPECT_EQ(binding->kind, WorldGenerationEffectKind::PreparedDependency);
+  EXPECT_TRUE(binding->requiresOwnerThread);
+
+  auto stale = worldGenerationEffectBoundaryFind("lookup-source-stale");
+  ASSERT_TRUE(stale);
+  EXPECT_FALSE(stale->mutatesLiveWorld);
+
+  auto regionLiquids = worldGenerationEffectBoundaryFind("world-region-liquids-default");
+  ASSERT_TRUE(regionLiquids);
+  EXPECT_TRUE(regionLiquids->readsUninitializedDefault);
+}
+
+TEST(WorldGenerationEffectBoundaryTest, TaskLifecycleBoundariesStayPrivate) {
+  for (auto id : {"task-preparation-abandon", "task-producer-failure", "task-invalidate"}) {
+    auto entry = worldGenerationEffectBoundaryFind(id);
+    ASSERT_TRUE(entry) << id;
+    EXPECT_FALSE(entry->mutatesLiveWorld) << id;
+    EXPECT_TRUE(entry->requiresOwnerThread) << id;
+  }
+  auto invalidate = worldGenerationEffectBoundaryFind("task-invalidate");
+  ASSERT_TRUE(invalidate);
+  EXPECT_EQ(invalidate->kind, WorldGenerationEffectKind::AuthoritativeCallback);
 }

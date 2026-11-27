@@ -46,6 +46,44 @@ constexpr WorldGenerationEffectBoundary kCatalog[] = {
         "Scalar liquid decision with materials resolved; Keep preserves prior liquid"},
     {"base-tile-lookup-catalog", "BaseTiles", WorldGenerationEffectKind::PreparedDependency, false, false, true, false,
         "Sealed response catalog; miss does not write; owner chooses legacy path"},
+    {"selector-context-capture", "SelectorContext", WorldGenerationEffectKind::PreparedDependency, false, false, true,
+        false, "Admit POD selector parameters before RNG; invalid identity refuses without seed"},
+    {"region-selector-snapshot", "SelectorContext", WorldGenerationEffectKind::PreparedDependency, false, false, false,
+        false, "Private region selector trees; not shared CacheSelector LRU across workers"},
+    {"memory-ledger-admit", "Memory", WorldGenerationEffectKind::PreparedDependency, false, false, true, false,
+        "Opt-in ledger tryReserve/admit; default game singleton remains off"},
+    {"memory-ledger-refuse", "Memory", WorldGenerationEffectKind::PreparedDependency, false, false, true, false,
+        "Refuse leaves no live resource; no live-world side effect"},
+    {"memory-pressure-sample", "Memory", WorldGenerationEffectKind::PreparedDependency, false, false, true, false,
+        "Owner-local pressure metrics; not eviction/cancel of live buffers"},
+    {"distribution-bundle-share", "Distribution", WorldGenerationEffectKind::PreparedDependency, false, false, true, false,
+        "Const shared snapshots after one equivalent copy; queue/promises stay on owner"},
+    {"planning-scratch-reuse", "Planning", WorldGenerationEffectKind::PreparedDependency, false, false, false, false,
+        "Scratch reuse only without MicroDungeonNames inputs; preserves copy history"},
+    {"planning-name-share", "Planning", WorldGenerationEffectKind::PureKernel, false, false, false, false,
+        "Share chosen dungeon name only after selection; diagnostic compare of order/IDs"},
+    {"json-object-capture", "Json", WorldGenerationEffectKind::PreparedDependency, false, false, false, false,
+        "Immutable JsonObject buckets/keys; omission when over capture limit"},
+    {"json-variant-enqueue", "Json", WorldGenerationEffectKind::PreparedDependency, false, false, false, false,
+        "Enumerate variant Json refs without allItems/toJson or BiomeItem copy"},
+    {"payload-buffer-reserve", "Payload", WorldGenerationEffectKind::PreparedDependency, false, false, false, false,
+        "Reserve candidate/plan buffers before allocate; growth keeps both charged"},
+    {"lookup-source-binding", "Lookup", WorldGenerationEffectKind::PreparedDependency, false, false, true, false,
+        "Root/Assets clocks + material versions; refused binding writes nothing"},
+    {"lookup-source-stale", "Lookup", WorldGenerationEffectKind::PreparedDependency, false, false, true, false,
+        "Stale after apply requires discard of private output; not silent fallback"},
+    {"task-preparation-abandon", "Tasks", WorldGenerationEffectKind::PreparedDependency, false, false, true, false,
+        "Abandon before handoff discards filled private shadow; no publish"},
+    {"task-producer-failure", "Tasks", WorldGenerationEffectKind::PreparedDependency, false, false, true, false,
+        "Failed producer retires private output; owner observes Failed outcome"},
+    {"task-invalidate", "Tasks", WorldGenerationEffectKind::AuthoritativeCallback, false, false, true, false,
+        "Owner invalidate yields Cancelled; workers must not publish cancelled work"},
+    {"world-region-liquids-default", "WorldRegion", WorldGenerationEffectKind::PreparedDependency, false, false, false,
+        true, "WorldRegion() leaves regionLiquids unset; contract tests may omit the object"},
+    {"immutable-array-view", "Memory", WorldGenerationEffectKind::PureKernel, false, false, false, false,
+        "Const view over admitted backing; no allocator/mutation from readers"},
+    {"sector-shadow-matches", "SectorShadow", WorldGenerationEffectKind::PureKernel, false, false, false, false,
+        "Identity-only matches check; not commit authorization"},
 };
 
 bool sameId(char const* a, char const* b) {
@@ -72,6 +110,17 @@ Maybe<WorldGenerationEffectBoundary> worldGenerationEffectBoundaryFind(char cons
       return kCatalog[i];
   }
   return {};
+}
+
+size_t worldGenerationEffectBoundaryCountForSurface(char const* surface) {
+  if (!surface)
+    return 0;
+  size_t count = 0;
+  for (size_t i = 0; i != worldGenerationEffectBoundaryCount(); ++i) {
+    if (sameId(kCatalog[i].surface, surface))
+      ++count;
+  }
+  return count;
 }
 
 bool worldGenerationEffectBoundaryCatalogValid() {

@@ -33,6 +33,6 @@ não corrige biomeTransition/horizonClouds/baseHeight/Perlin Uninitialized.
 
 ## Próximo passo
 
-Ampliar catálogo a biomeTransition consumo no kernel BaseTiles /
-reconstrução de contexto, ou VAL-01 quando o Project priorizar.
+Fechado parcialmente pela
+[expansão do catálogo](sector-runtime-h0-effect-boundary-expand-2026-11-27.md).
 Não disparar Actions.

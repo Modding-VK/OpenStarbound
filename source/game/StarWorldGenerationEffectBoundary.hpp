@@ -34,6 +34,8 @@ struct WorldGenerationEffectBoundary {
 size_t worldGenerationEffectBoundaryCount();
 WorldGenerationEffectBoundary const* worldGenerationEffectBoundaryAt(size_t index);
 Maybe<WorldGenerationEffectBoundary> worldGenerationEffectBoundaryFind(char const* id);
+// Count entries whose surface string equals the argument (exact match).
+size_t worldGenerationEffectBoundaryCountForSurface(char const* surface);
 
 // Catalog invariants for H0: unique ids, PureKernel never scripts/mutates live
 // world, AuthoritativeCallback requires owner thread, no MultiRegionEffect yet.
