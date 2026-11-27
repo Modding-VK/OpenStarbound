@@ -487,9 +487,9 @@ TEST(WorldGenerationComputeTest, SupportedKernelsCatalogListsDenseFamily) {
   EXPECT_FALSE(WorldGenerationComputeService::isKernelSupported(
       WorldGenerationComputeKernel::DenseUint32Xor, 99u));
   auto kernels = WorldGenerationComputeService::supportedKernels();
-  ASSERT_EQ(106u, kernels.size());
+  ASSERT_EQ(109u, kernels.size());
   EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32Xor, kernels[0]);
-  EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32ExpandLowNibbles, kernels[kernels.size() - 1]);
+  EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32MaskNibbles, kernels[kernels.size() - 1]);
   EXPECT_TRUE(WorldGenerationComputeService::supportedKernels(2u).empty());
 }
 
@@ -507,11 +507,11 @@ TEST(WorldGenerationComputeTest, CompareShadowBatchRunsIndependentKernels) {
             || kernel == WorldGenerationComputeKernel::DenseUint32RolNibbles
             || kernel == WorldGenerationComputeKernel::DenseUint32RorNibbles)
         ? 3u
-        : 0x11u;
+        : (kernel == WorldGenerationComputeKernel::DenseUint32MaskNibbles ? 0xffu : 0x11u);
     items.append(item);
   }
   auto reports = service.compareShadowBatch(input, std::move(items));
-  ASSERT_EQ(106u, reports.size());
+  ASSERT_EQ(109u, reports.size());
   for (auto const& report : reports) {
     EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal, report.verdict)
         << (int)report.identity.kernel;
@@ -699,6 +699,41 @@ TEST(WorldGenerationComputeTest, DenseUint32PackExpandLowHighNibblesExactCpuAndS
   EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
       service.compareShadow(
           makeIdentity(772, WorldGenerationComputeKernel::DenseUint32ExpandLowNibbles), input, 0u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+}
+
+TEST(WorldGenerationComputeTest, DenseUint32ExpandHighReplaceMaskNibblesExactCpuAndShadow) {
+  WorldGenerationComputeService service;
+  auto input = edgeCorpus();
+  EXPECT_EQ(0x20406080u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32ExpandHighNibbles, 1u, List<uint32_t>{0x2468u},
+          0u)[0]);
+  // replace nibble 8 with A in 0x12345678 → 0x1234567a
+  EXPECT_EQ(0x1234567au,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32ReplaceNibble, 1u, List<uint32_t>{0x12345678u},
+          0x0a08u)[0]);
+  // keep odd nibbles (bits 0,2,4,6) of 0x12345678 → 0x02040608
+  EXPECT_EQ(0x02040608u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32MaskNibbles, 1u, List<uint32_t>{0x12345678u},
+          0x55u)[0]);
+
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(790, WorldGenerationComputeKernel::DenseUint32ExpandHighNibbles), input, 0u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(791, WorldGenerationComputeKernel::DenseUint32ReplaceNibble), input, 0x0a08u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(792, WorldGenerationComputeKernel::DenseUint32MaskNibbles), input, 0x55u,
           WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
           .verdict);
 }
@@ -2118,7 +2153,7 @@ TEST(WorldGenerationComputeTest, DenseUint32OrNotAvgIsPow2ExactCpuAndShadow) {
 }
 
 TEST(WorldGenerationComputeTest, FingerprintCapabilitiesAndSupportedKernelCount) {
-  EXPECT_EQ(106u, WorldGenerationComputeService::supportedKernelCount());
+  EXPECT_EQ(109u, WorldGenerationComputeService::supportedKernelCount());
   EXPECT_EQ(0u, WorldGenerationComputeService::supportedKernelCount(2u));
   EXPECT_EQ(WorldGenerationComputeService::supportedKernels().size(),
       WorldGenerationComputeService::supportedKernelCount());
