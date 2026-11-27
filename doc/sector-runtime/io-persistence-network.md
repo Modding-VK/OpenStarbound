@@ -96,6 +96,12 @@ mundo destruído. GPU precisa de conclusão física antes da reciclagem.
 
 ## IO-05 — Pacotes e aplicação no cliente
 
+Primeiro recorte em `cursor/h3-kernels-publication-9f77`:
+`WorldGenerationShadowPacketHarness` monta pacotes só de checkpoint
+confirmado, exige `TileArrayInitial` antes de deltas, rastreia marcos até
+apply e separa relógios servidor/cliente — sem rede/`.world`. Ver
+[relatório](../sector-runtime-h3-shadow-packet-2026-11-27.md).
+
 O protocolo atual pressupõe um `TileArrayUpdate` inicial antes de outros
 updates daquele setor. `sectorActive` exige carga e geração completas. O
 primeiro rework preserva essa ordem e o formato físico 32×32.

@@ -481,7 +481,9 @@ Propósito: reduzir trabalho serial após o desbloqueio do pipeline.
 - [x] IO-04 (primeiro recorte): unload/drain em sombra
   ([relatório](../sector-runtime-h3-shadow-unload-2026-11-27.md));
   sem `.world`.
-- [ ] IO-05: pacote confirmado e medição até aplicação no cliente.
+- [x] IO-05 (primeiro recorte): pacotes confirmados em sombra
+  ([relatório](../sector-runtime-h3-shadow-packet-2026-11-27.md));
+  sem rede/`.world`.
 
 Saída: custo serial menor por setor/estrutura, com save, scripts e rede
 equivalentes. Cada kernel pode avançar separadamente; uma dungeon composta

@@ -28,10 +28,11 @@ NoAssets `WorldGenerationShadowUnloadTest.*`: **6/6**.
 
 ## Limitações
 
-Sem disco, sem GPU física, sem donas regionais reais. IO-05 pacotes/cliente
-continua aberto. Publish vivo permanece fora.
+Sem disco, sem GPU física, sem donas regionais reais. IO-05 primeiro recorte
+em [shadow packet](sector-runtime-h3-shadow-packet-2026-11-27.md). Publish
+vivo permanece fora.
 
 ## Próximo
 
-IO-05 pacotes confirmados em sombra, ou amarração unload↔frontier WT-04 —
-ainda sem `.world`.
+Integração sombra cruzada ou equivalência viva — só com autorização
+live-publish.
