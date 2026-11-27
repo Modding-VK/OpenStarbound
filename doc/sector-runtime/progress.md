@@ -6,7 +6,7 @@ Base inspecionada: `5e2e2297`;
 admitidos a partir do composto (ver relatório de sombra).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
+· [Último relatório técnico](../sector-runtime-h2-product-revision-cache-2026-11-27.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -18,20 +18,21 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 
 | Indicador | Estado |
 | --- | --- |
-| Frente ativa | H0 — fundações, invariantes e validação acelerada |
+| Frente ativa | H2 — produtos residentes e prefetch (branch `cursor/h2-products-prefetch-9f77`); H0 segue em `Experimental` |
 | Progresso de maturidade de H0 | **25,0%** — 6 marcos verificados de 24 |
-| Progresso de maturidade do programa | **3,6%** — 7 marcos verificados de 196 |
-| Contratos com avanço registrado | **7 de 49**; todos ainda parciais |
+| Progresso de maturidade de H2 | **4,2%** — 1 marco verificado de 24 |
+| Progresso de maturidade do programa | **4,1%** — 8 marcos verificados de 196 |
+| Contratos com avanço registrado | **8 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | 791 padrão +106 RealBlockInfo (concurrent ocean); ASan/UBSan; gates H0 antes de H1 |
+| Última evidência de testes | RAM-02: 7 ProductRevisionCache; H0 inalterado nesta branch |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
-**Os 3,6% não significam que o jogo esteja só 3,6% pronto.** O runtime anterior
+**Os 4,1% não significam que o jogo esteja só 4,1% pronto.** O runtime anterior
 já possui workers, schedulers, IO/decode e previews. O denominador aqui são os
 49 contratos completos do rework, incluindo GPU e simulação regional futura.
-Recortes de RAM-01 podem estar implementados/testados e o contrato abrangente
-ainda permanecer em 25%. Quantidade de commits/testes não aumenta essa nota
-automaticamente. Ver o [baseline](baseline.md) para o que já existia.
+Recortes de RAM-01/RAM-02 podem estar implementados/testados e o contrato
+abrangente ainda permanecer em 25%. Quantidade de commits/testes não aumenta
+essa nota automaticamente. Ver o [baseline](baseline.md) para o que já existia.
 
 ## Como os percentuais são calculados
 
@@ -55,8 +56,8 @@ Fórmulas:
 - **Contrato:** número de marcos consecutivos verificados × 25%.
 - **Fase de entrada:** soma das notas dos contratos nela cadastrados ÷ número
   desses contratos.
-- **Programa:** soma das notas dos 49 contratos ÷ 49. Hoje: 175 ÷ 49 = 3,6%
-  arredondado; equivalentemente, 7 ÷ (49 × 4) × 100.
+- **Programa:** soma das notas dos 49 contratos ÷ 49. Hoje: 200 ÷ 49 = 4,1%
+  arredondado; equivalentemente, 8 ÷ (49 × 4) × 100.
 - **Aceitação integral:** contratos em 100% ÷ 49. Hoje: 0%.
 
 São percentuais de **maturidade comprovada**, não de horas, esforço, linhas de
@@ -76,13 +77,13 @@ obriga concluir todo trabalho transversal para iniciar um protótipo em sombra.
 | ---: | --- | ---: | ---: | ---: | --- |
 | 1 | H0 — fundações e validação | 6 | 6 / 24 | 25,0% | Invariantes, limites explicitados, comparador e baseline reproduzível para o escopo que será ampliado |
 | 2 | H1 — grafo executivo, CPU e entrega | 10 | 1 / 40 | 2,5% | Primeiro recorte proprietário de CPU-01 em apoio a H0; grafo/executor ainda pendentes |
-| 3 | H2 — produtos residentes e prefetch | 6 | 0 / 24 | 0% | Identidade/versionamento de H1 e orçamento de RAM |
+| 3 | H2 — produtos residentes e prefetch | 6 | 1 / 24 | 4,2% | Identidade/versionamento de H1 e orçamento de RAM |
 | 4 | H3 — kernels adicionais, estruturas e publicação | 10 | 0 / 40 | 0% | Contrato por kernel e publicação validável; TMX não bloqueia setor comum |
 | 5 | H4 — backend GPU e comparação em sombra | 4 | 0 / 16 | 0% | Protótipo pode acompanhar H1/H2; publicação depende do kernel CPU equivalente |
 | 6 | H5 — seleção de hardware e escala | 7 | 0 / 28 | 0% | Produtos/backends validados e custo completo de entrega medido |
 | 7 | R1 — donos regionais e coordenadora | 3 | 0 / 12 | 0% | Auditoria de autoridade/efeitos e checkpoint; não basta aprovar GPU |
 | 8 | R2 — operações e transferências entre regiões | 3 | 0 / 12 | 0% | Lifecycle/estado de R1, recovery e matriz de multiplayer |
-| — | **Total** | **49** | **7 / 196** | **3,6%** | Não equivale a ganho de desempenho ou autorização de release |
+| — | **Total** | **49** | **8 / 196** | **4,1%** | Não equivale a ganho de desempenho ou autorização de release |
 
 Essa é uma ordem de prioridade/dependência, não uma proibição de frentes
 paralelas autorizadas pelo roadmap. Setores comuns permanecem prioritários.
@@ -139,7 +140,7 @@ concorrente.
 
 ## Catálogo ordenado das 49 tarefas
 
-As sete notas de 25% usam as evidências indicadas após o catálogo. Demais 0%
+As oito notas de 25% usam as evidências indicadas após o catálogo. Demais 0%
 significam **sem marco do novo contrato reconhecido nesta leitura do roadmap**,
 não ausência de código relacionado no baseline. Não foi feita nova auditoria
 de todas as implementações antigas para conceder crédito retroativo.
@@ -162,7 +163,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 14 | H1 | [WT-01](worldthread.md) | Serviço de conclusões e drenagem | 0% | Drenar trabalho elegível sem esperar rodadas artificiais |
 | 15 | H1 | [WT-02](worldthread.md) | Orçamento produtivo e resposta do jogo | 0% | Usar o orçamento em progresso útil, com motivos de saída explícitos |
 | 16 | H1 | [CPU-05](cpu-and-stages.md) | Governador de recursos e perfis | 0% | Primeira política por fila executável/custo; política completa em H5 |
-| 17 | H2 | [RAM-02](memory-and-prefetch.md) | Camadas de cache e invalidação | 0% | Caches por produto/revisão, não substitutas de setor salvo |
+| 17 | H2 | [RAM-02](memory-and-prefetch.md) | Camadas de cache e invalidação | 25% | Cache por kind/setor/revisões + invalidação; payloads reais e retenção pendentes |
 | 18 | H2 | [RAM-03](memory-and-prefetch.md) | Política de retenção | 0% | Benefício, pressão, histerese e justiça entre mundos |
 | 19 | H2 | [RAM-04](memory-and-prefetch.md) | Prefetch previsto e dependências | 0% | Antecipar rota e auxiliares com prioridade controlada |
 | 20 | H2 | [RAM-05](memory-and-prefetch.md) | Cancelamento e reaproveitamento | 0% | Preservar produtos úteis a outros consumidores |
@@ -207,10 +208,13 @@ de todas as implementações antigas para conceder crédito retroativo.
 | MOD-01 | [Leitores imutáveis](../sector-runtime-h0-distribution-bundles-2026-11-09.md), [proteção da seleção](../sector-runtime-h0-planning-storage-2026-11-09.md) e [lifecycle/scope 2](../sector-runtime-h0-lookup-source-generations-2026-11-09.md) | Metadata não é sincronização/commit nem auditoria de toda mutação; fronteira biomeTransition e integração abertas |
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
+| RAM-02 | [Product revision cache](../sector-runtime-h2-product-revision-cache-2026-11-27.md) | Sem payloads BaseTiles/candidatos, retenção/benefício (RAM-03) nem prefetch (RAM-04) |
 
 CPU-01 recebe o primeiro marco porque agora existe cálculo com dados próprios
 que independe da origem/Root após captura, não só callbacks/catálogos ou contagem
 de testes. Não recebe 50%; não ativa jobs, orçamento ou nova fase de executor.
+RAM-02 recebe o primeiro marco pela camada de chave/invalidação testada; não
+recebe 50% sem produtos residentes reais e política de retenção.
 
 Os números de testes e seus limites provêm dos relatórios das respectivas etapas,
 no cenário NoAssets, não de streaming integrado. A criação original do painel
@@ -303,6 +307,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 26/11/2026 | Ocean/Island stale | TemplateRevision bump sob sombra oceano/Island; 103 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 26/11/2026 | Noise/adjacent stale | TemplateRevision bump sob noise e setor {1,0}; 105 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 26/11/2026 | Concurrent ocean | Duas sombras oceano no ledger; 106 RealBlockInfo. Sem novo marco completo | 3,6% |
+| 27/11/2026 | H2 RAM-02 cache | `WorldGenerationProductRevisionCache` kind/setor/revisões + invalidação; 7 testes NoAssets. RAM-02 0→25%; H2 4,2%; programa 4,1% | 4,1% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

@@ -442,7 +442,9 @@ Propósito: preparar a rota antes da demanda urgente e evitar recomputação.
 RAM-01 começa em H0; as caches dependem das versões/produtos de H1.
 
 - [ ] CPU-02: compartilhar terreno/campos/candidatos entre consumidores.
-- [ ] RAM-02/03: caches versionadas, retenção por demanda e pressão/histerese.
+- [x] RAM-02 (primeiro recorte): cache por produto/revisão e invalidação seletiva
+  em `cursor/h2-products-prefetch-9f77` ([relatório](../sector-runtime-h2-product-revision-cache-2026-11-27.md)).
+- [ ] RAM-02/03 restantes: payloads residentes, retenção por demanda e pressão/histerese.
 - [ ] RAM-04/05: rota prevista, cancelamento e consumo compartilhado.
 - [ ] WT-03: entrada síncrona usando admissão da região inteira.
 - [ ] IO-01: promover tiles decodificados sem refazer leitura/decode.

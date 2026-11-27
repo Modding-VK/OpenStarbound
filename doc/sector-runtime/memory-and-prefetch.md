@@ -329,6 +329,13 @@ Uma cache não amplia a validade de um resultado. Conservar o output só é úti
 se sua identidade e seus inputs puderem ser verificados. Cache de terreno
 puro não pode substituir um setor salvo modificado pelo jogador.
 
+Primeiro recorte de H2 (`cursor/h2-products-prefetch-9f77`):
+`WorldGenerationProductRevisionCache` admite entradas por kind/setor/revisões,
+invalida por template/tile/asset, evicta a inserção mais antiga sob capacidade e
+recusa placeholders de 0 bytes. Ver
+[relatório](../sector-runtime-h2-product-revision-cache-2026-11-27.md). Ainda
+não amarra payloads de BaseTiles/candidatos nem política de retenção (RAM-03).
+
 ## RAM-03 — Política de retenção
 
 Reter trabalho de maior benefício esperado: interesse visível, auxiliares
