@@ -257,3 +257,32 @@ PRs com base na integração: **nenhum**. Sem Actions / sem `main`.
 - Próximo quando ready: **H4** → R1 → R2; H5 por último (ResourceGovernor = H1).
 - H3 commits: já integrados em `34c11ed7` (CPU-04..IO-05 sombra).
 
+## Revisão sync 27/11/2026 ~03:30 UTC
+
+Bases: Exp `e55c008f` · INT **`d835751d`** (+ CI Integration `ci-integration.yml` sobre `9b8eeed2`).
+Frentes **não** editadas. Sem dispatch manual de `build.yml` / sem `main`.
+PRs GitHub com base na integração: **nenhum**.
+
+| Frente | Tip remoto | vs Exp | vs INT | Ancestral INT | phase (store) |
+| --- | --- | ---: | ---: | --- | --- |
+| H0 | `c124f899` | 21 | 0 | sim | ready-for-integration (já na INT) |
+| H1 | `4d014af2` | 8 | 0 | sim | standby (já na INT) |
+| H2 | `b1162b5d` | 3 | 0 | sim | ready-for-integration (já na INT) |
+| H3 | `3bdf1927` | 19 | 0 | sim | ready-for-integration (já na INT; sombra esgotada / espera live-publish) |
+| H4 | `80825c7c` | 2 | **+2** | não | standby (hold GL; GPU-01…04 CPU-first) |
+| H5 | `cfd1aa5e` | 3 | **+3** | não | blocked(h4) |
+| R1 | `6947bbb9` | 7 | 0 | sim | standby (já na INT) |
+| R2 | `f86b4d17` | 4 | 0 | sim | ready-for-integration (já na INT) |
+
+### Delta vs sync ~03:00
+
+- INT avançou só com CI: `d835751d` (`.github/workflows/ci-integration.yml`; `build.yml` intacto).
+- Nenhuma frente ganhou tip nova vs o sync anterior (H4/H5 tips estáveis; H0–H3/R1/R2 já ancestrais).
+- H3: sem commits novos; tip `3bdf1927` permanece integrada.
+
+### Vereditos
+
+- **Sem merge neste ciclo:** H4 ainda `standby` (hold GL); H5 blocked até API GPU sombra; demais tips já na INT.
+- Próximo candidato quando Project/H4 marcar ready: **H4** (`80825c7c`, +2, conflitos ~docs/CMake) → depois só deltas novos.
+- Sem comentários em PR (fila vazia).
+
