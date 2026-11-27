@@ -473,7 +473,9 @@ Propósito: reduzir trabalho serial após o desbloqueio do pipeline.
 - [x] WT-04 (primeiro recorte): passagem orçada + dirty diferido em sombra
   ([relatório](../sector-runtime-h3-publication-pass-2026-11-27.md));
   WorldThread vivo pendente.
-- [ ] IO-02/03/04: banco, checkpoint e unload coerentes com novos produtos.
+- [x] IO-02 (primeiro recorte): harness de banco/transações em sombra
+  ([relatório](../sector-runtime-h3-shadow-db-2026-11-27.md)); sem `.world`.
+- [ ] IO-03/04: checkpoint/recovery e unload coerentes com novos produtos.
 - [ ] IO-05: pacote confirmado e medição até aplicação no cliente.
 
 Saída: custo serial menor por setor/estrutura, com save, scripts e rede

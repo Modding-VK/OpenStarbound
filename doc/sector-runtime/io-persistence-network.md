@@ -33,6 +33,11 @@ duplicam decode nem instalam um resultado de uma solicitação velha.
 
 ## IO-02 — Serviço de banco e transações
 
+Primeiro recorte em `cursor/h3-kernels-publication-9f77`:
+`WorldGenerationShadowDbService` serializa ops in-memory, isola checkpoint de
+writes não commitados e versiona conteúdo separado do ticket. Sem
+SQLite/`.world`. Ver [relatório](../sector-runtime-h3-shadow-db-2026-11-27.md).
+
 O objetivo futuro é retirar espera bloqueante da dona através de um serviço
 que serialize operações do mesmo banco e devolva bytes/snapshots. A instância
 mutável de `m_db` não vai diretamente para workers.
