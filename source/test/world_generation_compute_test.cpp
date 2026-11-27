@@ -1452,6 +1452,43 @@ TEST(WorldGenerationComputeTest, AnyPendingOpenTicketsTracksPendingPresence) {
 }
 
 
+TEST(WorldGenerationComputeTest, ListFailedOpenTicketsReturnsFailedIdsOnly) {
+  WorldGenerationComputeCapabilities caps = WorldGenerationComputeService::probeCapabilities();
+  caps.gpuOpenGlCompute = true;
+  WorldGenerationComputeService service(caps);
+  service.setDeferredCpuCompletion(true);
+  EXPECT_TRUE(service.listFailedOpenTickets().empty());
+  auto a = service.submit(
+      makeIdentity(1440, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute);
+  auto b = service.submit(
+      makeIdentity(1441, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{2u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute);
+  auto c = service.submit(
+      makeIdentity(1442, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{3u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute);
+  ASSERT_TRUE((bool)a);
+  ASSERT_TRUE((bool)b);
+  ASSERT_TRUE((bool)c);
+  EXPECT_EQ(2u, service.completeOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+#ifndef STAR_ENABLE_WORLDGEN_GL_COMPUTE
+  auto failed = service.listFailedOpenTickets();
+  ASSERT_EQ(2u, failed.size());
+  EXPECT_TRUE(failed[0] == *a || failed[0] == *b);
+  EXPECT_TRUE(failed[1] == *a || failed[1] == *b);
+  EXPECT_NE(failed[0].id, failed[1].id);
+  EXPECT_EQ(1u, service.inFlightByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+  EXPECT_EQ(2u, service.discardFailedOpenTickets());
+  EXPECT_TRUE(service.listFailedOpenTickets().empty());
+#else
+  size_t failedCount = service.listFailedOpenTickets().size();
+  size_t readyCount = service.listReadyOpenTickets().size();
+  EXPECT_EQ(2u, failedCount + readyCount);
+  EXPECT_EQ(failedCount, service.discardFailedOpenTickets());
+  EXPECT_EQ(readyCount, service.discardReadyOpenTickets());
+#endif
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32HalfSumMaxMinExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();

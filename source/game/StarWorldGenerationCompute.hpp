@@ -420,6 +420,8 @@ public:
   List<WorldGenerationComputeTicket> listPendingOpenTickets() const;
   // Ready open ticket ids snapshot (asset-free observation).
   List<WorldGenerationComputeTicket> listReadyOpenTickets() const;
+  // Failed open ticket ids snapshot (asset-free observation).
+  List<WorldGenerationComputeTicket> listFailedOpenTickets() const;
   // Distinct identity.kernel values among currently open tickets (asset-free).
   List<WorldGenerationComputeKernel> listOpenKernels() const;
   // Count of distinct identity.kernel values among open tickets (asset-free).
