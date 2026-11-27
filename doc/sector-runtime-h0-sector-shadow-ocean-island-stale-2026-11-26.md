@@ -22,4 +22,6 @@ ASan/UBSan: 1×5; **103/103** RealBlockInfo.
 
 ## Próximo passo
 
-Gates H0 restantes antes de H1. Não disparar Actions.
+Noise/adjacente stale em
+[noise-adjacent stale](sector-runtime-h0-sector-shadow-noise-adjacent-stale-2026-11-26.md).
+Segue gates H0 restantes. Não disparar Actions.
