@@ -174,7 +174,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32HalfCtz = 148, // trailing zero count of low16; 16 if low16==0; parameter ignored
   DenseUint32HalfParity = 149, // popcount(low16) & 1; parameter ignored
   DenseUint32HalfBitReverse = 150, // reverse bits of low16; parameter ignored
-  DenseUint32HalfBswap = 151 // swap bytes of low16; parameter ignored
+  DenseUint32HalfBswap = 151, // swap bytes of low16; parameter ignored
+  DenseUint32HalfNot = 152, // (~low16) & 0xffff; parameter ignored
+  DenseUint32HalfNeg = 153, // (0 - low16) & 0xffff; parameter ignored
+  DenseUint32HalfAbs = 154 // signed abs of low16 as uint16; 0x8000 stays 0x8000; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
