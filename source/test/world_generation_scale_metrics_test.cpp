@@ -106,5 +106,7 @@ TEST(WorldGenerationScaleMetricsTest, FillsDeliveryRecorderForObservedCost) {
   EXPECT_DOUBLE_EQ(cost.executionMs, 1.5);
   EXPECT_DOUBLE_EQ(cost.fenceMs, 0.2);
   EXPECT_DOUBLE_EQ(cost.transferMs, 0.4);
+  EXPECT_DOUBLE_EQ(cost.materializeMs, 0.1);
   EXPECT_TRUE(delivery.snapshot().resources.transferTimingCalibrated);
+  EXPECT_TRUE(delivery.snapshot().resources.materializeTimingCalibrated);
 }

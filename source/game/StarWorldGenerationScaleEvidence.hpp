@@ -2,6 +2,7 @@
 
 #include "StarWorldGenerationAdoptionGates.hpp"
 #include "StarWorldGenerationEquivalenceVersion.hpp"
+#include "StarWorldGenerationExecutionProfile.hpp"
 #include "StarWorldGenerationPlatformMatrix.hpp"
 #include "StarWorldGenerationScenarioCampaign.hpp"
 #include "StarWorldGenerationScaleMetrics.hpp"
@@ -13,6 +14,8 @@ namespace Star {
 // Third H5 / MOD-02+MOD-04+VAL cut: pack scale evidence for Integrator review.
 // readyForIntegratorReview means contracts + campaign/gates are consistent for
 // pull consideration — never an authorization to merge INT or publish GPU.
+// Fourth cut (MOD-03): recommend a conceptual profile from the pack without
+// silently renaming existing performanceMode strings.
 
 struct WorldGenerationScaleEvidenceBundle {
   static constexpr unsigned ModelVersion = 1;
@@ -95,6 +98,79 @@ inline WorldGenerationScaleEvidenceBundle buildWorldGenerationScaleEvidenceFromR
       scaleRecorder.snapshot(), delivery, reportDocumented);
   return buildWorldGenerationScaleEvidence(
       scaleRecorder.snapshot(), campaignRecorder.snapshot(), adoption, equivalence, probePlatform);
+}
+
+enum class WorldGenerationScaleProfileAdvice : uint8_t {
+  KeepExisting = 0,
+  PreferDynamicBias,
+  PreferHighThroughput,
+  ForceCpuCompleteFallback,
+  RejectUnknown,
+  Count
+};
+
+struct WorldGenerationScaleProfileRecommendation {
+  static constexpr unsigned ModelVersion = 1;
+  WorldGenerationExecutionProfile suggested = WorldGenerationExecutionProfile::Balanced;
+  WorldGenerationScaleProfileAdvice advice = WorldGenerationScaleProfileAdvice::KeepExisting;
+  WorldGenerationFallbackKind fallback = WorldGenerationFallbackKind::CpuComplete;
+  bool allowsGpuSelection = false;
+  // Always true: callers must opt in; never rewrite performanceMode in place.
+  bool requiresExplicitUserOptIn = true;
+};
+
+inline WorldGenerationScaleProfileRecommendation recommendWorldGenerationProfileFromScaleEvidence(
+    WorldGenerationScaleEvidenceBundle const& bundle,
+    WorldGenerationPerformanceMode currentMode) noexcept {
+  auto binding = bindWorldGenerationExecutionProfile(currentMode);
+  WorldGenerationScaleProfileRecommendation rec;
+  rec.suggested = binding.conceptual;
+  rec.fallback = binding.fallback;
+  rec.allowsGpuSelection = binding.allowsGpuSelection;
+  rec.requiresExplicitUserOptIn = true;
+
+  if (binding.migration == WorldGenerationProfileMigration::RejectedUnknown) {
+    rec.advice = WorldGenerationScaleProfileAdvice::RejectUnknown;
+    rec.suggested = WorldGenerationExecutionProfile::Manual;
+    rec.allowsGpuSelection = false;
+    rec.fallback = WorldGenerationFallbackKind::CpuComplete;
+    return rec;
+  }
+
+  if (currentMode == WorldGenerationPerformanceMode::Legacy) {
+    rec.advice = WorldGenerationScaleProfileAdvice::KeepExisting;
+    rec.allowsGpuSelection = false;
+    return rec;
+  }
+
+  if (bundle.campaignHasFailures || !bundle.gatesAuthoritativeGpuBlocked || bundle.gatesAdopt) {
+    rec.advice = WorldGenerationScaleProfileAdvice::ForceCpuCompleteFallback;
+    rec.suggested = WorldGenerationExecutionProfile::Balanced;
+    rec.fallback = WorldGenerationFallbackKind::CpuComplete;
+    rec.allowsGpuSelection = false;
+    return rec;
+  }
+
+  if (bundle.readyForIntegratorReview && bundle.scaleMeasuredGain
+      && bundle.shadowOutputComparison) {
+    rec.advice = WorldGenerationScaleProfileAdvice::PreferDynamicBias;
+    rec.suggested = WorldGenerationExecutionProfile::DynamicBias;
+    rec.fallback = WorldGenerationFallbackKind::CompatiblePath;
+    rec.allowsGpuSelection = true;
+    return rec;
+  }
+
+  if (bundle.readyForIntegratorReview && bundle.campaignCpuOnlyCovered
+      && currentMode == WorldGenerationPerformanceMode::Aggressive) {
+    rec.advice = WorldGenerationScaleProfileAdvice::PreferHighThroughput;
+    rec.suggested = WorldGenerationExecutionProfile::HighThroughput;
+    rec.fallback = WorldGenerationFallbackKind::CompatiblePath;
+    rec.allowsGpuSelection = binding.allowsGpuSelection;
+    return rec;
+  }
+
+  rec.advice = WorldGenerationScaleProfileAdvice::KeepExisting;
+  return rec;
 }
 
 }

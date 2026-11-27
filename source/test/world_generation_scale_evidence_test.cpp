@@ -98,3 +98,51 @@ TEST(WorldGenerationScaleEvidenceTest, CampaignFailureBlocksReview) {
   EXPECT_TRUE(bundle.campaignHasFailures);
   EXPECT_FALSE(bundle.readyForIntegratorReview);
 }
+
+TEST(WorldGenerationScaleEvidenceTest, ProfileAdviceNeverSilentRename) {
+  WorldGenerationScaleMetricsRecorder scale;
+  WorldGenerationScenarioCampaignRecorder campaign;
+  fillCpuOnlyCampaign(campaign);
+  WorldGenerationDeliveryMetricsRecorder delivery;
+  auto equivalence = worldGenerationScaleEvidenceEquivalence(1, 1, 1);
+  auto bundle = buildWorldGenerationScaleEvidenceFromRecorders(
+      scale, campaign, delivery.snapshot(), true, equivalence);
+
+  auto legacy = recommendWorldGenerationProfileFromScaleEvidence(
+      bundle, WorldGenerationPerformanceMode::Legacy);
+  EXPECT_EQ(legacy.advice, WorldGenerationScaleProfileAdvice::KeepExisting);
+  EXPECT_TRUE(legacy.requiresExplicitUserOptIn);
+  EXPECT_FALSE(legacy.allowsGpuSelection);
+
+  auto unknown = recommendWorldGenerationProfileFromScaleEvidence(
+      bundle, WorldGenerationPerformanceMode::Unknown);
+  EXPECT_EQ(unknown.advice, WorldGenerationScaleProfileAdvice::RejectUnknown);
+
+  auto aggressive = recommendWorldGenerationProfileFromScaleEvidence(
+      bundle, WorldGenerationPerformanceMode::Aggressive);
+  EXPECT_EQ(aggressive.advice, WorldGenerationScaleProfileAdvice::PreferHighThroughput);
+  EXPECT_EQ(aggressive.suggested, WorldGenerationExecutionProfile::HighThroughput);
+  EXPECT_TRUE(aggressive.requiresExplicitUserOptIn);
+}
+
+TEST(WorldGenerationScaleEvidenceTest, MeasuredGainPrefersDynamicBias) {
+  WorldGenerationScaleMetricsRecorder scale;
+  scale.claimCapabilities({true, true, true});
+  EXPECT_TRUE(scale.recordShadowBatch(equalHalf(WorldGenerationShadowKernelFamily::DenseUint32HalfSignMask)));
+  EXPECT_TRUE(scale.recordShadowBatch(equalHalf(WorldGenerationShadowKernelFamily::DenseUint32HalfIsZero)));
+  EXPECT_TRUE(scale.recordShadowBatch(equalHalf(WorldGenerationShadowKernelFamily::DenseUint32HalfIsNonzero)));
+  WorldGenerationScenarioCampaignRecorder campaign;
+  EXPECT_TRUE(campaign.recordGpuScenariosFromScale(scale.snapshot()));
+  WorldGenerationDeliveryMetricsRecorder delivery;
+  ASSERT_TRUE(scale.fillDeliveryRecorder(delivery));
+  auto equivalence = worldGenerationScaleEvidenceEquivalence(2, 1, 1);
+  auto bundle = buildWorldGenerationScaleEvidenceFromRecorders(
+      scale, campaign, delivery.snapshot(), true, equivalence);
+
+  auto rec = recommendWorldGenerationProfileFromScaleEvidence(
+      bundle, WorldGenerationPerformanceMode::Adaptive);
+  EXPECT_EQ(rec.advice, WorldGenerationScaleProfileAdvice::PreferDynamicBias);
+  EXPECT_EQ(rec.suggested, WorldGenerationExecutionProfile::DynamicBias);
+  EXPECT_TRUE(rec.allowsGpuSelection);
+  EXPECT_TRUE(rec.requiresExplicitUserOptIn);
+}
