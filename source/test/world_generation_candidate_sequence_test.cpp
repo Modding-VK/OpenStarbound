@@ -33,6 +33,17 @@ float bits(uint32_t value) {
   std::memcpy(&result, &value, sizeof(result));
   return result;
 }
+// -ffast-math / finite-math-only makes std::isnan constant-fold to false and
+// may canonicalize NaN payloads on float stores; keep bit patterns explicit.
+void storeBits(float& dest, uint32_t value) {
+  static_assert(sizeof(dest) == sizeof(value));
+  std::memcpy(&dest, &value, sizeof(dest));
+}
+bool isNanBits(float const& value) {
+  uint32_t bits = 0;
+  std::memcpy(&bits, &value, sizeof(bits));
+  return ((bits & 0x7f800000u) == 0x7f800000u) && ((bits & 0x007fffffu) != 0u);
+}
 }
 
 TEST(WorldGenerationCandidateSequenceTest, EqualSequencesMatchBitExactPriority) {
@@ -87,18 +98,21 @@ TEST(WorldGenerationCandidateSequenceTest, PlacementIdPositionAndPriorityDiffsAr
 }
 
 TEST(WorldGenerationCandidateSequenceTest, SignedZeroAndNaNPayloadsRemainDistinct) {
-  auto plusZero = record({}, {0, 0}, 0.0f);
-  auto minusZero = record({}, {0, 0}, -0.0f);
+  WorldGenerationCandidateRecord plusZero{};
+  WorldGenerationCandidateRecord minusZero{};
+  storeBits(plusZero.priority, 0x00000000u);
+  storeBits(minusZero.priority, 0x80000000u);
   auto result = compareWorldGenerationCandidateSequences({plusZero}, {minusZero});
   EXPECT_FALSE(result.equal());
   EXPECT_EQ(result.differentFields, mask(Field::Priority));
 
-  float nanA = bits(0x7fc00001u);
-  float nanB = bits(0x7fc00002u);
-  ASSERT_TRUE(std::isnan(nanA));
-  ASSERT_TRUE(std::isnan(nanB));
-  auto nanResult = compareWorldGenerationCandidateSequences(
-      {record({}, {0, 0}, nanA)}, {record({}, {0, 0}, nanB)});
+  WorldGenerationCandidateRecord nanA{};
+  WorldGenerationCandidateRecord nanB{};
+  storeBits(nanA.priority, 0x7fc00001u);
+  storeBits(nanB.priority, 0x7fc00002u);
+  ASSERT_TRUE(isNanBits(nanA.priority));
+  ASSERT_TRUE(isNanBits(nanB.priority));
+  auto nanResult = compareWorldGenerationCandidateSequences({nanA}, {nanB});
   EXPECT_FALSE(nanResult.equal());
   EXPECT_EQ(nanResult.differentFields, mask(Field::Priority));
 }
