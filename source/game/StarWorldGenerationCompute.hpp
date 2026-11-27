@@ -255,7 +255,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32HalfNegNibble = 229, // (0 - each low16 nibble) & 0xf; parameter ignored
   DenseUint32HalfAbsNibble = 230, // signed abs of each low16 nibble; 0x8 stays 0x8
   DenseUint32HalfSignMaskNibble = 231, // 0xf if nibble high bit set else 0; parameter ignored
-  DenseUint32HalfIsZeroNibble = 232 // 0xf if nibble==0 else 0; parameter ignored
+  DenseUint32HalfIsZeroNibble = 232, // 0xf if nibble==0 else 0; parameter ignored
+  DenseUint32HalfIsNonzeroNibble = 233, // 0xf if nibble!=0 else 0; parameter ignored
+  DenseUint32HalfEqNibble = 234, // 0xf if nibble==(parameter&0xf) else 0
+  DenseUint32HalfNeNibble = 235 // 0xf if nibble!=(parameter&0xf) else 0
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
