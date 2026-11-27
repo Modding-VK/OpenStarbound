@@ -76,6 +76,8 @@ public:
 
 private:
   friend struct TileDamageParametersTestAccess;
+  // H0/VAL-02 diagnostic compare; never used for live selection/publication.
+  friend struct WorldGenerationTileDamageParametersAccess;
   Map<TileDamageType, float> m_damages;
   float m_damageRecoveryPerSecond;
   float m_maximumEffectTime;

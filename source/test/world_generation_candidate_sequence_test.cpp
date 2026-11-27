@@ -1,6 +1,7 @@
 #include "StarWorldGenerationCandidateSequence.hpp"
 #include "StarBiomePlacementTypes.hpp"
 #include "StarWorldGenerationPlacementQueue.hpp"
+#include "StarTileDamage.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -8,6 +9,14 @@
 #include <limits>
 
 #include "gtest/gtest.h"
+
+namespace Star {
+// Must match world_generation_container_storage_test.cpp (ODR).
+struct TileDamageParametersTestAccess {
+  static void put(TileDamageParameters& value, TileDamageType type, float factor) { value.m_damages[type] = factor; }
+  static auto const& factors(TileDamageParameters const& value) { return value.m_damages; }
+};
+}
 
 using namespace Star;
 
@@ -197,7 +206,7 @@ TEST(WorldGenerationCandidateSequenceTest, MicroDungeonAndTreasurePayloadCompare
   EXPECT_FALSE(compareWorldGenerationBiomeItems(BiomeItem{poolA}, BiomeItem{poolB}).equal());
 }
 
-TEST(WorldGenerationCandidateSequenceTest, GrassBushTreePayloadCompareExcludingTileDamage) {
+TEST(WorldGenerationCandidateSequenceTest, GrassBushTreePayloadCompareIncludingTileDamage) {
   GrassVariant grassA;
   grassA.name = "tuft";
   grassA.directory = "/grass/";
@@ -209,6 +218,10 @@ TEST(WorldGenerationCandidateSequenceTest, GrassBushTreePayloadCompareExcludingT
   grassB.hueShift = 0.5f;
   auto grassDiff = compareWorldGenerationBiomeItems(BiomeItem{grassA}, BiomeItem{grassB});
   EXPECT_EQ(grassDiff.differentFields, static_cast<uint32_t>(WorldGenerationBiomeItemField::Payload));
+
+  GrassVariant grassDamage = grassA;
+  TileDamageParametersTestAccess::put(grassDamage.tileDamageParameters, TileDamageType::Blockish, 2.0f);
+  EXPECT_FALSE(compareWorldGenerationBiomeItems(BiomeItem{grassA}, BiomeItem{grassDamage}).equal());
 
   BushVariant bushA;
   bushA.bushName = "scrub";

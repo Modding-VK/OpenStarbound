@@ -36,6 +36,7 @@ For the current state and the next work, start here:
 - [Roadmap and acceptance criteria](doc/sector-runtime/roadmap.md)
 - [Progress, evidence and next steps](doc/sector-runtime/progress.md)
 - [Operational checklist and current report](doc/regional-runtime-execution-checklist.md)
+- [Latest H0 report: candidate TileDamage payload](doc/sector-runtime-h0-candidate-tile-damage-payload-2026-11-27.md)
 - [Latest H0 report: candidate ObjectPool payload](doc/sector-runtime-h0-candidate-object-pool-payload-2026-11-27.md)
 - [H0 candidate plant payload](doc/sector-runtime-h0-candidate-plant-payload-2026-11-27.md)
 - [H0 candidate BiomeItem payload](doc/sector-runtime-h0-candidate-biome-payload-2026-11-27.md)
