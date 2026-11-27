@@ -746,3 +746,7 @@ integração: **nenhum**.
 ## Revisão 2026-11-27T22:22Z
 - Merge H4 `c5620193` (HalfIlog2/HalfNextPow2/HalfMaskLow + pendingOpenTicketsByKernel; 128/128).
 - Build `46075958751` @ `a4a84b28` intacto; 1 Build tip final após terminal; sem spam.
+
+## Revisão 2026-11-27T22:24Z
+- Merge H4 `8b1b9591` (HalfMaskHigh/HalfBitTest/HalfIsolateLsb + anyPendingOpenTicketsByKernel; 130/130).
+- Build `46075958751` @ `a4a84b28` intacto; 1 Build tip final após terminal; sem spam.

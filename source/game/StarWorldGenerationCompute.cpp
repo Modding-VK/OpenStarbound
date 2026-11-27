@@ -207,7 +207,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfIsPow2
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfIlog2
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfNextPow2
-      || kernel == WorldGenerationComputeKernel::DenseUint32HalfMaskLow;
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfMaskLow
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfMaskHigh
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfBitTest
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfIsolateLsb;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -378,7 +381,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32HalfIsPow2,
       WorldGenerationComputeKernel::DenseUint32HalfIlog2,
       WorldGenerationComputeKernel::DenseUint32HalfNextPow2,
-      WorldGenerationComputeKernel::DenseUint32HalfMaskLow};
+      WorldGenerationComputeKernel::DenseUint32HalfMaskLow,
+      WorldGenerationComputeKernel::DenseUint32HalfMaskHigh,
+      WorldGenerationComputeKernel::DenseUint32HalfBitTest,
+      WorldGenerationComputeKernel::DenseUint32HalfIsolateLsb};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -388,7 +394,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 163u;
+  return 166u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -573,6 +579,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32HalfIlog2: return "DenseUint32HalfIlog2";
     case WorldGenerationComputeKernel::DenseUint32HalfNextPow2: return "DenseUint32HalfNextPow2";
     case WorldGenerationComputeKernel::DenseUint32HalfMaskLow: return "DenseUint32HalfMaskLow";
+    case WorldGenerationComputeKernel::DenseUint32HalfMaskHigh: return "DenseUint32HalfMaskHigh";
+    case WorldGenerationComputeKernel::DenseUint32HalfBitTest: return "DenseUint32HalfBitTest";
+    case WorldGenerationComputeKernel::DenseUint32HalfIsolateLsb: return "DenseUint32HalfIsolateLsb";
   }
   return nullptr;
 }
@@ -1625,6 +1634,21 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
     uint32_t mask = bits == 16u ? 0xffffu : (bits == 0u ? 0u : ((1u << bits) - 1u));
     for (uint32_t value : input)
       out.append((value & 0xffffu) & mask);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfMaskHigh) {
+    uint32_t bits = parameter > 16u ? 16u : parameter;
+    uint32_t mask = bits == 0u ? 0u
+                               : (bits == 16u ? 0xffffu : ((0xffffu << (16u - bits)) & 0xffffu));
+    for (uint32_t value : input)
+      out.append((value & 0xffffu) & mask);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfBitTest) {
+    uint32_t bit = parameter & 15u;
+    for (uint32_t value : input)
+      out.append((((value & 0xffffu) >> bit) & 1u) ? 0xffffffffu : 0u);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfIsolateLsb) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      out.append(lo & (uint32_t)(0u - lo));
+    }
   }
   return out;
 }
@@ -2155,6 +2179,16 @@ size_t WorldGenerationComputeService::pendingOpenTicketsByKernel(
       ++count;
   }
   return count;
+}
+
+bool WorldGenerationComputeService::anyPendingOpenTicketsByKernel(
+    WorldGenerationComputeKernel kernel) const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  for (auto const& entry : m_entries) {
+    if (entry.second.state == EntryState::Pending && entry.second.identity.kernel == kernel)
+      return true;
+  }
+  return false;
 }
 
 size_t WorldGenerationComputeService::readyOpenTicketsByKernel(
