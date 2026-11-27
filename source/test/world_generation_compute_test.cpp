@@ -481,6 +481,30 @@ TEST(WorldGenerationComputeTest, ApprovedRngStreamPreservesOrder) {
   EXPECT_EQ(input[0] ^ 0x11u, result.values[0]);
 }
 
+TEST(WorldGenerationComputeTest, DenseUint32ShlShrExactCpuAndShadow) {
+  WorldGenerationComputeService service;
+  auto input = edgeCorpus();
+  uint32_t const shift = 3u;
+  for (size_t i = 0; i < input.size(); ++i) {
+    EXPECT_EQ(input[i] << (shift & 31u),
+        WorldGenerationComputeService::runKernel(
+            WorldGenerationComputeKernel::DenseUint32Shl, 1u, List<uint32_t>{input[i]}, shift)[0]);
+    EXPECT_EQ(input[i] >> (shift & 31u),
+        WorldGenerationComputeService::runKernel(
+            WorldGenerationComputeKernel::DenseUint32Shr, 1u, List<uint32_t>{input[i]}, shift)[0]);
+  }
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(makeIdentity(170, WorldGenerationComputeKernel::DenseUint32Shl), input,
+          shift, WorldGenerationComputeBackend::CpuReference,
+          WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(makeIdentity(171, WorldGenerationComputeKernel::DenseUint32Shr), input,
+          35u /* & 31 == 3 */, WorldGenerationComputeBackend::CpuReference,
+          WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32MinMaxSubExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();
