@@ -262,6 +262,9 @@ GLuint g_halfInsertNibbleProgram = 0;
 GLuint g_halfAllNibblesEqualProgram = 0;
 GLuint g_halfNibbleRangeProgram = 0;
 GLuint g_halfMaskNibblesProgram = 0;
+GLuint g_halfBroadcastNibbleAtProgram = 0;
+GLuint g_halfReplaceNibbleProgram = 0;
+GLuint g_halfReverseNibblesProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -3586,6 +3589,63 @@ void main() {
 }
 )GLSL";
 
+char const* HalfBroadcastNibbleAtShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint shift = (uParameter & 3u) * 4u;
+  uint n = ((values[i] & 0xffffu) >> shift) & 0xfu;
+  values[i] = (n * 0x1111u) & 0xffffu;
+}
+)GLSL";
+
+char const* HalfReplaceNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint from = uParameter & 0xfu;
+  uint to = (uParameter >> 8) & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint shift = n * 4u;
+    uint nib = (lo >> shift) & 0xfu;
+    result |= (nib == from ? to : nib) << shift;
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfReverseNibblesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n)
+    result |= ((lo >> (n * 4u)) & 0xfu) << ((3u - n) * 4u);
+  values[i] = result;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -4442,6 +4502,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfMaskNibblesProgram);
     g_halfMaskNibblesProgram = 0;
   }
+  if (g_halfBroadcastNibbleAtProgram) {
+    glDeleteProgram(g_halfBroadcastNibbleAtProgram);
+    g_halfBroadcastNibbleAtProgram = 0;
+  }
+  if (g_halfReplaceNibbleProgram) {
+    glDeleteProgram(g_halfReplaceNibbleProgram);
+    g_halfReplaceNibbleProgram = 0;
+  }
+  if (g_halfReverseNibblesProgram) {
+    glDeleteProgram(g_halfReverseNibblesProgram);
+    g_halfReverseNibblesProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -4762,7 +4834,13 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfNibbleRangeProgram, HalfNibbleRangeShader,
             "DenseUint32HalfNibbleRange")
       || !requireProgram(g_halfMaskNibblesProgram, HalfMaskNibblesShader,
-            "DenseUint32HalfMaskNibbles"))
+            "DenseUint32HalfMaskNibbles")
+      || !requireProgram(g_halfBroadcastNibbleAtProgram, HalfBroadcastNibbleAtShader,
+            "DenseUint32HalfBroadcastNibbleAt")
+      || !requireProgram(g_halfReplaceNibbleProgram, HalfReplaceNibbleShader,
+            "DenseUint32HalfReplaceNibble")
+      || !requireProgram(g_halfReverseNibblesProgram, HalfReverseNibblesShader,
+            "DenseUint32HalfReverseNibbles"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -5231,6 +5309,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfNibbleRangeProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfMaskNibbles)
     program = g_halfMaskNibblesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfBroadcastNibbleAt)
+    program = g_halfBroadcastNibbleAtProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfReplaceNibble)
+    program = g_halfReplaceNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfReverseNibbles)
+    program = g_halfReverseNibblesProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
