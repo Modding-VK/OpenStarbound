@@ -3,11 +3,11 @@
 Atualizado em **27/11/2026**. Branch: `cursor/h4-gpu-shadow-9f77`
 (frente H4; H0 continua em `Experimental`).
 Base inspecionada: `e55c008f`;
-última implementação de runtime nesta frente: DenseUint32 Sext8/Sext16/ExtractByte +
-drainOpenTicketsByKernel (asset-free).
+última implementação de runtime nesta frente: DenseUint32 BitSet/BitClear/BitToggle +
+submitNamed (asset-free).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico H4](../sector-runtime-h4-gpu02-03-sext-drainbykernel-2026-11-27.md)
+· [Último relatório técnico H4](../sector-runtime-h4-gpu01-03-bitset-submitnamed-2026-11-27.md)
 · [Último relatório H0](../sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
 · [Backlog geral](../performance-backlog.md)
 
@@ -181,9 +181,9 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 30 | H3 | [IO-03](io-persistence-network.md) | Checkpoint e recuperação | 0% | Estado confirmado/recuperável; continua em R1 |
 | 31 | H3 | [IO-04](io-persistence-network.md) | Unload, drain e retorno ao legado | 0% | Encerrar sem liberar buffers/produtores ainda ativos |
 | 32 | H3 | [IO-05](io-persistence-network.md) | Pacotes e aplicação no cliente | 0% | Medir entrega até o cliente, não apenas commit |
-| 33 | H4 | [GPU-01](gpu-compute.md) | Interface e capacidades CPU/GPU | 25% | runNamedKernel+isBackendSupported; probe GL opt-in |
+| 33 | H4 | [GPU-01](gpu-compute.md) | Interface e capacidades CPU/GPU | 25% | submitNamed+runNamedKernel; probe GL opt-in |
 | 34 | H4 | [GPU-02](gpu-compute.md) | Contexto e buffers em voo | 25% | drainOpenTicketsByKernel; WorldThread pendente |
-| 35 | H4 | [GPU-03](gpu-compute.md) | Kernels e equivalência | 25% | DenseUint32* incl. Sext8/Sext16/ExtractByte; terreno/ganho pendentes |
+| 35 | H4 | [GPU-03](gpu-compute.md) | Kernels e equivalência | 25% | DenseUint32* incl. BitSet/BitClear/BitToggle; terreno/ganho pendentes |
 | 36 | H4 | [GPU-04](gpu-compute.md) | Comparação em sombra | 25% | summarizeShadowReports+fingerprint/commit; multi-driver pendente |
 | 37 | H5 | [GPU-05](gpu-compute.md) | Seleção heterogênea e render | 0% | Escolher backend pelo custo de entrega, incluindo transporte |
 | 38 | H5 | [VAL-03](validation-and-telemetry.md) | Métricas e marcos de entrega | 0% | Cobertura integral do novo pipeline e CPU/RAM/VRAM |
@@ -210,9 +210,9 @@ de todas as implementações antigas para conceder crédito retroativo.
 | MOD-01 | [Leitores imutáveis](../sector-runtime-h0-distribution-bundles-2026-11-09.md), [proteção da seleção](../sector-runtime-h0-planning-storage-2026-11-09.md) e [lifecycle/scope 2](../sector-runtime-h0-lookup-source-generations-2026-11-09.md) | Metadata não é sincronização/commit nem auditoria de toda mutação; fronteira biomeTransition e integração abertas |
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
-| GPU-01 | [capFingerprint](../sector-runtime-h4-gpu01-03-sat-capfingerprint-2026-11-27.md) + [named/backend](../sector-runtime-h4-gpu01-03-bswap-named-backend-2026-11-27.md) | Sem 50% (publicação versionada / caps driver completas) |
+| GPU-01 | [named/backend](../sector-runtime-h4-gpu01-03-bswap-named-backend-2026-11-27.md) + [submitNamed](../sector-runtime-h4-gpu01-03-bitset-submitnamed-2026-11-27.md) | Sem 50% (publicação versionada / caps driver completas) |
 | GPU-02 | [cancelByKernel](../sector-runtime-h4-gpu02-03-ilog2-cancelbykernel-2026-11-27.md) + [drainByKernel](../sector-runtime-h4-gpu02-03-sext-drainbykernel-2026-11-27.md) | Sem integração WorldThread; sem 50% |
-| GPU-03 | [Ilog2/BroadcastByte/ByteSum](../sector-runtime-h4-gpu02-03-ilog2-cancelbykernel-2026-11-27.md) + [Sext8/Sext16/ExtractByte](../sector-runtime-h4-gpu02-03-sext-drainbykernel-2026-11-27.md) | Sem terreno/bioma nem ganho; sem 50% |
+| GPU-03 | [Sext8/Sext16/ExtractByte](../sector-runtime-h4-gpu02-03-sext-drainbykernel-2026-11-27.md) + [BitSet/BitClear/BitToggle](../sector-runtime-h4-gpu01-03-bitset-submitnamed-2026-11-27.md) | Sem terreno/bioma nem ganho; sem 50% |
 | GPU-04 | [fingerprintIdentity](../sector-runtime-h4-gpu02-03-04-eq-fingerprint-opentickets-2026-11-27.md) + [summarizeShadowReports](../sector-runtime-h4-gpu01-03-04-lt-backend-summary-2026-11-27.md) | Sem multi-driver; sem 50% |
 
 CPU-01 recebe o primeiro marco porque agora existe cálculo com dados próprios
@@ -334,6 +334,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | GPU-02/03 haszerobyte+bykernel | HasZeroByte/NextPow2/MaskLow + list/count by kernel; H4 permanece 25% | 5,6% |
 | 27/11/2026 | GPU-02/03 ilog2+cancelbykernel | Ilog2/BroadcastByte/ByteSum + cancelOpenTicketsByKernel; H4 permanece 25% | 5,6% |
 | 27/11/2026 | GPU-02/03 sext+drainbykernel | Sext8/Sext16/ExtractByte + drainOpenTicketsByKernel; H4 permanece 25% | 5,6% |
+| 27/11/2026 | GPU-01/03 bitset+submitnamed | BitSet/BitClear/BitToggle + submitNamed; H4 permanece 25% | 5,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.
