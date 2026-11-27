@@ -9,10 +9,20 @@ concurrency:
 
 # Lightweight Linux CPU build+test for the integration line.
 # Does not replace or trigger the manual release workflow (build.yml).
+# Skip docs-only tips (doc/, *.md, progress/flow); Build remains material-only
+# via manual dispatch. workflow_dispatch always runs.
 on:
   push:
     branches:
       - cursor/integration-sector-runtime-7342
+    paths:
+      - 'source/**'
+      - 'assets/**'
+      - 'cmake/**'
+      - 'toolchains/**'
+      - 'triplets/**'
+      - 'scripts/**'
+      - '.github/workflows/ci-integration.yml'
   workflow_dispatch:
 
 jobs:

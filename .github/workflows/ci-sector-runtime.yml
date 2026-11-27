@@ -26,13 +26,32 @@ concurrency:
 # Manual GPU smoke (current path):
 #   doc/sector-runtime-h4-gpu-probe-windows-rtx-checklist-2026-11-27.md
 #   scripts/windows/run-h4-gl-compute-probe.ps1
+#
+# Skip docs-only tips (doc/, *.md, progress/flow). Material paths only;
+# Build remains manual material-only. workflow_dispatch always runs.
 on:
   push:
     branches:
       - cursor/integration-sector-runtime-7342
+    paths:
+      - 'source/**'
+      - 'assets/**'
+      - 'cmake/**'
+      - 'toolchains/**'
+      - 'triplets/**'
+      - 'scripts/**'
+      - '.github/workflows/ci-sector-runtime.yml'
   pull_request:
     branches:
       - cursor/integration-sector-runtime-7342
+    paths:
+      - 'source/**'
+      - 'assets/**'
+      - 'cmake/**'
+      - 'toolchains/**'
+      - 'triplets/**'
+      - 'scripts/**'
+      - '.github/workflows/ci-sector-runtime.yml'
   workflow_dispatch:
     inputs:
       windows_runs_on:

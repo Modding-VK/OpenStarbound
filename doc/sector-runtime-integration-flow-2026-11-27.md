@@ -799,3 +799,11 @@ integração: **nenhum**.
 - 1 Build tip material só após Build em voo terminal; sem spam.
 - Catch-up: se houver fila atrasada, merge só o tip H4 mais novo ready; depois esperar lote.
 - Estado: INT `43869cf3` absorveu `9e93aa31` (148/148); h4 ahead=0; Build `46077733827` intacto @b862351c.
+
+## Preferência CI paths — 2026-11-27T22:47Z
+- User: filtrar **CI Integration** e **CI Sector Runtime** para NÃO rodar em tip só-docs.
+- Implementado: `paths` allowlist em `ci-integration.yml` + `ci-sector-runtime.yml`
+  (`source/`, `assets/`, `cmake/`, `toolchains/`, `triplets/`, `scripts/`, próprio YAML).
+- Ignora tip só `doc/`, progress, flow-doc, `*.md`.
+- Build continua material-only (manual); sem spam Build neste tip YAML.
+- `workflow_dispatch` permanece sem filtro de paths.
