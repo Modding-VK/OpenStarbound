@@ -84,7 +84,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32BitTest
       || kernel == WorldGenerationComputeKernel::DenseUint32HasZeroByte
       || kernel == WorldGenerationComputeKernel::DenseUint32NextPow2
-      || kernel == WorldGenerationComputeKernel::DenseUint32MaskLow;
+      || kernel == WorldGenerationComputeKernel::DenseUint32MaskLow
+      || kernel == WorldGenerationComputeKernel::DenseUint32Ilog2
+      || kernel == WorldGenerationComputeKernel::DenseUint32BroadcastByte
+      || kernel == WorldGenerationComputeKernel::DenseUint32ByteSum;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -132,7 +135,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32BitTest,
       WorldGenerationComputeKernel::DenseUint32HasZeroByte,
       WorldGenerationComputeKernel::DenseUint32NextPow2,
-      WorldGenerationComputeKernel::DenseUint32MaskLow};
+      WorldGenerationComputeKernel::DenseUint32MaskLow,
+      WorldGenerationComputeKernel::DenseUint32Ilog2,
+      WorldGenerationComputeKernel::DenseUint32BroadcastByte,
+      WorldGenerationComputeKernel::DenseUint32ByteSum};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -142,7 +148,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 40u;
+  return 43u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -204,6 +210,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32HasZeroByte: return "DenseUint32HasZeroByte";
     case WorldGenerationComputeKernel::DenseUint32NextPow2: return "DenseUint32NextPow2";
     case WorldGenerationComputeKernel::DenseUint32MaskLow: return "DenseUint32MaskLow";
+    case WorldGenerationComputeKernel::DenseUint32Ilog2: return "DenseUint32Ilog2";
+    case WorldGenerationComputeKernel::DenseUint32BroadcastByte: return "DenseUint32BroadcastByte";
+    case WorldGenerationComputeKernel::DenseUint32ByteSum: return "DenseUint32ByteSum";
   }
   return nullptr;
 }
@@ -506,6 +515,20 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
     uint32_t mask = bits == 32u ? 0xffffffffu : (bits == 0u ? 0u : ((1u << bits) - 1u));
     for (uint32_t value : input)
       out.append(value & mask);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Ilog2) {
+    for (uint32_t value : input)
+      out.append(value == 0u ? 0u : (31u - denseClz(value)));
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32BroadcastByte) {
+    for (uint32_t value : input) {
+      uint32_t b = value & 0xffu;
+      out.append(b * 0x01010101u);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32ByteSum) {
+    for (uint32_t value : input) {
+      uint32_t sum = (value & 0xffu) + ((value >> 8) & 0xffu) + ((value >> 16) & 0xffu)
+          + ((value >> 24) & 0xffu);
+      out.append(sum);
+    }
   }
   return out;
 }
@@ -996,6 +1019,28 @@ size_t WorldGenerationComputeService::cancelAll() {
   size_t cancelled = 0;
   for (auto& pair : m_entries) {
     Entry& entry = pair.second;
+    if (entry.publicationRevoked && entry.state == EntryState::Cancelled)
+      continue;
+    entry.publicationRevoked = true;
+    if (entry.state == EntryState::Pending || entry.state == EntryState::Ready) {
+      entry.state = EntryState::Cancelled;
+      entry.output.clear();
+    }
+    ++cancelled;
+  }
+  return cancelled;
+}
+
+size_t WorldGenerationComputeService::cancelOpenTicketsByKernel(
+    WorldGenerationComputeKernel kernel) {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return 0;
+  size_t cancelled = 0;
+  for (auto& pair : m_entries) {
+    Entry& entry = pair.second;
+    if (entry.identity.kernel != kernel)
+      continue;
     if (entry.publicationRevoked && entry.state == EntryState::Cancelled)
       continue;
     entry.publicationRevoked = true;

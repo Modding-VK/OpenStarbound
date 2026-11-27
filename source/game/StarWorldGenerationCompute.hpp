@@ -63,7 +63,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32BitTest = 37, // ((value >> (parameter & 31)) & 1) ? 0xffffffff : 0
   DenseUint32HasZeroByte = 38, // any zero byte in value ? 0xffffffff : 0; parameter ignored
   DenseUint32NextPow2 = 39, // round up to power of two (0 stays 0; overflow wraps to 0)
-  DenseUint32MaskLow = 40 // value & low-bit mask; parameter = bit count clamped to [0,32]
+  DenseUint32MaskLow = 40, // value & low-bit mask; parameter = bit count clamped to [0,32]
+  DenseUint32Ilog2 = 41, // floor(log2(value)); 0 when value==0; parameter ignored
+  DenseUint32BroadcastByte = 42, // replicate low 8 bits across word; parameter ignored
+  DenseUint32ByteSum = 43 // sum of four bytes as uint32; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -285,6 +288,9 @@ public:
 
   // GPU-02: revoke every currently open ticket; returns how many were cancelled.
   size_t cancelAll();
+
+  // GPU-02: revoke open tickets whose identity.kernel matches; owner-thread gated.
+  size_t cancelOpenTicketsByKernel(WorldGenerationComputeKernel kernel);
 
   // GPU-02: poll many tickets; each status/result is independent. When outs is
   // non-null it is resized to tickets.size(); Ready slots fill values.
