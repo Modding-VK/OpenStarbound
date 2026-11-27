@@ -2,9 +2,9 @@
 
 Atualizado em **27/11/2026**. Branch de integração:
 `cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+H4+H5+R1+R2; não `main`).
-Tip INT: merge H4 `2bbbda52` (Gt/Geu/Xnor + cancelAll + verdict names; 36/36).
-Build `46053000345` @ `6cf7cd4b` intacto se in_progress; 1 Build tip final após
-terminal. Sem smoke até base local.
+Tip INT: merge H4 `2bbbda52` (Gt/Geu/Xnor + cancelAll + verdict names; 36/36) +
+R1 `da79144b` ThreadStub wait (já em INT). Build `46053000345` @ `6cf7cd4b`
+intacto se in_progress; 1 Build tip final após terminal. Sem smoke até base local.
 Última H4: GPU-03 Gt/Geu/Xnor + GPU-01/02 cancelAll/verdict names (`2bbbda52`); H4 25%.
 Última H5: scale foundations + probe 27/27 RTX (`a2ec01f0`); H5 25%.
 Última H3: TMX cache/reload + flora/replaceBiome + decode/codec (`3bdf1927`); H3 25%.
