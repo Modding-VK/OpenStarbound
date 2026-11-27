@@ -133,6 +133,9 @@ GLuint g_lsbMaskProgram = 0;
 GLuint g_clearLsbProgram = 0;
 GLuint g_grayEncodeProgram = 0;
 GLuint g_grayDecodeProgram = 0;
+GLuint g_smearLsbProgram = 0;
+GLuint g_clearMsbProgram = 0;
+GLuint g_byteXorProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -1244,6 +1247,55 @@ void main() {
 }
 )GLSL";
 
+char const* SmearLsbShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  values[i] = v | (v - 1u);
+}
+)GLSL";
+
+char const* ClearMsbShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  if (v == 0u) {
+    values[i] = 0u;
+    return;
+  }
+  values[i] = v ^ (1u << findMSB(v));
+}
+)GLSL";
+
+char const* ByteXorShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  values[i] = (v ^ (v >> 8) ^ (v >> 16) ^ (v >> 24)) & 0xffu;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -1584,6 +1636,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_grayDecodeProgram);
     g_grayDecodeProgram = 0;
   }
+  if (g_smearLsbProgram) {
+    glDeleteProgram(g_smearLsbProgram);
+    g_smearLsbProgram = 0;
+  }
+  if (g_clearMsbProgram) {
+    glDeleteProgram(g_clearMsbProgram);
+    g_clearMsbProgram = 0;
+  }
+  if (g_byteXorProgram) {
+    glDeleteProgram(g_byteXorProgram);
+    g_byteXorProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -1744,7 +1808,10 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_lsbMaskProgram, LsbMaskShader, "DenseUint32LsbMask")
       || !requireProgram(g_clearLsbProgram, ClearLsbShader, "DenseUint32ClearLsb")
       || !requireProgram(g_grayEncodeProgram, GrayEncodeShader, "DenseUint32GrayEncode")
-      || !requireProgram(g_grayDecodeProgram, GrayDecodeShader, "DenseUint32GrayDecode"))
+      || !requireProgram(g_grayDecodeProgram, GrayDecodeShader, "DenseUint32GrayDecode")
+      || !requireProgram(g_smearLsbProgram, SmearLsbShader, "DenseUint32SmearLsb")
+      || !requireProgram(g_clearMsbProgram, ClearMsbShader, "DenseUint32ClearMsb")
+      || !requireProgram(g_byteXorProgram, ByteXorShader, "DenseUint32ByteXor"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -1955,6 +2022,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_grayEncodeProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32GrayDecode)
     program = g_grayDecodeProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32SmearLsb)
+    program = g_smearLsbProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32ClearMsb)
+    program = g_clearMsbProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32ByteXor)
+    program = g_byteXorProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
