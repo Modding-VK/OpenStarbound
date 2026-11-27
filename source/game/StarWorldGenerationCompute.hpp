@@ -120,7 +120,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32NibbleMin = 94, // min of eight nibbles as uint32; parameter ignored
   DenseUint32ExtractNibble = 95, // (value >> ((parameter & 7) * 4)) & 0xf
   DenseUint32InsertNibble = 96, // replace nibble (parameter & 7) with (parameter >> 8) & 0xf
-  DenseUint32BroadcastNibble = 97 // replicate low 4 bits across all nibbles; parameter ignored
+  DenseUint32BroadcastNibble = 97, // replicate low 4 bits across all nibbles; parameter ignored
+  DenseUint32SwapAdjacentNibbles = 98, // swap nibble pairs 0↔1, 2↔3, …; parameter ignored
+  DenseUint32RolNibbles = 99, // rotate left by (parameter & 7) nibbles
+  DenseUint32RorNibbles = 100 // rotate right by (parameter & 7) nibbles
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
