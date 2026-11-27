@@ -460,6 +460,25 @@ List<WorldGenerationComputeTicket> WorldGenerationComputeService::listOpenTicket
   return out;
 }
 
+bool WorldGenerationComputeService::ticketIsOpen(WorldGenerationComputeTicket ticket) const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  return m_entries.find(ticket.id) != m_entries.end();
+}
+
+size_t WorldGenerationComputeService::rejectedDuplicateCount() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  return m_rejectedDuplicates.size();
+}
+
+size_t WorldGenerationComputeService::clearRejectedDuplicates() {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return 0;
+  size_t cleared = m_rejectedDuplicates.size();
+  m_rejectedDuplicates.clear();
+  return cleared;
+}
+
 size_t WorldGenerationComputeService::inFlight() const {
   std::lock_guard<std::mutex> lock(m_mutex);
   size_t count = 0;

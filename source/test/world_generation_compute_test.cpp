@@ -517,6 +517,26 @@ TEST(WorldGenerationComputeTest, CompareShadowBatchRunsIndependentKernels) {
   }
 }
 
+TEST(WorldGenerationComputeTest, TicketIsOpenAndClearRejectedDuplicates) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  auto ticket = service.submit(makeIdentity(300), List<uint32_t>{7u}, 1u);
+  ASSERT_TRUE((bool)ticket);
+  EXPECT_TRUE(service.ticketIsOpen(*ticket));
+  EXPECT_EQ(0u, service.rejectedDuplicateCount());
+  EXPECT_EQ(1u, service.failContext());
+  WorldGenerationComputeResult result;
+  EXPECT_EQ(WorldGenerationComputePollStatus::Ready, service.poll(*ticket, &result));
+  EXPECT_FALSE(service.ticketIsOpen(*ticket));
+  EXPECT_EQ(1u, service.rejectedDuplicateCount());
+  EXPECT_EQ(WorldGenerationComputePollStatus::UnknownTicket, service.poll(*ticket, &result));
+  EXPECT_EQ(1u, service.clearRejectedDuplicates());
+  EXPECT_EQ(0u, service.rejectedDuplicateCount());
+  EXPECT_EQ(0u, service.clearRejectedDuplicates());
+  // After clearing, the id is simply unknown again (not a tracked reject).
+  EXPECT_EQ(WorldGenerationComputePollStatus::UnknownTicket, service.poll(*ticket, &result));
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32NandNorMulHiExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();

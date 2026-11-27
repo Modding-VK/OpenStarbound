@@ -213,6 +213,12 @@ public:
 
   // GPU-02 observation (any thread under mutex): open ticket ids snapshot.
   List<WorldGenerationComputeTicket> listOpenTickets() const;
+  // True while the ticket id is still present in the open-entry table.
+  bool ticketIsOpen(WorldGenerationComputeTicket ticket) const;
+  // Count of ticket ids rejected as late duplicates after failContext/commit revoke.
+  size_t rejectedDuplicateCount() const;
+  // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
+  size_t clearRejectedDuplicates();
 
   // GPU-02 accounting for RAM-01 consumers (asset-free observation only).
   WorldGenerationComputeStagingSnapshot stagingSnapshot() const;
