@@ -201,6 +201,7 @@ SET (star_game_HEADERS
     StarWorldGenerationPlacementQueue.hpp
     StarWorldGenerationTasks.hpp
     StarWorldGenerationCompute.hpp
+    StarWorldGenerationComputeGl.hpp
     StarWorldRegionPartition.hpp
     StarWorldRegionCoordinator.hpp
     StarWorldImpl.hpp
@@ -495,6 +496,7 @@ SET (star_game_SOURCES
     StarWorldGenerationMemoryEstimate.cpp
     StarWorldGenerationTasks.cpp
     StarWorldGenerationCompute.cpp
+    StarWorldGenerationComputeGl.cpp
     StarWorldRegionPartition.cpp
     StarWorldRegionCoordinator.cpp
     StarWorldLayout.cpp

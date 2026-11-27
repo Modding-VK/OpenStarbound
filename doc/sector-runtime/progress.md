@@ -210,10 +210,10 @@ de todas as implementações antigas para conceder crédito retroativo.
 | MOD-01 | [Leitores imutáveis](../sector-runtime-h0-distribution-bundles-2026-11-09.md), [proteção da seleção](../sector-runtime-h0-planning-storage-2026-11-09.md) e [lifecycle/scope 2](../sector-runtime-h0-lookup-source-generations-2026-11-09.md) | Metadata não é sincronização/commit nem auditoria de toda mutação; fronteira biomeTransition e integração abertas |
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
-| GPU-01 | [interface+CPU reference](../sector-runtime-h4-gpu01-compute-interface-2026-11-27.md) | Sem probe GL real |
-| GPU-02 | [fila/voo/recuperação](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) | Sem thread/contexto GL de driver |
-| GPU-03 | [lotes + DenseUint32*](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) | Sem kernels de terreno/bioma nem ganho medido |
-| GPU-04 | [compareShadow](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) | Sem GPU real nem campanha multi-driver |
+| GPU-01 | [interface+CPU reference](../sector-runtime-h4-gpu01-compute-interface-2026-11-27.md); harness opt-in [checklist](../sector-runtime-h4-gpu-probe-windows-rtx-checklist-2026-11-27.md) | Probe em hardware local ainda não reportado; sem 50% |
+| GPU-02 | [fila/voo/recuperação](../sector-runtime-h4-gpu02-03-04-2026-11-27.md); SSBO/fence no harness opt-in | Sem thread dona integrada à WorldThread; sem 50% |
+| GPU-03 | [lotes + DenseUint32*](../sector-runtime-h4-gpu02-03-04-2026-11-27.md); shaders DenseUint32* no opt-in | Sem kernels de terreno/bioma nem ganho medido |
+| GPU-04 | [compareShadow](../sector-runtime-h4-gpu02-03-04-2026-11-27.md); CPU↔GPU no harness opt-in | Sem campanha multi-driver / evidência RTX arquivada |
 
 CPU-01 recebe o primeiro marco porque agora existe cálculo com dados próprios
 que independe da origem/Root após captura, não só callbacks/catálogos ou contagem
@@ -314,6 +314,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 26/11/2026 | Concurrent ocean | Duas sombras oceano no ledger; 106 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 27/11/2026 | GPU-01 interface | `WorldGenerationComputeService` + CPU `DenseUint32Xor`; 6 testes. GPU-01 0→25%; H4 6,3% | 4,1% |
 | 27/11/2026 | GPU-02/03/04 CPU-first | Fila/batch/sombra; 14 testes. GPU-02/03/04 0→25%; H4 25% | 5,6% |
+| 27/11/2026 | GPU probe harness opt-in | `STAR_ENABLE_WORLDGEN_GL_COMPUTE`, shaders DenseUint32*, checklist Windows/RTX; H4 permanece 25% até PASS local | 5,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

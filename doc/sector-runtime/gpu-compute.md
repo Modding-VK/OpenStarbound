@@ -11,9 +11,14 @@ moderno quando disponível, mas não fornece uma API de compute de worldgen.
 **Estado (27/11/2026, `cursor/h4-gpu-shadow-9f77`):** GPU-01/02/03/04 têm o
 primeiro recorte funcional no caminho CPU — serviço com fila/voo/pool,
 `submitBatch`, kernels `DenseUint32Xor`/`DenseUint32Add` e `compareShadow`.
-OpenGL compute ainda não é claimado. Ver
-[GPU-01](../sector-runtime-h4-gpu01-compute-interface-2026-11-27.md) e
-[GPU-02/03/04](../sector-runtime-h4-gpu02-03-04-2026-11-27.md).
+Build **normal** não claima OpenGL compute. Opt-in
+`-DSTAR_ENABLE_WORLDGEN_GL_COMPUTE=ON` adiciona probe real 4.3+/ARB_compute,
+shaders DenseUint32*, fences/SSBO e harness
+`world_generation_gl_compute_probe` (checklist Windows/RTX). Validação em
+hardware local ainda pendente antes de qualquer marco >25%. Ver
+[GPU-01](../sector-runtime-h4-gpu01-compute-interface-2026-11-27.md),
+[GPU-02/03/04](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) e
+[checklist probe](../sector-runtime-h4-gpu-probe-windows-rtx-checklist-2026-11-27.md).
 
 ## GPU-01 — Interface e capacidades
 

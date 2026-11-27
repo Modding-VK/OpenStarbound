@@ -1,4 +1,5 @@
 #include "StarWorldGenerationCompute.hpp"
+#include "StarWorldGenerationComputeGl.hpp"
 
 #include <algorithm>
 
@@ -16,14 +17,9 @@ bool WorldGenerationComputeInputIdentity::operator!=(
 }
 
 WorldGenerationComputeCapabilities WorldGenerationComputeService::probeCapabilities() noexcept {
-  WorldGenerationComputeCapabilities caps;
-  caps.cpuReference = true;
-  caps.gpuOpenGlCompute = false;
-  caps.maxWorkGroupInvocations = 64;
-  caps.maxInFlight = 8;
-  caps.maxImmutableBufferBytes = 16ull * 1024ull * 1024ull;
-  caps.maxStagingBytes = 32ull * 1024ull * 1024ull;
-  return caps;
+  // Normal builds: GL device stub keeps gpuOpenGlCompute false.
+  // STAR_ENABLE_WORLDGEN_GL_COMPUTE: real Windows/SDL GL 4.3+/ARB_compute probe.
+  return WorldGenerationComputeGlDevice::probeCapabilities();
 }
 
 WorldGenerationComputeService::WorldGenerationComputeService(
@@ -116,19 +112,34 @@ size_t WorldGenerationComputeService::pooledBuffers() const {
   return m_bufferPool.size();
 }
 
+bool WorldGenerationComputeService::runBackendKernel(WorldGenerationComputeBackend backend,
+    WorldGenerationComputeKernel kernel, uint32_t kernelVersion, List<uint32_t> const& input,
+    uint32_t parameter, List<uint32_t>& out) const {
+  if (!supported(kernel, kernelVersion))
+    return false;
+  if (backend == WorldGenerationComputeBackend::GpuOpenGlCompute) {
+    if (!m_capabilities.gpuOpenGlCompute)
+      return false;
+    return WorldGenerationComputeGlDevice::dispatch(kernel, kernelVersion, input, parameter, out);
+  }
+  if (backend != WorldGenerationComputeBackend::CpuReference || !m_capabilities.cpuReference)
+    return false;
+  out = runKernel(kernel, kernelVersion, input, parameter);
+  return true;
+}
+
 void WorldGenerationComputeService::completeEntry(Entry& entry) {
   if (entry.publicationRevoked || entry.contextFailed) {
     entry.state = EntryState::Cancelled;
     entry.output.clear();
     return;
   }
-  if (!supported(entry.identity.kernel, entry.identity.kernelVersion)) {
+  if (!runBackendKernel(entry.backend, entry.identity.kernel, entry.identity.kernelVersion,
+          entry.input, entry.parameter, entry.output)) {
     entry.state = EntryState::Failed;
     entry.output.clear();
     return;
   }
-  entry.output = runKernel(entry.identity.kernel, entry.identity.kernelVersion, entry.input,
-      entry.parameter);
   entry.state = EntryState::Ready;
 }
 
@@ -170,7 +181,9 @@ Maybe<WorldGenerationComputeTicket> WorldGenerationComputeService::submitLocked(
   entry.stagingBytes = bytes;
   m_stagingBytes += bytes;
 
-  if (backend == WorldGenerationComputeBackend::CpuReference && !m_deferredCpu)
+  // GPU completions use the same sync/deferred switch as CPU for the first
+  // harness: deferred leaves Pending until pump()/complete(); sync runs now.
+  if (!m_deferredCpu)
     completeEntry(entry);
   else
     entry.state = EntryState::Pending;
@@ -241,8 +254,6 @@ size_t WorldGenerationComputeService::pump(size_t maxCompletions) {
       break;
     Entry& entry = pair.second;
     if (entry.state != EntryState::Pending)
-      continue;
-    if (entry.backend != WorldGenerationComputeBackend::CpuReference)
       continue;
     completeEntry(entry);
     ++completed;
@@ -345,25 +356,15 @@ WorldGenerationComputeShadowReport WorldGenerationComputeService::compareShadow(
   report.shadowBackend = shadow;
   report.comparedValues = input.size();
 
-  auto runBackend = [&](WorldGenerationComputeBackend backend, List<uint32_t>& out) -> bool {
-    if (backend == WorldGenerationComputeBackend::GpuOpenGlCompute
-        && !m_capabilities.gpuOpenGlCompute)
-      return false;
-    if (backend == WorldGenerationComputeBackend::CpuReference && !m_capabilities.cpuReference)
-      return false;
-    if (!supported(identity.kernel, identity.kernelVersion))
-      return false;
-    out = runKernel(identity.kernel, identity.kernelVersion, input, parameter);
-    return true;
-  };
-
   List<uint32_t> primaryValues;
   List<uint32_t> shadowValues;
-  if (!runBackend(primary, primaryValues)) {
+  if (!runBackendKernel(primary, identity.kernel, identity.kernelVersion, input, parameter,
+          primaryValues)) {
     report.verdict = WorldGenerationComputeShadowVerdict::PrimaryFailed;
     return report;
   }
-  if (!runBackend(shadow, shadowValues)) {
+  if (!runBackendKernel(shadow, identity.kernel, identity.kernelVersion, input, parameter,
+          shadowValues)) {
     report.verdict = WorldGenerationComputeShadowVerdict::ShadowUnavailable;
     return report;
   }

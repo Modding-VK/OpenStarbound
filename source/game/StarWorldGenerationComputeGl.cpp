@@ -1,0 +1,363 @@
+#include "StarWorldGenerationComputeGl.hpp"
+#include "StarFormat.hpp"
+
+#include <mutex>
+#include <string>
+
+#ifndef STAR_ENABLE_WORLDGEN_GL_COMPUTE
+
+namespace Star {
+
+namespace {
+WorldGenerationComputeGlProbeInfo g_info{};
+std::once_flag g_once;
+}
+
+bool WorldGenerationComputeGlDevice::isBuildEnabled() noexcept {
+  return false;
+}
+
+WorldGenerationComputeCapabilities WorldGenerationComputeGlDevice::probeCapabilities() noexcept {
+  std::call_once(g_once, [] {
+    g_info.buildEnabled = false;
+    g_info.failureReason = "STAR_ENABLE_WORLDGEN_GL_COMPUTE not enabled in this build";
+  });
+  WorldGenerationComputeCapabilities caps;
+  caps.cpuReference = true;
+  caps.gpuOpenGlCompute = false;
+  caps.maxWorkGroupInvocations = 64;
+  caps.maxInFlight = 8;
+  caps.maxImmutableBufferBytes = 16ull * 1024ull * 1024ull;
+  caps.maxStagingBytes = 32ull * 1024ull * 1024ull;
+  return caps;
+}
+
+WorldGenerationComputeGlProbeInfo const& WorldGenerationComputeGlDevice::lastProbeInfo() noexcept {
+  probeCapabilities();
+  return g_info;
+}
+
+bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel, uint32_t,
+    List<uint32_t> const&, uint32_t, List<uint32_t>&) {
+  return false;
+}
+
+void WorldGenerationComputeGlDevice::shutdown() noexcept {}
+
+}
+
+#else
+
+#include "GL/glew.h"
+#include <SDL3/SDL.h>
+
+namespace Star {
+
+namespace {
+
+WorldGenerationComputeGlProbeInfo g_info{};
+std::once_flag g_probeOnce;
+std::mutex g_glMutex;
+SDL_Window* g_window = nullptr;
+SDL_GLContext g_context = nullptr;
+GLuint g_xorProgram = 0;
+GLuint g_addProgram = 0;
+GLuint g_ssbo = 0;
+std::string g_version;
+std::string g_vendor;
+std::string g_renderer;
+std::string g_glsl;
+std::string g_failure;
+
+char const* XorShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = values[i] ^ uParameter;
+}
+)GLSL";
+
+char const* AddShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = values[i] + uParameter;
+}
+)GLSL";
+
+bool clearGlErrors() {
+  bool had = false;
+  while (glGetError() != GL_NO_ERROR)
+    had = true;
+  return had;
+}
+
+GLuint compileComputeProgram(char const* source, std::string& errorOut) {
+  GLuint shader = glCreateShader(GL_COMPUTE_SHADER);
+  glShaderSource(shader, 1, &source, nullptr);
+  glCompileShader(shader);
+  GLint ok = GL_FALSE;
+  glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
+  if (!ok) {
+    GLint len = 0;
+    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &len);
+    std::string log(len > 0 ? (size_t)len : 0, '\0');
+    if (!log.empty())
+      glGetShaderInfoLog(shader, len, nullptr, &log[0]);
+    errorOut = log;
+    glDeleteShader(shader);
+    return 0;
+  }
+  GLuint program = glCreateProgram();
+  glAttachShader(program, shader);
+  glLinkProgram(program);
+  glDeleteShader(shader);
+  glGetProgramiv(program, GL_LINK_STATUS, &ok);
+  if (!ok) {
+    GLint len = 0;
+    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &len);
+    std::string log(len > 0 ? (size_t)len : 0, '\0');
+    if (!log.empty())
+      glGetProgramInfoLog(program, len, nullptr, &log[0]);
+    errorOut = log;
+    glDeleteProgram(program);
+    return 0;
+  }
+  return program;
+}
+
+void destroyContextUnlocked() {
+  if (g_context && g_window)
+    SDL_GL_MakeCurrent(g_window, g_context);
+  if (g_ssbo) {
+    glDeleteBuffers(1, &g_ssbo);
+    g_ssbo = 0;
+  }
+  if (g_xorProgram) {
+    glDeleteProgram(g_xorProgram);
+    g_xorProgram = 0;
+  }
+  if (g_addProgram) {
+    glDeleteProgram(g_addProgram);
+    g_addProgram = 0;
+  }
+  if (g_context) {
+    SDL_GL_DestroyContext(g_context);
+    g_context = nullptr;
+  }
+  if (g_window) {
+    SDL_DestroyWindow(g_window);
+    g_window = nullptr;
+  }
+}
+
+bool createContext(std::string& failure) {
+  if (!SDL_Init(SDL_INIT_VIDEO)) {
+    failure = strf("SDL_Init(VIDEO) failed: {}", SDL_GetError());
+    return false;
+  }
+
+  g_window = SDL_CreateWindow("worldgen-gl-compute-probe", 64, 64,
+      SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN);
+  if (!g_window) {
+    failure = strf("SDL_CreateWindow failed: {}", SDL_GetError());
+    return false;
+  }
+
+  static const std::pair<int, int> versions[] = {
+      {4, 6}, {4, 5}, {4, 4}, {4, 3}};
+  for (auto const& ver : versions) {
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, ver.first);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, ver.second);
+    g_context = SDL_GL_CreateContext(g_window);
+    if (g_context) {
+      g_info.contextMajor = ver.first;
+      g_info.contextMinor = ver.second;
+      break;
+    }
+  }
+  if (!g_context) {
+    failure = strf("SDL_GL_CreateContext failed (need GL 4.3+): {}", SDL_GetError());
+    destroyContextUnlocked();
+    return false;
+  }
+  if (!SDL_GL_MakeCurrent(g_window, g_context)) {
+    failure = strf("SDL_GL_MakeCurrent failed: {}", SDL_GetError());
+    destroyContextUnlocked();
+    return false;
+  }
+
+  glewExperimental = GL_TRUE;
+  GLenum glewResult = glewInit();
+  if (glewResult != GLEW_OK && glewResult != GLEW_ERROR_NO_GLX_DISPLAY) {
+    failure = strf("glewInit failed: {}", (char const*)glewGetErrorString(glewResult));
+    destroyContextUnlocked();
+    return false;
+  }
+  clearGlErrors();
+
+  auto asCStr = [](GLubyte const* p) -> char const* {
+    return p ? (char const*)p : "";
+  };
+  g_version = asCStr(glGetString(GL_VERSION));
+  g_vendor = asCStr(glGetString(GL_VENDOR));
+  g_renderer = asCStr(glGetString(GL_RENDERER));
+  g_glsl = asCStr(glGetString(GL_SHADING_LANGUAGE_VERSION));
+  g_info.glVersion = g_version.c_str();
+  g_info.glVendor = g_vendor.c_str();
+  g_info.glRenderer = g_renderer.c_str();
+  g_info.glslVersion = g_glsl.c_str();
+  g_info.contextCreated = true;
+
+  bool compute = (GLEW_VERSION_4_3 != 0) || (GLEW_ARB_compute_shader != 0);
+  if (!compute || !glDispatchCompute || !glFenceSync || !glBindBufferBase) {
+    failure = "OpenGL compute entry points unavailable (need 4.3+ or ARB_compute_shader)";
+    destroyContextUnlocked();
+    return false;
+  }
+
+  std::string shaderError;
+  g_xorProgram = compileComputeProgram(XorShader, shaderError);
+  if (!g_xorProgram) {
+    failure = strf("DenseUint32Xor shader failed: {}", shaderError);
+    destroyContextUnlocked();
+    return false;
+  }
+  g_addProgram = compileComputeProgram(AddShader, shaderError);
+  if (!g_addProgram) {
+    failure = strf("DenseUint32Add shader failed: {}", shaderError);
+    destroyContextUnlocked();
+    return false;
+  }
+  glGenBuffers(1, &g_ssbo);
+  if (!g_ssbo) {
+    failure = "glGenBuffers failed for SSBO";
+    destroyContextUnlocked();
+    return false;
+  }
+  g_info.computeAvailable = true;
+  return true;
+}
+
+void runProbe() {
+  g_info = {};
+  g_info.buildEnabled = true;
+  std::string failure;
+  if (!createContext(failure)) {
+    g_failure = failure;
+    g_info.failureReason = g_failure.c_str();
+    g_info.computeAvailable = false;
+    return;
+  }
+  g_info.failureReason = "";
+}
+
+} // namespace
+
+bool WorldGenerationComputeGlDevice::isBuildEnabled() noexcept {
+  return true;
+}
+
+WorldGenerationComputeCapabilities WorldGenerationComputeGlDevice::probeCapabilities() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  std::call_once(g_probeOnce, runProbe);
+  WorldGenerationComputeCapabilities caps;
+  caps.cpuReference = true;
+  caps.gpuOpenGlCompute = g_info.computeAvailable;
+  caps.maxWorkGroupInvocations = 64;
+  caps.maxInFlight = 8;
+  caps.maxImmutableBufferBytes = 16ull * 1024ull * 1024ull;
+  caps.maxStagingBytes = 32ull * 1024ull * 1024ull;
+  if (g_info.computeAvailable) {
+    GLint invocations = 0;
+    glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &invocations);
+    if (invocations > 0)
+      caps.maxWorkGroupInvocations = (uint32_t)invocations;
+  }
+  return caps;
+}
+
+WorldGenerationComputeGlProbeInfo const& WorldGenerationComputeGlDevice::lastProbeInfo() noexcept {
+  probeCapabilities();
+  return g_info;
+}
+
+bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kernel,
+    uint32_t kernelVersion, List<uint32_t> const& input, uint32_t parameter,
+    List<uint32_t>& output) {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  std::call_once(g_probeOnce, runProbe);
+  if (!g_info.computeAvailable || !g_context || !g_window)
+    return false;
+  if (kernelVersion != 1u)
+    return false;
+  GLuint program = 0;
+  if (kernel == WorldGenerationComputeKernel::DenseUint32Xor)
+    program = g_xorProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Add)
+    program = g_addProgram;
+  else
+    return false;
+  if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
+    return false;
+
+  clearGlErrors();
+  uint32_t count = (uint32_t)input.size();
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_ssbo);
+  glBufferData(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)(count * sizeof(uint32_t)),
+      count ? input.ptr() : nullptr, GL_DYNAMIC_COPY);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, g_ssbo);
+
+  glUseProgram(program);
+  GLint locParam = glGetUniformLocation(program, "uParameter");
+  GLint locCount = glGetUniformLocation(program, "uCount");
+  if (locParam >= 0)
+    glUniform1ui(locParam, parameter);
+  if (locCount >= 0)
+    glUniform1ui(locCount, count);
+
+  GLuint groups = count == 0 ? 1u : (count + 63u) / 64u;
+  glDispatchCompute(groups, 1, 1);
+  glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
+
+  GLsync fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+  if (!fence)
+    return false;
+  GLenum wait = glClientWaitSync(fence, GL_SYNC_FLUSH_COMMANDS_BIT, 5'000'000'000ULL);
+  glDeleteSync(fence);
+  if (wait != GL_ALREADY_SIGNALED && wait != GL_CONDITION_SATISFIED)
+    return false;
+
+  output = List<uint32_t>(count, 0u);
+  if (count)
+    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, (GLsizeiptr)(count * sizeof(uint32_t)),
+        output.ptr());
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+  glUseProgram(0);
+  return !clearGlErrors();
+}
+
+void WorldGenerationComputeGlDevice::shutdown() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  destroyContextUnlocked();
+  g_info.computeAvailable = false;
+  g_info.contextCreated = false;
+}
+
+}
+
+#endif

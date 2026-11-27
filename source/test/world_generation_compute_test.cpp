@@ -30,9 +30,28 @@ List<uint32_t> edgeCorpus() {
 TEST(WorldGenerationComputeTest, ProbeKeepsCpuAndDoesNotClaimGpuWithoutDetection) {
   auto caps = WorldGenerationComputeService::probeCapabilities();
   EXPECT_TRUE(caps.cpuReference);
+#ifndef STAR_ENABLE_WORLDGEN_GL_COMPUTE
+  // Normal builds must never claim GL compute without the diagnostic probe.
   EXPECT_FALSE(caps.gpuOpenGlCompute);
+#endif
   EXPECT_GE(caps.maxImmutableBufferBytes, sizeof(uint32_t));
   EXPECT_GE(caps.maxInFlight, 1u);
+}
+
+TEST(WorldGenerationComputeTest, ForcedGpuCapabilityWithoutLiveDispatchIsUnavailable) {
+  // Capability bit alone is not enough: dispatch must succeed for shadow Equal.
+  WorldGenerationComputeCapabilities caps = WorldGenerationComputeService::probeCapabilities();
+  caps.gpuOpenGlCompute = true;
+#ifndef STAR_ENABLE_WORLDGEN_GL_COMPUTE
+  WorldGenerationComputeService service(caps);
+  auto report = service.compareShadow(makeIdentity(63), edgeCorpus(), 1u,
+      WorldGenerationComputeBackend::CpuReference,
+      WorldGenerationComputeBackend::GpuOpenGlCompute);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::ShadowUnavailable, report.verdict);
+#else
+  (void)caps;
+  SUCCEED();
+#endif
 }
 
 TEST(WorldGenerationComputeTest, CpuReferenceSubmitPollProducesExactXor) {

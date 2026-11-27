@@ -107,6 +107,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   ../game/StarWorldGenerationDependency.cpp
   ../game/StarWorldGenerationTasks.cpp
   ../game/StarWorldGenerationCompute.cpp
+  ../game/StarWorldGenerationComputeGl.cpp
   ../game/StarWorldGenerationMemory.cpp
   ../game/StarLiquidTypes.cpp
   ../game/StarWorldGenerationBaseTiles.cpp

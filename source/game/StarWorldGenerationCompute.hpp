@@ -12,7 +12,9 @@ namespace Star {
 
 // Optional worldgen compute path. Independent of WorldServer, Root, Lua and the
 // renderer. CPU reference is always available. OpenGL compute is never claimed
-// without a real 4.3+/extension probe (not present in the normal build).
+// without a real 4.3+/extension probe. The probe/dispatch live behind
+// STAR_ENABLE_WORLDGEN_GL_COMPUTE (diagnostic / Windows harness); normal builds
+// keep gpuOpenGlCompute false.
 
 enum class WorldGenerationComputeBackend : uint8_t {
   CpuReference = 0,
@@ -137,9 +139,10 @@ public:
   // failed work, and reject later duplicate polls for those ids.
   size_t failContext();
 
-  // GPU-04: run primary and shadow on identical inputs. Without GPU capability,
-  // shadowBackend GpuOpenGlCompute yields ShadowUnavailable; CpuReference vs
-  // CpuReference detects non-determinism / compares bit-exact.
+  // GPU-04: run primary and shadow on identical inputs. Without GPU capability
+  // or failed GL dispatch, shadowBackend GpuOpenGlCompute yields
+  // ShadowUnavailable. With a successful probe, GPU path uses compute shaders
+  // (DenseUint32*) rather than the CPU helper.
   WorldGenerationComputeShadowReport compareShadow(WorldGenerationComputeInputIdentity identity,
       List<uint32_t> const& input, uint32_t parameter,
       WorldGenerationComputeBackend primary = WorldGenerationComputeBackend::CpuReference,
@@ -168,6 +171,9 @@ private:
   List<uint32_t> acquireBuffer(size_t size);
   void releaseBuffer(List<uint32_t>&& buffer);
   void completeEntry(Entry& entry);
+  bool runBackendKernel(WorldGenerationComputeBackend backend,
+      WorldGenerationComputeKernel kernel, uint32_t kernelVersion, List<uint32_t> const& input,
+      uint32_t parameter, List<uint32_t>& out) const;
   Maybe<WorldGenerationComputeTicket> submitLocked(WorldGenerationComputeInputIdentity identity,
       List<uint32_t> input, uint32_t parameter, WorldGenerationComputeBackend backend);
   WorldGenerationComputePollStatus pollLocked(WorldGenerationComputeTicket ticket,
