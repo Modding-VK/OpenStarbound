@@ -93,7 +93,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32ReverseBitsInBytes = 67, // reverse bits inside each byte; parameter ignored
   DenseUint32IsolateLsb = 68, // value & -value; parameter ignored
   DenseUint32IsolateMsb = 69, // highest set bit only; 0 when value==0; parameter ignored
-  DenseUint32LsbMask = 70 // value ^ (value - 1); bits through lowest set bit
+  DenseUint32LsbMask = 70, // value ^ (value - 1); bits through lowest set bit
+  DenseUint32ClearLsb = 71, // value & (value - 1); parameter ignored
+  DenseUint32GrayEncode = 72, // value ^ (value >> 1); parameter ignored
+  DenseUint32GrayDecode = 73 // binary from reflected Gray code; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -257,6 +260,8 @@ public:
   size_t readyOpenTicketsByKernel(WorldGenerationComputeKernel kernel) const;
   // Cancelled open tickets whose identity.kernel matches (asset-free observation).
   size_t cancelledOpenTicketsByKernel(WorldGenerationComputeKernel kernel) const;
+  // True while any open ticket matches identity.kernel (asset-free observation).
+  bool anyOpenTicketsByKernel(WorldGenerationComputeKernel kernel) const;
   size_t stagingBytes() const;
   size_t pooledBuffers() const;
 
