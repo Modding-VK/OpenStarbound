@@ -1803,6 +1803,15 @@ size_t WorldGenerationComputeService::countPendingOpenKernels() const {
   return seen.size();
 }
 
+bool WorldGenerationComputeService::anyPendingOpenKernels() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  for (auto const& pair : m_entries) {
+    if (pair.second.state == EntryState::Pending)
+      return true;
+  }
+  return false;
+}
+
 List<WorldGenerationComputeTicket> WorldGenerationComputeService::listOpenTicketsByKernel(
     WorldGenerationComputeKernel kernel) const {
   std::lock_guard<std::mutex> lock(m_mutex);

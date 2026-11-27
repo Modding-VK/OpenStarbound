@@ -1096,6 +1096,20 @@ TEST(WorldGenerationComputeTest, CountPendingOpenKernelsTracksPendingDistinctKer
 }
 
 
+TEST(WorldGenerationComputeTest, AnyPendingOpenKernelsTracksPendingPresence) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  EXPECT_FALSE(service.anyPendingOpenKernels());
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(1120, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u));
+  EXPECT_TRUE(service.anyPendingOpenKernels());
+  EXPECT_EQ(1u, service.countPendingOpenKernels());
+  EXPECT_EQ(1u, service.completeOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_FALSE(service.anyPendingOpenKernels());
+  EXPECT_EQ(0u, service.countPendingOpenKernels());
+  EXPECT_EQ(1u, service.drainOpenTickets());
+  EXPECT_FALSE(service.anyPendingOpenKernels());
+}
 
 TEST(WorldGenerationComputeTest, DenseUint32HalfSumMaxMinExactCpuAndShadow) {
   WorldGenerationComputeService service;
