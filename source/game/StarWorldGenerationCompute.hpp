@@ -180,7 +180,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32HalfAbs = 154, // signed abs of low16 as uint16; 0x8000 stays 0x8000; parameter ignored
   DenseUint32HalfSignMask = 155, // (int16)low16 < 0 ? 0xffffffff : 0; parameter ignored
   DenseUint32HalfIsZero = 156, // low16==0 ? 0xffffffff : 0; parameter ignored
-  DenseUint32HalfIsNonzero = 157 // low16!=0 ? 0xffffffff : 0; parameter ignored
+  DenseUint32HalfIsNonzero = 157, // low16!=0 ? 0xffffffff : 0; parameter ignored
+  DenseUint32HalfClo = 158, // count leading ones of low16 in 16-bit width; 16 if low16==0xffff; parameter ignored
+  DenseUint32HalfCto = 159, // count trailing ones of low16; 16 if low16==0xffff; parameter ignored
+  DenseUint32HalfIsPow2 = 160 // low16 nonzero power-of-two mask; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -405,6 +408,9 @@ public:
       WorldGenerationComputeKernel kernel) const;
   // Cancelled open tickets whose identity.kernel matches (asset-free observation).
   List<WorldGenerationComputeTicket> listCancelledOpenTicketsByKernel(
+      WorldGenerationComputeKernel kernel) const;
+  // Pending open tickets whose identity.kernel matches (asset-free observation).
+  List<WorldGenerationComputeTicket> listPendingOpenTicketsByKernel(
       WorldGenerationComputeKernel kernel) const;
   size_t countOpenTicketsByKernel(WorldGenerationComputeKernel kernel) const;
   // True while the ticket id is still present in the open-entry table.

@@ -738,3 +738,7 @@ integração: **nenhum**.
 - INT tip `ef1c6ead`. Ahead h0–h5/r1/r2/H3 = 0. Sem PRs abertos na base INT.
 - FREEZE mantido: STOP merges H4 e novos Build; sem frentes até liberar pós in-game.
 - Build `46069374906` SUCCESS @ `41aa2c64` (ThreadStub PASS). CI tip docs verdes. Sem dispatch.
+
+## Revisão 2026-11-27T22:20Z
+- FREEZE levantado. Merge H4 `653b865f` (HalfClo/HalfCto/HalfIsPow2 + listPendingOpenTicketsByKernel; 126/126) — tip material.
+- Policy B: 1 Build na tip material após push; sem spam.
