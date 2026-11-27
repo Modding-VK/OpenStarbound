@@ -1,13 +1,14 @@
 # Progressão do projeto — percentuais e ordem das tarefas
 
 Atualizado em **27/11/2026**. Branch de integração:
-`cursor/integration-sector-runtime-7342` (H0+H1+H2 mergeados; não `main`).
-Última H0: discriminante BiomeItem no candidate record (VAL-02).
+`cursor/integration-sector-runtime-7342` (H0+H1+H2 + H0-delta; não `main`).
+Última H0: payloads BiomeItem (MicroDungeon/Treasure/plantas/ObjectPool) no
+comparador VAL-02 (ainda 25%).
 Última H1: DAG-03 TTL/carga/herança/eta/trace (50% sombra).
 Última H2: cache/prefetch/batch/IO (RAM-02..IO-01); PreparedSector canônico = H1.
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Relatório H0](../sector-runtime-h0-candidate-item-kind-2026-11-27.md)
+· [Relatório H0](../sector-runtime-h0-candidate-object-pool-payload-2026-11-27.md)
 · [Relatório H1](../sector-runtime-h1-executive-interest-priority-2026-11-27.md)
 · [Relatório H2](../sector-runtime-h2-resident-prefetch-batch-io-2026-11-27.md)
 · [Backlog geral](../performance-backlog.md)
@@ -21,14 +22,14 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 
 | Indicador | Estado |
 | --- | --- |
-| Frente ativa | Integração — H0+H1+H2 mergeados; próximo H0-delta / H4 conforme ready-for-integration |
+| Frente ativa | Integração — H0+H1+H2 + H0-delta; próximo H4 conforme ready-for-integration |
 | Progresso de maturidade de H0 | **25,0%** — 6 marcos verificados de 24 |
 | Progresso de maturidade de H1 | **27,5%** — 11 marcos verificados de 40 |
 | Progresso de maturidade de H2 | **25,0%** — 6 marcos verificados de 24 |
 | Progresso de maturidade do programa | **11,7%** — 23 marcos verificados de 196 |
 | Contratos com avanço registrado | **22 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | H0: CandidateSequence 10/10 +134 RealBlockInfo; H1: DAG-03 + 35 testes sombra; H2: cache/prefetch/batch/IO NoAssets; PreparedSector = API H1; sem Actions |
+| Última evidência de testes | H0: CandidateSequence 13/13 +134 RealBlockInfo; H1: DAG-03 + 35 testes sombra; H2: cache/prefetch/batch/IO NoAssets; PreparedSector = API H1; sem Actions |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 11,7% não significam que o jogo esteja só 11,7% pronto.** O runtime anterior
@@ -122,10 +123,10 @@ autoritativa. GPU é opcional, com fallback CPU completo.
    mailbox/DAG, provider, promoção/fairness e pressão externa. A
    [cobertura de memória](../sector-runtime-memory-envelope.md) não é heap completo;
    não ampliar filas/defaults por teste controlado.
-2. **VAL-02, próxima entrega e apoio à primeira:** sequência id/posição/prioridade
-   já compara em diagnóstico; falta payload `BiomeItem`, ligação a planos reais
-   e outputs completos. Manter os controles de colisões de hash como gate de
-   qualquer eliminação de cópias.
+2. **VAL-02, próxima entrega e apoio à primeira:** sequência + payload
+   BiomeItem (todos os kinds) em diagnóstico; falta TileDamageParameters
+   nas plantas, planeta/mods e streaming. Manter os controles de colisões
+   de hash como gate de qualquer eliminação de cópias.
 3. **MOD-01:** completar a fronteira de efeitos/inputs puros do próximo kernel,
    incluindo inicialização/RNG/dependências. Seed automática corrigida e sequências
    explícitas verificadas; Perlin, biomeTransition/SkyParameters e a auditoria de
@@ -156,7 +157,7 @@ auditoria de todas as implementações antigas para conceder crédito retroativo
 | 1 | H0 | [DAG-01](dependency-scheduler.md) | Identidades estáveis | 25% | IDs de colocações e ticket BaseTiles testados; contexto profundo/integração geral pendentes |
 | 2 | H0 | [DAG-04](dependency-scheduler.md) | Conclusões e progresso dentro da passagem | 25% | Mailbox executiva/reação a conclusões; continuação/avanço já corrigidos no recorte |
 | 3 | H0 | [RAM-01](memory-and-prefetch.md) | Reserva e contabilização de bytes | 25% | Json retido medido/deduplicado no contexto estático; polígonos/wrappers e admissão/contexto/consumidor globais pendentes |
-| 4 | H0 | [VAL-02](validation-and-telemetry.md) | Comparador de outputs e produtores controlados | 25% | BaseTiles + sombra 2×2 + sequência id/posição/prioridade/itemKind + queue snapshot; falta payload BiomeItem, planeta/mods e streaming |
+| 4 | H0 | [VAL-02](validation-and-telemetry.md) | Comparador de outputs e produtores controlados | 25% | BaseTiles + sombra 2×2 + candidatos BiomeItem completos exceto TileDamage plantas; falta planeta/mods e streaming |
 | 5 | H0 | [MOD-01](compatibility.md) | Classificar operações por efeito | 25% | Config lazy preserva ramos/falhas, custom terrain Root-free; adapter normal conserva Assets e restante do contexto é pendente |
 | 6 | H0 | [VAL-01](validation-and-telemetry.md) | Benchmark de streaming | 25% | Rota/save/config fixos, streaming real e A/B equivalente |
 | 7 | H1 | [DAG-02](dependency-scheduler.md) | Grafo persistente e demanda compartilhada | 25% | Interesse/unload/antecipação sombra ok; interesse vivo/WorldStorage pendente |
@@ -339,6 +340,9 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | Candidate placement adapter | BiomeItemPlacement→record + sort estável por prioridade; 8 testes contract. Sem payload profundo. Sem novo marco completo | 3,6% |
 | 27/11/2026 | Candidate queue snapshot | PlacementQueue→records com IDs ascendentes pós-retirement; 9 testes contract. Sem payload BiomeItem. Sem novo marco completo | 3,6% |
 | 27/11/2026 | Candidate itemKind | typeIndex BiomeItem no record v2; 10 testes contract. Payload profundo ainda fora. Sem novo marco completo | 3,6% |
+| 27/11/2026 | Candidate BiomeItem payload | MicroDungeon/Treasure + placements; 12 testes contract. Grass/Bush/Tree/ObjectPool UnsupportedPayload. Sem novo marco completo | 3,6% |
+| 27/11/2026 | Candidate plant payload | Grass/Bush/TreePair campos públicos; 13 testes contract. ObjectPool/TileDamage ainda fora. Sem novo marco completo | 3,6% |
+| 27/11/2026 | Candidate ObjectPool payload | ObjectPool peso/nome/Json ordenado; 13 testes contract. TileDamage plantas ainda fora. Sem novo marco completo | 3,6% |
 | 27/11/2026 | DAG-02 executive shadow | `WorldGenerationExecutiveShadowGraph` + 5 testes; demanda por consumidor e comparação ao plano recursivo. DAG-02 0→25%; H1 2,5%→5%; programa 3,6%→4,1% | 4,1% |
 | 27/11/2026 | DAG-02 interest + DAG-03 | Interesse/unload/antecipação + prioridade wrap/selectFair; 11 Executive*. DAG-03 0→25%; H1 5%→7,5%; programa 4,1%→4,6% | 4,6% |
 | 27/11/2026 | DAG-05 + mailbox + scheduler | Cancel/retry/drain, mailbox e scheduler sombra; 21 Executive*. DAG-05/CPU-03/WT-01 0→25%; H1 7,5%→15%; programa 4,6%→6,1% | 6,1% |
@@ -350,6 +354,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | H2 RAM-02 cache | `WorldGenerationProductRevisionCache` kind/setor/revisões + invalidação; 7 testes NoAssets. RAM-02 0→25% | 9,2% |
 | 27/11/2026 | H2 RAM-03/04/05 + WT-03 + IO-01 | Retenção/histerese, prefetch, batch regional, promoção Prefetch→Visible; testes NoAssets. H2 25%; +5 marcos | 11,7% |
 | 27/11/2026 | Integração H2 | Merge `--no-ff` H2 `b9572592` em `cursor/integration-sector-runtime-7342`; PreparedSector = H1; docs H0/H1/H2 unificados | 11,7% |
+| 27/11/2026 | Integração H0-delta | Merge `--no-ff` H0 `7b1bbbbc` (payloads além de `d6a6419a`) em `cursor/integration-sector-runtime-7342`; VAL-02 permanece 25% | 11,7% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

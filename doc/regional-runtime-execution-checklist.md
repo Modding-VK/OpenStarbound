@@ -38,16 +38,19 @@ histórico, sem outra fila de prioridades. O
 [painel de progressão](sector-runtime/progress.md) consolida percentuais por
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
-Branch de integração: `cursor/integration-sector-runtime-7342` (H0+H1+H2 mergeados).
+Branch de integração: `cursor/integration-sector-runtime-7342` (H0+H1+H2 mergeados; H0-delta payloads).
 Relatório H1 atual:
 [Interest/priority DAG-03 50%](sector-runtime-h1-executive-interest-priority-2026-11-27.md).
 H2 na mesma linha (PreparedSector canônico = H1; extras H2 em headers dedicados):
 [H2 resident/prefetch/batch/IO](sector-runtime-h2-resident-prefetch-batch-io-2026-11-27.md),
 [H2 product revision cache](sector-runtime-h2-product-revision-cache-2026-11-27.md).
 H0 na mesma linha:
+[Candidate ObjectPool payload](sector-runtime-h0-candidate-object-pool-payload-2026-11-27.md),
+[Candidate plant payload](sector-runtime-h0-candidate-plant-payload-2026-11-27.md),
+[Candidate BiomeItem payload](sector-runtime-h0-candidate-biome-payload-2026-11-27.md),
 [Candidate itemKind](sector-runtime-h0-candidate-item-kind-2026-11-27.md),
 com antecedentes em
-[Candidate queue snapshot](sector-runtime-h0-candidate-queue-snapshot-2026-11-27.md),
+[Candidate plant payload](sector-runtime-h0-candidate-plant-payload-2026-11-27.md),
 [Capstone 2×2 + tight ledger](sector-runtime-h0-sector-shadow-four-sector-tight-ledger-2026-11-27.md),
 [Sombra por setor](sector-runtime-h0-sector-shadow-2026-11-26.md),
 [Memory/prefetch](sector-runtime/memory-and-prefetch.md) e

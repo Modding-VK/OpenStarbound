@@ -12,9 +12,8 @@
 
 namespace Star {
 
-// Diagnostic snapshot of one planning candidate. First VAL-02 slice beyond
-// BaseTiles: identity/order/priority/position only. BiomeItem payload and
-// live-world publication are out of scope.
+// Diagnostic snapshot of one planning candidate. VAL-02 beyond BaseTiles:
+// identity/order/priority/itemKind. Live-world publication stays out of scope.
 struct WorldGenerationCandidateRecord {
   static constexpr unsigned ModelVersion = 2;
   Maybe<WorldGenerationPlacementId> placementId;
@@ -29,11 +28,12 @@ enum class WorldGenerationCandidateField : uint32_t {
   PlacementId = 1u << 1,
   Position = 1u << 2,
   Priority = 1u << 3,
-  ItemKind = 1u << 4
+  ItemKind = 1u << 4,
+  ItemPayload = 1u << 5
 };
 
 struct WorldGenerationCandidateSequenceComparison {
-  static constexpr unsigned ModelVersion = 2;
+  static constexpr unsigned ModelVersion = 3;
   bool valid = false;
   size_t comparedEntries = 0;
   size_t differentEntries = 0;
@@ -43,6 +43,27 @@ struct WorldGenerationCandidateSequenceComparison {
     return valid && differentEntries == 0
         && (differentFields & static_cast<uint32_t>(WorldGenerationCandidateField::Length)) == 0;
   }
+};
+
+enum class WorldGenerationBiomeItemField : uint32_t {
+  Kind = 1u << 0,
+  Payload = 1u << 1,
+  // Same kind, but Grass/Bush/Tree/ObjectPool content is not compared yet.
+  UnsupportedPayload = 1u << 2
+};
+
+enum class WorldGenerationBiomeItemComparisonMode {
+  KindOnly,
+  // All BiomeItem kinds except TileDamageParameters on plant variants.
+  // ObjectPool compares weight/name/Json entries in order.
+  SupportedPayload
+};
+
+struct WorldGenerationBiomeItemComparison {
+  static constexpr unsigned ModelVersion = 1;
+  bool valid = false;
+  uint32_t differentFields = 0;
+  bool equal() const { return valid && differentFields == 0; }
 };
 
 // Copies position/priority only; never retains BiomeItem or live queue state.
@@ -64,5 +85,17 @@ void sortWorldGenerationCandidateRecords(std::vector<WorldGenerationCandidateRec
 WorldGenerationCandidateSequenceComparison compareWorldGenerationCandidateSequences(
     std::vector<WorldGenerationCandidateRecord> const& a,
     std::vector<WorldGenerationCandidateRecord> const& b);
+
+// Diagnostic BiomeItem compare. Never calls Root/Assets; never changes selection.
+WorldGenerationBiomeItemComparison compareWorldGenerationBiomeItems(BiomeItem const& a, BiomeItem const& b,
+    WorldGenerationBiomeItemComparisonMode mode = WorldGenerationBiomeItemComparisonMode::SupportedPayload);
+
+// Record fields + BiomeItem payload in lockstep. Optional parallel id lists must
+// match placement length when present; empty id vector means all ids absent.
+WorldGenerationCandidateSequenceComparison compareWorldGenerationCandidatePlacements(
+    std::vector<BiomeItemPlacement> const& a, std::vector<BiomeItemPlacement> const& b,
+    std::vector<Maybe<WorldGenerationPlacementId>> const& aIds = {},
+    std::vector<Maybe<WorldGenerationPlacementId>> const& bIds = {},
+    WorldGenerationBiomeItemComparisonMode itemMode = WorldGenerationBiomeItemComparisonMode::SupportedPayload);
 
 }

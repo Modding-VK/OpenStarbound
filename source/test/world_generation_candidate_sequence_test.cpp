@@ -167,6 +167,81 @@ TEST(WorldGenerationCandidateSequenceTest, StablePrioritySortMatchesBiomeItemPla
   EXPECT_TRUE(result.equal());
 }
 
+TEST(WorldGenerationCandidateSequenceTest, MicroDungeonAndTreasurePayloadCompare) {
+  using ItemField = WorldGenerationBiomeItemField;
+  auto namesA = BiomeItem{MicroDungeonNames(StringSet{"alpha", "beta"})};
+  auto namesB = BiomeItem{MicroDungeonNames(StringSet{"beta", "alpha"})};
+  auto namesC = BiomeItem{MicroDungeonNames(StringSet{"alpha"})};
+  auto sameNames = compareWorldGenerationBiomeItems(namesA, namesB);
+  EXPECT_TRUE(sameNames.equal());
+  auto diffNames = compareWorldGenerationBiomeItems(namesA, namesC);
+  EXPECT_FALSE(diffNames.equal());
+  EXPECT_EQ(diffNames.differentFields, static_cast<uint32_t>(ItemField::Payload));
+
+  auto treasureA = BiomeItem{TreasureBoxSet(String("chest"))};
+  auto treasureB = BiomeItem{TreasureBoxSet(String("chest"))};
+  auto treasureC = BiomeItem{TreasureBoxSet(String("other"))};
+  EXPECT_TRUE(compareWorldGenerationBiomeItems(treasureA, treasureB).equal());
+  auto treasureDiff = compareWorldGenerationBiomeItems(treasureA, treasureC);
+  EXPECT_EQ(treasureDiff.differentFields, static_cast<uint32_t>(ItemField::Payload));
+
+  auto grass = BiomeItem{GrassVariant{}};
+  EXPECT_TRUE(compareWorldGenerationBiomeItems(grass, grass).equal());
+  EXPECT_TRUE(compareWorldGenerationBiomeItems(grass, grass, WorldGenerationBiomeItemComparisonMode::KindOnly).equal());
+
+  ObjectPool poolA;
+  poolA.add(1.0, make_pair(String("obj"), JsonObject{{"a", 1}}));
+  ObjectPool poolB = poolA;
+  EXPECT_TRUE(compareWorldGenerationBiomeItems(BiomeItem{poolA}, BiomeItem{poolB}).equal());
+  poolB.add(2.0, make_pair(String("other"), Json()));
+  EXPECT_FALSE(compareWorldGenerationBiomeItems(BiomeItem{poolA}, BiomeItem{poolB}).equal());
+}
+
+TEST(WorldGenerationCandidateSequenceTest, GrassBushTreePayloadCompareExcludingTileDamage) {
+  GrassVariant grassA;
+  grassA.name = "tuft";
+  grassA.directory = "/grass/";
+  grassA.images = StringList{"a.png", "b.png"};
+  grassA.hueShift = 0.25f;
+  grassA.ceiling = true;
+  GrassVariant grassB = grassA;
+  EXPECT_TRUE(compareWorldGenerationBiomeItems(BiomeItem{grassA}, BiomeItem{grassB}).equal());
+  grassB.hueShift = 0.5f;
+  auto grassDiff = compareWorldGenerationBiomeItems(BiomeItem{grassA}, BiomeItem{grassB});
+  EXPECT_EQ(grassDiff.differentFields, static_cast<uint32_t>(WorldGenerationBiomeItemField::Payload));
+
+  BushVariant bushA;
+  bushA.bushName = "scrub";
+  bushA.modName = "flower";
+  bushA.shapes = {{"base.png", StringList{"m1.png"}}};
+  BushVariant bushB = bushA;
+  EXPECT_TRUE(compareWorldGenerationBiomeItems(BiomeItem{bushA}, BiomeItem{bushB}).equal());
+  bushB.shapes[0].mods = StringList{"m2.png"};
+  EXPECT_FALSE(compareWorldGenerationBiomeItems(BiomeItem{bushA}, BiomeItem{bushB}).equal());
+
+  TreeVariant stem;
+  stem.stemName = "oak";
+  stem.foliageName = "leaves";
+  TreePair trees{stem, stem};
+  TreePair treesDiff = trees;
+  treesDiff.second.foliageName = "other";
+  EXPECT_TRUE(compareWorldGenerationBiomeItems(BiomeItem{trees}, BiomeItem{trees}).equal());
+  EXPECT_FALSE(compareWorldGenerationBiomeItems(BiomeItem{trees}, BiomeItem{treesDiff}).equal());
+}
+
+TEST(WorldGenerationCandidateSequenceTest, PlacementPayloadSequenceDetectsNameSetDiff) {
+  BiomeItemPlacement left{BiomeItem{MicroDungeonNames(StringSet{"one", "two"})}, Vec2I(0, 0), 1.0f};
+  BiomeItemPlacement right{BiomeItem{MicroDungeonNames(StringSet{"one"})}, Vec2I(0, 0), 1.0f};
+  auto result = compareWorldGenerationCandidatePlacements({left}, {right});
+  EXPECT_FALSE(result.equal());
+  EXPECT_EQ(result.differentFields, mask(Field::ItemPayload));
+  EXPECT_EQ(result.firstDifference.value(), 0u);
+
+  auto kindOnly = compareWorldGenerationCandidatePlacements({left}, {right}, {}, {},
+      WorldGenerationBiomeItemComparisonMode::KindOnly);
+  EXPECT_TRUE(kindOnly.equal());
+}
+
 TEST(WorldGenerationCandidateSequenceTest, ItemKindDiffersWithoutComparingPayload) {
   auto grassKind = BiomeItem{GrassVariant{}}.typeIndex();
   auto dungeonKind = BiomeItem{MicroDungeonNames(StringSet{"x"})}.typeIndex();
