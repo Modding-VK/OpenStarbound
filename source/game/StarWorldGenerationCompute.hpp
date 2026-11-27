@@ -192,7 +192,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32HalfIsolateLsb = 166, // low16 & -low16; parameter ignored
   DenseUint32HalfIsolateMsb = 167, // highest set bit of low16; 0 when low16==0; parameter ignored
   DenseUint32HalfClearLsb = 168, // low16 & (low16 - 1); parameter ignored
-  DenseUint32HalfLsbMask = 169 // low16 ^ (low16 - 1) in 16-bit width; parameter ignored
+  DenseUint32HalfLsbMask = 169, // low16 ^ (low16 - 1) in 16-bit width; parameter ignored
+  DenseUint32HalfGrayEncode = 170, // low16 ^ (low16 >> 1); parameter ignored
+  DenseUint32HalfGrayDecode = 171, // binary from reflected Gray code of low16; parameter ignored
+  DenseUint32HalfSmearLsb = 172 // low16 | (low16 - 1) in 16-bit width; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -408,6 +411,8 @@ public:
   List<WorldGenerationComputeKernel> listPendingOpenKernels() const;
   // Count of distinct identity.kernel values among Pending open tickets (asset-free).
   size_t countPendingOpenKernels() const;
+  // Count of Pending open tickets (asset-free observation; not distinct kernels).
+  size_t countPendingOpenTickets() const;
   // True while any Pending open ticket exists (asset-free observation).
   bool anyPendingOpenKernels() const;
   // Open tickets whose identity.kernel matches (asset-free observation).
