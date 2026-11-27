@@ -39,7 +39,7 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa nesta branch H1: o relatório atual é
-[Interest/priority DAG-03 50%](sector-runtime-h1-executive-interest-priority-2026-11-27.md).
+[PreparedSector payload/path](sector-runtime-h1-prepared-sector-2026-11-27.md).
 H0 em `Experimental` permanece com
 [Concurrent ocean](sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
 e o [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).

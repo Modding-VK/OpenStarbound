@@ -2,10 +2,10 @@
 
 Atualizado em **27/11/2026**. Branch H1: `cursor/h1-graph-cpu-9f77`
 (H0 continua em `Experimental`).
-Última implementação H1: DAG-03 TTL/carga/herança/eta/trace (50% sombra).
+Última implementação H1: PreparedSector payload/WorldStorage path (sombra).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h1-executive-interest-priority-2026-11-27.md)
+· [Último relatório técnico](../sector-runtime-h1-prepared-sector-2026-11-27.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -23,7 +23,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **8,7%** — 17 marcos verificados de 196 |
 | Contratos com avanço registrado | **16 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | DAG-03 TTL/load/trace + 35 testes H1 sombra; ASan/UBSan; sem Actions |
+| Última evidência de testes | PreparedSector payload/path (7 testes) + suite H1 sombra; ASan/UBSan; sem Actions |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 8,7% não significam que o jogo esteja só 8,7% pronto.** O runtime anterior
@@ -129,9 +129,9 @@ autoritativa. GPU é opcional, com fallback CPU completo.
    interesse→entrega e resposta do update/frame. Não pedir apenas outra run
    sem definir hipótese e comparador.
 5. **H1 nesta branch:** DAG-03 em 50% sombra; demais contratos H1 em 25%.
-   Próximos recortes independentes: BaseTiles no produto CPU-02 (sem install)
-   ou amarrar governor→scheduler em harness. 75% exige caminho vivo /
-   `cursor/integration-sector-runtime-7342`. Não publicar no mundo vivo.
+   Payload/WorldStorage path sombra entregue para H2 (`payloadView` /
+   `probeHandoff`). 75%/install vivo só via Project/integração. Não publicar
+   no mundo vivo.
 
 RAM-01 não exige contabilizar cada heap do motor antes de qualquer protótipo
 H1; exige identificar o escopo coberto, as exclusões e os limites antes da
@@ -157,7 +157,7 @@ auditoria de todas as implementações antigas para conceder crédito retroativo
 | 8 | H1 | [DAG-03](dependency-scheduler.md) | Prioridade, justiça e distância correta | 50% | TTL/load/eta/unlock/trace sombra ok; 75% exige integração viva |
 | 9 | H1 | [DAG-05](dependency-scheduler.md) | Cancelamento, falha e invalidação | 25% | Retry/drain sombra; retenção até término físico no executor vivo pendente |
 | 10 | H1 | [CPU-01](cpu-and-stages.md) | Contexto privado de cálculo | 25% | Composto+sombra+handoff+hotReload/loadMods; falta gates H0 antes de H1 |
-| 11 | H1 | [CPU-02](cpu-and-stages.md) | Produto PreparedSector | 25% | Empty/Candidates/BaseTilesPrivate sombra; campos/delta e install vivo pendentes |
+| 11 | H1 | [CPU-02](cpu-and-stages.md) | Produto PreparedSector | 25% | payload/path WorldStorage sombra ok; install vivo e tipagem completa Terrain/Delta pendentes |
 | 12 | H1 | [MD-01](microdungeons-and-tmx.md) | Seleção leve e identidade | 25% | Candidatos sem halo na sombra; path MicroDungeons vivo pendente |
 | 13 | H1 | [CPU-03](cpu-and-stages.md) | Executor processual e granularidade | 25% | Scheduler sombra startNext/complete; pool/afinidade/lotes multi-setor pendentes |
 | 14 | H1 | [WT-01](worldthread.md) | Serviço de conclusões e drenagem | 25% | drainMailbox sombra; pontos no caminho vivo e fora-de-ordem autoritativo pendentes |
@@ -320,6 +320,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | CPU-02 + MD-01 | PreparedSector Empty/OrderedCandidates sem halo; 3 testes. Ambos 0→25%; H1 17,5%→22,5%; programa 6,6%→7,7% | 7,7% |
 | 27/11/2026 | CPU-05 governor | suggest Balanced/HighThroughput; 4 testes. CPU-05 0→25%; H1 22,5%→25%; programa 7,7%→8,2% | 8,2% |
 | 27/11/2026 | DAG-03 TTL/load/trace | TTL sem renovação, load Background, eta/unlock, selectFairTraced; 8 Priority*. DAG-03 25→50%; H1 25%→27,5%; programa 8,2%→8,7% | 8,7% |
+| 27/11/2026 | PreparedSector payload/path | payloadView/worldStoragePath/probeHandoff + TerrainFields/StepDelta opacos; 7 Prepared* testes. CPU-02 permanece 25% (sem install vivo) | 8,7% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

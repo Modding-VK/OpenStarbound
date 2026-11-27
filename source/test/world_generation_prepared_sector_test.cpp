@@ -65,3 +65,73 @@ TEST(WorldGenerationPreparedSectorTest, BaseTilesPrivateHoldsTicketWithoutInstal
   EXPECT_FALSE(product.canInstall());
   EXPECT_FALSE(product.mutatesPersistedLevel());
 }
+
+TEST(WorldGenerationPreparedSectorTest, PayloadViewAndWorldStoragePathNeverWrite) {
+  WorldGenerationPreparedSectorStore store;
+  WorldGenerationPreparedProductIdentity identity{{2, 3}, 11, 12, 13};
+  auto id = store.put(WorldGenerationPreparedSectorStore::makeEmpty(identity));
+
+  auto view = store.payloadView(id);
+  ASSERT_TRUE(view);
+  EXPECT_EQ(id, view->productId);
+  EXPECT_EQ(WorldGenerationPreparedProductKind::Empty, view->kind);
+  EXPECT_EQ(0u, view->payloadBytes);
+  EXPECT_NE(0u, view->contentToken);
+  EXPECT_FALSE(view->installAuthorized);
+
+  auto path = store.worldStoragePath(9, id);
+  EXPECT_EQ(9u, path.worldEpoch);
+  EXPECT_EQ((Vec2I{2, 3}), path.sector);
+  EXPECT_EQ(id, path.productId);
+  EXPECT_EQ(WorldGenerationPreparedProductKind::Empty, path.kind);
+
+  auto handoff = store.probeHandoff(9, id, identity);
+  EXPECT_EQ(WorldGenerationPreparedHandoffOutcome::Ready, handoff.outcome);
+  EXPECT_FALSE(handoff.writesWorldStorage);
+  EXPECT_EQ(path, handoff.path);
+}
+
+TEST(WorldGenerationPreparedSectorTest, HandoffReportsStaleAndBaseTilesNotAuthorized) {
+  WorldGenerationPreparedSectorStore store;
+  WorldGenerationPreparedProductIdentity identity{{0, 0}, 7, 0, 0};
+  WorldGenerationBaseTilesIdentity ticket{
+      {1, 1, {0, 0}, {0, 0}, WorldGenerationTaskStage::BaseTiles},
+      5,
+      7,
+      {128, 128},
+      RectI(0, 0, 32, 32)};
+  auto id = store.put(WorldGenerationPreparedSectorStore::makeBaseTilesPrivate(
+      identity, ticket, 1024));
+
+  WorldGenerationPreparedProductIdentity stale = identity;
+  stale.templateRevision = 99;
+  auto staleHandoff = store.probeHandoff(1, id, stale);
+  EXPECT_EQ(WorldGenerationPreparedHandoffOutcome::StaleIdentity, staleHandoff.outcome);
+  EXPECT_FALSE(staleHandoff.writesWorldStorage);
+
+  auto denied = store.probeHandoff(1, id, identity);
+  EXPECT_EQ(WorldGenerationPreparedHandoffOutcome::NotAuthorized, denied.outcome);
+  EXPECT_FALSE(denied.writesWorldStorage);
+  ASSERT_TRUE(store.payloadView(id));
+  EXPECT_EQ(1024u, store.payloadView(id)->payloadBytes);
+}
+
+TEST(WorldGenerationPreparedSectorTest, TerrainFieldsAndStepDeltaExposeOpaquePayload) {
+  WorldGenerationPreparedSectorStore store;
+  WorldGenerationPreparedProductIdentity identity{{4, 5}, 1, 2, 3};
+  auto terrainId = store.put(
+      WorldGenerationPreparedSectorStore::makeTerrainFields(identity, 0xabc, 64));
+  auto deltaId = store.put(
+      WorldGenerationPreparedSectorStore::makeStepDelta(identity, 0xdef, 128));
+
+  auto terrain = store.payloadView(terrainId);
+  ASSERT_TRUE(terrain);
+  EXPECT_EQ(WorldGenerationPreparedProductKind::TerrainFields, terrain->kind);
+  EXPECT_EQ(64u, terrain->payloadBytes);
+  EXPECT_EQ(0xabcu, terrain->contentToken);
+
+  auto deltaHandoff = store.probeHandoff(3, deltaId, identity);
+  EXPECT_EQ(WorldGenerationPreparedHandoffOutcome::Ready, deltaHandoff.outcome);
+  EXPECT_EQ(128u, deltaHandoff.payload.payloadBytes);
+  EXPECT_FALSE(deltaHandoff.writesWorldStorage);
+}

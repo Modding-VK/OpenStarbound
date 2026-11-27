@@ -1,4 +1,4 @@
-# H1 / CPU-02 + MD-01 — produto PreparedSector e candidatos sem halo
+# H1 / CPU-02 + MD-01 — produto PreparedSector, payload e path WorldStorage
 
 Data: 27/11/2026 UTC. Branch `cursor/h1-graph-cpu-9f77`.
 
@@ -7,29 +7,26 @@ Data: 27/11/2026 UTC. Branch `cursor/h1-graph-cpu-9f77`.
 
 ## Objetivo
 
-Primeiro recorte de produto versionado (CPU-02) e seleção leve de
-microdungeons por IDs de colocação (MD-01), sem halo de tiles e sem instalar
-no mundo vivo.
+Produto versionado (CPU-02) e candidatos sem halo (MD-01), mais APIs de
+payload e caminho lógico WorldStorage para H2, sem install no mundo vivo.
 
 ## Estado
 
-- **CPU-02** 0→25%: `WorldGenerationPreparedSectorProduct` com identidade
-  (setor, template/distribution/placement revisions), kinds `Empty`,
-  `OrderedCandidates` e `BaseTilesPrivate` (ticket + bytes, `installAuthorized=
-  false`); store com share e invalidação stale; preparar não muta nível
-  persistido. Campos terreno/delta ainda faltam para 50%.
-- **MD-01** 0→25%: candidatos carregam `placementId` / nome / posição / seed
-  apenas; produto vazio prova ausência sob a mesma identidade.
+- **CPU-02** 25%: `Empty` / `OrderedCandidates` / `BaseTilesPrivate` /
+  `TerrainFields` / `StepDelta` (opacos); `payloadView`,
+  `worldStoragePath`, `probeHandoff` com outcomes Ready/Stale/NotAuthorized/
+  Empty/Missing; `writesWorldStorage` sempre false neste recorte.
+- **MD-01** 25%: candidatos só com IDs/nome/seed/posição.
 
-4 testes `WorldGenerationPreparedSector*`. Sem Actions. Sem install vivo nem
-ligação ao path MicroDungeons vivo.
+7 testes `WorldGenerationPreparedSector*`. Sem Actions. Sem escrita em
+WorldStorage. BaseTiles sombra permanece `installAuthorized=false`.
 
-## Relacionado
+## APIs estáveis para dependentes (H2)
 
-CPU-05 sombra: `WorldGenerationResourceGovernor` sugere orçamentos a partir
-da frontier/mailbox/retidos/overrun (mesmo commit de continuidade H1).
+- `PreparedSector-payload` — `WorldGenerationPreparedPayloadView`
+- `PreparedSector-WorldStorage-path` — `worldStoragePath` + `probeHandoff`
 
 ## Próximo passo
 
-Amarrar produto/governor ao caminho vivo ou elevar contratos a 50% com
+Install autorizado controlado (ainda sem merge em `main`) ou unificação na
 integração. Não disparar Actions.
