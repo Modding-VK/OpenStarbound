@@ -517,6 +517,34 @@ TEST(WorldGenerationComputeTest, CompareShadowBatchRunsIndependentKernels) {
   }
 }
 
+TEST(WorldGenerationComputeTest, RunNamedKernelAndIsBackendSupported) {
+  auto named = WorldGenerationComputeService::runNamedKernel("DenseUint32Xor", 1u,
+      List<uint32_t>{0x10u}, 0x01u);
+  ASSERT_EQ(1u, named.size());
+  EXPECT_EQ(0x11u, named[0]);
+  EXPECT_TRUE(WorldGenerationComputeService::runNamedKernel("nope", 1u, List<uint32_t>{1u}, 0u)
+          .empty());
+  EXPECT_TRUE(WorldGenerationComputeService::runNamedKernel("DenseUint32Xor", 99u,
+          List<uint32_t>{1u}, 0u)
+          .empty());
+  EXPECT_TRUE(WorldGenerationComputeService::runNamedKernel(nullptr, 1u, List<uint32_t>{1u}, 0u)
+          .empty());
+
+  WorldGenerationComputeCapabilities caps;
+  caps.cpuReference = true;
+  caps.gpuOpenGlCompute = false;
+  EXPECT_TRUE(WorldGenerationComputeService::isBackendSupported(
+      WorldGenerationComputeBackend::CpuReference, caps));
+  EXPECT_FALSE(WorldGenerationComputeService::isBackendSupported(
+      WorldGenerationComputeBackend::GpuOpenGlCompute, caps));
+  caps.gpuOpenGlCompute = true;
+  EXPECT_TRUE(WorldGenerationComputeService::isBackendSupported(
+      WorldGenerationComputeBackend::GpuOpenGlCompute, caps));
+  caps.cpuReference = false;
+  EXPECT_FALSE(WorldGenerationComputeService::isBackendSupported(
+      WorldGenerationComputeBackend::CpuReference, caps));
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32BswapParityBitTestExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();

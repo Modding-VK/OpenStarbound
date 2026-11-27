@@ -139,6 +139,23 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   return 37u;
 }
 
+List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
+    uint32_t kernelVersion, List<uint32_t> const& input, uint32_t parameter) {
+  auto kernel = parseKernelName(name);
+  if (!kernel)
+    return {};
+  return runKernel(*kernel, kernelVersion, input, parameter);
+}
+
+bool WorldGenerationComputeService::isBackendSupported(WorldGenerationComputeBackend backend,
+    WorldGenerationComputeCapabilities const& capabilities) noexcept {
+  if (backend == WorldGenerationComputeBackend::CpuReference)
+    return capabilities.cpuReference;
+  if (backend == WorldGenerationComputeBackend::GpuOpenGlCompute)
+    return capabilities.gpuOpenGlCompute;
+  return false;
+}
+
 char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKernel kernel) noexcept {
   switch (kernel) {
     case WorldGenerationComputeKernel::DenseUint32Xor: return "DenseUint32Xor";

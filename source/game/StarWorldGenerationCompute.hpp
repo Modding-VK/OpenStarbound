@@ -344,11 +344,17 @@ public:
   static List<uint32_t> runKernel(WorldGenerationComputeKernel kernel, uint32_t kernelVersion,
       List<uint32_t> const& input, uint32_t parameter);
 
+  // GPU-01: run by stable ASCII name; empty when the name/version is unsupported.
+  static List<uint32_t> runNamedKernel(char const* name, uint32_t kernelVersion,
+      List<uint32_t> const& input, uint32_t parameter);
+
   // GPU-01 capability catalog (asset-free): kernels accepted at a version.
   static bool isKernelSupported(WorldGenerationComputeKernel kernel,
       uint32_t kernelVersion = 1u) noexcept;
   static List<WorldGenerationComputeKernel> supportedKernels(uint32_t kernelVersion = 1u);
   static size_t supportedKernelCount(uint32_t kernelVersion = 1u) noexcept;
+  static bool isBackendSupported(WorldGenerationComputeBackend backend,
+      WorldGenerationComputeCapabilities const& capabilities) noexcept;
   // Stable ASCII name for catalogs/logs; nullptr if the enum is unknown.
   static char const* kernelName(WorldGenerationComputeKernel kernel) noexcept;
   // Inverse of kernelName; empty when the token is unknown (asset-free).
