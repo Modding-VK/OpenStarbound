@@ -66,7 +66,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32BitReverse
       || kernel == WorldGenerationComputeKernel::DenseUint32Lt
       || kernel == WorldGenerationComputeKernel::DenseUint32Leu
-      || kernel == WorldGenerationComputeKernel::DenseUint32AbsDiff;
+      || kernel == WorldGenerationComputeKernel::DenseUint32AbsDiff
+      || kernel == WorldGenerationComputeKernel::DenseUint32Gt
+      || kernel == WorldGenerationComputeKernel::DenseUint32Geu
+      || kernel == WorldGenerationComputeKernel::DenseUint32Xnor;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -96,7 +99,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32BitReverse,
       WorldGenerationComputeKernel::DenseUint32Lt,
       WorldGenerationComputeKernel::DenseUint32Leu,
-      WorldGenerationComputeKernel::DenseUint32AbsDiff};
+      WorldGenerationComputeKernel::DenseUint32AbsDiff,
+      WorldGenerationComputeKernel::DenseUint32Gt,
+      WorldGenerationComputeKernel::DenseUint32Geu,
+      WorldGenerationComputeKernel::DenseUint32Xnor};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -126,6 +132,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32Lt: return "DenseUint32Lt";
     case WorldGenerationComputeKernel::DenseUint32Leu: return "DenseUint32Leu";
     case WorldGenerationComputeKernel::DenseUint32AbsDiff: return "DenseUint32AbsDiff";
+    case WorldGenerationComputeKernel::DenseUint32Gt: return "DenseUint32Gt";
+    case WorldGenerationComputeKernel::DenseUint32Geu: return "DenseUint32Geu";
+    case WorldGenerationComputeKernel::DenseUint32Xnor: return "DenseUint32Xnor";
   }
   return nullptr;
 }
@@ -160,6 +169,44 @@ Maybe<WorldGenerationComputeBackend> WorldGenerationComputeService::parseBackend
   if (std::strcmp(name, "GpuOpenGlCompute") == 0)
     return WorldGenerationComputeBackend::GpuOpenGlCompute;
   return {};
+}
+
+char const* WorldGenerationComputeService::pollStatusName(
+    WorldGenerationComputePollStatus status) noexcept {
+  switch (status) {
+    case WorldGenerationComputePollStatus::Pending: return "Pending";
+    case WorldGenerationComputePollStatus::Ready: return "Ready";
+    case WorldGenerationComputePollStatus::Failed: return "Failed";
+    case WorldGenerationComputePollStatus::Cancelled: return "Cancelled";
+    case WorldGenerationComputePollStatus::UnknownTicket: return "UnknownTicket";
+  }
+  return nullptr;
+}
+
+char const* WorldGenerationComputeService::shadowVerdictName(
+    WorldGenerationComputeShadowVerdict verdict) noexcept {
+  switch (verdict) {
+    case WorldGenerationComputeShadowVerdict::Equal: return "Equal";
+    case WorldGenerationComputeShadowVerdict::Diverged: return "Diverged";
+    case WorldGenerationComputeShadowVerdict::PrimaryFailed: return "PrimaryFailed";
+    case WorldGenerationComputeShadowVerdict::ShadowUnavailable: return "ShadowUnavailable";
+    case WorldGenerationComputeShadowVerdict::Cancelled: return "Cancelled";
+  }
+  return nullptr;
+}
+
+char const* WorldGenerationComputeService::commitVerdictName(
+    WorldGenerationComputeCommitVerdict verdict) noexcept {
+  switch (verdict) {
+    case WorldGenerationComputeCommitVerdict::Accepted: return "Accepted";
+    case WorldGenerationComputeCommitVerdict::StaleIdentity: return "StaleIdentity";
+    case WorldGenerationComputeCommitVerdict::StaleInput: return "StaleInput";
+    case WorldGenerationComputeCommitVerdict::NotReady: return "NotReady";
+    case WorldGenerationComputeCommitVerdict::Cancelled: return "Cancelled";
+    case WorldGenerationComputeCommitVerdict::Failed: return "Failed";
+    case WorldGenerationComputeCommitVerdict::UnknownTicket: return "UnknownTicket";
+  }
+  return nullptr;
 }
 
 namespace {
@@ -313,6 +360,15 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
   } else if (kernel == WorldGenerationComputeKernel::DenseUint32AbsDiff) {
     for (uint32_t value : input)
       out.append(value > parameter ? value - parameter : parameter - value);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Gt) {
+    for (uint32_t value : input)
+      out.append(value > parameter ? 0xffffffffu : 0u);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Geu) {
+    for (uint32_t value : input)
+      out.append(value >= parameter ? 0xffffffffu : 0u);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Xnor) {
+    for (uint32_t value : input)
+      out.append(~(value ^ parameter));
   }
   return out;
 }
@@ -718,6 +774,25 @@ List<bool> WorldGenerationComputeService::cancelBatch(List<WorldGenerationComput
     out.append(true);
   }
   return out;
+}
+
+size_t WorldGenerationComputeService::cancelAll() {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return 0;
+  size_t cancelled = 0;
+  for (auto& pair : m_entries) {
+    Entry& entry = pair.second;
+    if (entry.publicationRevoked && entry.state == EntryState::Cancelled)
+      continue;
+    entry.publicationRevoked = true;
+    if (entry.state == EntryState::Pending || entry.state == EntryState::Ready) {
+      entry.state = EntryState::Cancelled;
+      entry.output.clear();
+    }
+    ++cancelled;
+  }
+  return cancelled;
 }
 
 List<WorldGenerationComputePollStatus> WorldGenerationComputeService::pollBatch(

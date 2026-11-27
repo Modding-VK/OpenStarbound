@@ -82,6 +82,9 @@ GLuint g_bitReverseProgram = 0;
 GLuint g_ltProgram = 0;
 GLuint g_leuProgram = 0;
 GLuint g_absDiffProgram = 0;
+GLuint g_gtProgram = 0;
+GLuint g_geuProgram = 0;
+GLuint g_xnorProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -402,6 +405,48 @@ void main() {
 }
 )GLSL";
 
+char const* GtShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = values[i] > uParameter ? 0xffffffffu : 0u;
+}
+)GLSL";
+
+char const* GeuShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = values[i] >= uParameter ? 0xffffffffu : 0u;
+}
+)GLSL";
+
+char const* XnorShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = ~(values[i] ^ uParameter);
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -538,6 +583,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_absDiffProgram);
     g_absDiffProgram = 0;
   }
+  if (g_gtProgram) {
+    glDeleteProgram(g_gtProgram);
+    g_gtProgram = 0;
+  }
+  if (g_geuProgram) {
+    glDeleteProgram(g_geuProgram);
+    g_geuProgram = 0;
+  }
+  if (g_xnorProgram) {
+    glDeleteProgram(g_xnorProgram);
+    g_xnorProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -646,7 +703,10 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_bitReverseProgram, BitReverseShader, "DenseUint32BitReverse")
       || !requireProgram(g_ltProgram, LtShader, "DenseUint32Lt")
       || !requireProgram(g_leuProgram, LeuShader, "DenseUint32Leu")
-      || !requireProgram(g_absDiffProgram, AbsDiffShader, "DenseUint32AbsDiff"))
+      || !requireProgram(g_absDiffProgram, AbsDiffShader, "DenseUint32AbsDiff")
+      || !requireProgram(g_gtProgram, GtShader, "DenseUint32Gt")
+      || !requireProgram(g_geuProgram, GeuShader, "DenseUint32Geu")
+      || !requireProgram(g_xnorProgram, XnorShader, "DenseUint32Xnor"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -755,6 +815,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_leuProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32AbsDiff)
     program = g_absDiffProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Gt)
+    program = g_gtProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Geu)
+    program = g_geuProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Xnor)
+    program = g_xnorProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
