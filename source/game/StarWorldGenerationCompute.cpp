@@ -126,7 +126,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32ByteAnd
       || kernel == WorldGenerationComputeKernel::DenseUint32KeepOddBits
       || kernel == WorldGenerationComputeKernel::DenseUint32KeepEvenBits
-      || kernel == WorldGenerationComputeKernel::DenseUint32SwapAdjacentBits;
+      || kernel == WorldGenerationComputeKernel::DenseUint32SwapAdjacentBits
+      || kernel == WorldGenerationComputeKernel::DenseUint32CompressOddBits
+      || kernel == WorldGenerationComputeKernel::DenseUint32CompressEvenBits
+      || kernel == WorldGenerationComputeKernel::DenseUint32ExpandLow16ToOdd;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -216,7 +219,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32ByteAnd,
       WorldGenerationComputeKernel::DenseUint32KeepOddBits,
       WorldGenerationComputeKernel::DenseUint32KeepEvenBits,
-      WorldGenerationComputeKernel::DenseUint32SwapAdjacentBits};
+      WorldGenerationComputeKernel::DenseUint32SwapAdjacentBits,
+      WorldGenerationComputeKernel::DenseUint32CompressOddBits,
+      WorldGenerationComputeKernel::DenseUint32CompressEvenBits,
+      WorldGenerationComputeKernel::DenseUint32ExpandLow16ToOdd};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -226,7 +232,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 82u;
+  return 85u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -330,6 +336,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32KeepOddBits: return "DenseUint32KeepOddBits";
     case WorldGenerationComputeKernel::DenseUint32KeepEvenBits: return "DenseUint32KeepEvenBits";
     case WorldGenerationComputeKernel::DenseUint32SwapAdjacentBits: return "DenseUint32SwapAdjacentBits";
+    case WorldGenerationComputeKernel::DenseUint32CompressOddBits: return "DenseUint32CompressOddBits";
+    case WorldGenerationComputeKernel::DenseUint32CompressEvenBits: return "DenseUint32CompressEvenBits";
+    case WorldGenerationComputeKernel::DenseUint32ExpandLow16ToOdd: return "DenseUint32ExpandLow16ToOdd";
   }
   return nullptr;
 }
@@ -848,6 +857,33 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
       uint32_t odd = (value & 0x55555555u) << 1;
       uint32_t even = (value & 0xaaaaaaaau) >> 1;
       out.append(odd | even);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32CompressOddBits) {
+    for (uint32_t value : input) {
+      uint32_t x = value & 0x55555555u;
+      x = (x | (x >> 1)) & 0x33333333u;
+      x = (x | (x >> 2)) & 0x0f0f0f0fu;
+      x = (x | (x >> 4)) & 0x00ff00ffu;
+      x = (x | (x >> 8)) & 0x0000ffffu;
+      out.append(x);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32CompressEvenBits) {
+    for (uint32_t value : input) {
+      uint32_t x = (value >> 1) & 0x55555555u;
+      x = (x | (x >> 1)) & 0x33333333u;
+      x = (x | (x >> 2)) & 0x0f0f0f0fu;
+      x = (x | (x >> 4)) & 0x00ff00ffu;
+      x = (x | (x >> 8)) & 0x0000ffffu;
+      out.append(x);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32ExpandLow16ToOdd) {
+    for (uint32_t value : input) {
+      uint32_t x = value & 0xffffu;
+      x = (x | (x << 8)) & 0x00ff00ffu;
+      x = (x | (x << 4)) & 0x0f0f0f0fu;
+      x = (x | (x << 2)) & 0x33333333u;
+      x = (x | (x << 1)) & 0x55555555u;
+      out.append(x);
     }
   }
   return out;

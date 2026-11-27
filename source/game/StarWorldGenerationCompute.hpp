@@ -105,7 +105,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32ByteAnd = 79, // AND of the four bytes as uint32; parameter ignored
   DenseUint32KeepOddBits = 80, // value & 0x55555555; parameter ignored
   DenseUint32KeepEvenBits = 81, // value & 0xaaaaaaaa; parameter ignored
-  DenseUint32SwapAdjacentBits = 82 // swap bit pairs 0\leftrightarrow1, 2\leftrightarrow3, …; parameter ignored
+  DenseUint32SwapAdjacentBits = 82, // swap bit pairs 0\leftrightarrow1, 2\leftrightarrow3, …; parameter ignored
+  DenseUint32CompressOddBits = 83, // pack bits 0,2,4,… into low 16 bits; parameter ignored
+  DenseUint32CompressEvenBits = 84, // pack bits 1,3,5,… into low 16 bits; parameter ignored
+  DenseUint32ExpandLow16ToOdd = 85 // place low 16 bits into positions 0,2,4,…; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
