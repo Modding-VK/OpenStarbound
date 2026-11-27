@@ -150,7 +150,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32HalfNe = 124, // 0xffffffff if low16 != high16, else 0; parameter ignored
   DenseUint32HalfLeu = 125, // 0xffffffff if low16 <= high16, else 0; parameter ignored
   DenseUint32HalfGeu = 126, // 0xffffffff if low16 >= high16, else 0; parameter ignored
-  DenseUint32HalfAvg = 127 // (low16 + high16) >> 1; parameter ignored
+  DenseUint32HalfAvg = 127, // (low16 + high16) >> 1; parameter ignored
+  DenseUint32BroadcastHighHalf = 128, // replicate high 16 bits into both halves; parameter ignored
+  DenseUint32HalfSub = 129, // low16 - high16 (uint32 wrap); parameter ignored
+  DenseUint32HalfMul = 130 // low16 * high16 (uint32 product); parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
