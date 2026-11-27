@@ -1419,6 +1419,23 @@ TEST(WorldGenerationComputeTest, DiscardTerminalOpenTicketsDrainsAllTerminal) {
 }
 
 
+TEST(WorldGenerationComputeTest, DiscardPendingOpenTicketsDrainsAllPending) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  EXPECT_EQ(0u, service.discardPendingOpenTickets());
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(1400, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(1401, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{2u}, 0u));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(1402, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{3u}, 0u));
+  EXPECT_EQ(3u, service.countPendingOpenTickets());
+  EXPECT_EQ(3u, service.discardPendingOpenTickets());
+  EXPECT_EQ(0u, service.countPendingOpenTickets());
+  EXPECT_EQ(0u, service.openTickets());
+  EXPECT_EQ(0u, service.discardPendingOpenTickets());
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32HalfSumMaxMinExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();
