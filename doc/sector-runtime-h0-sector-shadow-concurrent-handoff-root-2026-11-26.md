@@ -21,4 +21,6 @@ anterior).
 
 ## Próximo passo
 
-Contexto profundo/assets de CPU-01. Não disparar Actions.
+Fronteira de assets em
+[sombra vs hotReload](sector-runtime-h0-sector-shadow-asset-hotreload-2026-11-26.md).
+Segue mods/loadMods. Não disparar Actions.
