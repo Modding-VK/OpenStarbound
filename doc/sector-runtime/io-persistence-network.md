@@ -79,6 +79,12 @@ estrutura parcial ou geração repetida de setor salvo.
 
 ## IO-04 — Unload, drain e retorno ao legado
 
+Primeiro recorte em `cursor/h3-kernels-publication-9f77`:
+`WorldGenerationShadowUnloadHarness` revoga publish no unload, drena/descarta
+conclusões, protege `keepAlive`, bloqueia handoff parcial sem checkpoint e
+libera buffers só após drain — sobre o harness IO-03, sem `.world`/SQLite.
+Ver [relatório](../sector-runtime-h3-shadow-unload-2026-11-27.md).
+
 Unload retira autorização de publicar, preserva reservas usadas e aguarda ou
 descarta conclusões pelo protocolo do produtor. Entidades `keepAlive`, índices
 únicos e referências de scripts conservam seus contratos.

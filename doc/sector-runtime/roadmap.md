@@ -478,7 +478,9 @@ Propósito: reduzir trabalho serial após o desbloqueio do pipeline.
 - [x] IO-03 (primeiro recorte): checkpoint/recovery coerente em sombra
   ([relatório](../sector-runtime-h3-shadow-checkpoint-2026-11-27.md));
   sem `.world`.
-- [ ] IO-04: unload/drain coerente com novos produtos (ainda sombra).
+- [x] IO-04 (primeiro recorte): unload/drain em sombra
+  ([relatório](../sector-runtime-h3-shadow-unload-2026-11-27.md));
+  sem `.world`.
 - [ ] IO-05: pacote confirmado e medição até aplicação no cliente.
 
 Saída: custo serial menor por setor/estrutura, com save, scripts e rede

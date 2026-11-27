@@ -145,6 +145,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_publication_pass_test.cpp
   world_generation_shadow_db_test.cpp
   world_generation_shadow_checkpoint_test.cpp
+  world_generation_shadow_unload_test.cpp
   world_generation_base_tiles_test.cpp
   world_generation_block_info_test.cpp
   world_generation_custom_terrain_test.cpp

@@ -25,10 +25,11 @@ NoAssets `WorldGenerationShadowCheckpointTest.*`: **6/6**.
 
 ## Limitações
 
-Sem disco, sem donas regionais reais, sem B-tree vivo. IO-04 unload e IO-05
-pacotes/cliente continuam abertos. Publish vivo permanece fora.
+Sem disco, sem donas regionais reais, sem B-tree vivo. IO-04 primeiro recorte
+em [shadow unload](sector-runtime-h3-shadow-unload-2026-11-27.md); IO-05
+pacotes/cliente continua aberto. Publish vivo permanece fora.
 
 ## Próximo
 
-IO-04 unload/drain em sombra, ou amarração do checkpoint ao frontier WT-04
+IO-05 pacotes em sombra, ou amarração do checkpoint ao frontier WT-04
 confirmado — ainda sem `.world`.
