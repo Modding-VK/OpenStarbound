@@ -409,6 +409,9 @@ public:
   // Cancelled open tickets whose identity.kernel matches (asset-free observation).
   List<WorldGenerationComputeTicket> listCancelledOpenTicketsByKernel(
       WorldGenerationComputeKernel kernel) const;
+  // Pending open tickets whose identity.kernel matches (asset-free observation).
+  List<WorldGenerationComputeTicket> listPendingOpenTicketsByKernel(
+      WorldGenerationComputeKernel kernel) const;
   size_t countOpenTicketsByKernel(WorldGenerationComputeKernel kernel) const;
   // True while the ticket id is still present in the open-entry table.
   bool ticketIsOpen(WorldGenerationComputeTicket ticket) const;
