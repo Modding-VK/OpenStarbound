@@ -149,10 +149,10 @@ BaseTiles e seleção de candidatos percorrem dados semelhantes; compartilhar
 cálculo e cache local antes de criar mais produtores independentes. Finalize
 continua filtrando pelo `dungeonId` e pelos efeitos reais da geração anterior.
 
-Primeiro recorte H1 sombra (27/11/2026): `WorldGenerationPreparedSectorStore`
-guarda Empty/OrderedCandidates versionados e compartilháveis; sem BaseTiles
-no produto nem install. Ver
-[prepared sector](../sector-runtime-h1-prepared-sector-2026-11-27.md).
+Recorte H1 sombra (27/11/2026): `WorldGenerationPreparedSectorStore` guarda
+Empty/OrderedCandidates/BaseTilesPrivate/TerrainFields/StepDelta, expõe
+`payloadView` / `worldStoragePath` / `probeHandoff` sem escrever WorldStorage.
+Ver [prepared sector](../sector-runtime-h1-prepared-sector-2026-11-27.md).
 
 ## CPU-03 — Executor processual e granularidade
 

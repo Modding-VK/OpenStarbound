@@ -2,15 +2,15 @@
 
 Atualizado em **27/11/2026**. Branch de integração:
 `cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+R1; não `main`).
-Última H0: MOD-01 EffectBoundary profundo; VAL-02 BiomeItem completo (25%).
 Última R1: ThreadStub CPU/OS (`6947bbb9`).
-Última H1: DAG-03 TTL/carga/herança/eta/trace (50% sombra).
-Última H2: cache/prefetch/batch/IO (RAM-02..IO-01); PreparedSector canônico = H1.
+Última H0: MOD-01 EffectBoundary profundo; VAL-02 BiomeItem completo (25%).
+Última H1: PreparedSector payload/WorldStorage path sombra (`4d014af2`); DAG-03 50%.
+Última H2: cache/prefetch/batch/IO; PreparedSector canônico = H1.
 Última H3: CPU-04 + MD-02..05 + WT-04 + IO-02..05 sombra (25%).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
 · [Relatório H0](../sector-runtime-h0-effect-boundary-deep-2026-11-27.md)
-· [Relatório H1](../sector-runtime-h1-executive-interest-priority-2026-11-27.md)
+· [Relatório H1](../sector-runtime-h1-prepared-sector-2026-11-27.md)
 · [Relatório H2](../sector-runtime-h2-resident-prefetch-batch-io-2026-11-27.md)
 · [Relatório H3](../sector-runtime-h3-shadow-packet-2026-11-27.md)
 · [Relatório R1](../sector-runtime-r1-thread-stub-cpu-2026-11-27.md)
@@ -34,7 +34,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **18,4%** — 36 marcos verificados de 196 |
 | Contratos com avanço registrado | **35 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | H0–H3 + R1 regional 35 testes (ThreadStub CPU/OS); PreparedSector = API H1; sem Actions |
+| Última evidência de testes | H0–H3 + R1 + H1 PreparedSector payload/path (7 testes); PreparedSector = API H1; sem Actions |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 18,4% não significam que o jogo esteja só 18,4% pronto.** O runtime anterior
@@ -143,9 +143,9 @@ autoritativa. GPU é opcional, com fallback CPU completo.
    interesse→entrega e resposta do update/frame. Não pedir apenas outra run
    sem definir hipótese e comparador.
 5. **H1 nesta branch:** DAG-03 em 50% sombra; demais contratos H1 em 25%.
-   Próximos recortes independentes: BaseTiles no produto CPU-02 (sem install)
-   ou amarrar governor→scheduler em harness. 75% exige caminho vivo /
-   `cursor/integration-sector-runtime-7342`. Não publicar no mundo vivo.
+   Payload/WorldStorage path sombra entregue para H2 (`payloadView` /
+   `probeHandoff`). 75%/install vivo só via Project/integração. Não publicar
+   no mundo vivo.
 
 RAM-01 não exige contabilizar cada heap do motor antes de qualquer protótipo
 H1; exige identificar o escopo coberto, as exclusões e os limites antes da
@@ -171,7 +171,7 @@ auditoria de todas as implementações antigas para conceder crédito retroativo
 | 8 | H1 | [DAG-03](dependency-scheduler.md) | Prioridade, justiça e distância correta | 50% | TTL/load/eta/unlock/trace sombra ok; 75% exige integração viva |
 | 9 | H1 | [DAG-05](dependency-scheduler.md) | Cancelamento, falha e invalidação | 25% | Retry/drain sombra; retenção até término físico no executor vivo pendente |
 | 10 | H1 | [CPU-01](cpu-and-stages.md) | Contexto privado de cálculo | 25% | Composto+sombra+handoff+hotReload/loadMods; falta gates H0 antes de H1 |
-| 11 | H1 | [CPU-02](cpu-and-stages.md) | Produto PreparedSector | 25% | Empty/Candidates/BaseTilesPrivate sombra (API H1 canônica); campos/delta e install vivo pendentes |
+| 11 | H1 | [CPU-02](cpu-and-stages.md) | Produto PreparedSector | 25% | payload/path WorldStorage sombra ok (API H1); install vivo e tipagem Terrain/Delta pendentes |
 | 12 | H1 | [MD-01](microdungeons-and-tmx.md) | Seleção leve e identidade | 25% | Candidatos sem halo na sombra; path MicroDungeons vivo pendente |
 | 13 | H1 | [CPU-03](cpu-and-stages.md) | Executor processual e granularidade | 25% | Scheduler sombra startNext/complete; pool/afinidade/lotes multi-setor pendentes |
 | 14 | H1 | [WT-01](worldthread.md) | Serviço de conclusões e drenagem | 25% | drainMailbox sombra; pontos no caminho vivo e fora-de-ordem autoritativo pendentes |
@@ -407,6 +407,8 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | Integração R1 | Merge `--no-ff` R1 `f90055ff` em `cursor/integration-sector-runtime-7342`; R1 25%; programa 16,8%→18,4% | 18,4% |
 | 27/11/2026 | R1 thread CPU | OS thread CPU via Thread::invoke; 35 testes. % R1 permanece 25% | 5,6% |
 | 27/11/2026 | Integração R1 CPU stub | Merge `--no-ff` R1 `6947bbb9` (OS Thread::invoke) em INT; R1 permanece 25% | 18,4% |
+| 27/11/2026 | PreparedSector payload/path | payloadView/worldStoragePath/probeHandoff + TerrainFields/StepDelta opacos; 7 Prepared* testes. CPU-02 permanece 25% (sem install vivo) | 8,7% |
+| 27/11/2026 | Integração H1 payload/path | Merge `--no-ff` H1 `4d014af2` em INT; CPU-02 permanece 25% | 18,4% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.
