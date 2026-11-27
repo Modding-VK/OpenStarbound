@@ -120,7 +120,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32GrayDecode
       || kernel == WorldGenerationComputeKernel::DenseUint32SmearLsb
       || kernel == WorldGenerationComputeKernel::DenseUint32ClearMsb
-      || kernel == WorldGenerationComputeKernel::DenseUint32ByteXor;
+      || kernel == WorldGenerationComputeKernel::DenseUint32ByteXor
+      || kernel == WorldGenerationComputeKernel::DenseUint32SmearMsb
+      || kernel == WorldGenerationComputeKernel::DenseUint32ByteOr
+      || kernel == WorldGenerationComputeKernel::DenseUint32ByteAnd;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -204,7 +207,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32GrayDecode,
       WorldGenerationComputeKernel::DenseUint32SmearLsb,
       WorldGenerationComputeKernel::DenseUint32ClearMsb,
-      WorldGenerationComputeKernel::DenseUint32ByteXor};
+      WorldGenerationComputeKernel::DenseUint32ByteXor,
+      WorldGenerationComputeKernel::DenseUint32SmearMsb,
+      WorldGenerationComputeKernel::DenseUint32ByteOr,
+      WorldGenerationComputeKernel::DenseUint32ByteAnd};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -214,7 +220,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 76u;
+  return 79u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -312,6 +318,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32SmearLsb: return "DenseUint32SmearLsb";
     case WorldGenerationComputeKernel::DenseUint32ClearMsb: return "DenseUint32ClearMsb";
     case WorldGenerationComputeKernel::DenseUint32ByteXor: return "DenseUint32ByteXor";
+    case WorldGenerationComputeKernel::DenseUint32SmearMsb: return "DenseUint32SmearMsb";
+    case WorldGenerationComputeKernel::DenseUint32ByteOr: return "DenseUint32ByteOr";
+    case WorldGenerationComputeKernel::DenseUint32ByteAnd: return "DenseUint32ByteAnd";
   }
   return nullptr;
 }
@@ -799,6 +808,26 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
       uint32_t x = value ^ (value >> 8) ^ (value >> 16) ^ (value >> 24);
       out.append(x & 0xffu);
     }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32SmearMsb) {
+    for (uint32_t value : input) {
+      uint32_t v = value;
+      v |= v >> 1;
+      v |= v >> 2;
+      v |= v >> 4;
+      v |= v >> 8;
+      v |= v >> 16;
+      out.append(v);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32ByteOr) {
+    for (uint32_t value : input) {
+      uint32_t x = value | (value >> 8) | (value >> 16) | (value >> 24);
+      out.append(x & 0xffu);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32ByteAnd) {
+    for (uint32_t value : input) {
+      uint32_t x = value & (value >> 8) & (value >> 16) & (value >> 24);
+      out.append(x & 0xffu);
+    }
   }
   return out;
 }
@@ -878,6 +907,20 @@ List<WorldGenerationComputeTicket> WorldGenerationComputeService::listOpenTicket
   List<WorldGenerationComputeTicket> out;
   for (auto const& pair : m_entries) {
     if (pair.second.identity.kernel != kernel)
+      continue;
+    WorldGenerationComputeTicket ticket;
+    ticket.id = pair.first;
+    out.append(ticket);
+  }
+  return out;
+}
+
+List<WorldGenerationComputeTicket> WorldGenerationComputeService::listReadyOpenTicketsByKernel(
+    WorldGenerationComputeKernel kernel) const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  List<WorldGenerationComputeTicket> out;
+  for (auto const& pair : m_entries) {
+    if (pair.second.state != EntryState::Ready || pair.second.identity.kernel != kernel)
       continue;
     WorldGenerationComputeTicket ticket;
     ticket.id = pair.first;

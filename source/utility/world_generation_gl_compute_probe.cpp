@@ -207,6 +207,12 @@ int main() {
       "DenseUint32ClearMsb");
   rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32ByteXor, 0u,
       "DenseUint32ByteXor");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32SmearMsb, 0u,
+      "DenseUint32SmearMsb");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32ByteOr, 0u,
+      "DenseUint32ByteOr");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32ByteAnd, 0u,
+      "DenseUint32ByteAnd");
 
   auto ticket = service.submit(makeIdentity(99, WorldGenerationComputeKernel::DenseUint32Xor),
       edgeCorpus(), 0x55aa55aau, WorldGenerationComputeBackend::GpuOpenGlCompute);
