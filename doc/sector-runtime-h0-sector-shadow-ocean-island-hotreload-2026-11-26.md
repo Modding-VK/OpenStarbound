@@ -19,4 +19,6 @@ ASan/UBSan: 1×5; **95/95** RealBlockInfo.
 
 ## Próximo passo
 
-loadMods sob oceano/Island/noise. Não disparar Actions.
+loadMods em
+[ocean-island loadmods](sector-runtime-h0-sector-shadow-ocean-island-loadmods-2026-11-26.md).
+Segue noise/adjacente sob assets. Não disparar Actions.
