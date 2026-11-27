@@ -246,7 +246,34 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32HalfClampNibble = 220, // clamp each low16 nibble to [(parameter&0xf), ((parameter>>8)&0xf)]
   DenseUint32HalfAndNibble = 221, // AND each low16 nibble with (parameter & 0xf)
   DenseUint32HalfOrNibble = 222, // OR each low16 nibble with (parameter & 0xf)
-  DenseUint32HalfXorNibble = 223 // XOR each low16 nibble with (parameter & 0xf)
+  DenseUint32HalfXorNibble = 223, // XOR each low16 nibble with (parameter & 0xf)
+  DenseUint32HalfShlNibble = 224, // shift each low16 nibble left by (parameter & 3) (wrap 4-bit)
+  DenseUint32HalfShrNibble = 225, // shift each low16 nibble right by (parameter & 3)
+  DenseUint32HalfRolNibble = 226, // rotate each low16 nibble left by (parameter & 3)
+  DenseUint32HalfRorNibble = 227, // rotate each low16 nibble right by (parameter & 3)
+  DenseUint32HalfNotNibble = 228, // (~each low16 nibble) & 0xf; parameter ignored
+  DenseUint32HalfNegNibble = 229, // (0 - each low16 nibble) & 0xf; parameter ignored
+  DenseUint32HalfAbsNibble = 230, // signed abs of each low16 nibble; 0x8 stays 0x8
+  DenseUint32HalfSignMaskNibble = 231, // 0xf if nibble high bit set else 0; parameter ignored
+  DenseUint32HalfIsZeroNibble = 232, // 0xf if nibble==0 else 0; parameter ignored
+  DenseUint32HalfIsNonzeroNibble = 233, // 0xf if nibble!=0 else 0; parameter ignored
+  DenseUint32HalfEqNibble = 234, // 0xf if nibble==(parameter&0xf) else 0
+  DenseUint32HalfNeNibble = 235, // 0xf if nibble!=(parameter&0xf) else 0
+  DenseUint32HalfLtNibble = 236, // 0xf if nibble < (parameter&0xf) else 0
+  DenseUint32HalfLeNibble = 237, // 0xf if nibble <= (parameter&0xf) else 0
+  DenseUint32HalfGtNibble = 238, // 0xf if nibble > (parameter&0xf) else 0
+  DenseUint32HalfGeNibble = 239, // 0xf if nibble >= (parameter&0xf) else 0
+  DenseUint32HalfBetweenNibble = 240, // 0xf if nibble in [(parameter&0xf),((parameter>>8)&0xf)]
+  DenseUint32HalfOutsideNibble = 241, // 0xf if nibble outside [(parameter&0xf),((parameter>>8)&0xf)]
+  DenseUint32HalfPopcountNibble = 242, // popcount of each low16 nibble (0..4); parameter ignored
+  DenseUint32HalfParityNibble = 243, // popcount(nibble)&1 for each low16 nibble; parameter ignored
+  DenseUint32HalfReverseBitsNibble = 244, // reverse 4 bits of each low16 nibble; parameter ignored
+  DenseUint32HalfIsolateLsbNibble = 245, // nibble & -nibble for each low16 nibble; parameter ignored
+  DenseUint32HalfClearLsbNibble = 246, // nibble & (nibble-1) for each low16 nibble; parameter ignored
+  DenseUint32HalfSmearLsbNibble = 247, // nibble | (nibble-1) for each low16 nibble; parameter ignored
+  DenseUint32HalfIsolateMsbNibble = 248, // highest set bit of each low16 nibble; 0 stays 0
+  DenseUint32HalfClearMsbNibble = 249, // clear highest set bit of each low16 nibble; 0 stays 0
+  DenseUint32HalfSmearMsbNibble = 250 // fill ones downward from MSB of each low16 nibble; 0 stays 0
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -450,6 +477,8 @@ public:
   size_t countOpenKernels() const;
   // True while any open ticket exists (asset-free observation).
   bool anyOpenKernels() const;
+  // True while any open ticket exists (ticket-named alias; asset-free).
+  bool anyOpenTickets() const;
   // Distinct identity.kernel values among Ready open tickets (asset-free).
   List<WorldGenerationComputeKernel> listReadyOpenKernels() const;
   // Count of distinct identity.kernel values among Ready open tickets (asset-free).
@@ -468,6 +497,12 @@ public:
   size_t countCancelledOpenKernels() const;
   // True while any Cancelled open ticket exists (asset-free observation).
   bool anyCancelledOpenKernels() const;
+  // Distinct identity.kernel values among terminal open tickets (asset-free).
+  List<WorldGenerationComputeKernel> listTerminalOpenKernels() const;
+  // Count of distinct identity.kernel values among terminal open tickets.
+  size_t countTerminalOpenKernels() const;
+  // True while any terminal open ticket exists (distinct-kernel presence).
+  bool anyTerminalOpenKernels() const;
   // Distinct identity.kernel values among Pending open tickets (asset-free).
   List<WorldGenerationComputeKernel> listPendingOpenKernels() const;
   // Count of distinct identity.kernel values among Pending open tickets (asset-free).
@@ -480,12 +515,16 @@ public:
   size_t countFailedOpenTickets() const;
   // Count of Cancelled open tickets (asset-free observation; not distinct kernels).
   size_t countCancelledOpenTickets() const;
+  // Count of terminal (Ready/Failed/Cancelled) open tickets (asset-free).
+  size_t countTerminalOpenTickets() const;
   // True while any Ready open ticket exists (asset-free observation).
   bool anyReadyOpenTickets() const;
   // True while any Failed open ticket exists (asset-free observation).
   bool anyFailedOpenTickets() const;
   // True while any Cancelled open ticket exists (asset-free observation).
   bool anyCancelledOpenTickets() const;
+  // True while any terminal (Ready/Failed/Cancelled) open ticket exists.
+  bool anyTerminalOpenTickets() const;
   // True while any Pending open ticket exists (asset-free observation).
   bool anyPendingOpenTickets() const;
   // True while any Pending open ticket exists (asset-free observation).
@@ -502,6 +541,13 @@ public:
   // Cancelled open tickets whose identity.kernel matches (asset-free observation).
   List<WorldGenerationComputeTicket> listCancelledOpenTicketsByKernel(
       WorldGenerationComputeKernel kernel) const;
+  // Terminal open tickets whose identity.kernel matches (asset-free observation).
+  List<WorldGenerationComputeTicket> listTerminalOpenTicketsByKernel(
+      WorldGenerationComputeKernel kernel) const;
+  // Count of terminal open tickets whose identity.kernel matches (asset-free).
+  size_t countTerminalOpenTicketsByKernel(WorldGenerationComputeKernel kernel) const;
+  // True while any terminal open ticket matches identity.kernel (asset-free).
+  bool anyTerminalOpenTicketsByKernel(WorldGenerationComputeKernel kernel) const;
   // Pending open tickets whose identity.kernel matches (asset-free observation).
   List<WorldGenerationComputeTicket> listPendingOpenTicketsByKernel(
       WorldGenerationComputeKernel kernel) const;

@@ -840,3 +840,8 @@ integração: **nenhum**.
 ## Revisão 2026-11-27T23:15Z — lote H4 ≥15min
 - Merge H4 tip `81a04ab6` (168/168; agrupa 7 tips desde `929e0147`).
 - Build `46081346603` @ `edec53e1` intacto; 1 Build tip final após terminal; sem spam.
+
+## Sync 2026-11-27T23:31Z
+- Merge H4 tip `5e2e848b` (186/186; inclui `68f8cb3a`+; janela ≥15 min desde `9df5c3e7`).
+- Build `46081346603` SUCCESS @ `edec53e1` → 1 Build tip final; sem spam.
+- H5 standby; frentes restantes ahead=0 pós-merge H4 (salvo novos).
