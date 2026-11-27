@@ -21,4 +21,6 @@ ASan/UBSan: 1×5; **86/86** RealBlockInfo.
 
 ## Próximo passo
 
-Noise-cache lifecycle e demais gates H0. Não disparar Actions.
+Noise lifecycle em
+[noise lifecycle](sector-runtime-h0-sector-shadow-noise-lifecycle-2026-11-26.md).
+Segue gates H0 restantes. Não disparar Actions.
