@@ -214,6 +214,9 @@ GLuint g_halfBswapProgram = 0;
 GLuint g_halfNotProgram = 0;
 GLuint g_halfNegProgram = 0;
 GLuint g_halfAbsProgram = 0;
+GLuint g_halfSignMaskProgram = 0;
+GLuint g_halfIsZeroProgram = 0;
+GLuint g_halfIsNonzeroProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -2715,6 +2718,48 @@ void main() {
 }
 )GLSL";
 
+char const* HalfSignMaskShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = (values[i] & 0x8000u) != 0u ? 0xffffffffu : 0u;
+}
+)GLSL";
+
+char const* HalfIsZeroShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = (values[i] & 0xffffu) == 0u ? 0xffffffffu : 0u;
+}
+)GLSL";
+
+char const* HalfIsNonzeroShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = (values[i] & 0xffffu) != 0u ? 0xffffffffu : 0u;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -3379,6 +3424,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfAbsProgram);
     g_halfAbsProgram = 0;
   }
+  if (g_halfSignMaskProgram) {
+    glDeleteProgram(g_halfSignMaskProgram);
+    g_halfSignMaskProgram = 0;
+  }
+  if (g_halfIsZeroProgram) {
+    glDeleteProgram(g_halfIsZeroProgram);
+    g_halfIsZeroProgram = 0;
+  }
+  if (g_halfIsNonzeroProgram) {
+    glDeleteProgram(g_halfIsNonzeroProgram);
+    g_halfIsNonzeroProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -3635,7 +3692,10 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfBswapProgram, HalfBswapShader, "DenseUint32HalfBswap")
       || !requireProgram(g_halfNotProgram, HalfNotShader, "DenseUint32HalfNot")
       || !requireProgram(g_halfNegProgram, HalfNegShader, "DenseUint32HalfNeg")
-      || !requireProgram(g_halfAbsProgram, HalfAbsShader, "DenseUint32HalfAbs"))
+      || !requireProgram(g_halfAbsProgram, HalfAbsShader, "DenseUint32HalfAbs")
+      || !requireProgram(g_halfSignMaskProgram, HalfSignMaskShader, "DenseUint32HalfSignMask")
+      || !requireProgram(g_halfIsZeroProgram, HalfIsZeroShader, "DenseUint32HalfIsZero")
+      || !requireProgram(g_halfIsNonzeroProgram, HalfIsNonzeroShader, "DenseUint32HalfIsNonzero"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -4008,6 +4068,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfNegProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfAbs)
     program = g_halfAbsProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSignMask)
+    program = g_halfSignMaskProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfIsZero)
+    program = g_halfIsZeroProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfIsNonzero)
+    program = g_halfIsNonzeroProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
