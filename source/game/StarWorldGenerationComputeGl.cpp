@@ -91,6 +91,9 @@ GLuint g_mulHiProgram = 0;
 GLuint g_andNotProgram = 0;
 GLuint g_satAddProgram = 0;
 GLuint g_satSubProgram = 0;
+GLuint g_orNotProgram = 0;
+GLuint g_avgProgram = 0;
+GLuint g_isPow2Program = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -542,6 +545,50 @@ void main() {
 }
 )GLSL";
 
+char const* OrNotShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = values[i] | ~uParameter;
+}
+)GLSL";
+
+char const* AvgShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  values[i] = (v >> 1u) + (uParameter >> 1u) + (v & uParameter & 1u);
+}
+)GLSL";
+
+char const* IsPow2Shader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  values[i] = (v != 0u && (v & (v - 1u)) == 0u) ? 0xffffffffu : 0u;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -714,6 +761,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_satSubProgram);
     g_satSubProgram = 0;
   }
+  if (g_orNotProgram) {
+    glDeleteProgram(g_orNotProgram);
+    g_orNotProgram = 0;
+  }
+  if (g_avgProgram) {
+    glDeleteProgram(g_avgProgram);
+    g_avgProgram = 0;
+  }
+  if (g_isPow2Program) {
+    glDeleteProgram(g_isPow2Program);
+    g_isPow2Program = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -831,7 +890,10 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_mulHiProgram, MulHiShader, "DenseUint32MulHi")
       || !requireProgram(g_andNotProgram, AndNotShader, "DenseUint32AndNot")
       || !requireProgram(g_satAddProgram, SatAddShader, "DenseUint32SatAdd")
-      || !requireProgram(g_satSubProgram, SatSubShader, "DenseUint32SatSub"))
+      || !requireProgram(g_satSubProgram, SatSubShader, "DenseUint32SatSub")
+      || !requireProgram(g_orNotProgram, OrNotShader, "DenseUint32OrNot")
+      || !requireProgram(g_avgProgram, AvgShader, "DenseUint32Avg")
+      || !requireProgram(g_isPow2Program, IsPow2Shader, "DenseUint32IsPow2"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -958,6 +1020,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_satAddProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32SatSub)
     program = g_satSubProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32OrNot)
+    program = g_orNotProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Avg)
+    program = g_avgProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32IsPow2)
+    program = g_isPow2Program;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
