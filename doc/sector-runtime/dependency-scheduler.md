@@ -71,6 +71,14 @@ Primeira implementação em sombra: confrontar o grafo com o caminho recursivo,
 registrando divergências sem mudar resultados. Depois permitir antecipação
 pura; publicação fora da sequência antiga exige validação própria.
 
+Primeiro recorte H1 (`cursor/h1-graph-cpu-9f77`, 27/11/2026):
+`WorldGenerationExecutiveShadowGraph` ingere planos recursivos com nós
+compartilhados, demanda por consumidor e arestas de preparação/publicação
+separadas; `comparePreparationToPlan` / `comparePublicationToPlan` só
+registram divergências. Ver
+[relatório](../sector-runtime-h1-executive-shadow-2026-11-27.md). Ainda não há
+mailbox, prioridade herdada nem ligação ao caminho de geração ao vivo.
+
 ## DAG-03 — Prioridade, justiça e distância correta
 
 Definir prioridade por classe de interesse, prazo estimado de chegada, idade

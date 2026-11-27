@@ -423,7 +423,9 @@ espera reproduzíveis. Não depende de uma nova amostra TMX para começar.
 Propósito: transformar orçamento e núcleos livres em progresso de setores.
 Depende de H0 para identidade e comparação.
 
-- [ ] DAG-02: nós compartilhados, demanda por consumidor e grafo em sombra.
+- [x] DAG-02: nós compartilhados, demanda por consumidor e grafo em sombra
+  (primeiro recorte 25%; ver
+  [executive shadow](../sector-runtime-h1-executive-shadow-2026-11-27.md)).
 - [ ] DAG-03: prioridade herdada, justiça e distância com wrap.
 - [ ] DAG-04/05: mailbox, revalidação, retry e cancelamento com drain.
 - [ ] CPU-01: primeiro recorte proprietário de custom terrain em 25%; completar
