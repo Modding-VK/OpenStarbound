@@ -140,6 +140,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_execution_profile_test.cpp
   world_generation_scenario_matrix_test.cpp
   world_generation_scenario_campaign_test.cpp
+  world_generation_scale_evidence_test.cpp
   world_generation_adoption_gates_test.cpp
   world_generation_equivalence_version_test.cpp
   world_generation_platform_matrix_test.cpp
@@ -195,6 +196,7 @@ FOREACH(world_region_test_suite
     WorldGenerationExecutionProfileTest
     WorldGenerationScenarioMatrixTest
     WorldGenerationScenarioCampaignTest
+    WorldGenerationScaleEvidenceTest
     WorldGenerationAdoptionGatesTest
     WorldGenerationEquivalenceVersionTest
     WorldGenerationPlatformMatrixTest
