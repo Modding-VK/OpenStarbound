@@ -18,4 +18,5 @@ ASan/UBSan: 1×5; **79/79** RealBlockInfo.
 
 ## Próximo passo
 
-Gates H0 restantes antes de H1. Não disparar Actions.
+Noise em [noise handoff](sector-runtime-h0-sector-shadow-noise-handoff-2026-11-26.md).
+Segue gates H0 antes de H1. Não disparar Actions.

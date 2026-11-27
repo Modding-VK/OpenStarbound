@@ -18,4 +18,6 @@ ASan/UBSan: 1×5; **80/80** RealBlockInfo.
 
 ## Próximo passo
 
-Gates H0 restantes antes de H1. Não disparar Actions.
+Oceano invalidate em
+[ocean invalidate](sector-runtime-h0-sector-shadow-ocean-invalidate-2026-11-26.md).
+Segue gates H0 antes de H1. Não disparar Actions.
