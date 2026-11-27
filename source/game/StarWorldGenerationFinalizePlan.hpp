@@ -119,19 +119,76 @@ inline List<WorldGenerationFinalizeDeltaEntry> planWorldGenerationFinalizeNormal
   return delta;
 }
 
+// Owner-resolved flora/object/treasure candidates. Planning only sorts and
+// records intents; it never constructs plants/entities or touches Root.
+enum class WorldGenerationFinalizePlacementKind : uint8_t {
+  Grass = 0,
+  Bush = 1,
+  Tree = 2,
+  Object = 3,
+  Treasure = 4
+};
+
+struct WorldGenerationFinalizePlacementCandidate {
+  Vec2I position;
+  WorldGenerationFinalizePlacementKind kind = WorldGenerationFinalizePlacementKind::Grass;
+  uint64_t seed = 0;
+  int priority = 0;
+};
+
+struct WorldGenerationFinalizePlacementIntent {
+  Vec2I position;
+  WorldGenerationFinalizePlacementKind kind = WorldGenerationFinalizePlacementKind::Grass;
+  uint64_t seed = 0;
+
+  bool operator==(WorldGenerationFinalizePlacementIntent const& other) const {
+    return position == other.position && kind == other.kind && seed == other.seed;
+  }
+};
+
+inline List<WorldGenerationFinalizePlacementIntent> planWorldGenerationFinalizePlacementIntents(
+    RectI sectorTiles, List<WorldGenerationFinalizePlacementCandidate> const& candidates) {
+  List<WorldGenerationFinalizePlacementCandidate> selected;
+  for (auto const& candidate : candidates) {
+    if (sectorTiles.contains(candidate.position))
+      selected.append(candidate);
+  }
+  sort(selected.begin(), selected.end(),
+      [](WorldGenerationFinalizePlacementCandidate const& a,
+          WorldGenerationFinalizePlacementCandidate const& b) {
+        if (a.priority != b.priority)
+          return a.priority < b.priority;
+        if (a.position[1] != b.position[1])
+          return a.position[1] < b.position[1];
+        if (a.position[0] != b.position[0])
+          return a.position[0] < b.position[0];
+        return (uint8_t)a.kind < (uint8_t)b.kind;
+      });
+  List<WorldGenerationFinalizePlacementIntent> intents;
+  intents.reserve(selected.size());
+  for (auto const& candidate : selected)
+    intents.append({candidate.position, candidate.kind, candidate.seed});
+  return intents;
+}
+
 class WorldGenerationFinalizePlan {
 public:
   static std::optional<WorldGenerationFinalizePlan> tryPlan(
       WorldGenerationFinalizePlanIdentity identity,
-      WorldGenerationFinalizeSamples const& samples) {
+      WorldGenerationFinalizeSamples const& samples,
+      List<WorldGenerationFinalizePlacementCandidate> const& candidates = {}) {
     if (!identity.valid())
       return std::nullopt;
     auto delta = planWorldGenerationFinalizeNormalizeDelta(identity, samples);
-    return WorldGenerationFinalizePlan(std::move(identity), std::move(delta));
+    auto intents = planWorldGenerationFinalizePlacementIntents(identity.sectorTiles, candidates);
+    return WorldGenerationFinalizePlan(std::move(identity), std::move(delta), std::move(intents));
   }
 
   WorldGenerationFinalizePlanIdentity const& identity() const { return m_identity; }
   List<WorldGenerationFinalizeDeltaEntry> const& delta() const { return m_delta; }
+  List<WorldGenerationFinalizePlacementIntent> const& placementIntents() const {
+    return m_placementIntents;
+  }
   bool active() const { return m_active; }
 
   bool matches(WorldGenerationFinalizePlanIdentity const& expectation) const {
@@ -148,16 +205,22 @@ public:
   void discard() {
     m_active = false;
     m_delta.clear();
+    m_placementIntents.clear();
     m_identity = {};
   }
 
 private:
   WorldGenerationFinalizePlan(WorldGenerationFinalizePlanIdentity identity,
-      List<WorldGenerationFinalizeDeltaEntry> delta)
-    : m_identity(std::move(identity)), m_delta(std::move(delta)), m_active(true) {}
+      List<WorldGenerationFinalizeDeltaEntry> delta,
+      List<WorldGenerationFinalizePlacementIntent> placementIntents)
+    : m_identity(std::move(identity))
+    , m_delta(std::move(delta))
+    , m_placementIntents(std::move(placementIntents))
+    , m_active(true) {}
 
   WorldGenerationFinalizePlanIdentity m_identity;
   List<WorldGenerationFinalizeDeltaEntry> m_delta;
+  List<WorldGenerationFinalizePlacementIntent> m_placementIntents;
   bool m_active = false;
 };
 

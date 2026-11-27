@@ -130,3 +130,24 @@ TEST(WorldGenerationFinalizePlanTest, InvalidIdentityRefusesPlan) {
   identity.tileRevision = 0;
   EXPECT_FALSE(WorldGenerationFinalizePlan::tryPlan(identity, {}).has_value());
 }
+
+TEST(WorldGenerationFinalizePlanTest, PlacementIntentsSortWithoutSpawning) {
+  auto identity = makeIdentity(RectI(0, 0, 8, 8));
+  WorldGenerationFinalizeSamples samples;
+  samples[Vec2I(1, 1)] = cell();
+  List<WorldGenerationFinalizePlacementCandidate> candidates = {
+      {{5, 2}, WorldGenerationFinalizePlacementKind::Tree, 11, 2},
+      {{1, 1}, WorldGenerationFinalizePlacementKind::Grass, 7, 1},
+      {{20, 20}, WorldGenerationFinalizePlacementKind::Object, 3, 0}, // outside sector
+      {{3, 1}, WorldGenerationFinalizePlacementKind::Bush, 9, 1}};
+  auto plan = WorldGenerationFinalizePlan::tryPlan(identity, samples, candidates);
+  ASSERT_TRUE(plan.has_value());
+  ASSERT_EQ(3u, plan->placementIntents().size());
+  EXPECT_EQ(Vec2I(1, 1), plan->placementIntents()[0].position);
+  EXPECT_EQ(WorldGenerationFinalizePlacementKind::Grass, plan->placementIntents()[0].kind);
+  EXPECT_EQ(Vec2I(3, 1), plan->placementIntents()[1].position);
+  EXPECT_EQ(Vec2I(5, 2), plan->placementIntents()[2].position);
+  EXPECT_TRUE(plan->tryConsume(identity));
+  plan->discard();
+  EXPECT_TRUE(plan->placementIntents().empty());
+}

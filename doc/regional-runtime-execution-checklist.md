@@ -250,7 +250,7 @@ executivo e o planejador menor são propostas, ainda não implementadas.
   normalização em sombra em `cursor/h3-kernels-publication-9f77`
   ([CaveLiquid](sector-runtime-h3-cave-liquid-plan-2026-11-27.md),
   [Finalize](sector-runtime-h3-finalize-normalize-2026-11-27.md)).
-- [ ] H3 restante: flora intents, MD/TMX, WT-04 staging e IO-02..05.
+- [ ] H3 restante: equivalência viva CPU-04, MD/TMX, WT-04 staging e IO-02..05.
 - [ ] H4/H5: GPU compute opcional, comparação CPU/GPU em sombra, seleção por
   custo e orçamento de VRAM/latência; manter execução CPU independente.
 

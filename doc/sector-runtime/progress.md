@@ -168,7 +168,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 20 | H2 | [RAM-05](memory-and-prefetch.md) | Cancelamento e reaproveitamento | 0% | Preservar produtos úteis a outros consumidores |
 | 21 | H2 | [WT-03](worldthread.md) | Entrada síncrona em lote | 0% | Admissão consistente da região inteira |
 | 22 | H2 | [IO-01](io-persistence-network.md) | Pipeline único de leitura e promoção | 0% | Promover tiles decodificados sem refazer leitura/decode |
-| 23 | H3 | [CPU-04](cpu-and-stages.md) | Extração por etapa | 25% | CaveLiquid + Finalize normalização em sombra; flora/equivalência viva pendentes |
+| 23 | H3 | [CPU-04](cpu-and-stages.md) | Extração por etapa | 25% | CaveLiquid + Finalize normalize/intents sombra; equivalência viva pendente |
 | 24 | H3 | [MD-02](microdungeons-and-tmx.md) | Formato intermediário estático TMX | 0% | Separar conteúdo estático da ligação autoritativa |
 | 25 | H3 | [MD-03](microdungeons-and-tmx.md) | Ligação e RNG autoritativos | 0% | Preservar ordem/RNG/efeitos na aplicação |
 | 26 | H3 | [MD-04](microdungeons-and-tmx.md) | Comandos, footprint e reserva | 0% | Mapa completo de efeitos/conflitos de estruturas |
@@ -308,6 +308,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 26/11/2026 | Concurrent ocean | Duas sombras oceano no ledger; 106 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 27/11/2026 | H3 CPU-04 CaveLiquid plan | Plano/delta privado sem publish; 7 testes NoAssets. CPU-04 0→25%; H3 2,5%; programa 4,1% | 4,1% |
 | 27/11/2026 | H3 CPU-04 Finalize normalize | Delta normalização privado + estágio FinalizePlan; 7+7 NoAssets. Sem novo marco (CPU-04 permanece 25%) | 4,1% |
+| 27/11/2026 | H3 CPU-04 Finalize intents | Placement intents ordenados sem spawn; 8 Finalize NoAssets. Sem novo marco | 4,1% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

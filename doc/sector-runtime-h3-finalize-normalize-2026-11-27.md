@@ -18,17 +18,19 @@ privado. Sem flora/objetos/tesouros e sem publicação.
 | `WorldGenerationFinalizePlanIdentity` | task + revisões + setor |
 | `planWorldGenerationFinalizeNormalizeDelta` | ops puras sobre amostras |
 | `WorldGenerationFinalizePlan` | `tryPlan` / `tryConsume` / `discard` |
+| `planWorldGenerationFinalizePlacementIntents` | ordena candidatos owner-resolved; sem spawn |
 
 ## Validação
 
-NoAssets: Finalize **7/7** + CaveLiquid **7/7** + estágio coexistente **1**.
+NoAssets: Finalize **8/8** + CaveLiquid **7/7** + estágio coexistente **1**.
 
 ## Limitações
 
-Sem `replaceBiomeBlocks`/`placeBiomeGrass`, sem seleção de flora, sem
-equivalência ao `prepareSector` vivo, sem WT-04. CPU-04 permanece em 25%.
+Sem `replaceBiomeBlocks`/`placeBiomeGrass`, sem consulta a PlantDatabase/
+ObjectDatabase, sem equivalência ao `prepareSector` vivo, sem WT-04.
+CPU-04 permanece em 25%.
 
 ## Próximo
 
-Seleção de flora como intents sem spawn, ou equivalência CaveLiquid/Finalize
-contra fixture. Publicação só com `apis_ready` adequado em H0/H1.
+Equivalência CaveLiquid/Finalize contra fixture, ou MD-02 estático em sombra.
+Publicação só com `apis_ready` adequado em H0/H1.
