@@ -3,11 +3,11 @@
 Atualizado em **27/11/2026**. Branch: `cursor/h4-gpu-shadow-9f77`
 (frente H4; H0 continua em `Experimental`).
 Base inspecionada: `e55c008f`;
-última implementação de runtime nesta frente: DenseUint32 IsNonzero/MaskHigh/SatMul +
-fingerprintShadowSummary (asset-free).
+última implementação de runtime nesta frente: DenseUint32 SwapHalves/Clo/Cto +
+compareShadowNamed (asset-free).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico H4](../sector-runtime-h4-gpu03-04-nonzero-shadowfp-2026-11-27.md)
+· [Último relatório técnico H4](../sector-runtime-h4-gpu03-04-swaphalves-shadownamed-2026-11-27.md)
 · [Último relatório H0](../sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
 · [Backlog geral](../performance-backlog.md)
 
@@ -183,8 +183,8 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 32 | H3 | [IO-05](io-persistence-network.md) | Pacotes e aplicação no cliente | 0% | Medir entrega até o cliente, não apenas commit |
 | 33 | H4 | [GPU-01](gpu-compute.md) | Interface e capacidades CPU/GPU | 25% | submitNamed+runNamedKernel; probe GL opt-in |
 | 34 | H4 | [GPU-02](gpu-compute.md) | Contexto e buffers em voo | 25% | completeOpenTicketsByKernel; WorldThread pendente |
-| 35 | H4 | [GPU-03](gpu-compute.md) | Kernels e equivalência | 25% | DenseUint32* incl. IsNonzero/MaskHigh/SatMul; terreno/ganho pendentes |
-| 36 | H4 | [GPU-04](gpu-compute.md) | Comparação em sombra | 25% | fingerprintShadowSummary+summarize/commit; multi-driver pendente |
+| 35 | H4 | [GPU-03](gpu-compute.md) | Kernels e equivalência | 25% | DenseUint32* incl. SwapHalves/Clo/Cto; terreno/ganho pendentes |
+| 36 | H4 | [GPU-04](gpu-compute.md) | Comparação em sombra | 25% | compareShadowNamed+fingerprintShadowSummary; multi-driver pendente |
 | 37 | H5 | [GPU-05](gpu-compute.md) | Seleção heterogênea e render | 0% | Escolher backend pelo custo de entrega, incluindo transporte |
 | 38 | H5 | [VAL-03](validation-and-telemetry.md) | Métricas e marcos de entrega | 0% | Cobertura integral do novo pipeline e CPU/RAM/VRAM |
 | 39 | H5 | [VAL-04](validation-and-telemetry.md) | Matriz de cenários | 0% | Escala, mundos, memória, GPU/fallback e multiplayer |
@@ -212,8 +212,8 @@ de todas as implementações antigas para conceder crédito retroativo.
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
 | GPU-01 | [named/backend](../sector-runtime-h4-gpu01-03-bswap-named-backend-2026-11-27.md) + [submitNamed](../sector-runtime-h4-gpu01-03-bitset-submitnamed-2026-11-27.md) | Sem 50% (publicação versionada / caps driver completas) |
 | GPU-02 | [stagingFp](../sector-runtime-h4-gpu02-03-neg-stagingfp-2026-11-27.md) + [completeByKernel](../sector-runtime-h4-gpu02-03-ror-completebykernel-2026-11-27.md) | Sem integração WorldThread; sem 50% |
-| GPU-03 | [RorBytes/SignMask/IsZero](../sector-runtime-h4-gpu02-03-ror-completebykernel-2026-11-27.md) + [IsNonzero/MaskHigh/SatMul](../sector-runtime-h4-gpu03-04-nonzero-shadowfp-2026-11-27.md) | Sem terreno/bioma nem ganho; sem 50% |
-| GPU-04 | [summarizeShadowReports](../sector-runtime-h4-gpu01-03-04-lt-backend-summary-2026-11-27.md) + [shadowFp](../sector-runtime-h4-gpu03-04-nonzero-shadowfp-2026-11-27.md) | Sem multi-driver; sem 50% |
+| GPU-03 | [IsNonzero/MaskHigh/SatMul](../sector-runtime-h4-gpu03-04-nonzero-shadowfp-2026-11-27.md) + [SwapHalves/Clo/Cto](../sector-runtime-h4-gpu03-04-swaphalves-shadownamed-2026-11-27.md) | Sem terreno/bioma nem ganho; sem 50% |
+| GPU-04 | [shadowFp](../sector-runtime-h4-gpu03-04-nonzero-shadowfp-2026-11-27.md) + [shadowNamed](../sector-runtime-h4-gpu03-04-swaphalves-shadownamed-2026-11-27.md) | Sem multi-driver; sem 50% |
 
 CPU-01 recebe o primeiro marco porque agora existe cálculo com dados próprios
 que independe da origem/Root após captura, não só callbacks/catálogos ou contagem
@@ -338,6 +338,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | GPU-02/03 neg+stagingfp | Neg/Abs/RolBytes + fingerprintStagingSnapshot; H4 permanece 25% | 5,6% |
 | 27/11/2026 | GPU-02/03 ror+completebykernel | RorBytes/SignMask/IsZero + completeOpenTicketsByKernel; H4 permanece 25% | 5,6% |
 | 27/11/2026 | GPU-03/04 nonzero+shadowfp | IsNonzero/MaskHigh/SatMul + fingerprintShadowSummary; H4 permanece 25% | 5,6% |
+| 27/11/2026 | GPU-03/04 swaphalves+shadownamed | SwapHalves/Clo/Cto + compareShadowNamed; H4 permanece 25% | 5,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.
