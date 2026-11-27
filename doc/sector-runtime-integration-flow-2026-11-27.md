@@ -617,6 +617,38 @@ Bases: INT **`a5f91c9b`**. Frentes **não** editadas; **sem** merge em `main`;
 
 ## Sync ~20:00 UTC
 
-- Tip INT pós-merge H4 `32414ed0`: `ffe2b640`.
+- Tip INT pós-merge H4 `32414ed0`: `0e08cc90` (flow doc + merge `ffe2b640`).
 - Ahead h*/r* = 0; sem conflito/bloqueio. Branch remota H3 ausente (não bloqueio).
-- Build `46059053926` in_progress @ `6350308f` intacto; 1 Build tip após terminal.
+- Build `46059053926` @ `6350308f` **SUCCESS** (Windows). Disparado 1 Build
+  `46060790428` @ tip `0e08cc90`.
+
+## Revisão sync 27/11/2026 ~20:00 UTC
+
+Bases: INT **`0e08cc90`**. Frentes **não** editadas; **sem** merge em `main`;
+**sem** disparo de Actions neste ciclo de revisão (Build tip já disparado
+após terminal do `460590`). PRs GitHub com base na integração: **nenhum**.
+
+| Frente | Tip remoto | vs INT | Ancestral INT |
+| --- | --- | ---: | --- |
+| H0 | `c124f899` | 0 | sim |
+| H1 | `4d014af2` | 0 | sim |
+| H2 | `b1162b5d` | 0 | sim |
+| H3 | _(remote ausente)_ | — | — |
+| H4 | `32414ed0` | 0 | sim |
+| H5 | `a2ec01f0` | 0 | sim |
+| R1 | `da79144b` | 0 | sim |
+| R2 | `f86b4d17` | 0 | sim |
+
+### Delta desde sync ~19:30
+
+- H4 mergeado até `32414ed0` (SmearMsb/ByteOr/ByteAnd + listReady; 72/72) e
+  fatias SmearLsb…/ClearLsb…/Isolate…/Dup16…/RevNibbles…/SwapHalves….
+- Build `46059053926` @ `6350308f` **SUCCESS**; 1 Build `46060790428` @ tip.
+- Frentes **ahead=0**; H3 remote branch ausente (não bloqueio de merge).
+- Política H4: asset-free / **não hold**; merge lotes quando pedirem.
+
+### Vereditos
+
+- **Hold frentes** (nada ahead). Sem conflito/bloqueio.
+- H4 continua. Sem comentários em PR.
+- Sem `build.yml` neste ciclo docs (Build tip já em voo).
