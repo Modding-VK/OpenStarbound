@@ -18,4 +18,6 @@ ASan/UBSan: 1×10; **791/791** contrato.
 
 ## Próximo passo
 
-Gates H0 restantes antes de H1. Não disparar Actions.
+Root em
+[falha de produtor Root](sector-runtime-h0-sector-shadow-producer-failure-root-2026-11-26.md).
+Segue gates H0 antes de H1. Não disparar Actions.
