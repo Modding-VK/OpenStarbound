@@ -63,7 +63,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32Popcount
       || kernel == WorldGenerationComputeKernel::DenseUint32Eq
       || kernel == WorldGenerationComputeKernel::DenseUint32Ne
-      || kernel == WorldGenerationComputeKernel::DenseUint32BitReverse;
+      || kernel == WorldGenerationComputeKernel::DenseUint32BitReverse
+      || kernel == WorldGenerationComputeKernel::DenseUint32Lt
+      || kernel == WorldGenerationComputeKernel::DenseUint32Leu
+      || kernel == WorldGenerationComputeKernel::DenseUint32AbsDiff;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -90,7 +93,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32Popcount,
       WorldGenerationComputeKernel::DenseUint32Eq,
       WorldGenerationComputeKernel::DenseUint32Ne,
-      WorldGenerationComputeKernel::DenseUint32BitReverse};
+      WorldGenerationComputeKernel::DenseUint32BitReverse,
+      WorldGenerationComputeKernel::DenseUint32Lt,
+      WorldGenerationComputeKernel::DenseUint32Leu,
+      WorldGenerationComputeKernel::DenseUint32AbsDiff};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -117,6 +123,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32Eq: return "DenseUint32Eq";
     case WorldGenerationComputeKernel::DenseUint32Ne: return "DenseUint32Ne";
     case WorldGenerationComputeKernel::DenseUint32BitReverse: return "DenseUint32BitReverse";
+    case WorldGenerationComputeKernel::DenseUint32Lt: return "DenseUint32Lt";
+    case WorldGenerationComputeKernel::DenseUint32Leu: return "DenseUint32Leu";
+    case WorldGenerationComputeKernel::DenseUint32AbsDiff: return "DenseUint32AbsDiff";
   }
   return nullptr;
 }
@@ -130,6 +139,26 @@ Maybe<WorldGenerationComputeKernel> WorldGenerationComputeService::parseKernelNa
     if (label && std::strcmp(label, name) == 0)
       return kernel;
   }
+  return {};
+}
+
+char const* WorldGenerationComputeService::backendName(
+    WorldGenerationComputeBackend backend) noexcept {
+  switch (backend) {
+    case WorldGenerationComputeBackend::CpuReference: return "CpuReference";
+    case WorldGenerationComputeBackend::GpuOpenGlCompute: return "GpuOpenGlCompute";
+  }
+  return nullptr;
+}
+
+Maybe<WorldGenerationComputeBackend> WorldGenerationComputeService::parseBackendName(
+    char const* name) noexcept {
+  if (!name)
+    return {};
+  if (std::strcmp(name, "CpuReference") == 0)
+    return WorldGenerationComputeBackend::CpuReference;
+  if (std::strcmp(name, "GpuOpenGlCompute") == 0)
+    return WorldGenerationComputeBackend::GpuOpenGlCompute;
   return {};
 }
 
@@ -275,6 +304,15 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
   } else if (kernel == WorldGenerationComputeKernel::DenseUint32BitReverse) {
     for (uint32_t value : input)
       out.append(denseBitReverse(value));
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Lt) {
+    for (uint32_t value : input)
+      out.append(value < parameter ? 0xffffffffu : 0u);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Leu) {
+    for (uint32_t value : input)
+      out.append(value <= parameter ? 0xffffffffu : 0u);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32AbsDiff) {
+    for (uint32_t value : input)
+      out.append(value > parameter ? value - parameter : parameter - value);
   }
   return out;
 }
@@ -893,6 +931,25 @@ List<WorldGenerationComputeShadowReport> WorldGenerationComputeService::compareS
   for (auto const& item : items)
     reports.append(compareShadow(item.identity, input, item.parameter, primary, shadow));
   return reports;
+}
+
+WorldGenerationComputeShadowSummary WorldGenerationComputeService::summarizeShadowReports(
+    List<WorldGenerationComputeShadowReport> const& reports) noexcept {
+  WorldGenerationComputeShadowSummary summary;
+  summary.total = reports.size();
+  for (auto const& report : reports) {
+    summary.totalDivergenceCount += report.divergenceCount;
+    switch (report.verdict) {
+      case WorldGenerationComputeShadowVerdict::Equal: ++summary.equal; break;
+      case WorldGenerationComputeShadowVerdict::Diverged: ++summary.diverged; break;
+      case WorldGenerationComputeShadowVerdict::PrimaryFailed: ++summary.primaryFailed; break;
+      case WorldGenerationComputeShadowVerdict::ShadowUnavailable:
+        ++summary.shadowUnavailable;
+        break;
+      case WorldGenerationComputeShadowVerdict::Cancelled: ++summary.cancelled; break;
+    }
+  }
+  return summary;
 }
 
 WorldGenerationComputeShadowReport WorldGenerationComputeService::compareShadowBuffers(

@@ -43,8 +43,10 @@ TEST(WorldRegionThreadStubTest, RealOsThreadBurnsCpuWithoutWorldServer) {
   ASSERT_EQ(runtime.startAuthoritativeThreadStub({0, 0}), WorldRegionThreadStubStartResult::Started);
 
   // Wait until the OS worker has executed at least one CPU tick loop.
-  for (int i = 0; i < 2000 && runtime.threadStubCpuTicks({0, 0}) == 0; ++i)
-    Thread::yield();
+  // Prefer short sleeps over pure yield: Windows CI under load may not
+  // schedule the stub before 2000 yields complete.
+  for (int i = 0; i < 500 && runtime.threadStubCpuTicks({0, 0}) == 0; ++i)
+    Thread::sleep(1);
   EXPECT_GT(runtime.threadStubCpuTicks({0, 0}), 0u);
 
   EXPECT_EQ(runtime.beginAuthoritativeThreadJoin({0, 0}), WorldRegionThreadStubStopResult::Joining);
@@ -58,8 +60,8 @@ TEST(WorldRegionThreadStubTest, DrainJoinsRunningCpuStub) {
   ASSERT_EQ(runtime.noteInterest({0, 0}, WorldRegionMemberLevel::Tiles), WorldRegionRuntimeInterestResult::Noted);
   ASSERT_EQ(runtime.promoteAuthoritative({0, 0}), WorldRegionAuthorityPromoteResult::Promoted);
   ASSERT_EQ(runtime.startAuthoritativeThreadStub({0, 0}), WorldRegionThreadStubStartResult::Started);
-  for (int i = 0; i < 2000 && runtime.threadStubCpuTicks({0, 0}) == 0; ++i)
-    Thread::yield();
+  for (int i = 0; i < 500 && runtime.threadStubCpuTicks({0, 0}) == 0; ++i)
+    Thread::sleep(1);
   EXPECT_EQ(runtime.releaseInterest({0, 0}), WorldRegionOwnerReleaseResult::DrainStarted);
   EXPECT_FALSE(runtime.isAuthoritative({0, 0}));
   EXPECT_EQ(WorldRegionThreadStubPhase::Stopped, runtime.threadStubPhase({0, 0}));
@@ -74,8 +76,8 @@ TEST(WorldRegionThreadStubTest, StubLifecycleDoesNotReplaceValueIdentity) {
   auto identity = *owners.identity({0, 0});
   ASSERT_EQ(authority.promote(identity), WorldRegionAuthorityPromoteResult::Promoted);
   ASSERT_EQ(stubs.start(identity), WorldRegionThreadStubStartResult::Started);
-  for (int i = 0; i < 2000 && stubs.cpuTicks({0, 0}) == 0; ++i)
-    Thread::yield();
+  for (int i = 0; i < 500 && stubs.cpuTicks({0, 0}) == 0; ++i)
+    Thread::sleep(1);
   auto stub = stubs.record({0, 0});
   ASSERT_TRUE(stub);
   EXPECT_EQ(identity, stub->owner);
