@@ -771,3 +771,7 @@ integração: **nenhum**.
 ## Revisão 2026-11-27T22:34Z
 - Merge H4 `3289c13d` (HalfKeepEvenBits/HalfSwapAdjacentBits/HalfCompressOddBits + listReadyOpenTickets; 138/138).
 - Build `46075958751` @ `a4a84b28` intacto; 1 Build tip final após terminal; sem spam.
+
+## Revisão 2026-11-27T22:35Z
+- Merge H4 `90e2138c` (HalfCompressEvenBits/HalfExpandLow8ToOdd/Even + countReadyOpenTickets; 140/140).
+- Build `46075958751` @ `a4a84b28` intacto; 1 Build tip final após terminal; sem spam.

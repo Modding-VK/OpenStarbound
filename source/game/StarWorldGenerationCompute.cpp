@@ -222,7 +222,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfKeepOddBits
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfKeepEvenBits
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfSwapAdjacentBits
-      || kernel == WorldGenerationComputeKernel::DenseUint32HalfCompressOddBits;
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfCompressOddBits
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfCompressEvenBits
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfExpandLow8ToOdd
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfExpandLow8ToEven;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -408,7 +411,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32HalfKeepOddBits,
       WorldGenerationComputeKernel::DenseUint32HalfKeepEvenBits,
       WorldGenerationComputeKernel::DenseUint32HalfSwapAdjacentBits,
-      WorldGenerationComputeKernel::DenseUint32HalfCompressOddBits};
+      WorldGenerationComputeKernel::DenseUint32HalfCompressOddBits,
+      WorldGenerationComputeKernel::DenseUint32HalfCompressEvenBits,
+      WorldGenerationComputeKernel::DenseUint32HalfExpandLow8ToOdd,
+      WorldGenerationComputeKernel::DenseUint32HalfExpandLow8ToEven};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -418,7 +424,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 178u;
+  return 181u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -618,6 +624,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32HalfKeepEvenBits: return "DenseUint32HalfKeepEvenBits";
     case WorldGenerationComputeKernel::DenseUint32HalfSwapAdjacentBits: return "DenseUint32HalfSwapAdjacentBits";
     case WorldGenerationComputeKernel::DenseUint32HalfCompressOddBits: return "DenseUint32HalfCompressOddBits";
+    case WorldGenerationComputeKernel::DenseUint32HalfCompressEvenBits: return "DenseUint32HalfCompressEvenBits";
+    case WorldGenerationComputeKernel::DenseUint32HalfExpandLow8ToOdd: return "DenseUint32HalfExpandLow8ToOdd";
+    case WorldGenerationComputeKernel::DenseUint32HalfExpandLow8ToEven: return "DenseUint32HalfExpandLow8ToEven";
   }
   return nullptr;
 }
@@ -1760,6 +1769,30 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
       x = (x | (x >> 4)) & 0x00ffu;
       out.append(x);
     }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfCompressEvenBits) {
+    for (uint32_t value : input) {
+      uint32_t x = ((value & 0xffffu) >> 1) & 0x5555u;
+      x = (x | (x >> 1)) & 0x3333u;
+      x = (x | (x >> 2)) & 0x0f0fu;
+      x = (x | (x >> 4)) & 0x00ffu;
+      out.append(x);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfExpandLow8ToOdd) {
+    for (uint32_t value : input) {
+      uint32_t x = value & 0xffu;
+      x = (x | (x << 4)) & 0x0f0fu;
+      x = (x | (x << 2)) & 0x3333u;
+      x = (x | (x << 1)) & 0x5555u;
+      out.append(x);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfExpandLow8ToEven) {
+    for (uint32_t value : input) {
+      uint32_t x = value & 0xffu;
+      x = (x | (x << 4)) & 0x0f0fu;
+      x = (x | (x << 2)) & 0x3333u;
+      x = (x | (x << 1)) & 0x5555u;
+      out.append((x << 1) & 0xffffu);
+    }
   }
   return out;
 }
@@ -2026,6 +2059,16 @@ size_t WorldGenerationComputeService::countPendingOpenTickets() const {
   size_t count = 0;
   for (auto const& pair : m_entries) {
     if (pair.second.state == EntryState::Pending)
+      ++count;
+  }
+  return count;
+}
+
+size_t WorldGenerationComputeService::countReadyOpenTickets() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  size_t count = 0;
+  for (auto const& pair : m_entries) {
+    if (pair.second.state == EntryState::Ready)
       ++count;
   }
   return count;
