@@ -564,6 +564,8 @@ public:
   bool ticketIsOpen(WorldGenerationComputeTicket ticket) const;
   // Count of ticket ids rejected as late duplicates after failContext/commit revoke.
   size_t rejectedDuplicateCount() const;
+  // True while any rejected-duplicate ticket id is tracked (asset-free).
+  bool anyRejectedDuplicates() const;
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 

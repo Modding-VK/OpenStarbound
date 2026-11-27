@@ -3436,6 +3436,11 @@ size_t WorldGenerationComputeService::rejectedDuplicateCount() const {
   return m_rejectedDuplicates.size();
 }
 
+bool WorldGenerationComputeService::anyRejectedDuplicates() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  return !m_rejectedDuplicates.empty();
+}
+
 size_t WorldGenerationComputeService::clearRejectedDuplicates() {
   std::lock_guard<std::mutex> lock(m_mutex);
   if (!ownerAllowsLocked())
