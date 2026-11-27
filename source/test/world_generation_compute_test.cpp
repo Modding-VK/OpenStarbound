@@ -1281,6 +1281,29 @@ TEST(WorldGenerationComputeTest, ListReadyOpenTicketsReturnsReadyIdsOnly) {
 }
 
 
+TEST(WorldGenerationComputeTest, CountReadyOpenTicketsTracksReadyTicketCount) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  EXPECT_EQ(0u, service.countReadyOpenTickets());
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(1280, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(1281, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{2u}, 0u));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(1282, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{3u}, 0u));
+  EXPECT_EQ(0u, service.countReadyOpenTickets());
+  EXPECT_EQ(3u, service.countPendingOpenTickets());
+  EXPECT_EQ(2u, service.completeOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(2u, service.countReadyOpenTickets());
+  EXPECT_EQ(1u, service.countPendingOpenTickets());
+  EXPECT_EQ(2u,
+      service.discardReadyOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(0u, service.countReadyOpenTickets());
+  EXPECT_EQ(1u, service.discardPendingOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+  EXPECT_EQ(0u, service.countReadyOpenTickets());
+  EXPECT_EQ(0u, service.countPendingOpenTickets());
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32HalfSumMaxMinExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();

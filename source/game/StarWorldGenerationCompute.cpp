@@ -2064,6 +2064,16 @@ size_t WorldGenerationComputeService::countPendingOpenTickets() const {
   return count;
 }
 
+size_t WorldGenerationComputeService::countReadyOpenTickets() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  size_t count = 0;
+  for (auto const& pair : m_entries) {
+    if (pair.second.state == EntryState::Ready)
+      ++count;
+  }
+  return count;
+}
+
 bool WorldGenerationComputeService::anyPendingOpenKernels() const {
   std::lock_guard<std::mutex> lock(m_mutex);
   for (auto const& pair : m_entries) {
