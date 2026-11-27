@@ -153,6 +153,12 @@ int main() {
       "DenseUint32BitClear");
   rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32BitToggle, 1u,
       "DenseUint32BitToggle");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32Neg, 0u,
+      "DenseUint32Neg");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32Abs, 0u,
+      "DenseUint32Abs");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32RolBytes, 1u,
+      "DenseUint32RolBytes");
 
   auto ticket = service.submit(makeIdentity(99, WorldGenerationComputeKernel::DenseUint32Xor),
       edgeCorpus(), 0x55aa55aau, WorldGenerationComputeBackend::GpuOpenGlCompute);
