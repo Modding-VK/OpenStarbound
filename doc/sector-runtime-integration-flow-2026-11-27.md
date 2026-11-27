@@ -807,3 +807,8 @@ integração: **nenhum**.
 - Ignora tip só `doc/`, progress, flow-doc, `*.md`.
 - Build continua material-only (manual); sem spam Build neste tip YAML.
 - `workflow_dispatch` permanece sem filtro de paths.
+
+## Revisão 2026-11-27T23:00Z — lote H4 ≥15min
+- Merge H4 tip `828a45d2` (agrupa 3 tips: discardTerminal/discardPending/anyPending; 154/154).
+- H5: Desktop probe PASS @ `62fba03a` (44/44); `da430a98` sem probe Desktop → corte em `62fba03a`.
+- Build `46079365811` intacto; 1 Build tip final após terminal; sem spam.

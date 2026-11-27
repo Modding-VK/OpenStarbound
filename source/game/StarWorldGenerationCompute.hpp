@@ -216,7 +216,16 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32HalfNibbleMin = 190, // min of four nibbles of low16; parameter ignored
   DenseUint32HalfSwapAdjacentNibbles = 191, // swap nibble pairs in low16; parameter ignored
   DenseUint32HalfRolNibbles = 192, // rotate low16 left by (parameter & 3) nibbles
-  DenseUint32HalfRorNibbles = 193 // rotate low16 right by (parameter & 3) nibbles
+  DenseUint32HalfRorNibbles = 193, // rotate low16 right by (parameter & 3) nibbles
+  DenseUint32HalfHasZeroNibble = 194, // 0xffffffff if any low16 nibble is 0, else 0
+  DenseUint32HalfCountZeroNibbles = 195, // count of zero nibbles in low16 (0..4)
+  DenseUint32HalfBroadcastNibble = 196, // replicate low 4 bits across low16; parameter ignored
+  DenseUint32HalfSextNibble = 197, // sign-extend nibble (parameter & 3) of low16 to 32 bits
+  DenseUint32HalfExtractNibble = 198, // (low16 >> ((parameter & 3) * 4)) & 0xf
+  DenseUint32HalfInsertNibble = 199, // replace nibble (parameter & 3) of low16 with (parameter >> 8) & 0xf
+  DenseUint32HalfAllNibblesEqual = 200, // 0xffffffff if four low16 nibbles equal, else 0
+  DenseUint32HalfNibbleRange = 201, // max(nibbles)-min(nibbles) of low16; parameter ignored
+  DenseUint32HalfMaskNibbles = 202 // keep low16 nibbles whose bit in (parameter&0xf) is set
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -443,6 +452,8 @@ public:
   // True while any Ready open ticket exists (asset-free observation).
   bool anyReadyOpenTickets() const;
   // True while any Pending open ticket exists (asset-free observation).
+  bool anyPendingOpenTickets() const;
+  // True while any Pending open ticket exists (asset-free observation).
   bool anyPendingOpenKernels() const;
   // Open tickets whose identity.kernel matches (asset-free observation).
   List<WorldGenerationComputeTicket> listOpenTicketsByKernel(
@@ -502,9 +513,17 @@ public:
   // Leaves Ready/Failed/Cancelled untouched.
   size_t discardPendingOpenTicketsByKernel(WorldGenerationComputeKernel kernel);
 
+  // GPU-02: cancel+poll every Pending open ticket (owner-thread).
+  // Leaves Ready/Failed/Cancelled untouched.
+  size_t discardPendingOpenTickets();
+
   // GPU-02: poll+discard Ready/Failed/Cancelled tickets for one kernel (owner-thread).
   // Does not complete Pending.
   size_t discardTerminalOpenTicketsByKernel(WorldGenerationComputeKernel kernel);
+
+  // GPU-02: poll+discard every Ready/Failed/Cancelled open ticket (owner-thread).
+  // Does not complete Pending.
+  size_t discardTerminalOpenTickets();
 
   // GPU-02 accounting for RAM-01 consumers (asset-free observation only).
   WorldGenerationComputeStagingSnapshot stagingSnapshot() const;
