@@ -779,3 +779,8 @@ integração: **nenhum**.
 ## Revisão 2026-11-27T22:37Z
 - Merge H4 `3bdb3ffe` (HalfInterleaveBytes/HalfDeinterleaveBytes/HalfSwapBytes + anyReadyOpenTickets; 142/142).
 - Build `46075958751` @ `a4a84b28` SUCCESS; 1 Build tip final disparado após merge; sem spam.
+
+## Revisão 2026-11-27T22:39Z
+- Merge H4 `b94ca245` (HalfNibbleXor/Or/And + discardReadyOpenTickets; 144/144).
+- Build `46077733827` @ `b862351c` intacto; 1 Build tip final material após terminal; sem spam.
+- H5 Instalaveis `96ab005a` ainda ahead (docs/scripts) — merge separado; sem Build se só script/doc.
