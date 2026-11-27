@@ -14,14 +14,15 @@ no mundo vivo.
 ## Estado
 
 - **CPU-02** 0→25%: `WorldGenerationPreparedSectorProduct` com identidade
-  (setor, template/distribution/placement revisions), kinds `Empty` e
-  `OrderedCandidates`, store com share e invalidação stale; preparar não
-  muta nível persistido.
+  (setor, template/distribution/placement revisions), kinds `Empty`,
+  `OrderedCandidates` e `BaseTilesPrivate` (ticket + bytes, `installAuthorized=
+  false`); store com share e invalidação stale; preparar não muta nível
+  persistido. Campos terreno/delta ainda faltam para 50%.
 - **MD-01** 0→25%: candidatos carregam `placementId` / nome / posição / seed
   apenas; produto vazio prova ausência sob a mesma identidade.
 
-3 testes `WorldGenerationPreparedSector*`. Sem Actions. Sem BaseTiles privados
-no produto nem ligação ao path MicroDungeons vivo.
+4 testes `WorldGenerationPreparedSector*`. Sem Actions. Sem install vivo nem
+ligação ao path MicroDungeons vivo.
 
 ## Relacionado
 

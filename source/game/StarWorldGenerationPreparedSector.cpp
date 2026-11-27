@@ -18,6 +18,12 @@ bool WorldGenerationPreparedSectorProduct::mutatesPersistedLevel() const {
   return false;
 }
 
+bool WorldGenerationPreparedSectorProduct::canInstall() const {
+  if (kind != WorldGenerationPreparedProductKind::BaseTilesPrivate)
+    return false;
+  return baseTiles && baseTiles->installAuthorized && baseTiles->ticket.valid();
+}
+
 WorldGenerationPreparedSectorProduct WorldGenerationPreparedSectorStore::makeEmpty(
     WorldGenerationPreparedProductIdentity identity) {
   WorldGenerationPreparedSectorProduct product;
@@ -33,6 +39,21 @@ WorldGenerationPreparedSectorProduct WorldGenerationPreparedSectorStore::makeOrd
   product.identity = std::move(identity);
   product.kind = WorldGenerationPreparedProductKind::OrderedCandidates;
   product.candidates = std::move(candidates);
+  return product;
+}
+
+WorldGenerationPreparedSectorProduct WorldGenerationPreparedSectorStore::makeBaseTilesPrivate(
+    WorldGenerationPreparedProductIdentity identity,
+    WorldGenerationBaseTilesIdentity ticket,
+    size_t retainedBytes) {
+  WorldGenerationPreparedSectorProduct product;
+  product.identity = std::move(identity);
+  product.kind = WorldGenerationPreparedProductKind::BaseTilesPrivate;
+  WorldGenerationPreparedBaseTilesRef ref;
+  ref.ticket = std::move(ticket);
+  ref.retainedBytes = retainedBytes;
+  ref.installAuthorized = false;
+  product.baseTiles = std::move(ref);
   return product;
 }
 

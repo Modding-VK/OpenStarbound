@@ -45,3 +45,23 @@ TEST(WorldGenerationPreparedSectorTest, StoreSharesMatchingIdentityAndInvalidate
   EXPECT_FALSE(store.contains(first));
   EXPECT_EQ(0u, store.size());
 }
+
+TEST(WorldGenerationPreparedSectorTest, BaseTilesPrivateHoldsTicketWithoutInstall) {
+  WorldGenerationPreparedProductIdentity identity{{0, 0}, 7, 0, 0};
+  WorldGenerationBaseTilesIdentity ticket{
+      {1, 1, {0, 0}, {0, 0}, WorldGenerationTaskStage::BaseTiles},
+      5,
+      7,
+      {128, 128},
+      RectI(0, 0, 32, 32)};
+  ASSERT_TRUE(ticket.valid());
+  auto product = WorldGenerationPreparedSectorStore::makeBaseTilesPrivate(
+      identity, ticket, sizeof(ServerTileSectorArray::Array));
+  EXPECT_EQ(WorldGenerationPreparedProductKind::BaseTilesPrivate, product.kind);
+  ASSERT_TRUE(product.baseTiles);
+  EXPECT_TRUE(product.baseTiles->ticket.matches(ticket));
+  EXPECT_EQ(sizeof(ServerTileSectorArray::Array), product.baseTiles->retainedBytes);
+  EXPECT_FALSE(product.baseTiles->installAuthorized);
+  EXPECT_FALSE(product.canInstall());
+  EXPECT_FALSE(product.mutatesPersistedLevel());
+}

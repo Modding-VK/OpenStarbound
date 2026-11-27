@@ -7,16 +7,18 @@
 #include "StarMaybe.hpp"
 #include "StarString.hpp"
 #include "StarVector.hpp"
+#include "StarWorldGenerationBaseTiles.hpp"
 #include "StarWorldGenerationPlacementQueue.hpp"
 
 namespace Star {
 
-// CPU-02 / MD-01 shadow slice: versioned prepared products and empty/candidate
-// results without a tile halo or live-world install.
+// CPU-02 / MD-01 shadow slice: versioned prepared products and empty/candidate/
+// private BaseTiles results without live-world install.
 
 enum class WorldGenerationPreparedProductKind : uint8_t {
   Empty = 0,
-  OrderedCandidates
+  OrderedCandidates,
+  BaseTilesPrivate
 };
 
 struct WorldGenerationPreparedProductIdentity {
@@ -35,14 +37,23 @@ struct WorldGenerationMicroDungeonCandidate {
   uint64_t seed = 0;
 };
 
+struct WorldGenerationPreparedBaseTilesRef {
+  WorldGenerationBaseTilesIdentity ticket;
+  size_t retainedBytes = 0;
+  // Shadow products never authorize install into WorldStorage.
+  bool installAuthorized = false;
+};
+
 struct WorldGenerationPreparedSectorProduct {
   WorldGenerationPreparedProductIdentity identity;
   WorldGenerationPreparedProductKind kind = WorldGenerationPreparedProductKind::Empty;
   List<WorldGenerationMicroDungeonCandidate> candidates;
+  Maybe<WorldGenerationPreparedBaseTilesRef> baseTiles;
 
   bool matches(WorldGenerationPreparedProductIdentity const& expected) const;
   // Preparing never mutates a persisted world level; this flag stays false here.
   bool mutatesPersistedLevel() const;
+  bool canInstall() const;
 };
 
 using WorldGenerationPreparedProductId = uint64_t;
@@ -65,6 +76,10 @@ public:
   static WorldGenerationPreparedSectorProduct makeOrderedCandidates(
       WorldGenerationPreparedProductIdentity identity,
       List<WorldGenerationMicroDungeonCandidate> candidates);
+  static WorldGenerationPreparedSectorProduct makeBaseTilesPrivate(
+      WorldGenerationPreparedProductIdentity identity,
+      WorldGenerationBaseTilesIdentity ticket,
+      size_t retainedBytes);
 
 private:
   WorldGenerationPreparedProductId m_nextId = 1;
