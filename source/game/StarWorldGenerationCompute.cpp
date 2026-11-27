@@ -1338,6 +1338,23 @@ uint64_t WorldGenerationComputeService::fingerprintStagingSnapshot(
   return hash;
 }
 
+uint64_t WorldGenerationComputeService::fingerprintShadowSummary(
+    WorldGenerationComputeShadowSummary const& summary) noexcept {
+  uint64_t hash = 14695981039346656037ull;
+  auto mix = [&](uint64_t lane) {
+    hash ^= lane;
+    hash *= 1099511628211ull;
+  };
+  mix(summary.total);
+  mix(summary.equal);
+  mix(summary.diverged);
+  mix(summary.primaryFailed);
+  mix(summary.shadowUnavailable);
+  mix(summary.cancelled);
+  mix(summary.totalDivergenceCount);
+  return hash;
+}
+
 uint32_t WorldGenerationComputeService::drawRng(WorldGenerationComputeRngStream& stream) noexcept {
   // SplitMix64-style step over (seed, streamId, counter); exact uint32 lane.
   uint64_t z = stream.seed + 0x9e3779b97f4a7c15ull

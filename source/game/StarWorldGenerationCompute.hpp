@@ -365,6 +365,10 @@ public:
   static uint64_t fingerprintStagingSnapshot(
       WorldGenerationComputeStagingSnapshot const& snapshot) noexcept;
 
+  // GPU-04: stable fingerprint of a shadow-batch summary (asset-free harness).
+  static uint64_t fingerprintShadowSummary(
+      WorldGenerationComputeShadowSummary const& summary) noexcept;
+
   // GPU-04 approved RNG: deterministic uint32 draws; advances counter by 1.
   static uint32_t drawRng(WorldGenerationComputeRngStream& stream) noexcept;
   static List<uint32_t> fillRng(WorldGenerationComputeRngStream& stream, size_t count);

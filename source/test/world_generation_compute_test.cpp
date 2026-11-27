@@ -807,6 +807,26 @@ TEST(WorldGenerationComputeTest, DenseUint32HasZeroByteNextPow2MaskLowExactCpuAn
           .verdict);
 }
 
+TEST(WorldGenerationComputeTest, FingerprintShadowSummaryIsStableAndSensitive) {
+  WorldGenerationComputeShadowSummary a;
+  a.total = 4;
+  a.equal = 3;
+  a.diverged = 1;
+  a.primaryFailed = 0;
+  a.shadowUnavailable = 0;
+  a.cancelled = 0;
+  a.totalDivergenceCount = 7;
+  auto first = WorldGenerationComputeService::fingerprintShadowSummary(a);
+  EXPECT_EQ(first, WorldGenerationComputeService::fingerprintShadowSummary(a));
+
+  WorldGenerationComputeShadowSummary b = a;
+  b.diverged = 2;
+  EXPECT_NE(first, WorldGenerationComputeService::fingerprintShadowSummary(b));
+  b = a;
+  b.totalDivergenceCount = 8;
+  EXPECT_NE(first, WorldGenerationComputeService::fingerprintShadowSummary(b));
+}
+
 TEST(WorldGenerationComputeTest, CompleteOpenTicketsByKernelLeavesReadyUntilPoll) {
   WorldGenerationComputeService service;
   service.setDeferredCpuCompletion(true);
