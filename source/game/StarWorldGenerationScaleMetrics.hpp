@@ -214,6 +214,8 @@ public:
     resources.transferBytes = 0;
     resources.transferMs = routing.gpuCost.transferMs;
     resources.transferTimingCalibrated = true;
+    resources.materializeMs = routing.gpuCost.materializeMs;
+    resources.materializeTimingCalibrated = true;
     resources.coverageComplete = true;
     recorder.recordResources(resources);
     return true;

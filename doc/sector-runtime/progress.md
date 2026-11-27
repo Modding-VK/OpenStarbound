@@ -2,13 +2,13 @@
 
 Atualizado em **27/11/2026**. Branch de integração:
 `cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+H4+H5+R1+R2; não `main`).
-Tip INT: lote H4 `828a45d2` (154/154) + H5 até `62fba03a` (evidence bundle; Desktop probe 44/44).
-`da430a98` retido (sem probe Desktop 46/46). Build `46079365811` intacto; 1 Build tip final após terminal.
+Tip INT: H5 `ffce0834` (Desktop probe attestation 48/48; inclui `da430a98` 46/46) + H4 `828a45d2`.
+Build `46079365811` @ `46a2da76` intacto; 1 Build tip final após terminal; sem spam.
 Última H4: GPU-03 HalfAllNibblesEqual/Range/Mask + GPU-02 anyPendingOpenTickets (`828a45d2`); H4 25%.
-Última H5: scale gates/campaign/evidence bundle (`62fba03a`); H5 25%.
+Última H5: profile advice + Desktop probe attestation (`ffce0834`); H5 25%.
 Última H3: TMX cache/reload + flora/replaceBiome + decode/codec (`3bdf1927`); H3 25%.
 Última R2: AuthoritativeOps + REG-03/04/05 sombra (`f86b4d17`).
-Última R1: ThreadStub CPU/OS — Build `460650`/`460693`/`460759`/`460777` PASS.
+Última R1: ThreadStub CPU/OS — Builds recentes PASS.
 Última H0: MOD-01 EffectBoundary profundo; VAL-02 BiomeItem completo (25%).
 Última H1: PreparedSector payload/WorldStorage path (`4d014af2`); DAG-03 50%.
 Última H2: consume sobre API H1 (`b1162b5d`); PreparedSector canônico = H1.
@@ -19,7 +19,7 @@ Tip INT: lote H4 `828a45d2` (154/154) + H5 até `62fba03a` (evidence bundle; Des
 · [Relatório H2](../sector-runtime-h2-prepared-sector-consume-2026-11-27.md)
 · [Relatório H3](../sector-runtime-h3-tmx-shadow-cache-2026-11-27.md)
 · [Relatório H4](../sector-runtime-h4-gpu02-03-halfnibblepred-anypendingopentickets-2026-11-27.md)
-· [Relatório H5](../sector-runtime-h5-scale-evidence-bundle-2026-11-27.md)
+· [Relatório H5](../sector-runtime-h5-desktop-probe-attestation-2026-11-27.md)
 · [Relatório R1](../sector-runtime-r1-thread-stub-cpu-2026-11-27.md)
 · [Relatório R2](../sector-runtime-r2-authoritative-ops-2026-11-27.md)
 · [Backlog geral](../performance-backlog.md)
@@ -113,8 +113,8 @@ autoritativa. GPU é opcional, com fallback CPU completo.
 
 ## Próximas ações — fila imediata
 
-0. **Integração:** lote H4 `828a45d2` (154/154) + H5 `62fba03a`
-   (evidence bundle; Desktop 44/44); `da430a98` retido.
+0. **Integração:** H5 `ffce0834` (Desktop 48/48; inclui `da430a98` 46/46)
+   + H4 `828a45d2` (154/154).
    `46067036173` @ `2d4b047f` intacto se in_progress; 1 Build tip final após
    terminal — sem spam. Smoke só após base local.
 1. **H0: DAG-01/RAM-01 com MOD-01/VAL-02:** catálogo compacto e binding de fontes
@@ -213,7 +213,7 @@ auditoria de todas as implementações antigas para conceder crédito retroativo
 | 39 | H5 | [VAL-04](validation-and-telemetry.md) | Matriz de cenários | 25% | Campaign recorder + skip tipado; streaming real pendente |
 | 40 | H5 | [VAL-05](validation-and-telemetry.md) | Gates de adoção e relatório | 25% | ScaleMetrics→evidence + summary; adopt segue fechado sem suite completa |
 | 41 | H5 | [MOD-02](compatibility.md) | Equivalência e versionamento | 25% | Épocas no evidence bundle; sem comparador de mundo completo |
-| 42 | H5 | [MOD-03](compatibility.md) | Perfis de execução e fallback | 25% | Migração explícita dos modes existentes; regional exige checkpoint |
+| 42 | H5 | [MOD-03](compatibility.md) | Perfis de execução e fallback | 25% | Advice a partir do evidence pack; sem rename silencioso; regional checkpoint |
 | 43 | H5 | [MOD-04](compatibility.md) | Subsistemas e plataformas | 25% | Windows+GPU optional no evidence pack; Clang adiado |
 | 44 | R1 | [REG-01](regional-threads.md) | Lifecycle e identidade da dona | 25% | + OS thread CPU stub; sem WorldServer/WorldStorage vivo |
 | 45 | R1 | [REG-02](regional-threads.md) | Estado local e visões de borda | 25% | + contorno parcial/ForeignCell; sem estado vivo integrado |
@@ -261,7 +261,7 @@ auditoria de todas as implementações antigas para conceder crédito retroativo
 | VAL-04 | [scenario campaign](../sector-runtime-h5-scenario-campaign-2026-11-27.md) | Sem streaming/A-B real; skips nao contam como pass |
 | VAL-05 | [gates/metrics](../sector-runtime-h5-scale-gates-metrics-2026-11-27.md) | Adoção permanece falsa sob evidência parcial; sem gate de pipeline completo |
 | MOD-02 | [evidence bundle](../sector-runtime-h5-scale-evidence-bundle-2026-11-27.md) | Sem comparador de saves/multiplayer/conteúdo completo |
-| MOD-03 | mesma entrega, execution profile binding | Sem ativação regional nem migração de config persistida |
+| MOD-03 | [profile advice](../sector-runtime-h5-scale-profile-advice-2026-11-27.md) | Sem ativação regional nem migração de config persistida |
 | MOD-04 | [evidence bundle](../sector-runtime-h5-scale-evidence-bundle-2026-11-27.md) | Sem builds por plataforma nem matriz CI |
 | CPU-05 | [scenario campaign](../sector-runtime-h5-scenario-campaign-2026-11-27.md) governor-from-scale | Sem resize ao vivo de WorkerPool nem orçamento processual ligado |
 
@@ -604,6 +604,9 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | H5 scenario campaign | Campaign recorder + governor-from-scale; 40 testes; H5 25% | 25,5% |
 | 27/11/2026 | H5 scale evidence bundle | Integrator review pack; Desktop probe 44/44 @`62fba03a`; H5 25% | 25,5% |
 | 27/11/2026 | Integração H5 62fba03a | Merge `--no-ff` H5 até probe tip; `da430a98` retido; Build `460793` intacto; 1 Build tip final; programa 25,5% | 25,5% |
+| 27/11/2026 | H5 scale profile advice | recommendProfileFromScaleEvidence opt-in; Desktop 46/46 @`da430a98`; H5 25% | 25,5% |
+| 27/11/2026 | H5 Desktop probe attestation | Attestation pack; Desktop 48/48 @`ffce0834`; H5 25% | 25,5% |
+| 27/11/2026 | Integração H5 ffce0834 | Merge `--no-ff` da430a98+ffce0834; Build `460793` intacto; 1 Build tip final; programa 25,5% | 25,5% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

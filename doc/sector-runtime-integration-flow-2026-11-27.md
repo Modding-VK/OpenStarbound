@@ -817,3 +817,8 @@ integração: **nenhum**.
 - Frentes: h0–h4/r1/r2 ahead=0; h5 ahead restante = `da430a98` (sem probe Desktop).
 - Merge lote: H4 `828a45d2` + H5 até `62fba03a` (Desktop 44/44).
 - Build `46079365811` @ `46a2da76` intacto; 1 Build tip final após terminal; sem spam.
+
+## Revisão 2026-11-27T23:02Z — H5 Desktop probe catch-up
+- Correção: Desktop validou `da430a98` 46/46 e `ffce0834` 48/48.
+- Merge H5 tip `ffce0834` (inclui profile advice) na INT.
+- Build `46079365811` intacto; 1 Build tip final após terminal; sem spam.

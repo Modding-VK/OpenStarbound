@@ -91,6 +91,8 @@ struct WorldGenerationResourceMetric {
   // Calibrated wall-clock transfer cost. transferBytes alone never imply ms.
   double transferMs = 0;
   bool transferTimingCalibrated = false;
+  double materializeMs = 0;
+  bool materializeTimingCalibrated = false;
   bool recorded = false;
   bool coverageComplete = false;
 };
@@ -188,11 +190,15 @@ public:
     out.fenceMs = m_snapshot.resources.gpuWaitMs;
     out.materializeMs = 0;
     // Bytes alone never become milliseconds. Only an explicit calibration
-    // (Desktop/H4 probe timings) may populate transferMs.
+    // (Desktop/H4 probe timings) may populate transfer/materialize.
     if (m_snapshot.resources.transferTimingCalibrated)
       out.transferMs = m_snapshot.resources.transferMs;
     else
       out.transferMs = 0;
+    if (m_snapshot.resources.materializeTimingCalibrated)
+      out.materializeMs = m_snapshot.resources.materializeMs;
+    else
+      out.materializeMs = 0;
     return out.valid();
   }
 

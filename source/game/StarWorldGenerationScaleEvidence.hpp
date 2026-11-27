@@ -2,6 +2,7 @@
 
 #include "StarWorldGenerationAdoptionGates.hpp"
 #include "StarWorldGenerationEquivalenceVersion.hpp"
+#include "StarWorldGenerationExecutionProfile.hpp"
 #include "StarWorldGenerationPlatformMatrix.hpp"
 #include "StarWorldGenerationScenarioCampaign.hpp"
 #include "StarWorldGenerationScaleMetrics.hpp"
@@ -13,9 +14,48 @@ namespace Star {
 // Third H5 / MOD-02+MOD-04+VAL cut: pack scale evidence for Integrator review.
 // readyForIntegratorReview means contracts + campaign/gates are consistent for
 // pull consideration — never an authorization to merge INT or publish GPU.
+// Fourth cut (MOD-03): recommend a conceptual profile from the pack without
+// silently renaming existing performanceMode strings.
+// Fifth cut (VAL): optional Desktop probe attestation (tip + contract counts).
+
+struct WorldGenerationDesktopProbeAttestation {
+  static constexpr unsigned ModelVersion = 1;
+  // Lower 32 bits of the tip short SHA (first 8 hex digits). 0 means unset.
+  uint32_t tipPrefix = 0;
+  uint32_t testsPassed = 0;
+  uint32_t testsExpected = 0;
+  bool whatIfBootstrapOk = false;
+  bool recorded = false;
+
+  bool contractsPass() const noexcept {
+    return recorded && testsExpected != 0 && testsPassed == testsExpected;
+  }
+};
+
+inline uint32_t worldGenerationTipPrefixFromHex8(char const* hex8) noexcept {
+  if (!hex8)
+    return 0;
+  uint32_t value = 0;
+  for (int i = 0; i < 8; ++i) {
+    char c = hex8[i];
+    if (c == '\0')
+      return 0;
+    uint32_t nibble = 0;
+    if (c >= '0' && c <= '9')
+      nibble = static_cast<uint32_t>(c - '0');
+    else if (c >= 'a' && c <= 'f')
+      nibble = static_cast<uint32_t>(10 + c - 'a');
+    else if (c >= 'A' && c <= 'F')
+      nibble = static_cast<uint32_t>(10 + c - 'A');
+    else
+      return 0;
+    value = (value << 4) | nibble;
+  }
+  return value;
+}
 
 struct WorldGenerationScaleEvidenceBundle {
-  static constexpr unsigned ModelVersion = 1;
+  static constexpr unsigned ModelVersion = 2;
   WorldGenerationEquivalenceVersion equivalence;
   WorldGenerationPlatform probePlatform = WorldGenerationPlatform::Windows;
   WorldGenerationCompatStatus platformStatus = WorldGenerationCompatStatus::Unsupported;
@@ -28,6 +68,7 @@ struct WorldGenerationScaleEvidenceBundle {
   bool gatesAdopt = false;
   bool gatesAuthoritativeGpuBlocked = true;
   bool shadowOutputComparison = false;
+  bool desktopAttested = false;
   bool readyForIntegratorReview = false;
 };
 
@@ -74,6 +115,7 @@ inline WorldGenerationScaleEvidenceBundle buildWorldGenerationScaleEvidence(
   // Integrator may review when: supported probe platform, optional GPU with CPU
   // fallback, no campaign failures, CPU-only matrix covered or GPU shadow
   // comparison present, and adoption still refuses authoritative GPU alone.
+  bundle.desktopAttested = false;
   bundle.readyForIntegratorReview = platformOk
       && computeOptionalOk
       && !bundle.campaignHasFailures
@@ -82,6 +124,21 @@ inline WorldGenerationScaleEvidenceBundle buildWorldGenerationScaleEvidence(
       && !bundle.gatesAdopt
       && equivalence.generationEpoch != 0;
   return bundle;
+}
+
+// When Desktop records an attestation, contracts must pass and tipPrefix must
+// match the tip under review. Missing attestation leaves readiness unchanged.
+inline bool applyWorldGenerationDesktopAttestation(
+    WorldGenerationScaleEvidenceBundle& bundle,
+    WorldGenerationDesktopProbeAttestation const& attestation,
+    uint32_t expectedTipPrefix) noexcept {
+  if (!attestation.recorded)
+    return false;
+  bool tipOk = attestation.tipPrefix != 0 && attestation.tipPrefix == expectedTipPrefix;
+  bundle.desktopAttested = tipOk && attestation.contractsPass();
+  if (attestation.recorded)
+    bundle.readyForIntegratorReview = bundle.readyForIntegratorReview && bundle.desktopAttested;
+  return bundle.desktopAttested;
 }
 
 inline WorldGenerationScaleEvidenceBundle buildWorldGenerationScaleEvidenceFromRecorders(
@@ -95,6 +152,79 @@ inline WorldGenerationScaleEvidenceBundle buildWorldGenerationScaleEvidenceFromR
       scaleRecorder.snapshot(), delivery, reportDocumented);
   return buildWorldGenerationScaleEvidence(
       scaleRecorder.snapshot(), campaignRecorder.snapshot(), adoption, equivalence, probePlatform);
+}
+
+enum class WorldGenerationScaleProfileAdvice : uint8_t {
+  KeepExisting = 0,
+  PreferDynamicBias,
+  PreferHighThroughput,
+  ForceCpuCompleteFallback,
+  RejectUnknown,
+  Count
+};
+
+struct WorldGenerationScaleProfileRecommendation {
+  static constexpr unsigned ModelVersion = 1;
+  WorldGenerationExecutionProfile suggested = WorldGenerationExecutionProfile::Balanced;
+  WorldGenerationScaleProfileAdvice advice = WorldGenerationScaleProfileAdvice::KeepExisting;
+  WorldGenerationFallbackKind fallback = WorldGenerationFallbackKind::CpuComplete;
+  bool allowsGpuSelection = false;
+  // Always true: callers must opt in; never rewrite performanceMode in place.
+  bool requiresExplicitUserOptIn = true;
+};
+
+inline WorldGenerationScaleProfileRecommendation recommendWorldGenerationProfileFromScaleEvidence(
+    WorldGenerationScaleEvidenceBundle const& bundle,
+    WorldGenerationPerformanceMode currentMode) noexcept {
+  auto binding = bindWorldGenerationExecutionProfile(currentMode);
+  WorldGenerationScaleProfileRecommendation rec;
+  rec.suggested = binding.conceptual;
+  rec.fallback = binding.fallback;
+  rec.allowsGpuSelection = binding.allowsGpuSelection;
+  rec.requiresExplicitUserOptIn = true;
+
+  if (binding.migration == WorldGenerationProfileMigration::RejectedUnknown) {
+    rec.advice = WorldGenerationScaleProfileAdvice::RejectUnknown;
+    rec.suggested = WorldGenerationExecutionProfile::Manual;
+    rec.allowsGpuSelection = false;
+    rec.fallback = WorldGenerationFallbackKind::CpuComplete;
+    return rec;
+  }
+
+  if (currentMode == WorldGenerationPerformanceMode::Legacy) {
+    rec.advice = WorldGenerationScaleProfileAdvice::KeepExisting;
+    rec.allowsGpuSelection = false;
+    return rec;
+  }
+
+  if (bundle.campaignHasFailures || !bundle.gatesAuthoritativeGpuBlocked || bundle.gatesAdopt) {
+    rec.advice = WorldGenerationScaleProfileAdvice::ForceCpuCompleteFallback;
+    rec.suggested = WorldGenerationExecutionProfile::Balanced;
+    rec.fallback = WorldGenerationFallbackKind::CpuComplete;
+    rec.allowsGpuSelection = false;
+    return rec;
+  }
+
+  if (bundle.readyForIntegratorReview && bundle.scaleMeasuredGain
+      && bundle.shadowOutputComparison) {
+    rec.advice = WorldGenerationScaleProfileAdvice::PreferDynamicBias;
+    rec.suggested = WorldGenerationExecutionProfile::DynamicBias;
+    rec.fallback = WorldGenerationFallbackKind::CompatiblePath;
+    rec.allowsGpuSelection = true;
+    return rec;
+  }
+
+  if (bundle.readyForIntegratorReview && bundle.campaignCpuOnlyCovered
+      && currentMode == WorldGenerationPerformanceMode::Aggressive) {
+    rec.advice = WorldGenerationScaleProfileAdvice::PreferHighThroughput;
+    rec.suggested = WorldGenerationExecutionProfile::HighThroughput;
+    rec.fallback = WorldGenerationFallbackKind::CompatiblePath;
+    rec.allowsGpuSelection = binding.allowsGpuSelection;
+    return rec;
+  }
+
+  rec.advice = WorldGenerationScaleProfileAdvice::KeepExisting;
+  return rec;
 }
 
 }

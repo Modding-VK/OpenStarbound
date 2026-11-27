@@ -77,6 +77,7 @@ Frente desta branch (`cursor/r2-regional-ops-9f77`): R2 AuthoritativeOps. O
   `cursor/r2-regional-ops-9f77` ([ops](sector-runtime-r2-authoritative-ops-2026-11-27.md)).
 - [ ] R2 além da sombra: multiplayer/recovery vivo e owners OS reais.
 H5 (probe Desktop 44/44 @ `62fba03a`): [scale evidence bundle](sector-runtime-h5-scale-evidence-bundle-2026-11-27.md), [scenario campaign](sector-runtime-h5-scenario-campaign-2026-11-27.md), [gates/metrics](sector-runtime-h5-scale-gates-metrics-2026-11-27.md). `da430a98` retido até probe 46/46.
+H5 Desktop probe: `da430a98` 46/46 + `ffce0834` 48/48 — [attestation](sector-runtime-h5-desktop-probe-attestation-2026-11-27.md), [profile advice](sector-runtime-h5-scale-profile-advice-2026-11-27.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
 corrigido opt-in e VAL-01/02 têm harness sintético inicial, com 26 testes H0

@@ -6,10 +6,10 @@ Pré-condição: H4 probe RTX PASS @ `c7f6e605` (GPU shadow real). Sem merge INT
 
 ## Objetivo deste probe
 
-Validar no host RTX os **44 testes de contrato H5** (GPU-05 + VAL-03/04/05 +
-MOD-02/03/04 + CPU-05 + ScaleMetrics/gates/campaign/evidence). Sao modelos
-puros: **nao** ligam OpenGL nem reclamam compute. A capacidade GPU real ja
-comprovada em H4 alimenta o pacote de evidencia; este checklist fecha a
+Validar no host RTX os **48 testes de contrato H5** (GPU-05 + VAL-03/04/05 +
+MOD-02/03/04 + CPU-05 + ScaleMetrics/gates/campaign/evidence/profile/attest).
+Sao modelos puros: **nao** ligam OpenGL nem reclamam compute. A capacidade GPU
+real ja comprovada em H4 alimenta o pacote de evidencia; este checklist fecha a
 evidencia Windows dos contratos H5 no tip atual.
 
 ## Pré-requisitos
@@ -58,7 +58,7 @@ pwsh -File scripts\windows\run-h5-contract-probe.ps1 -ExePath .\dist\world_gener
 
 ### Saída esperada (PASS)
 
-- **44/44** testes PASSED
+- **48/48** testes PASSED
 - exit code `0`
 - Sem Actions; sem claim de backend GPU neste log
 
@@ -71,13 +71,13 @@ pwsh -File scripts\windows\run-h5-contract-probe.ps1 -ExePath .\dist\world_gener
 | WorldGenerationExecutionProfileTest | 3 |
 | WorldGenerationScenarioMatrixTest | 2 |
 | WorldGenerationScenarioCampaignTest | 4 |
-| WorldGenerationScaleEvidenceTest | 4 |
+| WorldGenerationScaleEvidenceTest | 8 |
 | WorldGenerationAdoptionGatesTest | 6 |
 | WorldGenerationEquivalenceVersionTest | 3 |
 | WorldGenerationPlatformMatrixTest | 2 |
 | WorldGenerationResourceGovernorTest | 3 |
 | WorldGenerationScaleMetricsTest | 6 |
-| **Total** | **44** |
+| **Total** | **48** |
 
 ## O que reportar ao Project / H5
 
