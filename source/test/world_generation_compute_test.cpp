@@ -603,6 +603,31 @@ TEST(WorldGenerationComputeTest, DenseUint32HasZeroByteNextPow2MaskLowExactCpuAn
           .verdict);
 }
 
+TEST(WorldGenerationComputeTest, CancelOpenTicketsByKernelIsSelective) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(380, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(381, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{2u}, 0u));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(382, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{3u}, 0u));
+
+  EXPECT_EQ(0u, service.cancelOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Mul));
+  EXPECT_EQ(2u, service.cancelOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(0u, service.cancelOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(2u, service.countOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(1u, service.countOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+
+  auto xorOpen = service.listOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor);
+  auto xorStatuses = service.pollBatch(xorOpen);
+  ASSERT_EQ(2u, xorStatuses.size());
+  EXPECT_EQ(WorldGenerationComputePollStatus::Cancelled, xorStatuses[0]);
+  EXPECT_EQ(WorldGenerationComputePollStatus::Cancelled, xorStatuses[1]);
+  EXPECT_EQ(0u, service.countOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(1u, service.countOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+}
+
 TEST(WorldGenerationComputeTest, ListAndCountOpenTicketsByKernel) {
   WorldGenerationComputeService service;
   service.setDeferredCpuCompletion(true);

@@ -289,6 +289,9 @@ public:
   // GPU-02: revoke every currently open ticket; returns how many were cancelled.
   size_t cancelAll();
 
+  // GPU-02: revoke open tickets whose identity.kernel matches; owner-thread gated.
+  size_t cancelOpenTicketsByKernel(WorldGenerationComputeKernel kernel);
+
   // GPU-02: poll many tickets; each status/result is independent. When outs is
   // non-null it is resized to tickets.size(); Ready slots fill values.
   List<WorldGenerationComputePollStatus> pollBatch(List<WorldGenerationComputeTicket> tickets,
