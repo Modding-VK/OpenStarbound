@@ -758,3 +758,7 @@ integração: **nenhum**.
 ## Revisão 2026-11-27T22:28Z
 - Merge H4 `d4798e06` (HalfGrayEncode/HalfGrayDecode/HalfSmearLsb + countPendingOpenTickets; 134/134).
 - Build `46075958751` @ `a4a84b28` intacto; 1 Build tip final após terminal; sem spam.
+
+## Revisão 2026-11-27T22:31Z
+- Sync: H4 ahead absorvido `8e48af1c` (136/136). H5 ahead=1 `24bdb5e6` (só anotar). Desktop bootstrap: não apareceu.
+- Build `46075958751` @ `a4a84b28` intacto; 1 Build tip final após terminal; sem spam.
