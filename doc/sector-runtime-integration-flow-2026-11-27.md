@@ -581,3 +581,36 @@ Bases: INT **`7e4a5baa`**. Frentes **não** editadas; **sem** merge em `main`;
 
 - **Hold frentes** (nada ahead). Sem conflito/bloqueio de merge.
 - Sem comentários em PR (fila vazia). Sem `build.yml` neste ciclo docs.
+
+## Revisão sync 27/11/2026 ~19:30 UTC
+
+Bases: INT **`a5f91c9b`**. Frentes **não** editadas; **sem** merge em `main`;
+**sem** disparo de Actions neste ciclo. PRs GitHub com base na integração:
+**nenhum**.
+
+| Frente | Tip remoto | vs INT | Ancestral INT |
+| --- | --- | ---: | --- |
+| H0 | `c124f899` | 0 | sim |
+| H1 | `4d014af2` | 0 | sim |
+| H2 | `b1162b5d` | 0 | sim |
+| H3 | `3bdf1927` | 0 | sim |
+| H4 | `b3e61151` | 0 | sim |
+| H5 | `a2ec01f0` | 0 | sim |
+| R1 | `da79144b` | 0 | sim |
+| R2 | `f86b4d17` | 0 | sim |
+
+### Delta desde sync ~19:00
+
+- H4 mergeado continuamente na INT até `b3e61151` (Neg/Abs/RolBytes +
+  fingerprintStagingSnapshot; 54/54) e fatias anteriores (BitSet…/Sext…/Ilog2…).
+- R1 ThreadStub wait harden validado: Build `46055210354` @ `deb9c018`
+  **SUCCESS**, `WorldRegionThreadStubTest` **PASSED**.
+- Tip INT atual: `a5f91c9b`. Build `46057059059` @ tip **in_progress**.
+- Frentes **ahead=0**; H3 sem commits novos.
+- Política H4: asset-free / **não hold**; merge lotes quando pedirem; smoke hold.
+
+### Vereditos
+
+- **Hold frentes** (nada ahead). Sem conflito/bloqueio.
+- H4 continua (próximo lote quando H4 entregar). Sem comentários em PR.
+- Sem `build.yml` neste ciclo docs (Build tip já em voo).
