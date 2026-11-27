@@ -66,7 +66,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32MaskLow = 40, // value & low-bit mask; parameter = bit count clamped to [0,32]
   DenseUint32Ilog2 = 41, // floor(log2(value)); 0 when value==0; parameter ignored
   DenseUint32BroadcastByte = 42, // replicate low 8 bits across word; parameter ignored
-  DenseUint32ByteSum = 43 // sum of four bytes as uint32; parameter ignored
+  DenseUint32ByteSum = 43, // sum of four bytes as uint32; parameter ignored
+  DenseUint32Sext8 = 44, // sign-extend low 8 bits; parameter ignored
+  DenseUint32Sext16 = 45, // sign-extend low 16 bits; parameter ignored
+  DenseUint32ExtractByte = 46 // (value >> ((parameter & 3) * 8)) & 0xff
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -243,6 +246,9 @@ public:
   // GPU-02: complete any Pending tickets, then poll+discard every open ticket
   // (owner-thread). Returns how many tickets were drained.
   size_t drainOpenTickets();
+
+  // GPU-02: drain only open tickets whose identity.kernel matches (owner-thread).
+  size_t drainOpenTicketsByKernel(WorldGenerationComputeKernel kernel);
 
   // GPU-02 accounting for RAM-01 consumers (asset-free observation only).
   WorldGenerationComputeStagingSnapshot stagingSnapshot() const;

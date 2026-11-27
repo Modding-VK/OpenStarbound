@@ -87,7 +87,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32MaskLow
       || kernel == WorldGenerationComputeKernel::DenseUint32Ilog2
       || kernel == WorldGenerationComputeKernel::DenseUint32BroadcastByte
-      || kernel == WorldGenerationComputeKernel::DenseUint32ByteSum;
+      || kernel == WorldGenerationComputeKernel::DenseUint32ByteSum
+      || kernel == WorldGenerationComputeKernel::DenseUint32Sext8
+      || kernel == WorldGenerationComputeKernel::DenseUint32Sext16
+      || kernel == WorldGenerationComputeKernel::DenseUint32ExtractByte;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -138,7 +141,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32MaskLow,
       WorldGenerationComputeKernel::DenseUint32Ilog2,
       WorldGenerationComputeKernel::DenseUint32BroadcastByte,
-      WorldGenerationComputeKernel::DenseUint32ByteSum};
+      WorldGenerationComputeKernel::DenseUint32ByteSum,
+      WorldGenerationComputeKernel::DenseUint32Sext8,
+      WorldGenerationComputeKernel::DenseUint32Sext16,
+      WorldGenerationComputeKernel::DenseUint32ExtractByte};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -148,7 +154,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 43u;
+  return 46u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -213,6 +219,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32Ilog2: return "DenseUint32Ilog2";
     case WorldGenerationComputeKernel::DenseUint32BroadcastByte: return "DenseUint32BroadcastByte";
     case WorldGenerationComputeKernel::DenseUint32ByteSum: return "DenseUint32ByteSum";
+    case WorldGenerationComputeKernel::DenseUint32Sext8: return "DenseUint32Sext8";
+    case WorldGenerationComputeKernel::DenseUint32Sext16: return "DenseUint32Sext16";
+    case WorldGenerationComputeKernel::DenseUint32ExtractByte: return "DenseUint32ExtractByte";
   }
   return nullptr;
 }
@@ -529,6 +538,20 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
           + ((value >> 24) & 0xffu);
       out.append(sum);
     }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Sext8) {
+    for (uint32_t value : input) {
+      uint32_t low = value & 0xffu;
+      out.append((low & 0x80u) ? (low | 0xffffff00u) : low);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Sext16) {
+    for (uint32_t value : input) {
+      uint32_t low = value & 0xffffu;
+      out.append((low & 0x8000u) ? (low | 0xffff0000u) : low);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32ExtractByte) {
+    uint32_t shift = (parameter & 3u) * 8u;
+    for (uint32_t value : input)
+      out.append((value >> shift) & 0xffu);
   }
   return out;
 }
@@ -653,6 +676,30 @@ size_t WorldGenerationComputeService::drainOpenTickets() {
   List<WorldGenerationComputeTicket> tickets;
   tickets.reserve(m_entries.size());
   for (auto const& pair : m_entries) {
+    WorldGenerationComputeTicket ticket;
+    ticket.id = pair.first;
+    tickets.append(ticket);
+  }
+  size_t drained = 0;
+  for (auto ticket : tickets) {
+    auto it = m_entries.find(ticket.id);
+    if (it != m_entries.end() && it->second.state == EntryState::Pending)
+      completeEntry(it->second);
+    pollLocked(ticket, nullptr);
+    ++drained;
+  }
+  return drained;
+}
+
+size_t WorldGenerationComputeService::drainOpenTicketsByKernel(
+    WorldGenerationComputeKernel kernel) {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return 0;
+  List<WorldGenerationComputeTicket> tickets;
+  for (auto const& pair : m_entries) {
+    if (pair.second.identity.kernel != kernel)
+      continue;
     WorldGenerationComputeTicket ticket;
     ticket.id = pair.first;
     tickets.append(ticket);

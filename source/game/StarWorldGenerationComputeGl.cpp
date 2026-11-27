@@ -103,6 +103,9 @@ GLuint g_maskLowProgram = 0;
 GLuint g_ilog2Program = 0;
 GLuint g_broadcastByteProgram = 0;
 GLuint g_byteSumProgram = 0;
+GLuint g_sext8Program = 0;
+GLuint g_sext16Program = 0;
+GLuint g_extractByteProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -745,6 +748,51 @@ void main() {
 }
 )GLSL";
 
+char const* Sext8Shader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint low = values[i] & 0xffu;
+  values[i] = (low & 0x80u) != 0u ? (low | 0xffffff00u) : low;
+}
+)GLSL";
+
+char const* Sext16Shader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint low = values[i] & 0xffffu;
+  values[i] = (low & 0x8000u) != 0u ? (low | 0xffff0000u) : low;
+}
+)GLSL";
+
+char const* ExtractByteShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint shift = (uParameter & 3u) * 8u;
+  values[i] = (values[i] >> shift) & 0xffu;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -965,6 +1013,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_byteSumProgram);
     g_byteSumProgram = 0;
   }
+  if (g_sext8Program) {
+    glDeleteProgram(g_sext8Program);
+    g_sext8Program = 0;
+  }
+  if (g_sext16Program) {
+    glDeleteProgram(g_sext16Program);
+    g_sext16Program = 0;
+  }
+  if (g_extractByteProgram) {
+    glDeleteProgram(g_extractByteProgram);
+    g_extractByteProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -1094,7 +1154,10 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_maskLowProgram, MaskLowShader, "DenseUint32MaskLow")
       || !requireProgram(g_ilog2Program, Ilog2Shader, "DenseUint32Ilog2")
       || !requireProgram(g_broadcastByteProgram, BroadcastByteShader, "DenseUint32BroadcastByte")
-      || !requireProgram(g_byteSumProgram, ByteSumShader, "DenseUint32ByteSum"))
+      || !requireProgram(g_byteSumProgram, ByteSumShader, "DenseUint32ByteSum")
+      || !requireProgram(g_sext8Program, Sext8Shader, "DenseUint32Sext8")
+      || !requireProgram(g_sext16Program, Sext16Shader, "DenseUint32Sext16")
+      || !requireProgram(g_extractByteProgram, ExtractByteShader, "DenseUint32ExtractByte"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -1245,6 +1308,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_broadcastByteProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32ByteSum)
     program = g_byteSumProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Sext8)
+    program = g_sext8Program;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Sext16)
+    program = g_sext16Program;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32ExtractByte)
+    program = g_extractByteProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
