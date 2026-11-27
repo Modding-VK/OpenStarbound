@@ -19,4 +19,6 @@ ASan/UBSan: 1×5; **105/105** RealBlockInfo.
 
 ## Próximo passo
 
-Gates H0 restantes antes de H1. Não disparar Actions.
+Oceano concorrente em
+[concurrent ocean](sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md).
+Segue gates H0 restantes. Não disparar Actions.
