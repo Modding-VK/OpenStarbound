@@ -252,6 +252,9 @@ public:
   // was open and revoked on the owner thread).
   List<bool> cancelBatch(List<WorldGenerationComputeTicket> tickets);
 
+  // GPU-02: revoke every currently open ticket; returns how many were cancelled.
+  size_t cancelAll();
+
   // GPU-02: poll many tickets; each status/result is independent. When outs is
   // non-null it is resized to tickets.size(); Ready slots fill values.
   List<WorldGenerationComputePollStatus> pollBatch(List<WorldGenerationComputeTicket> tickets,
@@ -323,6 +326,9 @@ public:
   static Maybe<WorldGenerationComputeKernel> parseKernelName(char const* name) noexcept;
   static char const* backendName(WorldGenerationComputeBackend backend) noexcept;
   static Maybe<WorldGenerationComputeBackend> parseBackendName(char const* name) noexcept;
+  static char const* pollStatusName(WorldGenerationComputePollStatus status) noexcept;
+  static char const* shadowVerdictName(WorldGenerationComputeShadowVerdict verdict) noexcept;
+  static char const* commitVerdictName(WorldGenerationComputeCommitVerdict verdict) noexcept;
 
   struct ShadowBatchItem {
     WorldGenerationComputeInputIdentity identity;

@@ -517,6 +517,35 @@ TEST(WorldGenerationComputeTest, CompareShadowBatchRunsIndependentKernels) {
   }
 }
 
+TEST(WorldGenerationComputeTest, CancelAllAndVerdictNames) {
+  EXPECT_STREQ("Pending",
+      WorldGenerationComputeService::pollStatusName(WorldGenerationComputePollStatus::Pending));
+  EXPECT_STREQ("Equal",
+      WorldGenerationComputeService::shadowVerdictName(WorldGenerationComputeShadowVerdict::Equal));
+  EXPECT_STREQ("Accepted",
+      WorldGenerationComputeService::commitVerdictName(WorldGenerationComputeCommitVerdict::Accepted));
+  EXPECT_EQ(nullptr,
+      WorldGenerationComputeService::pollStatusName((WorldGenerationComputePollStatus)99));
+
+  WorldGenerationComputeCapabilities caps;
+  caps.maxInFlight = 4;
+  WorldGenerationComputeService service(caps);
+  service.setDeferredCpuCompletion(true);
+  EXPECT_EQ(0u, service.cancelAll());
+  ASSERT_TRUE((bool)service.submit(makeIdentity(280), List<uint32_t>{1u}, 0u));
+  ASSERT_TRUE((bool)service.submit(makeIdentity(281), List<uint32_t>{2u}, 0u));
+  EXPECT_EQ(2u, service.openTickets());
+  EXPECT_EQ(2u, service.cancelAll());
+  EXPECT_EQ(2u, service.openTickets());
+  auto open = service.listOpenTickets();
+  auto statuses = service.pollBatch(open);
+  ASSERT_EQ(2u, statuses.size());
+  EXPECT_EQ(WorldGenerationComputePollStatus::Cancelled, statuses[0]);
+  EXPECT_EQ(WorldGenerationComputePollStatus::Cancelled, statuses[1]);
+  EXPECT_EQ(0u, service.openTickets());
+  EXPECT_EQ(0u, service.cancelAll());
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32GtGeuXnorExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();

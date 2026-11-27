@@ -171,6 +171,44 @@ Maybe<WorldGenerationComputeBackend> WorldGenerationComputeService::parseBackend
   return {};
 }
 
+char const* WorldGenerationComputeService::pollStatusName(
+    WorldGenerationComputePollStatus status) noexcept {
+  switch (status) {
+    case WorldGenerationComputePollStatus::Pending: return "Pending";
+    case WorldGenerationComputePollStatus::Ready: return "Ready";
+    case WorldGenerationComputePollStatus::Failed: return "Failed";
+    case WorldGenerationComputePollStatus::Cancelled: return "Cancelled";
+    case WorldGenerationComputePollStatus::UnknownTicket: return "UnknownTicket";
+  }
+  return nullptr;
+}
+
+char const* WorldGenerationComputeService::shadowVerdictName(
+    WorldGenerationComputeShadowVerdict verdict) noexcept {
+  switch (verdict) {
+    case WorldGenerationComputeShadowVerdict::Equal: return "Equal";
+    case WorldGenerationComputeShadowVerdict::Diverged: return "Diverged";
+    case WorldGenerationComputeShadowVerdict::PrimaryFailed: return "PrimaryFailed";
+    case WorldGenerationComputeShadowVerdict::ShadowUnavailable: return "ShadowUnavailable";
+    case WorldGenerationComputeShadowVerdict::Cancelled: return "Cancelled";
+  }
+  return nullptr;
+}
+
+char const* WorldGenerationComputeService::commitVerdictName(
+    WorldGenerationComputeCommitVerdict verdict) noexcept {
+  switch (verdict) {
+    case WorldGenerationComputeCommitVerdict::Accepted: return "Accepted";
+    case WorldGenerationComputeCommitVerdict::StaleIdentity: return "StaleIdentity";
+    case WorldGenerationComputeCommitVerdict::StaleInput: return "StaleInput";
+    case WorldGenerationComputeCommitVerdict::NotReady: return "NotReady";
+    case WorldGenerationComputeCommitVerdict::Cancelled: return "Cancelled";
+    case WorldGenerationComputeCommitVerdict::Failed: return "Failed";
+    case WorldGenerationComputeCommitVerdict::UnknownTicket: return "UnknownTicket";
+  }
+  return nullptr;
+}
+
 namespace {
 
 uint32_t denseClz(uint32_t value) noexcept {
@@ -736,6 +774,25 @@ List<bool> WorldGenerationComputeService::cancelBatch(List<WorldGenerationComput
     out.append(true);
   }
   return out;
+}
+
+size_t WorldGenerationComputeService::cancelAll() {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return 0;
+  size_t cancelled = 0;
+  for (auto& pair : m_entries) {
+    Entry& entry = pair.second;
+    if (entry.publicationRevoked && entry.state == EntryState::Cancelled)
+      continue;
+    entry.publicationRevoked = true;
+    if (entry.state == EntryState::Pending || entry.state == EntryState::Ready) {
+      entry.state = EntryState::Cancelled;
+      entry.output.clear();
+    }
+    ++cancelled;
+  }
+  return cancelled;
 }
 
 List<WorldGenerationComputePollStatus> WorldGenerationComputeService::pollBatch(
