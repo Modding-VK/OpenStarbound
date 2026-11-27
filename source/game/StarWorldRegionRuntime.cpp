@@ -91,6 +91,10 @@ WorldRegionThreadStubPhase WorldRegionRuntimeCoordinator::threadStubPhase(Vec2U 
   return m_threadStubs.phase(region);
 }
 
+uint64_t WorldRegionRuntimeCoordinator::threadStubCpuTicks(Vec2U const& region) const {
+  return m_threadStubs.cpuTicks(region);
+}
+
 void WorldRegionRuntimeCoordinator::setThreadStubCreationAllowed(bool allowed) {
   m_threadStubs.setCreationAllowed(allowed);
 }
