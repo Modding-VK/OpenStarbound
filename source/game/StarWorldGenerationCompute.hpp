@@ -604,6 +604,8 @@ public:
   bool rejectedDuplicatesEmpty() const;
   // Alias of fingerprintRejectedDuplicates (asset-free observation naming).
   uint64_t rejectedDuplicatesFingerprint() const;
+  // Alias of anyRejectedDuplicates (asset-free observation naming).
+  bool hasRejectedDuplicates() const;
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 
