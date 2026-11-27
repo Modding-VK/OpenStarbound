@@ -2,10 +2,10 @@
 
 Atualizado em **27/11/2026**. Branch de implementação H3:
 `cursor/h3-kernels-publication-9f77` (base Experimental `e55c008f`).
-Último recorte H3: pacotes confirmados em sombra / IO-05.
+Último recorte H3: integração cruzada sombra WT-04→IO-03→IO-05 (sem novo marco %).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico H3](../sector-runtime-h3-shadow-packet-2026-11-27.md)
+· [Último relatório técnico H3](../sector-runtime-h3-shadow-integration-2026-11-27.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -23,7 +23,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **8,7%** — 17 marcos verificados de 196 |
 | Contratos com avanço registrado | **17 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | H3: CPU-04 + MD-02..05 + WT-04 + IO-02..05 NoAssets; H0 inalterado nesta branch |
+| Última evidência de testes | H3: CPU-04 + MD + WT-04 + IO-02..05 + integração cruzada sombra NoAssets; H0 inalterado nesta branch |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 8,7% não significam que o jogo esteja só 8,7% pronto.** O runtime anterior
@@ -77,7 +77,7 @@ obriga concluir todo trabalho transversal para iniciar um protótipo em sombra.
 | 1 | H0 — fundações e validação | 6 | 6 / 24 | 25,0% | Invariantes, limites explicitados, comparador e baseline reproduzível para o escopo que será ampliado |
 | 2 | H1 — grafo executivo, CPU e entrega | 10 | 1 / 40 | 2,5% | Primeiro recorte proprietário de CPU-01 em apoio a H0; grafo/executor ainda pendentes |
 | 3 | H2 — produtos residentes e prefetch | 6 | 0 / 24 | 0% | Identidade/versionamento de H1 e orçamento de RAM |
-| 4 | H3 — kernels adicionais, estruturas e publicação | 10 | 10 / 40 | 25,0% | Primeiro recorte sombra dos 10 contratos; equivalência viva pendente |
+| 4 | H3 — kernels adicionais, estruturas e publicação | 10 | 10 / 40 | 25,0% | 10×25% + integração sombra; 50%/vivo pendentes |
 | 5 | H4 — backend GPU e comparação em sombra | 4 | 0 / 16 | 0% | Protótipo pode acompanhar H1/H2; publicação depende do kernel CPU equivalente |
 | 6 | H5 — seleção de hardware e escala | 7 | 0 / 28 | 0% | Produtos/backends validados e custo completo de entrega medido |
 | 7 | R1 — donos regionais e coordenadora | 3 | 0 / 12 | 0% | Auditoria de autoridade/efeitos e checkpoint; não basta aprovar GPU |
@@ -327,6 +327,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | H3 IO-03 shadow checkpoint | Unidade lógica + seal/recover/reject; 6 NoAssets. IO-03 0→25%; H3 20%; programa 7,7% | 7,7% |
 | 27/11/2026 | H3 IO-04 shadow unload | Unload/drain/keepAlive/handoff bloqueado; 6 NoAssets. IO-04 0→25%; H3 22,5%; programa 8,2% | 8,2% |
 | 27/11/2026 | H3 IO-05 shadow packet | Pacotes confirmados + marcos + clocks; 6 NoAssets. IO-05 0→25%; H3 25%; programa 8,7% | 8,7% |
+| 27/11/2026 | H3 shadow integration | WT-04 frontier→IO-03→IO-05; 4 NoAssets. Sem novo marco % (contratos seguem 25%) | 8,7% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

@@ -196,6 +196,7 @@ SET (star_game_HEADERS
     StarWorldGenerationShadowCheckpoint.hpp
     StarWorldGenerationShadowUnload.hpp
     StarWorldGenerationShadowPacket.hpp
+    StarWorldGenerationShadowIntegration.hpp
     StarWorldGenerationBlockInfo.hpp
     StarWorldGenerationCustomTerrain.hpp
     StarWorldGenerationBlockInfoStaticInputs.hpp

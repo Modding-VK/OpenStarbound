@@ -484,6 +484,12 @@ Propósito: reduzir trabalho serial após o desbloqueio do pipeline.
 - [x] IO-05 (primeiro recorte): pacotes confirmados em sombra
   ([relatório](../sector-runtime-h3-shadow-packet-2026-11-27.md));
   sem rede/`.world`.
+- [x] Integração cruzada sombra (pós-25%): WT-04 frontier → IO-03 unit →
+  IO-05 packet
+  ([relatório](../sector-runtime-h3-shadow-integration-2026-11-27.md));
+  sem publish vivo; não eleva contratos a 50%.
+- [ ] Além do primeiro recorte: flora/spawn sombra, decode TMX real, e
+  equivalência viva / publish autoritativo só com `apis_ready` live-publish.
 
 Saída: custo serial menor por setor/estrutura, com save, scripts e rede
 equivalentes. Cada kernel pode avançar separadamente; uma dungeon composta

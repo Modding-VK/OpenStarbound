@@ -258,9 +258,11 @@ executivo e o planejador menor são propostas, ainda não implementadas.
   [Shadow DB](sector-runtime-h3-shadow-db-2026-11-27.md),
   [Shadow checkpoint](sector-runtime-h3-shadow-checkpoint-2026-11-27.md),
   [Shadow unload](sector-runtime-h3-shadow-unload-2026-11-27.md),
-  [Shadow packet](sector-runtime-h3-shadow-packet-2026-11-27.md)).
-- [ ] H3 além do primeiro recorte: equivalência viva / publish autoritativo
-  só com `apis_ready` live-publish.
+  [Shadow packet](sector-runtime-h3-shadow-packet-2026-11-27.md),
+  [Shadow integration](sector-runtime-h3-shadow-integration-2026-11-27.md)).
+- [x] H3 integração cruzada sombra WT-04→IO-03→IO-05 (sem elevação a 50%).
+- [ ] H3 além do primeiro recorte: flora/spawn sombra, decode TMX real;
+  equivalência viva / publish autoritativo só com `apis_ready` live-publish.
 - [ ] H4/H5: GPU compute opcional, comparação CPU/GPU em sombra, seleção por
   custo e orçamento de VRAM/latência; manter execução CPU independente.
 
