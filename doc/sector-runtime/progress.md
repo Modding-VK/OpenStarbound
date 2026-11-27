@@ -2,13 +2,12 @@
 
 Atualizado em **27/11/2026**. Branch de integração:
 `cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+H4+H5+R1+R2; não `main`).
-Tip INT: merge H4 GPU-02 failContext + GPU-04 shadowEdgeCorpus/Reproducer
-(`6b210ba0`, 17/17) sobre tip material GPU-03 `4741d691`. Build
-`46048668279` em `4741d691` permanece em voo — sem cancelar/redisparar;
-um único Build na tip nova após terminal. Instalador anterior Build #86 @
-`33628d9b` até Build novo. Sem smoke até base local. Não mergear outras
-frentes até ahead>0. PR #4 (placeholders RTX) após CI verde (sem Build).
-Última H4: GPU-02 failContext + GPU-04 reproducers (`6b210ba0`); H4 25%.
+Tip INT: merge H4 GPU-04 fingerprintInput/commit revalidate (`2f140d39`,
+18/18) sobre `6d3effe0`. Build `46048668279` @ `4741d691` intacto até
+terminal; depois um único Build na tip final. Sem smoke até base local.
+Não mergear outras frentes até ahead>0. PR #4 após CI verde (YAML sem Build).
+Última H4: GPU-04 commit revalidate + failContext/reproducers + And/Or/Mul
+(`2f140d39`); H4 25%.
 Última H5: scale foundations + probe 27/27 RTX (`a2ec01f0`); H5 25%.
 Última H3: TMX cache/reload + flora/replaceBiome + decode/codec (`3bdf1927`); H3 25%.
 Última R2: AuthoritativeOps + REG-03/04/05 sombra (`f86b4d17`).
@@ -22,7 +21,7 @@ frentes até ahead>0. PR #4 (placeholders RTX) após CI verde (sem Build).
 · [Relatório H1](../sector-runtime-h1-prepared-sector-2026-11-27.md)
 · [Relatório H2](../sector-runtime-h2-prepared-sector-consume-2026-11-27.md)
 · [Relatório H3](../sector-runtime-h3-tmx-shadow-cache-2026-11-27.md)
-· [Relatório H4](../sector-runtime-h4-gpu02-04-failcontext-reproducer-2026-11-27.md)
+· [Relatório H4](../sector-runtime-h4-gpu04-commit-revalidate-2026-11-27.md)
 · [Relatório H5](../sector-runtime-h5-scale-foundations-2026-11-27.md)
 · [Relatório R1](../sector-runtime-r1-thread-stub-cpu-2026-11-27.md)
 · [Relatório R2](../sector-runtime-r2-authoritative-ops-2026-11-27.md)
@@ -49,7 +48,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **25,5%** — 50 marcos verificados de 196 |
 | Contratos com avanço registrado | **49 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | H0–H5 + R1/R2; H4 GPU-02 failContext + GPU-04 reproducers 17/17 + GPU-03 And/Or/Mul + probe GL PASS; H5 27/27 RTX; PreparedSector = API H1; Build `46048668279` @ `4741d691` em voo; Actions manuais |
+| Última evidência de testes | H0–H5 + R1/R2; H4 GPU-04 commit revalidate 18/18 + failContext/reproducers + And/Or/Mul + probe GL PASS; H5 27/27 RTX; Build `46048668279` @ `4741d691` em voo; Actions manuais |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 | Smoke / instalador local | Pendente base local do usuário; sem smoke até lá |
 
@@ -117,9 +116,9 @@ autoritativa. GPU é opcional, com fallback CPU completo.
 
 ## Próximas ações — fila imediata
 
-0. **Integração:** H4 `6b210ba0` (GPU-02 failContext + GPU-04 reproducers)
-   mergeado. Build `46048668279` @ `4741d691` segue — sem cancelar/redisparar;
-   um Build na tip nova após terminal. Instalador Build #86 @ `33628d9b` até
+0. **Integração:** H4 `2f140d39` (GPU-04 fingerprintInput/commit revalidate
+   18/18) mergeado. Build `46048668279` @ `4741d691` intacto até terminal;
+   depois um único Build na tip final. Instalador Build #86 @ `33628d9b` até
    Build novo. Não mergear outras frentes até ahead>0. PR #4 após CI verde
    (YAML → sem Build). Smoke só após base local.
 1. **H0: DAG-01/RAM-01 com MOD-01/VAL-02:** catálogo compacto e binding de fontes
@@ -212,7 +211,7 @@ auditoria de todas as implementações antigas para conceder crédito retroativo
 | 33 | H4 | [GPU-01](gpu-compute.md) | Interface e capacidades CPU/GPU | 25% | Serviço submit/poll/cancel + CPU reference; probe GL PASS |
 | 34 | H4 | [GPU-02](gpu-compute.md) | Contexto e buffers em voo | 25% | Fila/pool/pump/failContext (recover) + harness GL; thread dona WorldThread pendente |
 | 35 | H4 | [GPU-03](gpu-compute.md) | Kernels e equivalência | 25% | DenseUint32Xor/Add/And/Or/Mul + batch; terreno/ganho pendentes |
-| 36 | H4 | [GPU-04](gpu-compute.md) | Comparação em sombra | 25% | compareShadow + shadowEdgeCorpus/Reproducer; Equal no RTX 3050; multi-driver/publicação pendentes |
+| 36 | H4 | [GPU-04](gpu-compute.md) | Comparação em sombra | 25% | compareShadow + fingerprintInput/commit revalidate + corpus/reproducer; Equal RTX; multi-driver/publicação pendentes |
 | 37 | H5 | [GPU-05](gpu-compute.md) | Seleção heterogênea e render | 25% | Seletor por custo completo + fallback CPU; backend GPU/ganho medido pendentes |
 | 38 | H5 | [VAL-03](validation-and-telemetry.md) | Métricas e marcos de entrega | 25% | Recorder dos marcos; sem bus de telemetria nem Tracy |
 | 39 | H5 | [VAL-04](validation-and-telemetry.md) | Matriz de cenários | 25% | Cenários tipados; campanhas reais/streaming pendentes |
@@ -260,7 +259,7 @@ auditoria de todas as implementações antigas para conceder crédito retroativo
 | GPU-01 | [interface+CPU reference](../sector-runtime-h4-gpu01-compute-interface-2026-11-27.md); probe PASS Desktop-Vinicius | Sem 50%: publicação versionada e caminho vivo pendentes |
 | GPU-02 | [fila/voo/recuperação](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) + [failContext recover](../sector-runtime-h4-gpu02-04-failcontext-reproducer-2026-11-27.md) | Sem thread dona integrada à WorldThread; sem 50% |
 | GPU-03 | [Xor/Add](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) + [And/Or/Mul](../sector-runtime-h4-gpu03-dense-and-or-mul-2026-11-27.md); 16/16 testes | Sem kernels de terreno/bioma nem ganho medido |
-| GPU-04 | [compareShadow](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) + [shadowEdgeCorpus/Reproducer](../sector-runtime-h4-gpu02-04-failcontext-reproducer-2026-11-27.md); Equal no RTX 3050 | Sem campanha multi-driver / publicação; permanece 25% |
+| GPU-04 | [compareShadow](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) + [reproducers](../sector-runtime-h4-gpu02-04-failcontext-reproducer-2026-11-27.md) + [commit revalidate](../sector-runtime-h4-gpu04-commit-revalidate-2026-11-27.md); Equal RTX | Sem campanha multi-driver / publicação; permanece 25% |
 | GPU-05 | [hardware selection](../sector-runtime-h5-hardware-selection-2026-11-27.md), `StarWorldGenerationHardwareSelection.hpp`, 7 testes de contrato | Sem backend GPU, sem custos observados de runtime, sem ganho ponta a ponta nem publicação |
 | VAL-03 | [fundações H5](../sector-runtime-h5-scale-foundations-2026-11-27.md), delivery metrics recorder | Sem instrumentação no WorldThread/Tracy nem cobertura completa de pipeline |
 | VAL-04 | mesma entrega, scenario matrix tipada | Sem campanhas executadas nem A/B de streaming |
@@ -403,6 +402,8 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | Integração H4 GPU-03 | Merge `--no-ff` H4 `7754b2ca` em INT; tip material → Build autorizado; programa 25,5% | 25,5% |
 | 27/11/2026 | GPU-02/04 failContext+reproducers | recover failContext CPU + shadowEdgeCorpus/Reproducer; 17/17 testes; H4 permanece 25% | 25,5% |
 | 27/11/2026 | Integração H4 GPU-02/04 | Merge `--no-ff` H4 `6b210ba0` em INT; Build `4741d691` permanece; 1 Build na tip nova após terminal; programa 25,5% | 25,5% |
+| 27/11/2026 | GPU-04 commit revalidate | fingerprintInput/commit revalidate gate; 18/18 testes; H4 permanece 25% | 25,5% |
+| 27/11/2026 | Integração H4 GPU-04 revalidate | Merge `--no-ff` H4 `2f140d39` em INT; Build `4741d691` intacto; 1 Build na tip final após terminal; programa 25,5% | 25,5% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.
