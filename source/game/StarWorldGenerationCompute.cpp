@@ -108,7 +108,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32Cto
       || kernel == WorldGenerationComputeKernel::DenseUint32ReverseNibbles
       || kernel == WorldGenerationComputeKernel::DenseUint32ByteMax
-      || kernel == WorldGenerationComputeKernel::DenseUint32ByteMin;
+      || kernel == WorldGenerationComputeKernel::DenseUint32ByteMin
+      || kernel == WorldGenerationComputeKernel::DenseUint32DupLow16
+      || kernel == WorldGenerationComputeKernel::DenseUint32DupHigh16
+      || kernel == WorldGenerationComputeKernel::DenseUint32ReverseBitsInBytes;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -180,7 +183,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32Cto,
       WorldGenerationComputeKernel::DenseUint32ReverseNibbles,
       WorldGenerationComputeKernel::DenseUint32ByteMax,
-      WorldGenerationComputeKernel::DenseUint32ByteMin};
+      WorldGenerationComputeKernel::DenseUint32ByteMin,
+      WorldGenerationComputeKernel::DenseUint32DupLow16,
+      WorldGenerationComputeKernel::DenseUint32DupHigh16,
+      WorldGenerationComputeKernel::DenseUint32ReverseBitsInBytes};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -190,7 +196,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 64u;
+  return 67u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -276,6 +282,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32ReverseNibbles: return "DenseUint32ReverseNibbles";
     case WorldGenerationComputeKernel::DenseUint32ByteMax: return "DenseUint32ByteMax";
     case WorldGenerationComputeKernel::DenseUint32ByteMin: return "DenseUint32ByteMin";
+    case WorldGenerationComputeKernel::DenseUint32DupLow16: return "DenseUint32DupLow16";
+    case WorldGenerationComputeKernel::DenseUint32DupHigh16: return "DenseUint32DupHigh16";
+    case WorldGenerationComputeKernel::DenseUint32ReverseBitsInBytes: return "DenseUint32ReverseBitsInBytes";
   }
   return nullptr;
 }
@@ -700,6 +709,24 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
       m = m < b2 ? m : b2;
       m = m < b3 ? m : b3;
       out.append(m);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32DupLow16) {
+    for (uint32_t value : input) {
+      uint32_t low = value & 0xffffu;
+      out.append(low | (low << 16));
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32DupHigh16) {
+    for (uint32_t value : input) {
+      uint32_t high = value & 0xffff0000u;
+      out.append(high | (high >> 16));
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32ReverseBitsInBytes) {
+    for (uint32_t value : input) {
+      uint32_t v = value;
+      v = ((v >> 1) & 0x55555555u) | ((v & 0x55555555u) << 1);
+      v = ((v >> 2) & 0x33333333u) | ((v & 0x33333333u) << 2);
+      v = ((v >> 4) & 0x0f0f0f0fu) | ((v & 0x0f0f0f0fu) << 4);
+      out.append(v);
     }
   }
   return out;

@@ -124,6 +124,9 @@ GLuint g_ctoProgram = 0;
 GLuint g_reverseNibblesProgram = 0;
 GLuint g_byteMaxProgram = 0;
 GLuint g_byteMinProgram = 0;
+GLuint g_dupLow16Program = 0;
+GLuint g_dupHigh16Program = 0;
+GLuint g_reverseBitsInBytesProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -1092,6 +1095,54 @@ void main() {
 }
 )GLSL";
 
+char const* DupLow16Shader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint low = values[i] & 0xffffu;
+  values[i] = low | (low << 16);
+}
+)GLSL";
+
+char const* DupHigh16Shader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint high = values[i] & 0xffff0000u;
+  values[i] = high | (high >> 16);
+}
+)GLSL";
+
+char const* ReverseBitsInBytesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  v = ((v >> 1) & 0x55555555u) | ((v & 0x55555555u) << 1);
+  v = ((v >> 2) & 0x33333333u) | ((v & 0x33333333u) << 2);
+  v = ((v >> 4) & 0x0f0f0f0fu) | ((v & 0x0f0f0f0fu) << 4);
+  values[i] = v;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -1396,6 +1447,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_byteMinProgram);
     g_byteMinProgram = 0;
   }
+  if (g_dupLow16Program) {
+    glDeleteProgram(g_dupLow16Program);
+    g_dupLow16Program = 0;
+  }
+  if (g_dupHigh16Program) {
+    glDeleteProgram(g_dupHigh16Program);
+    g_dupHigh16Program = 0;
+  }
+  if (g_reverseBitsInBytesProgram) {
+    glDeleteProgram(g_reverseBitsInBytesProgram);
+    g_reverseBitsInBytesProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -1546,7 +1609,11 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_ctoProgram, CtoShader, "DenseUint32Cto")
       || !requireProgram(g_reverseNibblesProgram, ReverseNibblesShader, "DenseUint32ReverseNibbles")
       || !requireProgram(g_byteMaxProgram, ByteMaxShader, "DenseUint32ByteMax")
-      || !requireProgram(g_byteMinProgram, ByteMinShader, "DenseUint32ByteMin"))
+      || !requireProgram(g_byteMinProgram, ByteMinShader, "DenseUint32ByteMin")
+      || !requireProgram(g_dupLow16Program, DupLow16Shader, "DenseUint32DupLow16")
+      || !requireProgram(g_dupHigh16Program, DupHigh16Shader, "DenseUint32DupHigh16")
+      || !requireProgram(g_reverseBitsInBytesProgram, ReverseBitsInBytesShader,
+            "DenseUint32ReverseBitsInBytes"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -1739,6 +1806,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_byteMaxProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32ByteMin)
     program = g_byteMinProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32DupLow16)
+    program = g_dupLow16Program;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32DupHigh16)
+    program = g_dupHigh16Program;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32ReverseBitsInBytes)
+    program = g_reverseBitsInBytesProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))

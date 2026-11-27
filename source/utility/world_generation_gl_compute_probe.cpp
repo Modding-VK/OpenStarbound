@@ -183,6 +183,12 @@ int main() {
       "DenseUint32ByteMax");
   rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32ByteMin, 0u,
       "DenseUint32ByteMin");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32DupLow16, 0u,
+      "DenseUint32DupLow16");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32DupHigh16, 0u,
+      "DenseUint32DupHigh16");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32ReverseBitsInBytes, 0u,
+      "DenseUint32ReverseBitsInBytes");
 
   auto ticket = service.submit(makeIdentity(99, WorldGenerationComputeKernel::DenseUint32Xor),
       edgeCorpus(), 0x55aa55aau, WorldGenerationComputeBackend::GpuOpenGlCompute);

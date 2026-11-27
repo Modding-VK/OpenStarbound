@@ -87,7 +87,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32Cto = 61, // count trailing ones; parameter ignored
   DenseUint32ReverseNibbles = 62, // reverse 4-bit nibbles; parameter ignored
   DenseUint32ByteMax = 63, // max of four bytes as uint32; parameter ignored
-  DenseUint32ByteMin = 64 // min of four bytes as uint32; parameter ignored
+  DenseUint32ByteMin = 64, // min of four bytes as uint32; parameter ignored
+  DenseUint32DupLow16 = 65, // duplicate low 16 bits into both halves; parameter ignored
+  DenseUint32DupHigh16 = 66, // duplicate high 16 bits into both halves; parameter ignored
+  DenseUint32ReverseBitsInBytes = 67 // reverse bits inside each byte; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
