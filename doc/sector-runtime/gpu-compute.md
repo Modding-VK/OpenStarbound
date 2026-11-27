@@ -9,10 +9,11 @@ liberar CPU para outros produtores. O renderer atual negocia contexto OpenGL
 moderno quando disponível, mas não fornece uma API de compute de worldgen.
 
 **Estado (27/11/2026, `cursor/h4-gpu-shadow-9f77`):** GPU-01/02/03/04 no
-primeiro marco (25%). Lote Gt/cancelAll/verdictNames a mergear na INT.
-Recortes asset-free seguintes: `DenseUint32Nand/Nor/MulHi`, `ticketIsOpen`,
-`clearRejectedDuplicates`. Build **normal** não claima OpenGL compute. Ver
-[nand/ticket-reject](../sector-runtime-h4-gpu02-03-nand-ticket-reject-2026-11-27.md).
+primeiro marco (25%). Lote Nand/ticket-reject na INT (`f932200a`). Recortes
+asset-free seguintes: `DenseUint32AndNot/SatAdd/SatSub`,
+`fingerprintCapabilities`, `supportedKernelCount`. Build **normal** não
+claima OpenGL compute. Ver
+[sat/capfingerprint](../sector-runtime-h4-gpu01-03-sat-capfingerprint-2026-11-27.md).
 Sem 50% enquanto terreno/bioma/ganho e multi-driver faltarem.
 
 ## GPU-01 — Interface e capacidades

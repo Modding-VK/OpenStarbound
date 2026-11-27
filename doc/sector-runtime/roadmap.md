@@ -530,14 +530,14 @@ capacidade pode avançar em paralelo a H1/H2; publicação exige contrato estáv
 do kernel CPU e do resultado versionado.
 
 - [x] GPU-01: interface CPU/GPU, capacidades e build CPU independente
-  (primeiro recorte 25%: serviço + kernel/backend/verdict names + probe GL
-  opt-in).
+  (primeiro recorte 25%: serviço + names + fingerprintCapabilities +
+  supportedKernelCount + probe GL opt-in).
 - [x] GPU-02: fila/buffers em voo/pump/failContext + stagingSnapshot +
   adoptOwnerThread + cancel/poll/completeBatch + listOpenTickets +
   cancelAll + ticketIsOpen/clearRejectedDuplicates (primeiro recorte 25%;
   integração WorldThread pendente).
-- [x] GPU-03: kernels densos DenseUint32* incl. Nand/Nor/MulHi + submitBatch
-  (primeiro recorte 25%; terreno/bioma/ganho pendentes).
+- [x] GPU-03: kernels densos DenseUint32* incl. AndNot/SatAdd/SatSub +
+  submitBatch (primeiro recorte 25%; terreno/bioma/ganho pendentes).
 - [x] GPU-04: compareShadow/compareShadowBatch + commit/RngStream +
   fingerprintIdentity + summarizeShadowReports (primeiro recorte 25%;
   multi-driver pendente).

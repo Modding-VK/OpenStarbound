@@ -51,7 +51,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32Xnor = 25, // ~(value ^ parameter)
   DenseUint32Nand = 26, // ~(value & parameter)
   DenseUint32Nor = 27, // ~(value | parameter)
-  DenseUint32MulHi = 28 // high 32 bits of (uint64)value * parameter
+  DenseUint32MulHi = 28, // high 32 bits of (uint64)value * parameter
+  DenseUint32AndNot = 29, // value & ~parameter
+  DenseUint32SatAdd = 30, // saturating add (clamp to 0xffffffff)
+  DenseUint32SatSub = 31 // saturating subtract (clamp to 0)
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -301,6 +304,10 @@ public:
   // GPU-04: stable fingerprint of an input identity (asset-free; no mod payload).
   static uint64_t fingerprintIdentity(WorldGenerationComputeInputIdentity const& identity) noexcept;
 
+  // GPU-01: stable fingerprint of probed/configured capabilities (asset-free).
+  static uint64_t fingerprintCapabilities(
+      WorldGenerationComputeCapabilities const& capabilities) noexcept;
+
   // GPU-04 approved RNG: deterministic uint32 draws; advances counter by 1.
   static uint32_t drawRng(WorldGenerationComputeRngStream& stream) noexcept;
   static List<uint32_t> fillRng(WorldGenerationComputeRngStream& stream, size_t count);
@@ -329,6 +336,7 @@ public:
   static bool isKernelSupported(WorldGenerationComputeKernel kernel,
       uint32_t kernelVersion = 1u) noexcept;
   static List<WorldGenerationComputeKernel> supportedKernels(uint32_t kernelVersion = 1u);
+  static size_t supportedKernelCount(uint32_t kernelVersion = 1u) noexcept;
   // Stable ASCII name for catalogs/logs; nullptr if the enum is unknown.
   static char const* kernelName(WorldGenerationComputeKernel kernel) noexcept;
   // Inverse of kernelName; empty when the token is unknown (asset-free).
