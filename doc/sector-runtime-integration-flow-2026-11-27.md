@@ -784,3 +784,7 @@ integração: **nenhum**.
 - Merge H4 `b94ca245` (HalfNibbleXor/Or/And + discardReadyOpenTickets; 144/144).
 - Build `46077733827` @ `b862351c` intacto; 1 Build tip final material após terminal; sem spam.
 - H5 Instalaveis `96ab005a` ainda ahead (docs/scripts) — merge separado; sem Build se só script/doc.
+
+## Revisão 2026-11-27T22:44Z
+- Merge H4 `3ebdf921` (HalfNibbleSum/Max/Min + discardFailedOpenTickets; 146/146).
+- Build `46077733827` @ `b862351c` intacto; 1 Build tip final após terminal; sem spam.

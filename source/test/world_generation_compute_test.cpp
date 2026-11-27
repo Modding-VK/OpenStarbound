@@ -487,9 +487,9 @@ TEST(WorldGenerationComputeTest, SupportedKernelsCatalogListsDenseFamily) {
   EXPECT_FALSE(WorldGenerationComputeService::isKernelSupported(
       WorldGenerationComputeKernel::DenseUint32Xor, 99u));
   auto kernels = WorldGenerationComputeService::supportedKernels();
-  ASSERT_EQ(187u, kernels.size());
+  ASSERT_EQ(190u, kernels.size());
   EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32Xor, kernels[0]);
-  EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32HalfNibbleAnd, kernels[kernels.size() - 1]);
+  EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32HalfNibbleMin, kernels[kernels.size() - 1]);
   EXPECT_TRUE(WorldGenerationComputeService::supportedKernels(2u).empty());
 }
 
@@ -511,7 +511,7 @@ TEST(WorldGenerationComputeTest, CompareShadowBatchRunsIndependentKernels) {
     items.append(item);
   }
   auto reports = service.compareShadowBatch(input, std::move(items));
-  ASSERT_EQ(187u, reports.size());
+  ASSERT_EQ(190u, reports.size());
   for (auto const& report : reports) {
     EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal, report.verdict)
         << (int)report.identity.kernel;
@@ -1342,6 +1342,37 @@ TEST(WorldGenerationComputeTest, DiscardReadyOpenTicketsDrainsAllReady) {
   EXPECT_EQ(0u, service.countReadyOpenTickets());
   EXPECT_EQ(0u, service.openTickets());
   EXPECT_EQ(0u, service.discardReadyOpenTickets());
+}
+
+
+TEST(WorldGenerationComputeTest, DiscardFailedOpenTicketsDrainsAllFailed) {
+  WorldGenerationComputeCapabilities caps = WorldGenerationComputeService::probeCapabilities();
+  caps.gpuOpenGlCompute = true;
+  WorldGenerationComputeService service(caps);
+  service.setDeferredCpuCompletion(true);
+  EXPECT_EQ(0u, service.discardFailedOpenTickets());
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(1340, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(1341, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{2u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(1342, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{3u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute));
+  EXPECT_EQ(0u, service.discardFailedOpenTickets());
+  EXPECT_EQ(2u, service.completeOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(1u, service.completeOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+#ifndef STAR_ENABLE_WORLDGEN_GL_COMPUTE
+  EXPECT_EQ(3u, service.discardFailedOpenTickets());
+  EXPECT_EQ(0u, service.openTickets());
+  EXPECT_EQ(0u, service.discardFailedOpenTickets());
+#else
+  size_t discardedFailed = service.discardFailedOpenTickets();
+  size_t discardedReady = service.discardReadyOpenTickets();
+  EXPECT_EQ(3u, discardedFailed + discardedReady);
+  EXPECT_EQ(0u, service.openTickets());
+#endif
 }
 
 TEST(WorldGenerationComputeTest, DenseUint32HalfSumMaxMinExactCpuAndShadow) {
@@ -2355,6 +2386,40 @@ TEST(WorldGenerationComputeTest, DenseUint32HalfNibbleXorOrAndExactCpuAndShadow)
   EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
       service.compareShadow(
           makeIdentity(1312, WorldGenerationComputeKernel::DenseUint32HalfNibbleAnd), input, 0u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+}
+
+
+TEST(WorldGenerationComputeTest, DenseUint32HalfNibbleSumMaxMinExactCpuAndShadow) {
+  WorldGenerationComputeService service;
+  auto input = edgeCorpus();
+  EXPECT_EQ(0x1au,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32HalfNibbleSum, 1u, List<uint32_t>{0x12345678u},
+          0u)[0]);
+  EXPECT_EQ(0x8u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32HalfNibbleMax, 1u, List<uint32_t>{0x12345678u},
+          0u)[0]);
+  EXPECT_EQ(0x5u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32HalfNibbleMin, 1u, List<uint32_t>{0x12345678u},
+          0u)[0]);
+
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(1330, WorldGenerationComputeKernel::DenseUint32HalfNibbleSum), input, 0u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(1331, WorldGenerationComputeKernel::DenseUint32HalfNibbleMax), input, 0u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(1332, WorldGenerationComputeKernel::DenseUint32HalfNibbleMin), input, 0u,
           WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
           .verdict);
 }
@@ -3854,7 +3919,7 @@ TEST(WorldGenerationComputeTest, DenseUint32OrNotAvgIsPow2ExactCpuAndShadow) {
 }
 
 TEST(WorldGenerationComputeTest, FingerprintCapabilitiesAndSupportedKernelCount) {
-  EXPECT_EQ(187u, WorldGenerationComputeService::supportedKernelCount());
+  EXPECT_EQ(190u, WorldGenerationComputeService::supportedKernelCount());
   EXPECT_EQ(0u, WorldGenerationComputeService::supportedKernelCount(2u));
   EXPECT_EQ(WorldGenerationComputeService::supportedKernels().size(),
       WorldGenerationComputeService::supportedKernelCount());

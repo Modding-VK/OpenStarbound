@@ -210,7 +210,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32HalfSwapBytes = 184, // swap bytes of low16; parameter ignored
   DenseUint32HalfNibbleXor = 185, // XOR of four nibbles of low16; parameter ignored
   DenseUint32HalfNibbleOr = 186, // OR of four nibbles of low16; parameter ignored
-  DenseUint32HalfNibbleAnd = 187 // AND of four nibbles of low16; parameter ignored
+  DenseUint32HalfNibbleAnd = 187, // AND of four nibbles of low16; parameter ignored
+  DenseUint32HalfNibbleSum = 188, // sum of four nibbles of low16; parameter ignored
+  DenseUint32HalfNibbleMax = 189, // max of four nibbles of low16; parameter ignored
+  DenseUint32HalfNibbleMin = 190 // min of four nibbles of low16; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -479,6 +482,10 @@ public:
   // GPU-02: poll+discard Failed tickets whose identity.kernel matches (owner-thread).
   // Does not complete Pending; leaves Ready/Cancelled/Pending untouched.
   size_t discardFailedOpenTicketsByKernel(WorldGenerationComputeKernel kernel);
+
+  // GPU-02: poll+discard every Failed open ticket (owner-thread).
+  // Does not complete Pending; leaves Ready/Cancelled/Pending untouched.
+  size_t discardFailedOpenTickets();
 
   // GPU-02: poll+discard Cancelled tickets whose identity.kernel matches (owner-thread).
   // Does not complete Pending; leaves Ready/Failed/Pending untouched.
