@@ -23,6 +23,6 @@ ASan/UBSan: 1 caso × 5; **66/66** RealBlockInfo.
 
 ## Próximo passo
 
-Sombra com IslandSurface/coluna privada ou duas sombras concorrentes no mesmo
-ledger; depois demanda/mailbox em H1 quando os gates de H0 aplicáveis
-permitirem. Não disparar Actions.
+Concorrência coberta em
+[sombras concorrentes](sector-runtime-h0-sector-shadow-concurrent-2026-11-26.md).
+Segue IslandSurface/pressão de admissão. Não disparar Actions.

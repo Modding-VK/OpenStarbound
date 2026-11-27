@@ -387,10 +387,9 @@ liga seletores admitidos, static inputs e identidade BaseTiles no mesmo ledger.
 A [sombra por setor](../sector-runtime-h0-sector-shadow-2026-11-26.md) admite o
 array BaseTiles privado, revalida no dono e descarta sem publicação.
 
-Próximo trabalho executável: sombra IslandSurface/colunas privadas ou sombras
-concorrentes no ledger, ainda sem publicação. Noises/caches privados já
-cobertos em
-[sombra noises/caches](../sector-runtime-h0-sector-shadow-noise-caches-2026-11-26.md).
+Próximo trabalho executável: IslandSurface/colunas privadas sob composto+sombra
+ou pressão de admissão, ainda sem publicação. Concorrência já coberta em
+[sombras concorrentes](../sector-runtime-h0-sector-shadow-concurrent-2026-11-26.md).
 Não confundir a LRU validada com CacheSelector. Manter caches exclusivos; o
 lifecycle de Root mínimo já foi testado, não repetir o mesmo recorte. Não
 antecipar consultas, assumir resolver arbitrário puro ou alterar cópias/RNG.

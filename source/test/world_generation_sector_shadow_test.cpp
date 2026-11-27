@@ -126,3 +126,33 @@ TEST(WorldGenerationSectorShadowTest, TryAdmitFromCompositeReusesBaseTilesIdenti
   shadow->discard();
   EXPECT_EQ(before.resources, ledger.snapshot().resources);
 }
+
+TEST(WorldGenerationSectorShadowTest, ConcurrentSectorShadowsReleaseIndependently) {
+  WorldGenerationMemoryLedger ledger;
+  auto origin = baseTilesIdentity(1, {64, 64});
+  auto adjacent = origin;
+  adjacent.task.sequence = 2;
+  adjacent.task.sector = {1, 0};
+  adjacent.task.region = {0, 0};
+  adjacent.tileRegion = RectI(int(WorldSectorSize), 0, int(WorldSectorSize) * 2, int(WorldSectorSize));
+
+  auto first = WorldGenerationSectorShadow::tryAdmit(ledger, origin);
+  auto second = WorldGenerationSectorShadow::tryAdmit(ledger, adjacent);
+  ASSERT_TRUE(first.has_value());
+  ASSERT_TRUE(second.has_value());
+  EXPECT_EQ(2u, ledger.snapshot().classResources[size_t(WorldGenerationMemoryClass::BaseTilesArray)]);
+  first->tiles()(0, 0).foreground = MaterialId(21);
+  second->tiles()(0, 0).foreground = MaterialId(22);
+  EXPECT_EQ(MaterialId(21), first->tiles()(0, 0).foreground);
+  EXPECT_EQ(MaterialId(22), second->tiles()(0, 0).foreground);
+  EXPECT_TRUE(first->matches(origin));
+  EXPECT_TRUE(second->matches(adjacent));
+  EXPECT_FALSE(first->matches(adjacent));
+
+  first->discard();
+  EXPECT_FALSE(first->active());
+  EXPECT_TRUE(second->active());
+  EXPECT_EQ(1u, ledger.snapshot().classResources[size_t(WorldGenerationMemoryClass::BaseTilesArray)]);
+  second->discard();
+  EXPECT_EQ(0u, ledger.snapshot().resources);
+}
