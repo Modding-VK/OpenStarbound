@@ -2,12 +2,11 @@
 
 Atualizado em **27/11/2026**. Branch de integração:
 `cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+H4+H5+R1+R2; não `main`).
-Tip INT: merge H4 GPU-02 stagingSnapshot/peak/VRAM (`29a45b8a`, 19/19) sobre
-`5c56dfe1` (PR#4 YAML). Build `46048668279` @ `4741d691` intacto até terminal;
-depois um único Build na tip final. Sem smoke até base local. Não mergear
-outras frentes até ahead>0.
-Última H4: GPU-02 staging/VRAM + GPU-04 revalidate/reproducers + And/Or/Mul
-(`29a45b8a`); H4 25%.
+Tip INT: merge H4 GPU-02 adoptOwnerThread (`ef0e7f7c`, 20/20) sobre `8d0ea6d4`.
+Build `46048668279` @ `4741d691` intacto até terminal; depois um único Build na
+tip final. Sem smoke até base local. Não mergear outras frentes até ahead>0.
+Última H4: GPU-02 adoptOwnerThread + staging/VRAM + GPU-04 + And/Or/Mul
+(`ef0e7f7c`); H4 25%.
 Última H5: scale foundations + probe 27/27 RTX (`a2ec01f0`); H5 25%.
 Última H3: TMX cache/reload + flora/replaceBiome + decode/codec (`3bdf1927`); H3 25%.
 Última R2: AuthoritativeOps + REG-03/04/05 sombra (`f86b4d17`).
@@ -21,7 +20,7 @@ outras frentes até ahead>0.
 · [Relatório H1](../sector-runtime-h1-prepared-sector-2026-11-27.md)
 · [Relatório H2](../sector-runtime-h2-prepared-sector-consume-2026-11-27.md)
 · [Relatório H3](../sector-runtime-h3-tmx-shadow-cache-2026-11-27.md)
-· [Relatório H4](../sector-runtime-h4-gpu02-staging-accounting-2026-11-27.md)
+· [Relatório H4](../sector-runtime-h4-gpu02-owner-thread-2026-11-27.md)
 · [Relatório H5](../sector-runtime-h5-scale-foundations-2026-11-27.md)
 · [Relatório R1](../sector-runtime-r1-thread-stub-cpu-2026-11-27.md)
 · [Relatório R2](../sector-runtime-r2-authoritative-ops-2026-11-27.md)
@@ -48,7 +47,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **25,5%** — 50 marcos verificados de 196 |
 | Contratos com avanço registrado | **49 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | H0–H5 + R1/R2; H4 GPU-02 staging/VRAM 19/19 + GPU-04 revalidate/reproducers + And/Or/Mul + probe GL PASS; H5 27/27 RTX; Build `46048668279` @ `4741d691` em voo; Actions manuais |
+| Última evidência de testes | H0–H5 + R1/R2; H4 GPU-02 adoptOwnerThread 20/20 + staging/VRAM + GPU-04 + And/Or/Mul + probe GL PASS; H5 27/27 RTX; Build `46048668279` @ `4741d691` em voo; Actions manuais |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 | Smoke / instalador local | Pendente base local do usuário; sem smoke até lá |
 
@@ -116,10 +115,10 @@ autoritativa. GPU é opcional, com fallback CPU completo.
 
 ## Próximas ações — fila imediata
 
-0. **Integração:** H4 `29a45b8a` (GPU-02 stagingSnapshot/peak/VRAM 19/19)
-   mergeado. Build `46048668279` @ `4741d691` intacto até terminal; depois um
-   único Build na tip final. PR #4 já mergeado (YAML). Não mergear outras
-   frentes até ahead>0. Smoke só após base local.
+0. **Integração:** H4 `ef0e7f7c` (GPU-02 adoptOwnerThread 20/20) mergeado.
+   Build `46048668279` @ `4741d691` intacto até terminal; depois um único Build
+   na tip final. PR #4 já mergeado (YAML). Não mergear outras frentes até
+   ahead>0. Smoke só após base local.
 1. **H0: DAG-01/RAM-01 com MOD-01/VAL-02:** catálogo compacto e binding de fontes
    reais, com clock/binding 1 e scope 2, agora comparados aos leitores reais de
    WorldTemplate/MaterialDatabase e corpo independente com metadata controlada.
@@ -256,7 +255,7 @@ auditoria de todas as implementações antigas para conceder crédito retroativo
 | REG-02 | [Bordas/outline](../sector-runtime-r1-border-outline-epoch-2026-11-27.md) + inventário | Sem cópia de estado vivo do mundo nem equivalência integrada |
 | WT-05 | [RuntimeCoordinator](../sector-runtime-r1-border-runtime-2026-11-27.md) | Sem integração WorldServerThread nem thread dedicada por região |
 | GPU-01 | [interface+CPU reference](../sector-runtime-h4-gpu01-compute-interface-2026-11-27.md); probe PASS Desktop-Vinicius | Sem 50%: publicação versionada e caminho vivo pendentes |
-| GPU-02 | [fila/voo](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) + [failContext](../sector-runtime-h4-gpu02-04-failcontext-reproducer-2026-11-27.md) + [staging/VRAM](../sector-runtime-h4-gpu02-staging-accounting-2026-11-27.md) | Sem thread dona WorldThread; sem 50% |
+| GPU-02 | [fila/voo](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) + [failContext](../sector-runtime-h4-gpu02-04-failcontext-reproducer-2026-11-27.md) + [staging/VRAM](../sector-runtime-h4-gpu02-staging-accounting-2026-11-27.md) + [ownerThread](../sector-runtime-h4-gpu02-owner-thread-2026-11-27.md) | Sem integração WorldThread viva; sem 50% |
 | GPU-03 | [Xor/Add](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) + [And/Or/Mul](../sector-runtime-h4-gpu03-dense-and-or-mul-2026-11-27.md); 16/16 testes | Sem kernels de terreno/bioma nem ganho medido |
 | GPU-04 | [compareShadow](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) + [reproducers](../sector-runtime-h4-gpu02-04-failcontext-reproducer-2026-11-27.md) + [commit revalidate](../sector-runtime-h4-gpu04-commit-revalidate-2026-11-27.md); Equal RTX | Sem campanha multi-driver / publicação; permanece 25% |
 | GPU-05 | [hardware selection](../sector-runtime-h5-hardware-selection-2026-11-27.md), `StarWorldGenerationHardwareSelection.hpp`, 7 testes de contrato | Sem backend GPU, sem custos observados de runtime, sem ganho ponta a ponta nem publicação |
@@ -405,6 +404,8 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | Integração H4 GPU-04 revalidate | Merge `--no-ff` H4 `2f140d39` em INT; Build `4741d691` intacto; 1 Build na tip final após terminal; programa 25,5% | 25,5% |
 | 27/11/2026 | GPU-02 staging/VRAM | stagingSnapshot/peak/VRAM accounting; 19/19 testes; H4 permanece 25% | 25,5% |
 | 27/11/2026 | Integração H4 GPU-02 staging | Merge `--no-ff` H4 `29a45b8a` em INT; Build `4741d691` intacto; 1 Build tip final após terminal; programa 25,5% | 25,5% |
+| 27/11/2026 | GPU-02 adoptOwnerThread | Affinity de mutações compute na thread dona; 20/20 testes; H4 permanece 25% | 25,5% |
+| 27/11/2026 | Integração H4 GPU-02 owner | Merge `--no-ff` H4 `ef0e7f7c` em INT; Build `4741d691` intacto; 1 Build tip final após terminal; programa 25,5% | 25,5% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.
