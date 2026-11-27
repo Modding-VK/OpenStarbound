@@ -2733,6 +2733,23 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::listCancelledO
   return out;
 }
 
+List<WorldGenerationComputeKernel> WorldGenerationComputeService::listTerminalOpenKernels() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  List<WorldGenerationComputeKernel> out;
+  std::unordered_set<uint8_t> seen;
+  for (auto const& pair : m_entries) {
+    if (pair.second.state == EntryState::Pending)
+      continue;
+    auto kernel = pair.second.identity.kernel;
+    uint8_t key = (uint8_t)kernel;
+    if (!seen.insert(key).second)
+      continue;
+    out.append(kernel);
+  }
+  return out;
+}
+
+
 size_t WorldGenerationComputeService::countCancelledOpenKernels() const {
   std::lock_guard<std::mutex> lock(m_mutex);
   std::unordered_set<uint8_t> seen;
