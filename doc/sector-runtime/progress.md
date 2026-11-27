@@ -2,10 +2,10 @@
 
 Atualizado em **27/11/2026**. Branch de implementação H3:
 `cursor/h3-kernels-publication-9f77` (base Experimental `e55c008f`).
-Último recorte H3: produto TMX estático em sombra (MD-02).
+Último recorte H3: ligação TMX em sombra (MD-03).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico H3](../sector-runtime-h3-tmx-static-product-2026-11-27.md)
+· [Último relatório técnico H3](../sector-runtime-h3-tmx-binding-plan-2026-11-27.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -19,14 +19,14 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | --- | --- |
 | Frente ativa | H3 — kernels/publicação (branch `cursor/h3-kernels-publication-9f77`); H0 permanece em Experimental |
 | Progresso de maturidade de H0 | **25,0%** — 6 marcos verificados de 24 |
-| Progresso de maturidade de H3 | **5,0%** — 2 marcos verificados de 40 |
-| Progresso de maturidade do programa | **4,6%** — 9 marcos verificados de 196 |
-| Contratos com avanço registrado | **9 de 49**; todos ainda parciais |
+| Progresso de maturidade de H3 | **7,5%** — 3 marcos verificados de 40 |
+| Progresso de maturidade do programa | **5,1%** — 10 marcos verificados de 196 |
+| Contratos com avanço registrado | **10 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | H3: CaveLiquid/Finalize/TMX static NoAssets; H0 inalterado nesta branch |
+| Última evidência de testes | H3: CaveLiquid/Finalize/TMX static+binding NoAssets; H0 inalterado nesta branch |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
-**Os 4,6% não significam que o jogo esteja só 4,6% pronto.** O runtime anterior
+**Os 5,1% não significam que o jogo esteja só 5,1% pronto.** O runtime anterior
 já possui workers, schedulers, IO/decode e previews. O denominador aqui são os
 49 contratos completos do rework, incluindo GPU e simulação regional futura.
 Recortes de RAM-01/CPU-04 podem estar implementados/testados e o contrato
@@ -55,8 +55,8 @@ Fórmulas:
 - **Contrato:** número de marcos consecutivos verificados × 25%.
 - **Fase de entrada:** soma das notas dos contratos nela cadastrados ÷ número
   desses contratos.
-- **Programa:** soma das notas dos 49 contratos ÷ 49. Hoje: 225 ÷ 49 = 4,6%
-  arredondado; equivalentemente, 9 ÷ (49 × 4) × 100.
+- **Programa:** soma das notas dos 49 contratos ÷ 49. Hoje: 250 ÷ 49 = 5,1%
+  arredondado; equivalentemente, 10 ÷ (49 × 4) × 100.
 - **Aceitação integral:** contratos em 100% ÷ 49. Hoje: 0%.
 
 São percentuais de **maturidade comprovada**, não de horas, esforço, linhas de
@@ -77,12 +77,12 @@ obriga concluir todo trabalho transversal para iniciar um protótipo em sombra.
 | 1 | H0 — fundações e validação | 6 | 6 / 24 | 25,0% | Invariantes, limites explicitados, comparador e baseline reproduzível para o escopo que será ampliado |
 | 2 | H1 — grafo executivo, CPU e entrega | 10 | 1 / 40 | 2,5% | Primeiro recorte proprietário de CPU-01 em apoio a H0; grafo/executor ainda pendentes |
 | 3 | H2 — produtos residentes e prefetch | 6 | 0 / 24 | 0% | Identidade/versionamento de H1 e orçamento de RAM |
-| 4 | H3 — kernels adicionais, estruturas e publicação | 10 | 2 / 40 | 5,0% | CaveLiquid/Finalize + TMX estático sombra; MD-03/publicação/IO pendentes |
+| 4 | H3 — kernels adicionais, estruturas e publicação | 10 | 3 / 40 | 7,5% | CPU-04 + MD-02/03 sombra; MD-04/WT-04/IO pendentes |
 | 5 | H4 — backend GPU e comparação em sombra | 4 | 0 / 16 | 0% | Protótipo pode acompanhar H1/H2; publicação depende do kernel CPU equivalente |
 | 6 | H5 — seleção de hardware e escala | 7 | 0 / 28 | 0% | Produtos/backends validados e custo completo de entrega medido |
 | 7 | R1 — donos regionais e coordenadora | 3 | 0 / 12 | 0% | Auditoria de autoridade/efeitos e checkpoint; não basta aprovar GPU |
 | 8 | R2 — operações e transferências entre regiões | 3 | 0 / 12 | 0% | Lifecycle/estado de R1, recovery e matriz de multiplayer |
-| — | **Total** | **49** | **9 / 196** | **4,6%** | Não equivale a ganho de desempenho ou autorização de release |
+| — | **Total** | **49** | **10 / 196** | **5,1%** | Não equivale a ganho de desempenho ou autorização de release |
 
 Essa é uma ordem de prioridade/dependência, não uma proibição de frentes
 paralelas autorizadas pelo roadmap. Setores comuns permanecem prioritários.
@@ -139,7 +139,7 @@ concorrente.
 
 ## Catálogo ordenado das 49 tarefas
 
-As nove notas de 25% usam as evidências indicadas após o catálogo. Demais 0%
+As dez notas de 25% usam as evidências indicadas após o catálogo. Demais 0%
 significam **sem marco do novo contrato reconhecido nesta leitura do roadmap**,
 não ausência de código relacionado no baseline. Não foi feita nova auditoria
 de todas as implementações antigas para conceder crédito retroativo.
@@ -170,7 +170,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 22 | H2 | [IO-01](io-persistence-network.md) | Pipeline único de leitura e promoção | 0% | Promover tiles decodificados sem refazer leitura/decode |
 | 23 | H3 | [CPU-04](cpu-and-stages.md) | Extração por etapa | 25% | CaveLiquid + Finalize normalize/intents sombra; equivalência viva pendente |
 | 24 | H3 | [MD-02](microdungeons-and-tmx.md) | Formato intermediário estático TMX | 25% | Produto estático sombra; decode TMX real e MD-03 pendentes |
-| 25 | H3 | [MD-03](microdungeons-and-tmx.md) | Ligação e RNG autoritativos | 0% | Preservar ordem/RNG/efeitos na aplicação |
+| 25 | H3 | [MD-03](microdungeons-and-tmx.md) | Ligação e RNG autoritativos | 25% | Plano de escolhas ordenadas sombra; stream RNG vivo e efeitos pendentes |
 | 26 | H3 | [MD-04](microdungeons-and-tmx.md) | Comandos, footprint e reserva | 0% | Mapa completo de efeitos/conflitos de estruturas |
 | 27 | H3 | [MD-05](microdungeons-and-tmx.md) | Aplicação mais barata e retomada | 0% | Batches ou staging sem estado parcial observável |
 | 28 | H3 | [WT-04](worldthread.md) | Publicação mais barata | 0% | Reduzir custo serial depois de validar os efeitos |
@@ -208,7 +208,8 @@ de todas as implementações antigas para conceder crédito retroativo.
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
 | CPU-04 | [CaveLiquid](../sector-runtime-h3-cave-liquid-plan-2026-11-27.md) + [Finalize](../sector-runtime-h3-finalize-normalize-2026-11-27.md) | Sem flora/spawn, sem equivalência viva nem publicação |
-| MD-02 | [TMX static product](../sector-runtime-h3-tmx-static-product-2026-11-27.md) | Sem parser TMX real, sem cache de reload nem MD-03 |
+| MD-02 | [TMX static product](../sector-runtime-h3-tmx-static-product-2026-11-27.md) | Sem parser TMX real, sem cache de reload |
+| MD-03 | [TMX binding plan](../sector-runtime-h3-tmx-binding-plan-2026-11-27.md) | Sem Random vivo, sem spawn/facade |
 
 CPU-01 recebe o primeiro marco porque agora existe cálculo com dados próprios
 que independe da origem/Root após captura, não só callbacks/catálogos ou contagem
@@ -311,6 +312,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | H3 CPU-04 Finalize normalize | Delta normalização privado + estágio FinalizePlan; 7+7 NoAssets. Sem novo marco (CPU-04 permanece 25%) | 4,1% |
 | 27/11/2026 | H3 CPU-04 Finalize intents | Placement intents ordenados sem spawn; 8 Finalize NoAssets. Sem novo marco | 4,1% |
 | 27/11/2026 | H3 MD-02 TMX static | Produto intermediário camadas/conectores sem RNG/publish; 6 NoAssets. MD-02 0→25%; H3 5%; programa 4,6% | 4,6% |
+| 27/11/2026 | H3 MD-03 TMX binding | Escolhas ordenadas sem facade; 5 NoAssets. MD-03 0→25%; H3 7,5%; programa 5,1% | 5,1% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

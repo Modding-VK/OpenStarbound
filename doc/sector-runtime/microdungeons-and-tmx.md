@@ -45,6 +45,11 @@ indiscriminada de todo o conteúdo instalado.
 
 ## MD-03 — Ligação e RNG autoritativos
 
+Primeiro recorte em `cursor/h3-kernels-publication-9f77`:
+`WorldGenerationTmxBindingPlan` registra escolhas ordenadas sobre o produto
+estático sem facade. Ver
+[relatório](../sector-runtime-h3-tmx-binding-plan-2026-11-27.md).
+
 `RandomBrush` e `NpcBrush` podem consumir RNG compartilhado durante a
 materialização. Preserve uma fase de ligação com escolhas/identidades
 registradas na ordem autoritativa. Uma definição privada construída fora de
