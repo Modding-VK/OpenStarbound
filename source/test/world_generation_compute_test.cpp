@@ -802,6 +802,19 @@ TEST(WorldGenerationComputeTest, CountOpenKernelsTracksDistinctKernels) {
   EXPECT_EQ(0u, service.countOpenKernels());
 }
 
+TEST(WorldGenerationComputeTest, AnyOpenKernelsTracksPresence) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  EXPECT_FALSE(service.anyOpenKernels());
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(880, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u));
+  EXPECT_TRUE(service.anyOpenKernels());
+  EXPECT_EQ(1u, service.countOpenKernels());
+  EXPECT_EQ(1u, service.drainOpenTickets());
+  EXPECT_FALSE(service.anyOpenKernels());
+  EXPECT_EQ(0u, service.countOpenKernels());
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32HalfSumMaxMinExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();

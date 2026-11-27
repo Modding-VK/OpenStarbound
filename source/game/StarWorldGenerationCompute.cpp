@@ -1346,6 +1346,11 @@ size_t WorldGenerationComputeService::countOpenKernels() const {
   return seen.size();
 }
 
+bool WorldGenerationComputeService::anyOpenKernels() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  return !m_entries.empty();
+}
+
 List<WorldGenerationComputeTicket> WorldGenerationComputeService::listOpenTicketsByKernel(
     WorldGenerationComputeKernel kernel) const {
   std::lock_guard<std::mutex> lock(m_mutex);
