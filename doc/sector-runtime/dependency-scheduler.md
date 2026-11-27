@@ -132,6 +132,12 @@ Não fazer um worker aguardar uma tarefa que só pode começar na mesma pool
 ocupada. A dona também não espera um produtor individual enquanto houver
 outro caminho executável.
 
+Recorte H1 sombra (27/11/2026): `WorldGenerationExecutiveMailbox` posta/consome
+mensagens com token imutável e ticks separados; aplica sucesso/falha só na
+sombra. Ver
+[cancel/mailbox](../sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md).
+Não substitui a mailbox executiva no caminho vivo.
+
 ## DAG-05 — Cancelamento, falha e invalidação
 
 ```text
@@ -149,6 +155,10 @@ o resultado antigo, mesmo que o endereço de memória seja reutilizado.
 Revisões de conteúdo e de template precisam ser independentes de cache
 derivado de colisão. Um retry tem motivo e limite, seguido de fallback
 documentado; falha de geração essencial não vira sucesso vazio.
+
+Primeiro recorte H1 sombra (27/11/2026): invalidate/cancel/executing/drain/retry
+em `WorldGenerationExecutiveShadowGraph`. Ver
+[cancel/mailbox](../sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md).
 
 ## Interfaces e aceitação
 

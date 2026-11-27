@@ -205,15 +205,108 @@ size_t WorldGenerationExecutiveShadowGraph::anticipatePreparation(
   return advanced;
 }
 
+bool WorldGenerationExecutiveShadowGraph::markPrepared(WorldGenerationDependencyNode const& node) {
+  auto it = m_nodes.find(node);
+  if (it == m_nodes.end())
+    return false;
+  if (it->second.preparationPhase == WorldGenerationExecutiveNodePhase::Discarded)
+    return false;
+  it->second.preparationPhase = WorldGenerationExecutiveNodePhase::Prepared;
+  it->second.executing = false;
+  return true;
+}
+
 bool WorldGenerationExecutiveShadowGraph::markPublished(WorldGenerationDependencyNode const& node) {
   auto it = m_nodes.find(node);
   if (it == m_nodes.end())
+    return false;
+  if (!it->second.publishAuthorized)
     return false;
   if (it->second.preparationPhase != WorldGenerationExecutiveNodePhase::Prepared
       && it->second.preparationPhase != WorldGenerationExecutiveNodePhase::Eligible)
     return false;
   it->second.preparationPhase = WorldGenerationExecutiveNodePhase::Published;
   it->second.publicationPhase = WorldGenerationExecutiveNodePhase::Published;
+  it->second.executing = false;
+  return true;
+}
+
+bool WorldGenerationExecutiveShadowGraph::markExecuting(WorldGenerationDependencyNode const& node, bool executing) {
+  auto it = m_nodes.find(node);
+  if (it == m_nodes.end())
+    return false;
+  if (it->second.preparationPhase == WorldGenerationExecutiveNodePhase::Discarded)
+    return false;
+  it->second.executing = executing;
+  if (executing && it->second.preparationPhase == WorldGenerationExecutiveNodePhase::Reserved)
+    it->second.preparationPhase = WorldGenerationExecutiveNodePhase::Preparing;
+  return true;
+}
+
+bool WorldGenerationExecutiveShadowGraph::invalidate(WorldGenerationDependencyNode const& node) {
+  auto it = m_nodes.find(node);
+  if (it == m_nodes.end())
+    return false;
+  it->second.publishAuthorized = false;
+  if (!it->second.executing) {
+    it->second.preparationPhase = WorldGenerationExecutiveNodePhase::Discarded;
+    it->second.publicationPhase = WorldGenerationExecutiveNodePhase::Discarded;
+  }
+  return true;
+}
+
+bool WorldGenerationExecutiveShadowGraph::cancel(WorldGenerationDependencyNode const& node) {
+  auto it = m_nodes.find(node);
+  if (it == m_nodes.end())
+    return false;
+  it->second.publishAuthorized = false;
+  it->second.consumers.clear();
+  if (it->second.executing)
+    return true;
+  it->second.preparationPhase = WorldGenerationExecutiveNodePhase::Discarded;
+  it->second.publicationPhase = WorldGenerationExecutiveNodePhase::Discarded;
+  return true;
+}
+
+size_t WorldGenerationExecutiveShadowGraph::drainDiscarded() {
+  size_t drained = 0;
+  List<WorldGenerationDependencyNode> victims;
+  for (auto const& entry : m_nodes) {
+    if (entry.second.preparationPhase != WorldGenerationExecutiveNodePhase::Discarded
+        && entry.second.publicationPhase != WorldGenerationExecutiveNodePhase::Discarded)
+      continue;
+    if (entry.second.executing)
+      continue;
+    victims.append(entry.first);
+  }
+  auto isVictim = [&](WorldGenerationDependencyNode const& node) {
+    return std::find(victims.begin(), victims.end(), node) != victims.end();
+  };
+  eraseWhere(m_preparationEdges, [&](WorldGenerationDependencyEdge const& edge) {
+    return isVictim(edge.prerequisite) || isVictim(edge.dependent);
+  });
+  eraseWhere(m_publicationEdges, [&](WorldGenerationDependencyEdge const& edge) {
+    return isVictim(edge.prerequisite) || isVictim(edge.dependent);
+  });
+  for (auto const& node : victims) {
+    m_nodes.erase(node);
+    ++drained;
+  }
+  refreshAllCounts();
+  return drained;
+}
+
+bool WorldGenerationExecutiveShadowGraph::noteRetry(WorldGenerationDependencyNode const& node, size_t retryLimit) {
+  auto it = m_nodes.find(node);
+  if (it == m_nodes.end())
+    return false;
+  if (it->second.retryCount >= retryLimit)
+    return false;
+  ++it->second.retryCount;
+  it->second.publishAuthorized = true;
+  it->second.executing = false;
+  it->second.preparationPhase = WorldGenerationExecutiveNodePhase::Reserved;
+  it->second.publicationPhase = WorldGenerationExecutiveNodePhase::Idle;
   return true;
 }
 

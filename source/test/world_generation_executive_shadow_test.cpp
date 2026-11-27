@@ -144,6 +144,56 @@ TEST(WorldGenerationExecutiveShadowTest, AnticipatePreparationMarksRunnableWitho
   EXPECT_EQ(WorldGenerationExecutiveNodePhase::Published, published->publicationPhase);
 }
 
+TEST(WorldGenerationExecutiveShadowTest, InvalidateBlocksPublishUntilDrainAfterProducerStops) {
+  auto plan = WorldGenerationDependencyGraph::build({4, 7}, 1, crossNeighbors);
+  WorldGenerationExecutiveShadowGraph shadow;
+  shadow.applyInterest({1, 1}, plan);
+  WorldGenerationDependencyNode root{{4, 7}, 1};
+  ASSERT_TRUE(shadow.markExecuting(root, true));
+  ASSERT_TRUE(shadow.invalidate(root));
+  auto mid = shadow.record(root);
+  ASSERT_TRUE(mid);
+  EXPECT_FALSE(mid->publishAuthorized);
+  EXPECT_TRUE(mid->executing);
+  EXPECT_NE(WorldGenerationExecutiveNodePhase::Discarded, mid->preparationPhase);
+  ASSERT_TRUE(shadow.markExecuting(root, false));
+  ASSERT_TRUE(shadow.invalidate(root));
+  EXPECT_EQ(1u, shadow.drainDiscarded());
+  EXPECT_FALSE(shadow.contains(root));
+}
+
+TEST(WorldGenerationExecutiveShadowTest, CancelKeepsReservationWhileExecutingThenDrains) {
+  auto plan = WorldGenerationDependencyGraph::build({4, 7}, 1, crossNeighbors);
+  WorldGenerationExecutiveShadowGraph shadow;
+  shadow.applyInterest({1, 2}, plan);
+  WorldGenerationDependencyNode root{{4, 7}, 1};
+  ASSERT_TRUE(shadow.markPrepared(root));
+  ASSERT_TRUE(shadow.markExecuting(root, true));
+  ASSERT_TRUE(shadow.cancel(root));
+  EXPECT_EQ(0u, shadow.consumerCount(root));
+  EXPECT_TRUE(shadow.contains(root));
+  ASSERT_TRUE(shadow.markExecuting(root, false));
+  EXPECT_EQ(0u, shadow.drainDiscarded());
+  ASSERT_TRUE(shadow.cancel(root));
+  EXPECT_EQ(1u, shadow.drainDiscarded());
+  EXPECT_FALSE(shadow.contains(root));
+}
+
+TEST(WorldGenerationExecutiveShadowTest, RetryHonorsLimitWithoutSilentSuccess) {
+  auto plan = WorldGenerationDependencyGraph::build({4, 7}, 1, crossNeighbors);
+  WorldGenerationExecutiveShadowGraph shadow;
+  shadow.applyInterest({1, 3}, plan);
+  WorldGenerationDependencyNode root{{4, 7}, 1};
+  ASSERT_TRUE(shadow.invalidate(root));
+  EXPECT_TRUE(shadow.noteRetry(root, 2));
+  EXPECT_TRUE(shadow.noteRetry(root, 2));
+  EXPECT_FALSE(shadow.noteRetry(root, 2));
+  auto record = shadow.record(root);
+  ASSERT_TRUE(record);
+  EXPECT_EQ(2u, record->retryCount);
+  EXPECT_TRUE(record->publishAuthorized);
+}
+
 TEST(WorldGenerationExecutiveShadowTest, CompareRecordsMissingAndExtraPreparationNodes) {
   auto full = WorldGenerationDependencyGraph::build({4, 7}, 2, crossNeighbors);
   WorldGenerationExecutiveShadowGraph shadow;

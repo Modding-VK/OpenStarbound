@@ -158,6 +158,12 @@ setor mantém identidade, seed, resultados e cancelamento individuais. Reduzir
 lote que atrase o setor urgente. Uma janela grande de jobs pode ocultar
 latência; uma janela excessiva pode apenas produzir resultados stale.
 
+Primeiro recorte H1 sombra (27/11/2026):
+`WorldGenerationExecutiveScheduler` escolhe um nó da frontier via
+`selectFair`, marca executing e completa via mailbox. Sem pool física,
+afinidade ou lote multi-setor. Ver
+[cancel/mailbox/scheduler](../sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md).
+
 ## CPU-04 — Extração por etapa
 
 **BaseTiles:** preservar materiais preexistentes e regras de oceanos/bioma.

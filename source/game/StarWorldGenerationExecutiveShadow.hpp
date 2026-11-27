@@ -43,6 +43,9 @@ struct WorldGenerationExecutiveNodeRecord {
   size_t estimatedCost = 0;
   uint64_t contentRevision = 0;
   uint64_t templateRevision = 0;
+  bool executing = false;
+  bool publishAuthorized = true;
+  size_t retryCount = 0;
   Set<WorldGenerationExecutiveConsumerId> consumers;
 };
 
@@ -84,7 +87,15 @@ public:
   // Pure anticipation: advance preparation phase for runnable nodes without
   // authorizing publication. Returns how many nodes moved to Prepared.
   size_t anticipatePreparation(WorldGenerationDependencyGraph::CurrentLevel const& currentLevel);
+  bool markPrepared(WorldGenerationDependencyNode const& node);
   bool markPublished(WorldGenerationDependencyNode const& node);
+  // DAG-05 shadow: invalidate revokes publish rights without proving the
+  // producer stopped. Nodes with executing=true stay reserved until drain.
+  bool markExecuting(WorldGenerationDependencyNode const& node, bool executing);
+  bool invalidate(WorldGenerationDependencyNode const& node);
+  bool cancel(WorldGenerationDependencyNode const& node);
+  size_t drainDiscarded();
+  bool noteRetry(WorldGenerationDependencyNode const& node, size_t retryLimit);
   // Sector unload in shadow: discard preparation for that sector when no
   // consumer remains. Shared demand from another consumer blocks discard.
   size_t unloadSector(Vec2U const& sector);

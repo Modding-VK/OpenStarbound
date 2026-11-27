@@ -107,6 +107,8 @@ ADD_EXECUTABLE(world_generation_contract_tests
   ../game/StarWorldGenerationDependency.cpp
   ../game/StarWorldGenerationExecutiveShadow.cpp
   ../game/StarWorldGenerationExecutivePriority.cpp
+  ../game/StarWorldGenerationExecutiveMailbox.cpp
+  ../game/StarWorldGenerationExecutiveScheduler.cpp
   ../game/StarWorldGenerationTasks.cpp
   ../game/StarWorldGenerationMemory.cpp
   ../game/StarLiquidTypes.cpp
@@ -129,6 +131,8 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_dependency_test.cpp
   world_generation_executive_shadow_test.cpp
   world_generation_executive_priority_test.cpp
+  world_generation_executive_mailbox_test.cpp
+  world_generation_executive_scheduler_test.cpp
   world_generation_pass_test.cpp
   StarWorldGenerationPassHarness.hpp
   world_generation_placement_queue_test.cpp
@@ -177,6 +181,8 @@ FOREACH(world_region_test_suite
     WorldGenerationDependencyTest
     WorldGenerationExecutiveShadowTest
     WorldGenerationExecutivePriorityTest
+    WorldGenerationExecutiveMailboxTest
+    WorldGenerationExecutiveSchedulerTest
     WorldGenerationPassTest
     WorldGenerationPlacementQueueTest
     WorldGenerationTasksTest
