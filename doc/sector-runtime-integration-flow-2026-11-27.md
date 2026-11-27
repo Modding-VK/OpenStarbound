@@ -456,3 +456,31 @@ PRs GitHub com base na integração: **nenhum**.
 
 - **Sem merge de frentes** (H4 hold GL; H5 blocked).
 - Próximo quando ready: **H4** `80825c7c` (resolver conflitos doc/CMake no merge). Sem comentários em PR (fila vazia).
+
+## Revisão sync 27/11/2026 ~08:00 UTC
+
+Bases: Exp `0efebf99` · INT **`d98a173b`**. Frentes **não** editadas.
+Neste ciclo: sem merge em `main`; sem `workflow_dispatch` manual; sem editar frentes.
+PRs GitHub com base na integração: **nenhum**.
+
+| Frente | Tip remoto | vs Exp | vs INT | Ancestral INT | phase (store) |
+| --- | --- | ---: | ---: | --- | --- |
+| H0 | `c124f899` | 21 | 0 | sim | ready-for-integration (já na INT) |
+| H1 | `4d014af2` | 8 | 0 | sim | standby (já na INT) |
+| H2 | `b1162b5d` | 3 | 0 | sim | ready-for-integration (já na INT) |
+| H3 | `3bdf1927` | 19 | 0 | sim | ready-for-integration (já na INT; espera live-publish) |
+| H4 | `80825c7c` | 2 | **+2** | não | standby (hold GL) |
+| H5 | `cfd1aa5e` | 3 | **+3** | não | blocked(h4) |
+| R1 | `6947bbb9` | 7 | 0 | sim | standby (já na INT) |
+| R2 | `f86b4d17` | 4 | 0 | sim | ready-for-integration (já na INT) |
+
+### Delta vs sync ~07:00
+
+- Tips das frentes **inalteradas** (H3 sem commits novos).
+- INT tip `d98a173b` permanece; gates Build #82 + CI #13 **success**.
+- Sync 07:30 foi store-only (sem delta de frentes).
+
+### Vereditos
+
+- **Sem merge de frentes** (H4 hold GL; H5 blocked).
+- Próximo quando ready: **H4** `80825c7c`. Sem comentários em PR (fila vazia).
