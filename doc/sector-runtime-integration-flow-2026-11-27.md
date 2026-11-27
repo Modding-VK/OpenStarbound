@@ -614,3 +614,9 @@ Bases: INT **`a5f91c9b`**. Frentes **não** editadas; **sem** merge em `main`;
 - **Hold frentes** (nada ahead). Sem conflito/bloqueio.
 - H4 continua (próximo lote quando H4 entregar). Sem comentários em PR.
 - Sem `build.yml` neste ciclo docs (Build tip já em voo).
+
+## Sync ~20:00 UTC
+
+- Tip INT pós-merge H4 `32414ed0`: `ffe2b640`.
+- Ahead h*/r* = 0; sem conflito/bloqueio. Branch remota H3 ausente (não bloqueio).
+- Build `46059053926` in_progress @ `6350308f` intacto; 1 Build tip após terminal.
