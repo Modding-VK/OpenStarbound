@@ -77,7 +77,12 @@ compartilhados, demanda por consumidor e arestas de preparação/publicação
 separadas; `comparePreparationToPlan` / `comparePublicationToPlan` só
 registram divergências. Ver
 [relatório](../sector-runtime-h1-executive-shadow-2026-11-27.md). Ainda não há
-mailbox, prioridade herdada nem ligação ao caminho de geração ao vivo.
+mailbox nem ligação ao caminho de geração ao vivo.
+
+Recorte seguinte (27/11/2026): `applyInterest` / `clearInterest` /
+`anticipatePreparation` / `unloadSector` na sombra; demanda compartilhada
+bloqueia unload. Ver
+[interest/priority](../sector-runtime-h1-executive-interest-priority-2026-11-27.md).
 
 ## DAG-03 — Prioridade, justiça e distância correta
 
@@ -94,6 +99,11 @@ sem renovação oculta causada por prioridade.
 Registrar quem foi escolhido, qual razão e qual bloqueador impediu o avanço,
 com cardinalidade limitada. Não confundir total de bloqueios com quantidade
 de dungeons executadas.
+
+Primeiro recorte H1 (27/11/2026): `WorldGenerationExecutivePriority` pontua
+interesse/distância(wrap)/idade e `selectFair` escolhe na frontier sem deixar
+Background denso apagar Visible antigo. Sem executor vivo. Ver
+[interest/priority](../sector-runtime-h1-executive-interest-priority-2026-11-27.md).
 
 ## DAG-04 — Conclusões e progresso dentro da passagem
 

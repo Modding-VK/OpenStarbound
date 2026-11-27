@@ -41,6 +41,8 @@ struct WorldGenerationExecutiveNodeRecord {
   size_t publicationPrerequisiteCount = 0;
   size_t dependentCount = 0;
   size_t estimatedCost = 0;
+  uint64_t contentRevision = 0;
+  uint64_t templateRevision = 0;
   Set<WorldGenerationExecutiveConsumerId> consumers;
 };
 
@@ -71,12 +73,32 @@ public:
   // discard a node still retained by the preparation plan.
   bool removeDemand(WorldGenerationExecutiveConsumerId const& consumer, WorldGenerationDependencyNode const& node);
 
+  // Interest update: ingest the recursive plan and attach the consumer to every
+  // node it requires. Auxiliaries inherit presence without becoming activation
+  // roots of their own.
+  size_t applyInterest(WorldGenerationExecutiveConsumerId const& consumer,
+      WorldGenerationDependencyPlan const& plan, size_t estimatedCostPerNode = 1);
+  // Remove one consumer everywhere. Nodes required by others stay reserved.
+  size_t clearInterest(WorldGenerationExecutiveConsumerId const& consumer);
+
+  // Pure anticipation: advance preparation phase for runnable nodes without
+  // authorizing publication. Returns how many nodes moved to Prepared.
+  size_t anticipatePreparation(WorldGenerationDependencyGraph::CurrentLevel const& currentLevel);
+  bool markPublished(WorldGenerationDependencyNode const& node);
+  // Sector unload in shadow: discard preparation for that sector when no
+  // consumer remains. Shared demand from another consumer blocks discard.
+  size_t unloadSector(Vec2U const& sector);
+
   bool contains(WorldGenerationDependencyNode const& node) const;
   size_t nodeCount() const;
   size_t preparationEdgeCount() const;
   size_t publicationEdgeCount() const;
   size_t consumerCount(WorldGenerationDependencyNode const& node) const;
+  size_t activeConsumerCount() const;
   Maybe<WorldGenerationExecutiveNodeRecord> record(WorldGenerationDependencyNode const& node) const;
+  WorldGenerationDependencyPlan retainedPreparationPlan() const;
+  List<WorldGenerationDependencyNode> preparationFrontier(
+      WorldGenerationDependencyGraph::CurrentLevel const& currentLevel) const;
 
   List<WorldGenerationDependencyEdge> preparationEdges() const;
   List<WorldGenerationDependencyEdge> publicationEdges() const;
@@ -94,6 +116,8 @@ private:
   List<WorldGenerationDependencyEdge> m_publicationEdges;
 
   void refreshCounts(WorldGenerationDependencyNode const& node);
+  void refreshAllCounts();
+  bool nodeStillRequired(WorldGenerationDependencyNode const& node) const;
   static bool containsEdge(List<WorldGenerationDependencyEdge> const& edges,
       WorldGenerationDependencyEdge const& edge);
   static void appendUniqueEdge(List<WorldGenerationDependencyEdge>& edges,

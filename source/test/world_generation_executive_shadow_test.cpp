@@ -103,6 +103,47 @@ TEST(WorldGenerationExecutiveShadowTest, PublicationEdgesStaySeparateFromPrepara
   EXPECT_EQ(WorldGenerationExecutiveDivergenceKind::ExtraPublicationEdge, divergences[0].kind);
 }
 
+TEST(WorldGenerationExecutiveShadowTest, ApplyInterestAndUnloadPreserveSharedDemand) {
+  auto left = WorldGenerationDependencyGraph::build({4, 7}, 2, crossNeighbors);
+  auto right = WorldGenerationDependencyGraph::build({5, 7}, 2, crossNeighbors);
+  WorldGenerationExecutiveShadowGraph shadow;
+  WorldGenerationExecutiveConsumerId a{1, 1};
+  WorldGenerationExecutiveConsumerId b{1, 2};
+  EXPECT_EQ(left.nodes.size(), shadow.applyInterest(a, left));
+  EXPECT_EQ(right.nodes.size(), shadow.applyInterest(b, right));
+  EXPECT_EQ(2u, shadow.activeConsumerCount());
+  EXPECT_GE(shadow.consumerCount({{5, 7}, 1}), 1u);
+
+  EXPECT_EQ(left.nodes.size(), shadow.clearInterest(a));
+  EXPECT_EQ(1u, shadow.activeConsumerCount());
+  EXPECT_TRUE(shadow.contains({{4, 7}, 1}));
+  EXPECT_TRUE(shadow.contains({{5, 7}, 2}));
+
+  // Shared neighbor still demanded by b blocks unload of sector 5.
+  EXPECT_EQ(0u, shadow.unloadSector({5, 7}));
+  EXPECT_TRUE(shadow.contains({{5, 7}, 2}));
+
+  shadow.clearInterest(b);
+  EXPECT_GT(shadow.unloadSector({5, 7}), 0u);
+  EXPECT_FALSE(shadow.contains({{5, 7}, 2}));
+}
+
+TEST(WorldGenerationExecutiveShadowTest, AnticipatePreparationMarksRunnableWithoutPublish) {
+  auto plan = WorldGenerationDependencyGraph::build({4, 7}, 2, crossNeighbors);
+  WorldGenerationExecutiveShadowGraph shadow;
+  shadow.applyInterest({1, 9}, plan);
+  auto advanced = shadow.anticipatePreparation([](Vec2U const&) { return uint8_t(0); });
+  EXPECT_EQ(5u, advanced);
+  auto preparedLeaf = shadow.record({{3, 7}, 1});
+  ASSERT_TRUE(preparedLeaf);
+  EXPECT_EQ(WorldGenerationExecutiveNodePhase::Prepared, preparedLeaf->preparationPhase);
+  EXPECT_FALSE(shadow.markPublished({{4, 7}, 2}));
+  EXPECT_TRUE(shadow.markPublished({{3, 7}, 1}));
+  auto published = shadow.record({{3, 7}, 1});
+  ASSERT_TRUE(published);
+  EXPECT_EQ(WorldGenerationExecutiveNodePhase::Published, published->publicationPhase);
+}
+
 TEST(WorldGenerationExecutiveShadowTest, CompareRecordsMissingAndExtraPreparationNodes) {
   auto full = WorldGenerationDependencyGraph::build({4, 7}, 2, crossNeighbors);
   WorldGenerationExecutiveShadowGraph shadow;

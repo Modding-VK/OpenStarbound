@@ -119,6 +119,147 @@ bool WorldGenerationExecutiveShadowGraph::removeDemand(WorldGenerationExecutiveC
   return true;
 }
 
+void WorldGenerationExecutiveShadowGraph::refreshAllCounts() {
+  for (auto const& entry : m_nodes)
+    refreshCounts(entry.first);
+}
+
+bool WorldGenerationExecutiveShadowGraph::nodeStillRequired(WorldGenerationDependencyNode const& node) const {
+  auto it = m_nodes.find(node);
+  if (it == m_nodes.end())
+    return false;
+  if (!it->second.consumers.empty())
+    return true;
+  for (auto const& edge : m_preparationEdges) {
+    if (!(edge.prerequisite == node))
+      continue;
+    auto dependent = m_nodes.find(edge.dependent);
+    if (dependent != m_nodes.end() && !dependent->second.consumers.empty())
+      return true;
+  }
+  for (auto const& edge : m_publicationEdges) {
+    if (!(edge.prerequisite == node))
+      continue;
+    auto dependent = m_nodes.find(edge.dependent);
+    if (dependent != m_nodes.end() && !dependent->second.consumers.empty())
+      return true;
+  }
+  return false;
+}
+
+size_t WorldGenerationExecutiveShadowGraph::applyInterest(WorldGenerationExecutiveConsumerId const& consumer,
+    WorldGenerationDependencyPlan const& plan, size_t estimatedCostPerNode) {
+  ingestPreparationPlan(plan, estimatedCostPerNode);
+  size_t attached = 0;
+  for (auto const& node : plan.nodes) {
+    if (addDemand(consumer, node))
+      ++attached;
+  }
+  return attached;
+}
+
+size_t WorldGenerationExecutiveShadowGraph::clearInterest(WorldGenerationExecutiveConsumerId const& consumer) {
+  size_t removed = 0;
+  for (auto& entry : m_nodes) {
+    if (entry.second.consumers.remove(consumer))
+      ++removed;
+  }
+  return removed;
+}
+
+WorldGenerationDependencyPlan WorldGenerationExecutiveShadowGraph::retainedPreparationPlan() const {
+  WorldGenerationDependencyPlan plan;
+  for (auto const& entry : m_nodes) {
+    if (entry.second.preparationPhase == WorldGenerationExecutiveNodePhase::Idle
+        || entry.second.preparationPhase == WorldGenerationExecutiveNodePhase::Discarded)
+      continue;
+    plan.nodes.append(entry.first);
+  }
+  std::sort(plan.nodes.begin(), plan.nodes.end());
+  for (auto const& edge : m_preparationEdges) {
+    if (contains(edge.prerequisite) && contains(edge.dependent))
+      plan.edges.append(edge);
+  }
+  return plan;
+}
+
+List<WorldGenerationDependencyNode> WorldGenerationExecutiveShadowGraph::preparationFrontier(
+    WorldGenerationDependencyGraph::CurrentLevel const& currentLevel) const {
+  auto analysis = WorldGenerationDependencyGraph::analyze(retainedPreparationPlan(), currentLevel);
+  return analysis.frontier;
+}
+
+size_t WorldGenerationExecutiveShadowGraph::anticipatePreparation(
+    WorldGenerationDependencyGraph::CurrentLevel const& currentLevel) {
+  size_t advanced = 0;
+  for (auto const& node : preparationFrontier(currentLevel)) {
+    auto it = m_nodes.find(node);
+    if (it == m_nodes.end())
+      continue;
+    if (it->second.preparationPhase == WorldGenerationExecutiveNodePhase::Reserved
+        || it->second.preparationPhase == WorldGenerationExecutiveNodePhase::Preparing) {
+      it->second.preparationPhase = WorldGenerationExecutiveNodePhase::Prepared;
+      ++advanced;
+    }
+  }
+  return advanced;
+}
+
+bool WorldGenerationExecutiveShadowGraph::markPublished(WorldGenerationDependencyNode const& node) {
+  auto it = m_nodes.find(node);
+  if (it == m_nodes.end())
+    return false;
+  if (it->second.preparationPhase != WorldGenerationExecutiveNodePhase::Prepared
+      && it->second.preparationPhase != WorldGenerationExecutiveNodePhase::Eligible)
+    return false;
+  it->second.preparationPhase = WorldGenerationExecutiveNodePhase::Published;
+  it->second.publicationPhase = WorldGenerationExecutiveNodePhase::Published;
+  return true;
+}
+
+size_t WorldGenerationExecutiveShadowGraph::unloadSector(Vec2U const& sector) {
+  size_t discarded = 0;
+  List<WorldGenerationDependencyNode> victims;
+  for (auto const& entry : m_nodes) {
+    if (entry.first.sector != sector)
+      continue;
+    if (nodeStillRequired(entry.first))
+      continue;
+    victims.append(entry.first);
+  }
+  auto isVictim = [&](WorldGenerationDependencyNode const& node) {
+    return std::find(victims.begin(), victims.end(), node) != victims.end();
+  };
+  for (auto const& node : victims) {
+    auto it = m_nodes.find(node);
+    if (it == m_nodes.end())
+      continue;
+    it->second.preparationPhase = WorldGenerationExecutiveNodePhase::Discarded;
+    it->second.publicationPhase = WorldGenerationExecutiveNodePhase::Discarded;
+    it->second.consumers.clear();
+    ++discarded;
+  }
+  eraseWhere(m_preparationEdges, [&](WorldGenerationDependencyEdge const& edge) {
+    return isVictim(edge.prerequisite) || isVictim(edge.dependent);
+  });
+  eraseWhere(m_publicationEdges, [&](WorldGenerationDependencyEdge const& edge) {
+    return isVictim(edge.prerequisite) || isVictim(edge.dependent);
+  });
+  for (auto const& node : victims)
+    m_nodes.erase(node);
+  refreshAllCounts();
+  return discarded;
+}
+
+size_t WorldGenerationExecutiveShadowGraph::activeConsumerCount() const {
+  Set<WorldGenerationExecutiveConsumerId> consumers;
+  for (auto const& entry : m_nodes) {
+    for (auto const& consumer : entry.second.consumers)
+      consumers.add(consumer);
+  }
+  return consumers.size();
+}
+
 bool WorldGenerationExecutiveShadowGraph::contains(WorldGenerationDependencyNode const& node) const {
   return m_nodes.contains(node);
 }

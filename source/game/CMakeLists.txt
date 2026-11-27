@@ -175,6 +175,7 @@ SET (star_game_HEADERS
     StarWorldGeneration.hpp
     StarWorldGenerationDependency.hpp
     StarWorldGenerationExecutiveShadow.hpp
+    StarWorldGenerationExecutivePriority.hpp
     StarWorldGenerationMemory.hpp
     StarWorldGenerationMemoryEnvelope.hpp
     StarWorldGenerationMemoryPressure.hpp
@@ -487,6 +488,7 @@ SET (star_game_SOURCES
     StarWorldGeneration.cpp
     StarWorldGenerationDependency.cpp
     StarWorldGenerationExecutiveShadow.cpp
+    StarWorldGenerationExecutivePriority.cpp
     StarWorldGenerationMemory.cpp
     StarWorldGenerationBaseTiles.cpp
     StarWorldGenerationCustomTerrain.cpp
