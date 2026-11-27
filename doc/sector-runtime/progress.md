@@ -49,7 +49,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **25,5%** — 50 marcos verificados de 196 |
 | Contratos com avanço registrado | **49 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | H0–H5 + R1/R2; H4 GPU-03 And/Or/Mul 16/16 + probe GL PASS; H5 27/27 RTX; PreparedSector = API H1; CI #20 + SR #2 SUCCESS em `8155297f`; Build pós-merge H4; Actions manuais |
+| Última evidência de testes | H0–H5 + R1/R2; H4 GPU-02 failContext + GPU-04 reproducers 17/17 + GPU-03 And/Or/Mul + probe GL PASS; H5 27/27 RTX; PreparedSector = API H1; Build `46048668279` @ `4741d691` em voo; Actions manuais |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 | Smoke / instalador local | Pendente base local do usuário; sem smoke até lá |
 
