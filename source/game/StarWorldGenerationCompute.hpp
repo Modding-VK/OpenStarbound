@@ -226,6 +226,10 @@ public:
 
   // GPU-02 observation (any thread under mutex): open ticket ids snapshot.
   List<WorldGenerationComputeTicket> listOpenTickets() const;
+  // Open tickets whose identity.kernel matches (asset-free observation).
+  List<WorldGenerationComputeTicket> listOpenTicketsByKernel(
+      WorldGenerationComputeKernel kernel) const;
+  size_t countOpenTicketsByKernel(WorldGenerationComputeKernel kernel) const;
   // True while the ticket id is still present in the open-entry table.
   bool ticketIsOpen(WorldGenerationComputeTicket ticket) const;
   // Count of ticket ids rejected as late duplicates after failContext/commit revoke.

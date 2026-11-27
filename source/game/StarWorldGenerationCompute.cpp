@@ -579,6 +579,31 @@ List<WorldGenerationComputeTicket> WorldGenerationComputeService::listOpenTicket
   return out;
 }
 
+List<WorldGenerationComputeTicket> WorldGenerationComputeService::listOpenTicketsByKernel(
+    WorldGenerationComputeKernel kernel) const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  List<WorldGenerationComputeTicket> out;
+  for (auto const& pair : m_entries) {
+    if (pair.second.identity.kernel != kernel)
+      continue;
+    WorldGenerationComputeTicket ticket;
+    ticket.id = pair.first;
+    out.append(ticket);
+  }
+  return out;
+}
+
+size_t WorldGenerationComputeService::countOpenTicketsByKernel(
+    WorldGenerationComputeKernel kernel) const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  size_t count = 0;
+  for (auto const& pair : m_entries) {
+    if (pair.second.identity.kernel == kernel)
+      ++count;
+  }
+  return count;
+}
+
 bool WorldGenerationComputeService::ticketIsOpen(WorldGenerationComputeTicket ticket) const {
   std::lock_guard<std::mutex> lock(m_mutex);
   return m_entries.find(ticket.id) != m_entries.end();

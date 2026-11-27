@@ -564,6 +564,49 @@ TEST(WorldGenerationComputeTest, DenseUint32HasZeroByteNextPow2MaskLowExactCpuAn
           .verdict);
 }
 
+TEST(WorldGenerationComputeTest, ListAndCountOpenTicketsByKernel) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  auto xorTicket = service.submit(
+      makeIdentity(360, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 1u);
+  auto addTicket = service.submit(
+      makeIdentity(361, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{2u}, 1u);
+  auto xorTicket2 = service.submit(
+      makeIdentity(362, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{3u}, 1u);
+  ASSERT_TRUE((bool)xorTicket);
+  ASSERT_TRUE((bool)addTicket);
+  ASSERT_TRUE((bool)xorTicket2);
+
+  EXPECT_EQ(2u, service.countOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(1u, service.countOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+  EXPECT_EQ(0u, service.countOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Mul));
+
+  auto xorOpen =
+      service.listOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor);
+  ASSERT_EQ(2u, xorOpen.size());
+  bool sawXor0 = false;
+  bool sawXor2 = false;
+  for (auto const& ticket : xorOpen) {
+    if (ticket.id == xorTicket->id)
+      sawXor0 = true;
+    if (ticket.id == xorTicket2->id)
+      sawXor2 = true;
+  }
+  EXPECT_TRUE(sawXor0);
+  EXPECT_TRUE(sawXor2);
+
+  auto addOpen =
+      service.listOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add);
+  ASSERT_EQ(1u, addOpen.size());
+  EXPECT_EQ(addTicket->id, addOpen[0].id);
+
+  EXPECT_TRUE(service.cancel(*xorTicket));
+  // Cancel marks the entry; poll is what retires the open-ticket id.
+  EXPECT_EQ(2u, service.countOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  service.poll(*xorTicket);
+  EXPECT_EQ(1u, service.countOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+}
+
 TEST(WorldGenerationComputeTest, RunNamedKernelAndIsBackendSupported) {
   auto named = WorldGenerationComputeService::runNamedKernel("DenseUint32Xor", 1u,
       List<uint32_t>{0x10u}, 0x01u);
