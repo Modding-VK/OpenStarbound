@@ -20,4 +20,6 @@ ASan/UBSan: 1×10; **77/77** RealBlockInfo.
 
 ## Próximo passo
 
-Gates H0 restantes antes de H1. Não disparar Actions.
+Island handoff em
+[IslandSurface handoff](sector-runtime-h0-sector-shadow-island-handoff-2026-11-26.md).
+Segue gates H0 antes de H1. Não disparar Actions.

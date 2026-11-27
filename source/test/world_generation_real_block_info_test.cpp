@@ -1344,6 +1344,72 @@ TEST_F(WorldGenerationRealBlockInfoTest, CompositeContextStaticInputsMatchTerres
   EXPECT_GT(context->customTerrainWeighting(4, 4).second, 0);
 }
 
+TEST_F(WorldGenerationRealBlockInfoTest, IslandSurfaceShadowTaskHandoffRetiresStale) {
+  auto r = root();
+  auto database = r->terrainDatabase();
+  auto liveLayout = Access::island(*database);
+  auto privateLayout = Access::island(*database);
+  auto world = planet(liveLayout);
+  auto revision = world->generationRevision();
+
+  WorldGenerationTasks tasks(1, WorldRegionPartition(WorldGeometry(Vec2U{64, 64})), 1,
+      WorldGenerationSectorShadow::retainedBytes());
+  auto task = tasks.reserve({0, 0}, WorldGenerationTaskStage::BaseTiles,
+      WorldGenerationSectorShadow::retainedBytes());
+  ASSERT_TRUE(task);
+
+  WorldGenerationSelectorContextIdentity selectors;
+  selectors.worldEpoch = 1;
+  selectors.sequence = task->identity.sequence;
+  selectors.templateRevision = revision;
+  selectors.worldWidth = 64;
+  selectors.baseHeight = 16;
+  selectors.regionSeed = 42;
+
+  WorldGenerationBaseTilesIdentity baseTiles;
+  baseTiles.task = task->identity;
+  baseTiles.tileRevision = 1;
+  baseTiles.templateRevision = revision;
+  baseTiles.worldSize = {64, 64};
+  baseTiles.tileRegion = RectI(0, 0, int(WorldSectorSize), int(WorldSectorSize));
+
+  Random::init(918);
+  auto context = WorldGenerationCompositeContext::tryCapture(ledger, selectors, baseTiles, *world);
+  ASSERT_TRUE(context.has_value());
+  auto admitted = WorldGenerationSectorShadow::tryAdmit(ledger, *context);
+  ASSERT_TRUE(admitted.has_value());
+  auto shadow = std::make_shared<WorldGenerationSectorShadow>(std::move(*admitted));
+
+  RealSource candidate{context->staticInputs(), privateLayout};
+  auto materials = Root::singleton().materialDatabase();
+  WorldGenerationLookupResolver resolver{*world, *materials};
+  auto expected = std::make_unique<ServerTileSectorArray::Array>();
+  for (int x = 0; x != 32; ++x) for (int y = 0; y != 32; ++y) {
+    auto normal = world->blockInfo(x, y), captured = candidate.sample(x, y);
+    EXPECT_EQ(fields(normal), fields(captured)) << x << ',' << y;
+    initialize((*expected)(x, y));
+    initialize(shadow->tiles()(x, y));
+    applyWorldGenerationBaseTile((*expected)(x, y), tileInput(normal, y), resolver);
+    applyWorldGenerationBaseTile(shadow->tiles()(x, y), tileInput(captured, y), resolver);
+  }
+  EXPECT_TRUE(compareWorldGenerationBaseTiles(*expected, shadow->tiles(), context->baseTilesIdentity()).equal());
+
+  WorkerPool pool("IslandSurface sector shadow handoff", 1);
+  auto promise = pool.addProducer<std::shared_ptr<WorldGenerationSectorShadow>>([task, shadow] {
+    EXPECT_TRUE(task->start());
+    EXPECT_TRUE(task->ready());
+    return shadow;
+  });
+  auto owner = context->baseTilesIdentity();
+  ++owner.tileRevision;
+  auto const& result = promise.get();
+  EXPECT_FALSE(result->matches(owner));
+  EXPECT_TRUE(compareWorldGenerationBaseTiles(*expected, result->tiles(), context->baseTilesIdentity()).equal());
+  EXPECT_TRUE(tasks.retire(task, WorldGenerationTaskOutcome::Stale));
+  pool.finish();
+  result->discard();
+}
+
 TEST_F(WorldGenerationRealBlockInfoTest, TaskInvalidateDiscardsFilledTerrestrialShadow) {
   writeTerrestrialAssets();
   auto r = root();
