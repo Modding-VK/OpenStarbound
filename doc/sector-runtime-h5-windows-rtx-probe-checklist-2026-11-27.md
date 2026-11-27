@@ -6,11 +6,11 @@ Pré-condição: H4 probe RTX PASS @ `c7f6e605` (GPU shadow real). Sem merge INT
 
 ## Objetivo deste probe
 
-Validar no host RTX os **27 testes de contrato H5** (GPU-05 + VAL-03/04/05 +
-MOD-02/03/04 + CPU-05). São modelos puros: **não** ligam OpenGL nem reclamam
-compute. A capacidade GPU real já comprovada em H4 alimenta o próximo passo de
-escala (seletor + governador com `gpuComputeAvailable=true`); este checklist só
-fecha a evidência Windows dos contratos H5 no tip atual.
+Validar no host RTX os **33 testes de contrato H5** (GPU-05 + VAL-03/04/05 +
+MOD-02/03/04 + CPU-05 + ScaleMetrics). Sao modelos puros: **nao** ligam OpenGL
+nem reclamam compute. A capacidade GPU real ja comprovada em H4 alimenta o
+ponte de escala (`WorldGenerationScaleMetricsRecorder`); este checklist fecha
+a evidencia Windows dos contratos H5 no tip atual.
 
 ## Pré-requisitos
 
@@ -47,7 +47,7 @@ Filtro único com as oito suites H5:
 
 ```bat
 cd dist
-.\world_generation_contract_tests.exe --gtest_filter=WorldGenerationHardwareSelectionTest.*:WorldGenerationDeliveryMetricsTest.*:WorldGenerationExecutionProfileTest.*:WorldGenerationScenarioMatrixTest.*:WorldGenerationAdoptionGatesTest.*:WorldGenerationEquivalenceVersionTest.*:WorldGenerationPlatformMatrixTest.*:WorldGenerationResourceGovernorTest.*
+.\world_generation_contract_tests.exe --gtest_filter=WorldGenerationHardwareSelectionTest.*:WorldGenerationDeliveryMetricsTest.*:WorldGenerationExecutionProfileTest.*:WorldGenerationScenarioMatrixTest.*:WorldGenerationAdoptionGatesTest.*:WorldGenerationEquivalenceVersionTest.*:WorldGenerationPlatformMatrixTest.*:WorldGenerationResourceGovernorTest.*:WorldGenerationScaleMetricsTest.*
 ```
 
 Ou o script:
@@ -58,7 +58,7 @@ pwsh -File scripts\windows\run-h5-contract-probe.ps1 -ExePath .\dist\world_gener
 
 ### Saída esperada (PASS)
 
-- **27/27** testes PASSED
+- **33/33** testes PASSED
 - exit code `0`
 - Sem Actions; sem claim de backend GPU neste log
 
@@ -74,7 +74,8 @@ pwsh -File scripts\windows\run-h5-contract-probe.ps1 -ExePath .\dist\world_gener
 | WorldGenerationEquivalenceVersionTest | 3 |
 | WorldGenerationPlatformMatrixTest | 2 |
 | WorldGenerationResourceGovernorTest | 3 |
-| **Total** | **27** |
+| WorldGenerationScaleMetricsTest | 6 |
+| **Total** | **33** |
 
 ## O que reportar ao Project / H5
 

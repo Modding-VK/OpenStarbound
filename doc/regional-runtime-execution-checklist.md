@@ -56,7 +56,9 @@ H4 na mesma linha (GPU-01…04 CPU-first + probe GL PASS Desktop-Vinicius):
 H5 na mesma linha (GPU-05/VAL/MOD/CPU-05; probe 27/27 RTX):
 [hardware selection](sector-runtime-h5-hardware-selection-2026-11-27.md),
 [scale foundations](sector-runtime-h5-scale-foundations-2026-11-27.md),
-[Windows RTX checklist](sector-runtime-h5-windows-rtx-probe-checklist-2026-11-27.md).
+[Windows RTX checklist](sector-runtime-h5-windows-rtx-probe-checklist-2026-11-27.md),
+[scale metrics bridge](sector-runtime-h5-scale-metrics-shadow-bridge-2026-11-27.md),
+[Instalaveis bootstrap](instalaveis-bootstrap.md).
 H0 na mesma linha:
 [MOD-01 EffectBoundary deep](sector-runtime-h0-effect-boundary-deep-2026-11-27.md),
 [MOD-01 EffectBoundary complete](sector-runtime-h0-effect-boundary-complete-2026-11-27.md),

@@ -190,6 +190,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_adoption_gates_test.cpp
   world_generation_equivalence_version_test.cpp
   world_generation_platform_matrix_test.cpp
+  world_generation_scale_metrics_test.cpp
   world_generation_base_tile_liquid_test.cpp
   world_generation_cave_liquid_plan_test.cpp
   world_generation_finalize_plan_test.cpp
@@ -279,6 +280,7 @@ FOREACH(world_region_test_suite
     WorldGenerationAdoptionGatesTest
     WorldGenerationEquivalenceVersionTest
     WorldGenerationPlatformMatrixTest
+    WorldGenerationScaleMetricsTest
     WorldGenerationBaseTileLiquidTest
     WorldGenerationBaseTilesTest
     WorldGenerationBlockInfoTest

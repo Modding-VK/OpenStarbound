@@ -37,7 +37,5 @@ Linux Clang continua adiado; GPU compute opcional com fallback CPU.
 
 ## Próximo passo
 
-H4 GPU shadow real (probe RTX PASS @ `c7f6e605`). Probe Windows dos 27
-contratos H5: [checklist RTX](sector-runtime-h5-windows-rtx-probe-checklist-2026-11-27.md)
-(+ `scripts/windows/run-h5-contract-probe.ps1`). Após PASS do validador,
-alimentar seletor/governador com capabilities reais. Sem merge INT; sem Actions.
+Superado pelo [scale metrics bridge](sector-runtime-h5-scale-metrics-shadow-bridge-2026-11-27.md)
+(33 testes; tip H4 `1a7570cd`). Desktop: checklist Windows atualizado. Sem merge INT.
