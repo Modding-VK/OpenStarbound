@@ -4,9 +4,16 @@ Atualizado em **27/11/2026**. Branch de integração:
 `cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+R1; não `main`).
 Última R1: ThreadStub CPU/OS (`6947bbb9`).
 Última H0: MOD-01 EffectBoundary profundo; VAL-02 BiomeItem completo (25%).
-Última H1: PreparedSector payload/WorldStorage path sombra (`4d014af2`); DAG-03 50%.
-Última H2: cache/prefetch/batch/IO; PreparedSector canônico = H1.
-Última H3: CPU-04 + MD-02..05 + WT-04 + IO-02..05 sombra (25%).
+Última H1: PreparedSector payload/WorldStorage path (`4d014af2`); DAG-03 50%.
+Última H2: consume path sobre APIs H1 (`b1162b5d`); PreparedSector canônico = H1.
+Última H3: CPU-04..IO-05 sombra (25%).
+
+[Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
+· [Relatório H0](../sector-runtime-h0-effect-boundary-deep-2026-11-27.md)
+· [Relatório H1](../sector-runtime-h1-prepared-sector-2026-11-27.md)
+· [Relatório H2](../sector-runtime-h2-prepared-sector-consume-2026-11-27.md)
+· [Relatório H3](../sector-runtime-h3-shadow-packet-2026-11-27.md)
+· [Relatório R1](../sector-runtime-r1-thread-stub-cpu-2026-11-27.md)
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
 · [Relatório H0](../sector-runtime-h0-effect-boundary-deep-2026-11-27.md)
@@ -34,7 +41,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **18,4%** — 36 marcos verificados de 196 |
 | Contratos com avanço registrado | **35 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | H0–H3 + R1 + H1 PreparedSector payload/path (7 testes); PreparedSector = API H1; sem Actions |
+| 11 | H1 | [CPU-02](cpu-and-stages.md) | Produto PreparedSector | 25% | payload/path H1 + consume H2 sobre API canônica H1; install vivo pendente |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 18,4% não significam que o jogo esteja só 18,4% pronto.** O runtime anterior
@@ -171,12 +178,7 @@ auditoria de todas as implementações antigas para conceder crédito retroativo
 | 8 | H1 | [DAG-03](dependency-scheduler.md) | Prioridade, justiça e distância correta | 50% | TTL/load/eta/unlock/trace sombra ok; 75% exige integração viva |
 | 9 | H1 | [DAG-05](dependency-scheduler.md) | Cancelamento, falha e invalidação | 25% | Retry/drain sombra; retenção até término físico no executor vivo pendente |
 | 10 | H1 | [CPU-01](cpu-and-stages.md) | Contexto privado de cálculo | 25% | Composto+sombra+handoff+hotReload/loadMods; falta gates H0 antes de H1 |
-| 11 | H1 | [CPU-02](cpu-and-stages.md) | Produto PreparedSector | 25% | payload/path WorldStorage sombra ok (API H1); install vivo e tipagem Terrain/Delta pendentes |
-| 12 | H1 | [MD-01](microdungeons-and-tmx.md) | Seleção leve e identidade | 25% | Candidatos sem halo na sombra; path MicroDungeons vivo pendente |
-| 13 | H1 | [CPU-03](cpu-and-stages.md) | Executor processual e granularidade | 25% | Scheduler sombra startNext/complete; pool/afinidade/lotes multi-setor pendentes |
-| 14 | H1 | [WT-01](worldthread.md) | Serviço de conclusões e drenagem | 25% | drainMailbox sombra; pontos no caminho vivo e fora-de-ordem autoritativo pendentes |
-| 15 | H1 | [WT-02](worldthread.md) | Orçamento produtivo e resposta do jogo | 25% | runPass com exit reasons; separação sim/prep/publish viva e overrun tipado pendentes |
-| 16 | H1 | [CPU-05](cpu-and-stages.md) | Governador de recursos e perfis | 25% | suggest Balanced/HighThroughput; pools físicas/render/GPU e perfis dinâmicos pendentes |
+| 11 | H1 | [CPU-02](cpu-and-stages.md) | Produto PreparedSector | 25% | payload/path H1 + consume H2 sobre API canônica H1; install vivo pendente |
 | 17 | H2 | [RAM-02](memory-and-prefetch.md) | Camadas de cache e invalidação | 25% | Cache por kind/setor/revisões + invalidação; payloads reais pendentes |
 | 18 | H2 | [RAM-03](memory-and-prefetch.md) | Política de retenção | 25% | Soft/hard + histerese + demanda/benefício; justiça multi-mundo pendente |
 | 19 | H2 | [RAM-04](memory-and-prefetch.md) | Prefetch previsto e dependências | 25% | Plano por velocidade/wrap/orçamento; sem WorldStorage |
@@ -222,15 +224,7 @@ auditoria de todas as implementações antigas para conceder crédito retroativo
 | MOD-01 | Bundles/planning/lookup + [EffectBoundary](../sector-runtime-h0-effect-boundary-2026-11-27.md) + [profundo](../sector-runtime-h0-effect-boundary-deep-2026-11-27.md) | Catálogo+enforcement+reconstruct POD; defaults não normalizados; call sites/Json e integração abertas |
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
-| DAG-02 | [grafo](../sector-runtime-h1-executive-shadow-2026-11-27.md) + [interesse](../sector-runtime-h1-executive-interest-priority-2026-11-27.md) | Sem interesse vivo/WorldStorage; antecipação ainda só na sombra |
-| DAG-03 | [priority](../sector-runtime-h1-executive-interest-priority-2026-11-27.md) | 50% local; sem integração viva / mods / saves (75%) |
-| DAG-05 | [cancel/mailbox](../sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md) | Sem prova de parada do produtor vivo nem retenção física de chave de tarefa |
-| CPU-03 | [scheduler](../sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md) | Sem pool física, afinidade, classes IO/GPU ou lote multi-setor |
-| WT-01 | [scheduler](../sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md) | Sem pontos de drenagem no WorldThread vivo nem completions fora de ordem autoritativos |
-| WT-02 | [runPass](../sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md) | Sem orçamento de frame no WorldThread, overrun de operação indivisível nem modo high-throughput vivo |
-| CPU-02 | [prepared](../sector-runtime-h1-prepared-sector-2026-11-27.md) | Sem BaseTiles/delta no produto nem consumo autoritativo vivo |
-| MD-01 | [prepared](../sector-runtime-h1-prepared-sector-2026-11-27.md) | Sem seleção a partir do template privado vivo nem invalidação por nova colocação real |
-| CPU-05 | [governor](../sector-runtime-h1-resource-governor-2026-11-27.md) | Sem redimensionar pools, medir render/GPU nem estacionar workers físicos |
+| 11 | H1 | [CPU-02](cpu-and-stages.md) | Produto PreparedSector | 25% | payload/path H1 + consume H2 sobre API canônica H1; install vivo pendente |
 | RAM-02 | [Product revision cache](../sector-runtime-h2-product-revision-cache-2026-11-27.md) | Sem payloads BaseTiles/candidatos reais |
 | RAM-03 | [Retenção/prefetch/batch/IO](../sector-runtime-h2-resident-prefetch-batch-io-2026-11-27.md) | Sem justiça multi-mundo nem pressão RSS externa |
 | RAM-04 | idem | Sem carga WorldStorage nem encolher por stale de rota ao vivo |
@@ -351,64 +345,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 26/11/2026 | Ocean/Island stale | TemplateRevision bump sob sombra oceano/Island; 103 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 26/11/2026 | Noise/adjacent stale | TemplateRevision bump sob noise e setor {1,0}; 105 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 26/11/2026 | Concurrent ocean | Duas sombras oceano no ledger; 106 RealBlockInfo. Sem novo marco completo | 3,6% |
-| 27/11/2026 | Concurrent ocean handoff | Handoffs paralelos oceano {0,0}+{1,0}; 107 RealBlockInfo. Sem novo marco completo | 3,6% |
-| 27/11/2026 | Concurrent Island handoff | Handoffs paralelos IslandSurface {0,0}+{1,0}; 108 RealBlockInfo. Sem novo marco completo | 3,6% |
-| 27/11/2026 | Concurrent noise handoff | Handoffs paralelos Cache/Perlin {0,0}+{1,0}; 109 RealBlockInfo. Sem novo marco completo | 3,6% |
-| 27/11/2026 | Concurrent+reload matrix | Island/noise ledger + loadMods reload em 4 variantes; 115 RealBlockInfo. Sem novo marco completo | 3,6% |
-| 27/11/2026 | Vertical adjacent | Setor {0,1} matriz lifecycle/assets + handoff vertical; 125 RealBlockInfo. Sem novo marco completo | 3,6% |
-| 27/11/2026 | Diagonal adjacent | Setor {1,1} lifecycle/hotReload/stale; 132 RealBlockInfo. Sem novo marco completo | 3,6% |
-| 27/11/2026 | Capstone 2×2 + tight ledger | Quatro sombras terrestres + oceano tight admit/refuse/retry; 134 RealBlockInfo. Matriz sombra BaseTiles geográfica fechada. Sem novo marco completo | 3,6% |
-| 27/11/2026 | Candidate sequence comparator | Comparador diagnóstico id/posição/prioridade/ordem; 6 testes contract. Sem payload BiomeItem nem streaming. Sem novo marco completo | 3,6% |
-| 27/11/2026 | Candidate placement adapter | BiomeItemPlacement→record + sort estável por prioridade; 8 testes contract. Sem payload profundo. Sem novo marco completo | 3,6% |
-| 27/11/2026 | Candidate queue snapshot | PlacementQueue→records com IDs ascendentes pós-retirement; 9 testes contract. Sem payload BiomeItem. Sem novo marco completo | 3,6% |
-| 27/11/2026 | Candidate itemKind | typeIndex BiomeItem no record v2; 10 testes contract. Payload profundo ainda fora. Sem novo marco completo | 3,6% |
-| 27/11/2026 | Candidate BiomeItem payload | MicroDungeon/Treasure + placements; 12 testes contract. Grass/Bush/Tree/ObjectPool UnsupportedPayload. Sem novo marco completo | 3,6% |
-| 27/11/2026 | Candidate plant payload | Grass/Bush/TreePair campos públicos; 13 testes contract. ObjectPool/TileDamage ainda fora. Sem novo marco completo | 3,6% |
-| 27/11/2026 | Candidate ObjectPool payload | ObjectPool peso/nome/Json ordenado; 13 testes contract. TileDamage plantas ainda fora. Sem novo marco completo | 3,6% |
-| 27/11/2026 | Candidate TileDamage payload | TileDamageParameters bit-a-bit em Grass/Bush/Tree; 13 testes contract. Sem planeta/streaming. Sem novo marco completo | 3,6% |
-| 27/11/2026 | MOD-01 EffectBoundary | Catálogo PureKernel/Prepared/Authoritative + audits default; 6 testes contract. Sem normalizar defaults. Sem novo marco completo | 3,6% |
-| 27/11/2026 | MOD-01 EffectBoundary expand | Memory/Lookup/Tasks/Json/Planning/Selector/WorldRegion; 9 testes; countForSurface. Sem novo marco completo | 3,6% |
-| 27/11/2026 | MOD-01 EffectBoundary expand2 | Pass harness classificado (não VAL-01), Terrestrial/RNG/MD apply; 10 testes. Sem novo marco completo | 3,6% |
-| 27/11/2026 | MOD-01 EffectBoundary complete | Inventário razoável ~74 entradas / ~28 superfícies; 11 testes. Catálogo esgotado; contexto profundo pendente | 3,6% |
-| 27/11/2026 | MOD-01 EffectBoundary deep | Enforcement Owner/Worker + reconstructPureInputs; 14+6 testes; 76 entradas. Call sites/Json ainda abertos. Sem novo marco completo | 3,6% |
-| 27/11/2026 | DAG-02 executive shadow | `WorldGenerationExecutiveShadowGraph` + 5 testes; demanda por consumidor e comparação ao plano recursivo. DAG-02 0→25%; H1 2,5%→5%; programa 3,6%→4,1% | 4,1% |
-| 27/11/2026 | DAG-02 interest + DAG-03 | Interesse/unload/antecipação + prioridade wrap/selectFair; 11 Executive*. DAG-03 0→25%; H1 5%→7,5%; programa 4,1%→4,6% | 4,6% |
-| 27/11/2026 | DAG-05 + mailbox + scheduler | Cancel/retry/drain, mailbox e scheduler sombra; 21 Executive*. DAG-05/CPU-03/WT-01 0→25%; H1 7,5%→15%; programa 4,6%→6,1% | 6,1% |
-| 27/11/2026 | WT-02 runPass | Orçamento starts/drain/deadline + exit reasons; 24 Executive*. WT-02 0→25%; H1 15%→17,5%; programa 6,1%→6,6% | 6,6% |
-| 27/11/2026 | CPU-02 + MD-01 | PreparedSector Empty/OrderedCandidates sem halo; 3 testes. Ambos 0→25%; H1 17,5%→22,5%; programa 6,6%→7,7% | 7,7% |
-| 27/11/2026 | CPU-05 governor | suggest Balanced/HighThroughput; 4 testes. CPU-05 0→25%; H1 22,5%→25%; programa 7,7%→8,2% | 8,2% |
-| 27/11/2026 | DAG-03 TTL/load/trace | TTL sem renovação, load Background, eta/unlock, selectFairTraced; 8 Priority*. DAG-03 25→50%; H1 25%→27,5%; programa 8,2%→8,7% | 8,7% |
-| 27/11/2026 | Integração H0+H1 | Merge H0 `d6a6419a` + H1 `7ed91dec` em `cursor/integration-sector-runtime-7342`; docs unificados | 8,7% |
-| 27/11/2026 | H2 RAM-02 cache | `WorldGenerationProductRevisionCache` kind/setor/revisões + invalidação; 7 testes NoAssets. RAM-02 0→25% | 9,2% |
-| 27/11/2026 | H2 RAM-03/04/05 + WT-03 + IO-01 | Retenção/histerese, prefetch, batch regional, promoção Prefetch→Visible; testes NoAssets. H2 25%; +5 marcos | 11,7% |
-| 27/11/2026 | Integração H2 | Merge `--no-ff` H2 `b9572592` em `cursor/integration-sector-runtime-7342`; PreparedSector = H1; docs H0/H1/H2 unificados | 11,7% |
-| 27/11/2026 | Integração H0-delta | Merge `--no-ff` H0 `7b1bbbbc` (payloads além de `d6a6419a`) em `cursor/integration-sector-runtime-7342`; VAL-02 permanece 25% | 11,7% |
-| 27/11/2026 | Integração H0 TileDamage | Merge `--no-ff` H0 `54f69cd2` (VAL-02 BiomeItem completo) em `cursor/integration-sector-runtime-7342`; % inalterado | 11,7% |
-| 27/11/2026 | Integração H0 MOD-01 | Merge `--no-ff` H0 `c124f899` (EffectBoundary profundo) em `cursor/integration-sector-runtime-7342`; % inalterado 11,7% | 11,7% |
-| 27/11/2026 | H3 CPU-04 CaveLiquid plan | Plano/delta privado sem publish; 7 testes NoAssets. CPU-04 0→25%; H3 2,5%; programa 4,1% | 4,1% |
-| 27/11/2026 | H3 CPU-04 Finalize normalize | Delta normalização privado + estágio FinalizePlan; 7+7 NoAssets. Sem novo marco (CPU-04 permanece 25%) | 4,1% |
-| 27/11/2026 | H3 CPU-04 Finalize intents | Placement intents ordenados sem spawn; 8 Finalize NoAssets. Sem novo marco | 4,1% |
-| 27/11/2026 | H3 MD-02 TMX static | Produto intermediário camadas/conectores sem RNG/publish; 6 NoAssets. MD-02 0→25%; H3 5%; programa 4,6% | 4,6% |
-| 27/11/2026 | H3 MD-03 TMX binding | Escolhas ordenadas sem facade; 5 NoAssets. MD-03 0→25%; H3 7,5%; programa 5,1% | 5,1% |
-| 27/11/2026 | H3 MD-04 structure commands | Footprint/comandos/reservas sombra; 6 NoAssets. MD-04 0→25%; H3 10%; programa 5,6% | 5,6% |
-| 27/11/2026 | H3 MD-05 batch staging | Batches ordenados + staging invisível/resume; 6 NoAssets. MD-05 0→25%; H3 12,5%; programa 6,1% | 6,1% |
-| 27/11/2026 | H3 WT-04 publication pass | Orçamento de passagem + dirty diferido sombra; 5 NoAssets. WT-04 0→25%; H3 15%; programa 6,6% | 6,6% |
-| 27/11/2026 | H3 IO-02 shadow DB | Harness commit/rollback/checkpoint + frontier blob; 7 NoAssets. IO-02 0→25%; H3 17,5%; programa 7,1% | 7,1% |
-| 27/11/2026 | H3 IO-03 shadow checkpoint | Unidade lógica + seal/recover/reject; 6 NoAssets. IO-03 0→25%; H3 20%; programa 7,7% | 7,7% |
-| 27/11/2026 | H3 IO-04 shadow unload | Unload/drain/keepAlive/handoff bloqueado; 6 NoAssets. IO-04 0→25%; H3 22,5%; programa 8,2% | 8,2% |
-| 27/11/2026 | H3 IO-05 shadow packet | Pacotes confirmados + marcos + clocks; 6 NoAssets. IO-05 0→25%; H3 25%; programa 8,7% | 8,7% |
-| 27/11/2026 | Integração H3 | Merge `--no-ff` H3 `b3b7deee` em `cursor/integration-sector-runtime-7342`; H3 25%; programa 11,7%→16,8% | 16,8% |
-| 27/11/2026 | REG-01 identidade | `WorldRegionOwnerRegistry` admit/drain; 6 testes. REG-01 0→25%; programa 3,6%→4,1% | 4,1% |
-| 27/11/2026 | REG-02/WT-05 harness | Bordas + RuntimeCoordinator; 15 testes. REG-02/WT-05 0→25%; programa 4,1%→5,1% | 5,1% |
-| 27/11/2026 | Local+IO-03 | Inventário de kinds + barreira de checkpoint; 22 testes. IO-03 0→25%; programa 5,1%→5,6% | 5,6% |
-| 27/11/2026 | R1 outline/epoch | Contorno parcial + ForeignCell + retireAll; 26 testes. Maturidade R1 permanece 25% | 5,6% |
-| 27/11/2026 | R1 authoritative | `WorldRegionAuthoritativeOwner`; 30 testes. API sem `-harness` para R2; % R1 permanece 25% | 5,6% |
-| 27/11/2026 | R1 thread stub | Stub sombra Running/Join; 34 testes. % R1 permanece 25% | 5,6% |
-| 27/11/2026 | Integração R1 | Merge `--no-ff` R1 `f90055ff` em `cursor/integration-sector-runtime-7342`; R1 25%; programa 16,8%→18,4% | 18,4% |
-| 27/11/2026 | R1 thread CPU | OS thread CPU via Thread::invoke; 35 testes. % R1 permanece 25% | 5,6% |
-| 27/11/2026 | Integração R1 CPU stub | Merge `--no-ff` R1 `6947bbb9` (OS Thread::invoke) em INT; R1 permanece 25% | 18,4% |
-| 27/11/2026 | PreparedSector payload/path | payloadView/worldStoragePath/probeHandoff + TerrainFields/StepDelta opacos; 7 Prepared* testes. CPU-02 permanece 25% (sem install vivo) | 8,7% |
-| 27/11/2026 | Integração H1 payload/path | Merge `--no-ff` H1 `4d014af2` em INT; CPU-02 permanece 25% | 18,4% |
+| 11 | H1 | [CPU-02](cpu-and-stages.md) | Produto PreparedSector | 25% | payload/path H1 + consume H2 sobre API canônica H1; install vivo pendente |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.
