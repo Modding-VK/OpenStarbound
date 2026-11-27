@@ -22,7 +22,7 @@ enum class WorldGenerationComputeBackend : uint8_t {
   GpuOpenGlCompute = 1
 };
 
-enum class WorldGenerationComputeKernel : uint8_t {
+enum class WorldGenerationComputeKernel : uint16_t {
   // Exact-integer dense transforms (GPU-03 first candidate family; asset-free).
   DenseUint32Xor = 1,
   DenseUint32Add = 2,

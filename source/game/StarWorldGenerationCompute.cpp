@@ -2953,10 +2953,10 @@ List<WorldGenerationComputeTicket> WorldGenerationComputeService::listTerminalOp
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::listOpenKernels() const {
   std::lock_guard<std::mutex> lock(m_mutex);
   List<WorldGenerationComputeKernel> out;
-  std::unordered_set<uint8_t> seen;
+  std::unordered_set<uint16_t> seen;
   for (auto const& pair : m_entries) {
     auto kernel = pair.second.identity.kernel;
-    uint8_t key = (uint8_t)kernel;
+    uint16_t key = (uint16_t)kernel;
     if (!seen.insert(key).second)
       continue;
     out.append(kernel);
@@ -2966,9 +2966,9 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::listOpenKernel
 
 size_t WorldGenerationComputeService::countOpenKernels() const {
   std::lock_guard<std::mutex> lock(m_mutex);
-  std::unordered_set<uint8_t> seen;
+  std::unordered_set<uint16_t> seen;
   for (auto const& pair : m_entries)
-    seen.insert((uint8_t)pair.second.identity.kernel);
+    seen.insert((uint16_t)pair.second.identity.kernel);
   return seen.size();
 }
 
@@ -2990,12 +2990,12 @@ size_t WorldGenerationComputeService::countOpenTickets() const {
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::listReadyOpenKernels() const {
   std::lock_guard<std::mutex> lock(m_mutex);
   List<WorldGenerationComputeKernel> out;
-  std::unordered_set<uint8_t> seen;
+  std::unordered_set<uint16_t> seen;
   for (auto const& pair : m_entries) {
     if (pair.second.state != EntryState::Ready)
       continue;
     auto kernel = pair.second.identity.kernel;
-    uint8_t key = (uint8_t)kernel;
+    uint16_t key = (uint16_t)kernel;
     if (!seen.insert(key).second)
       continue;
     out.append(kernel);
@@ -3005,11 +3005,11 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::listReadyOpenK
 
 size_t WorldGenerationComputeService::countReadyOpenKernels() const {
   std::lock_guard<std::mutex> lock(m_mutex);
-  std::unordered_set<uint8_t> seen;
+  std::unordered_set<uint16_t> seen;
   for (auto const& pair : m_entries) {
     if (pair.second.state != EntryState::Ready)
       continue;
-    seen.insert((uint8_t)pair.second.identity.kernel);
+    seen.insert((uint16_t)pair.second.identity.kernel);
   }
   return seen.size();
 }
@@ -3026,12 +3026,12 @@ bool WorldGenerationComputeService::anyReadyOpenKernels() const {
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::listFailedOpenKernels() const {
   std::lock_guard<std::mutex> lock(m_mutex);
   List<WorldGenerationComputeKernel> out;
-  std::unordered_set<uint8_t> seen;
+  std::unordered_set<uint16_t> seen;
   for (auto const& pair : m_entries) {
     if (pair.second.state != EntryState::Failed)
       continue;
     auto kernel = pair.second.identity.kernel;
-    uint8_t key = (uint8_t)kernel;
+    uint16_t key = (uint16_t)kernel;
     if (!seen.insert(key).second)
       continue;
     out.append(kernel);
@@ -3041,11 +3041,11 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::listFailedOpen
 
 size_t WorldGenerationComputeService::countFailedOpenKernels() const {
   std::lock_guard<std::mutex> lock(m_mutex);
-  std::unordered_set<uint8_t> seen;
+  std::unordered_set<uint16_t> seen;
   for (auto const& pair : m_entries) {
     if (pair.second.state != EntryState::Failed)
       continue;
-    seen.insert((uint8_t)pair.second.identity.kernel);
+    seen.insert((uint16_t)pair.second.identity.kernel);
   }
   return seen.size();
 }
@@ -3062,12 +3062,12 @@ bool WorldGenerationComputeService::anyFailedOpenKernels() const {
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::listCancelledOpenKernels() const {
   std::lock_guard<std::mutex> lock(m_mutex);
   List<WorldGenerationComputeKernel> out;
-  std::unordered_set<uint8_t> seen;
+  std::unordered_set<uint16_t> seen;
   for (auto const& pair : m_entries) {
     if (pair.second.state != EntryState::Cancelled)
       continue;
     auto kernel = pair.second.identity.kernel;
-    uint8_t key = (uint8_t)kernel;
+    uint16_t key = (uint16_t)kernel;
     if (!seen.insert(key).second)
       continue;
     out.append(kernel);
@@ -3078,12 +3078,12 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::listCancelledO
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::listTerminalOpenKernels() const {
   std::lock_guard<std::mutex> lock(m_mutex);
   List<WorldGenerationComputeKernel> out;
-  std::unordered_set<uint8_t> seen;
+  std::unordered_set<uint16_t> seen;
   for (auto const& pair : m_entries) {
     if (pair.second.state == EntryState::Pending)
       continue;
     auto kernel = pair.second.identity.kernel;
-    uint8_t key = (uint8_t)kernel;
+    uint16_t key = (uint16_t)kernel;
     if (!seen.insert(key).second)
       continue;
     out.append(kernel);
@@ -3093,11 +3093,11 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::listTerminalOp
 
 size_t WorldGenerationComputeService::countTerminalOpenKernels() const {
   std::lock_guard<std::mutex> lock(m_mutex);
-  std::unordered_set<uint8_t> seen;
+  std::unordered_set<uint16_t> seen;
   for (auto const& pair : m_entries) {
     if (pair.second.state == EntryState::Pending)
       continue;
-    seen.insert((uint8_t)pair.second.identity.kernel);
+    seen.insert((uint16_t)pair.second.identity.kernel);
   }
   return seen.size();
 }
@@ -3114,11 +3114,11 @@ bool WorldGenerationComputeService::anyTerminalOpenKernels() const {
 
 size_t WorldGenerationComputeService::countCancelledOpenKernels() const {
   std::lock_guard<std::mutex> lock(m_mutex);
-  std::unordered_set<uint8_t> seen;
+  std::unordered_set<uint16_t> seen;
   for (auto const& pair : m_entries) {
     if (pair.second.state != EntryState::Cancelled)
       continue;
-    seen.insert((uint8_t)pair.second.identity.kernel);
+    seen.insert((uint16_t)pair.second.identity.kernel);
   }
   return seen.size();
 }
@@ -3135,12 +3135,12 @@ bool WorldGenerationComputeService::anyCancelledOpenKernels() const {
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::listPendingOpenKernels() const {
   std::lock_guard<std::mutex> lock(m_mutex);
   List<WorldGenerationComputeKernel> out;
-  std::unordered_set<uint8_t> seen;
+  std::unordered_set<uint16_t> seen;
   for (auto const& pair : m_entries) {
     if (pair.second.state != EntryState::Pending)
       continue;
     auto kernel = pair.second.identity.kernel;
-    uint8_t key = (uint8_t)kernel;
+    uint16_t key = (uint16_t)kernel;
     if (!seen.insert(key).second)
       continue;
     out.append(kernel);
@@ -3150,11 +3150,11 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::listPendingOpe
 
 size_t WorldGenerationComputeService::countPendingOpenKernels() const {
   std::lock_guard<std::mutex> lock(m_mutex);
-  std::unordered_set<uint8_t> seen;
+  std::unordered_set<uint16_t> seen;
   for (auto const& pair : m_entries) {
     if (pair.second.state != EntryState::Pending)
       continue;
-    seen.insert((uint8_t)pair.second.identity.kernel);
+    seen.insert((uint16_t)pair.second.identity.kernel);
   }
   return seen.size();
 }
