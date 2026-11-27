@@ -25,6 +25,11 @@ Nova colocação pode invalidá-lo. Cumprimento de promise permanece após
 sucesso autoritativo e não após escolher um nome ou aquecer uma definição.
 Ordenação e sementes usam o contrato existente de coordenadas canônicas.
 
+Primeiro recorte H1 sombra (27/11/2026): candidatos ordenados e resultado
+vazio em `WorldGenerationPreparedSectorProduct` só com IDs/nome/seed/posição;
+sem halo. Ver
+[prepared sector](../sector-runtime-h1-prepared-sector-2026-11-27.md).
+
 ## MD-02 — Formato intermediário estático de TMX
 
 Separar leitura dos dados e decodificação estática de instanciação de brushes.

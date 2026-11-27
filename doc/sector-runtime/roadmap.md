@@ -423,15 +423,29 @@ espera reproduzíveis. Não depende de uma nova amostra TMX para começar.
 Propósito: transformar orçamento e núcleos livres em progresso de setores.
 Depende de H0 para identidade e comparação.
 
-- [ ] DAG-02: nós compartilhados, demanda por consumidor e grafo em sombra.
-- [ ] DAG-03: prioridade herdada, justiça e distância com wrap.
-- [ ] DAG-04/05: mailbox, revalidação, retry e cancelamento com drain.
+- [x] DAG-02: nós compartilhados, demanda por consumidor e grafo em sombra
+  (primeiro recorte 25%; ver
+  [executive shadow](../sector-runtime-h1-executive-shadow-2026-11-27.md)).
+- [x] DAG-03: prioridade herdada, justiça e distância com wrap
+  (50% sombra: TTL/load/eta/unlock/trace; ver
+  [interest/priority](../sector-runtime-h1-executive-interest-priority-2026-11-27.md)).
+- [x] DAG-04/05: mailbox, revalidação, retry e cancelamento com drain
+  (sombra 25% em DAG-05; mailbox sombra adicional em DAG-04; ver
+  [cancel/mailbox](../sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md)).
 - [ ] CPU-01: primeiro recorte proprietário de custom terrain em 25%; completar
   contexto privado com dependências/RNG de inicialização auditados e admissão.
-- [ ] CPU-02 e MD-01: candidatos leves e resultado vazio versionado.
-- [ ] CPU-03: capacidade processual e granularidade inicial.
-- [ ] WT-01/02: drenagem produtiva, orçamento e motivos de saída explícitos.
-- [ ] CPU-05: primeira política baseada em fila executável e custo observado.
+- [x] CPU-02 e MD-01: candidatos leves e resultado vazio versionado
+  (primeiro recorte 25% sombra; ver
+  [prepared sector](../sector-runtime-h1-prepared-sector-2026-11-27.md)).
+- [x] CPU-03: capacidade processual e granularidade inicial
+  (primeiro recorte 25% sombra; ver
+  [cancel/mailbox/scheduler](../sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md)).
+- [x] WT-01: drenagem produtiva via mailbox sombra (25%; mesmo relatório).
+- [x] WT-02: orçamento e motivos de saída explícitos
+  (primeiro recorte 25% sombra via `runPass`; mesmo relatório).
+- [x] CPU-05: primeira política baseada em fila executável e custo observado
+  (primeiro recorte 25% sombra; ver
+  [resource governor](../sector-runtime-h1-resource-governor-2026-11-27.md)).
 
 Saída: mais tarefas independentes em voo, menor pronto→commit e equivalência
 no streaming. Publicação mantém a ordem autoritativa aprovada.

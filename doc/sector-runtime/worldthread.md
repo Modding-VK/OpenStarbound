@@ -46,6 +46,12 @@ de uma interrupção artificial.
 Aceitação: resultado já pronto não ganha uma rodada extra sem motivo; testes
 de completions fora de ordem conservam justiça e sequência dos efeitos.
 
+Primeiro recorte H1 sombra (27/11/2026):
+`WorldGenerationExecutiveScheduler::drainMailbox` consome a mailbox e aplica
+à sombra sem rodada artificial; `complete` separa término do worker da
+observação. Ver
+[cancel/mailbox/scheduler](../sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md).
+
 ## WT-02 — Orçamento produtivo e resposta do jogo
 
 Separar tempo de simulação, preparação, publicação e montagem de pacotes.
@@ -59,6 +65,11 @@ aplicar duas vezes a física ou Lua de uma entidade no mesmo passo.
 
 Aceitação: teto concedido, tempo gasto e causa de saída são comparáveis;
 ganho em entrega não vem de simulação acelerada ou pacotes contraditórios.
+
+Primeiro recorte H1 sombra (27/11/2026): `runPass` aplica tetos de starts/
+drain/deadline e devolve `WorldGenerationExecutivePassExitReason` com
+contagens e ticks began/ended. Não altera `dt` de simulação nem monta pacotes.
+Ver [cancel/mailbox/scheduler](../sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md).
 
 ## WT-03 — Entrada síncrona em lote
 

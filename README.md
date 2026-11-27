@@ -36,7 +36,10 @@ For the current state and the next work, start here:
 - [Roadmap and acceptance criteria](doc/sector-runtime/roadmap.md)
 - [Progress, evidence and next steps](doc/sector-runtime/progress.md)
 - [Operational checklist and current report](doc/regional-runtime-execution-checklist.md)
-- [Latest H0 report: diagonal adjacent sector shadow](doc/sector-runtime-h0-sector-shadow-diagonal-adjacent-2026-11-27.md)
+- [Latest H0 report: candidate itemKind](doc/sector-runtime-h0-candidate-item-kind-2026-11-27.md)
+- [H0 diagonal adjacent sector shadow](doc/sector-runtime-h0-sector-shadow-diagonal-adjacent-2026-11-27.md)
+- [Latest H1 report: executive interest and priority](doc/sector-runtime-h1-executive-interest-priority-2026-11-27.md)
+- [H1 executive shadow graph (DAG-02)](doc/sector-runtime-h1-executive-shadow-2026-11-27.md)
 - [Performance backlog](doc/performance-backlog.md)
 
 <details>

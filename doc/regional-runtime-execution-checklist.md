@@ -38,7 +38,10 @@ histórico, sem outra fila de prioridades. O
 [painel de progressão](sector-runtime/progress.md) consolida percentuais por
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
-Frente ativa: H0 (`cursor/h0-foundations-9f77`). O relatório atual é
+Branch de integração: `cursor/integration-sector-runtime-7342` (H0+H1 mergeados).
+Relatório H1 atual:
+[Interest/priority DAG-03 50%](sector-runtime-h1-executive-interest-priority-2026-11-27.md).
+H0 na mesma linha:
 [Candidate itemKind](sector-runtime-h0-candidate-item-kind-2026-11-27.md),
 com antecedentes em
 [Candidate queue snapshot](sector-runtime-h0-candidate-queue-snapshot-2026-11-27.md),
