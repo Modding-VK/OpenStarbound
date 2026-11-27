@@ -187,6 +187,13 @@ SET (star_game_HEADERS
     StarWorldGenerationPrefetchPlan.hpp
     StarWorldGenerationRegionDemandBatch.hpp
     StarWorldGenerationDecodePromotion.hpp
+    StarWorldGenerationHardwareSelection.hpp
+    StarWorldGenerationDeliveryMetrics.hpp
+    StarWorldGenerationExecutionProfile.hpp
+    StarWorldGenerationScenarioMatrix.hpp
+    StarWorldGenerationAdoptionGates.hpp
+    StarWorldGenerationEquivalenceVersion.hpp
+    StarWorldGenerationPlatformMatrix.hpp
     StarWorldGenerationMemoryRetry.hpp
     StarWorldGenerationBaseTileLiquid.hpp
     StarWorldGenerationBaseTileInput.hpp

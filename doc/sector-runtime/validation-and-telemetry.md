@@ -337,6 +337,11 @@ referência, invariantes e sequências adversariais de eventos.
 
 ## VAL-03 — Métricas e marcos de entrega
 
+Primeiro recorte (27/11/2026):
+[`WorldGenerationDeliveryMetricsRecorder`](../source/game/StarWorldGenerationDeliveryMetrics.hpp)
+registra os marcos abaixo e só deriva custo observado com cobertura completa;
+[fundações H5](../sector-runtime-h5-scale-foundations-2026-11-27.md).
+
 | Marco/custo | O que deve registrar |
 | --- | --- |
 | Interesse | origem, sequência, prioridade, tempo e nível inicial |
@@ -359,6 +364,11 @@ fallback de relatório ou truncamento declaram cobertura incompleta. O problema
 
 ## VAL-04 — Matriz de cenários
 
+Primeiro recorte (27/11/2026):
+[`WorldGenerationValidationScenario`](../source/game/StarWorldGenerationScenarioMatrix.hpp)
+enumera os cenários abaixo sem executá-los;
+[fundações H5](../sector-runtime-h5-scale-foundations-2026-11-27.md).
+
 | Cenário | Falha ou ganho procurado |
 | --- | --- |
 | Céu e terreno sem estrutura | throughput padrão e custo de planos vazios |
@@ -377,6 +387,11 @@ O backlog de oceanos/clima exige comparar outros líquidos e separar geração,
 simulação e render. Não deduzir uma causa geral de uma amostra tóxica isolada.
 
 ## VAL-05 — Gates de adoção e relatório
+
+Primeiro recorte (27/11/2026):
+[`evaluateWorldGenerationAdoption`](../source/game/StarWorldGenerationAdoptionGates.hpp)
+fecha adoção sob evidência parcial;
+[fundações H5](../sector-runtime-h5-scale-foundations-2026-11-27.md).
 
 Uma variante só avança quando possui: invariantes aprovados, comparação de
 outputs, benchmark equivalente, memória limitada, falhas/recovery cobertas e

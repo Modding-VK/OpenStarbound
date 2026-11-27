@@ -183,6 +183,13 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_region_demand_batch_test.cpp
   world_generation_decode_promotion_test.cpp
   world_generation_prepared_sector_test.cpp
+  world_generation_hardware_selection_test.cpp
+  world_generation_delivery_metrics_test.cpp
+  world_generation_execution_profile_test.cpp
+  world_generation_scenario_matrix_test.cpp
+  world_generation_adoption_gates_test.cpp
+  world_generation_equivalence_version_test.cpp
+  world_generation_platform_matrix_test.cpp
   world_generation_base_tile_liquid_test.cpp
   world_generation_cave_liquid_plan_test.cpp
   world_generation_finalize_plan_test.cpp
@@ -265,6 +272,13 @@ FOREACH(world_region_test_suite
     WorldGenerationPrefetchPlanTest
     WorldGenerationRegionDemandBatchTest
     WorldGenerationDecodePromotionTest
+    WorldGenerationHardwareSelectionTest
+    WorldGenerationDeliveryMetricsTest
+    WorldGenerationExecutionProfileTest
+    WorldGenerationScenarioMatrixTest
+    WorldGenerationAdoptionGatesTest
+    WorldGenerationEquivalenceVersionTest
+    WorldGenerationPlatformMatrixTest
     WorldGenerationBaseTileLiquidTest
     WorldGenerationBaseTilesTest
     WorldGenerationBlockInfoTest

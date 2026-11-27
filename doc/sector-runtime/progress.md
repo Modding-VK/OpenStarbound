@@ -1,7 +1,8 @@
 # Progressão do projeto — percentuais e ordem das tarefas
 
 Atualizado em **27/11/2026**. Branch de integração:
-`cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+H4+R1+R2; não `main`).
+`cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+H4+H5+R1+R2; não `main`).
+Última H5: scale foundations + probe 27/27 RTX (`a2ec01f0`); H5 25%.
 Última H4: GPU-01…04 + probe GL PASS Desktop-Vinicius (`c44b1a38`); H4 25%.
 Última H3: TMX cache/reload + flora/replaceBiome + decode/codec (`3bdf1927`); H3 25%.
 Última R2: AuthoritativeOps + REG-03/04/05 sombra (`f86b4d17`).
@@ -16,6 +17,7 @@ Atualizado em **27/11/2026**. Branch de integração:
 · [Relatório H2](../sector-runtime-h2-prepared-sector-consume-2026-11-27.md)
 · [Relatório H3](../sector-runtime-h3-tmx-shadow-cache-2026-11-27.md)
 · [Relatório H4](../sector-runtime-h4-gpu02-03-04-2026-11-27.md)
+· [Relatório H5](../sector-runtime-h5-scale-foundations-2026-11-27.md)
 · [Relatório R1](../sector-runtime-r1-thread-stub-cpu-2026-11-27.md)
 · [Relatório R2](../sector-runtime-r2-authoritative-ops-2026-11-27.md)
 · [Backlog geral](../performance-backlog.md)
@@ -30,21 +32,22 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 
 | Indicador | Estado |
 | --- | --- |
-| Frente ativa | Integração — H0+H1+H2+H3+H4+R1+R2; H5 hold até probe |
+| Frente ativa | Integração — H0+H1+H2+H3+H4+H5+R1+R2 |
 | Progresso de maturidade de H0 | **25,0%** — 6 marcos verificados de 24 |
 | Progresso de maturidade de H1 | **27,5%** — 11 marcos verificados de 40 |
 | Progresso de maturidade de H2 | **25,0%** — 6 marcos verificados de 24 |
 | Progresso de maturidade de H3 | **25,0%** — 10 marcos verificados de 40 |
 | Progresso de maturidade de H4 | **25,0%** — 4 marcos verificados de 16 |
+| Progresso de maturidade de H5 | **25,0%** — 7 marcos verificados de 28 |
 | Progresso de maturidade de R1 | **25,0%** — 3 marcos verificados de 12 |
 | Progresso de maturidade de R2 | **25,0%** — 3 marcos verificados de 12 |
-| Progresso de maturidade do programa | **21,9%** — 43 marcos verificados de 196 |
-| Contratos com avanço registrado | **42 de 49**; todos ainda parciais |
+| Progresso de maturidade do programa | **25,5%** — 50 marcos verificados de 196 |
+| Contratos com avanço registrado | **49 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | H0–H4 + R1/R2; probe GL PASS RTX 3050 (shadow Equal); PreparedSector = API H1; Actions manuais |
+| Última evidência de testes | H0–H5 + R1/R2; H4 probe GL PASS; H5 27/27 RTX; PreparedSector = API H1; Actions manuais |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
-**Os 21,9% não significam que o jogo esteja só 21,9% pronto.** O runtime anterior
+**Os 25,5% não significam que o jogo esteja só 25,5% pronto.** O runtime anterior
 já possui workers, schedulers, IO/decode e previews. O denominador aqui são os
 49 contratos completos do rework, incluindo GPU e simulação regional futura.
 
@@ -70,8 +73,8 @@ Fórmulas:
 - **Contrato:** número de marcos consecutivos verificados × 25%.
 - **Fase de entrada:** soma das notas dos contratos nela cadastrados ÷ número
   desses contratos.
-- **Programa:** soma das notas dos 49 contratos ÷ 49. Hoje: 1075 ÷ 49 = 21,9%
-  arredondado; equivalentemente, 43 ÷ (49 × 4) × 100.
+- **Programa:** soma das notas dos 49 contratos ÷ 49. Hoje: 1250 ÷ 49 = 25,5%
+  arredondado; equivalentemente, 50 ÷ (49 × 4) × 100.
 
 - **Aceitação integral:** contratos em 100% ÷ 49. Hoje: 0%.
 
@@ -95,10 +98,10 @@ obriga concluir todo trabalho transversal para iniciar um protótipo em sombra.
 | 3 | H2 — produtos residentes e prefetch | 6 | 6 / 24 | 25,0% | RAM-02..IO-01 em 25%; PreparedSector canônico = H1 |
 | 4 | H3 — kernels adicionais, estruturas e publicação | 10 | 10 / 40 | 25,0% | CPU-04..IO-05 sombra; equivalência viva/publish pendente |
 | 5 | H4 — backend GPU e comparação em sombra | 4 | 4 / 16 | 25,0% | GPU-01…04 a 25%; probe GL PASS RTX 3050; publicação/ganho pendentes |
-| 6 | H5 — seleção de hardware e escala | 7 | 0 / 28 | 0% | Produtos/backends validados e custo completo de entrega medido |
+| 6 | H5 — seleção de hardware e escala | 7 | 7 / 28 | 25,0% | Sete contratos em 25%; backends GPU, campanhas reais e adoção pendentes |
 | 7 | R1 — donos regionais e coordenadora | 3 | 3 / 12 | 25,0% | REG-01/02 + WT-05 harness/owner/stub sombra; donas OS reais pendentes |
 | 8 | R2 — operações e transferências entre regiões | 3 | 3 / 12 | 25,0% | REG-03/04/05 sombra + AuthoritativeOps; multiplayer vivo pendente |
-| — | **Total** | **49** | **43 / 196** | **21,9%** | Não equivale a ganho de desempenho ou autorização de release |
+| — | **Total** | **49** | **50 / 196** | **25,5%** | Não equivale a ganho de desempenho ou autorização de release |
 
 Essa é uma ordem de prioridade/dependência, não uma proibição de frentes
 paralelas autorizadas pelo roadmap. Setores comuns permanecem prioritários.
@@ -156,7 +159,7 @@ concorrente.
 
 ## Catálogo ordenado das 49 tarefas
 
-Quarenta e uma notas de 25% e uma de 50% (DAG-03) usam as evidências após o catálogo.
+Quarenta e oito notas de 25% e uma de 50% (DAG-03) usam as evidências após o catálogo.
 Demais 0% significam **sem marco do novo contrato reconhecido nesta leitura do
 roadmap**, não ausência de código relacionado no baseline. Não foi feita nova
 auditoria de todas as implementações antigas para conceder crédito retroativo.
@@ -199,13 +202,13 @@ auditoria de todas as implementações antigas para conceder crédito retroativo
 | 34 | H4 | [GPU-02](gpu-compute.md) | Contexto e buffers em voo | 25% | Fila/pool/pump/failContext + harness GL; thread dona WorldThread pendente |
 | 35 | H4 | [GPU-03](gpu-compute.md) | Kernels e equivalência | 25% | DenseUint32Xor/Add + batch; terreno/ganho pendentes |
 | 36 | H4 | [GPU-04](gpu-compute.md) | Comparação em sombra | 25% | compareShadow Equal no RTX 3050; multi-driver/publicação pendentes |
-| 37 | H5 | [GPU-05](gpu-compute.md) | Seleção heterogênea e render | 0% | Escolher backend pelo custo de entrega, incluindo transporte |
-| 38 | H5 | [VAL-03](validation-and-telemetry.md) | Métricas e marcos de entrega | 0% | Cobertura integral do novo pipeline e CPU/RAM/VRAM |
-| 39 | H5 | [VAL-04](validation-and-telemetry.md) | Matriz de cenários | 0% | Escala, mundos, memória, GPU/fallback e multiplayer |
-| 40 | H5 | [VAL-05](validation-and-telemetry.md) | Gates de adoção e relatório | 0% | Aplicar os gates ao novo pipeline completo; política de relatórios já existe |
-| 41 | H5 | [MOD-02](compatibility.md) | Equivalência e versionamento | 0% | Comparar estado, comandos e identidades sem normalização indevida |
-| 42 | H5 | [MOD-03](compatibility.md) | Perfis de execução e fallback | 0% | Adoção/migração com fronteiras seguras |
-| 43 | H5 | [MOD-04](compatibility.md) | Subsistemas e plataformas | 0% | Matriz compatível de geração, scripts, save, rede e hardware |
+| 37 | H5 | [GPU-05](gpu-compute.md) | Seleção heterogênea e render | 25% | Seletor por custo completo + fallback CPU; backend GPU/ganho medido pendentes |
+| 38 | H5 | [VAL-03](validation-and-telemetry.md) | Métricas e marcos de entrega | 25% | Recorder dos marcos; sem bus de telemetria nem Tracy |
+| 39 | H5 | [VAL-04](validation-and-telemetry.md) | Matriz de cenários | 25% | Cenários tipados; campanhas reais/streaming pendentes |
+| 40 | H5 | [VAL-05](validation-and-telemetry.md) | Gates de adoção e relatório | 25% | Checklist avalia evidência; adoção permanece fechada no parcial |
+| 41 | H5 | [MOD-02](compatibility.md) | Equivalência e versionamento | 25% | Épocas/máscaras; sem comparador de mundo completo |
+| 42 | H5 | [MOD-03](compatibility.md) | Perfis de execução e fallback | 25% | Migração explícita dos modes existentes; regional exige checkpoint |
+| 43 | H5 | [MOD-04](compatibility.md) | Subsistemas e plataformas | 25% | Matriz de suporte; Clang adiado; GPU opcional |
 | 44 | R1 | [REG-01](regional-threads.md) | Lifecycle e identidade da dona | 25% | + OS thread CPU stub; sem WorldServer/WorldStorage vivo |
 | 45 | R1 | [REG-02](regional-threads.md) | Estado local e visões de borda | 25% | + contorno parcial/ForeignCell; sem estado vivo integrado |
 | 46 | R1 | [WT-05](worldthread.md) | Coordenadora do runtime regional | 25% | + perimeter skeleton; sem WorldServerThread |
@@ -247,6 +250,14 @@ auditoria de todas as implementações antigas para conceder crédito retroativo
 | GPU-02 | [fila/voo/recuperação](../sector-runtime-h4-gpu02-03-04-2026-11-27.md); SSBO/fence no harness | Sem thread dona integrada à WorldThread; sem 50% |
 | GPU-03 | [lotes + DenseUint32*](../sector-runtime-h4-gpu02-03-04-2026-11-27.md); shaders no opt-in | Sem kernels de terreno/bioma nem ganho medido |
 | GPU-04 | [compareShadow](../sector-runtime-h4-gpu02-03-04-2026-11-27.md); Equal no RTX 3050 | Sem campanha multi-driver / publicação; permanece 25% |
+| GPU-05 | [hardware selection](../sector-runtime-h5-hardware-selection-2026-11-27.md), `StarWorldGenerationHardwareSelection.hpp`, 7 testes de contrato | Sem backend GPU, sem custos observados de runtime, sem ganho ponta a ponta nem publicação |
+| VAL-03 | [fundações H5](../sector-runtime-h5-scale-foundations-2026-11-27.md), delivery metrics recorder | Sem instrumentação no WorldThread/Tracy nem cobertura completa de pipeline |
+| VAL-04 | mesma entrega, scenario matrix tipada | Sem campanhas executadas nem A/B de streaming |
+| VAL-05 | mesma entrega, adoption gates | Adoção permanece falsa sob evidência parcial; sem gate de pipeline completo |
+| MOD-02 | mesma entrega, equivalence version/mask | Sem comparador de saves/multiplayer/conteúdo completo |
+| MOD-03 | mesma entrega, execution profile binding | Sem ativação regional nem migração de config persistida |
+| MOD-04 | mesma entrega, platform/subsystem matrix | Sem builds por plataforma nem matriz CI |
+| CPU-05 | mesma entrega, resource governor advice | Sem resize ao vivo de WorkerPool nem orçamento processual ligado |
 
 R1 REG-01/02/WT-05 em 25% harness/owner/stub sombra; donas autoritativas OS reais pendentes.
 PreparedSector na integração segue a API H1.
@@ -373,6 +384,9 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | GPU-02/03/04 CPU-first | Fila/batch/sombra; 14 testes. GPU-02/03/04 0→25%; H4 25% | 5,6% |
 | 27/11/2026 | GPU probe harness opt-in | `STAR_ENABLE_WORLDGEN_GL_COMPUTE`, shaders DenseUint32*, checklist Windows/RTX; H4 permanece 25% até PASS local | 5,6% |
 | 27/11/2026 | Integração H4 | Merge `--no-ff` H4 `c44b1a38` (probe PASS `c7f6e605` + gtest opt-in) em INT; H4 25%; programa 19,9%→21,9% | 21,9%
+| 27/11/2026 | H5 GPU-05 seletor | `WorldGenerationHardwareSelector` por custo completo + fallback CPU; 7 testes. GPU-05 0→25%; H5 0→3,6%; programa 3,6→4,1% | 4,1% |
+| 27/11/2026 | H5 fundações VAL/MOD + CPU-05 | Métricas, cenários, gates, perfis, equivalência, plataformas, governador; 27 testes. H5 25%; H1 5%; programa 4,1→7,7% | 7,7% |
+| 27/11/2026 | Integração H5 | Merge `--no-ff` H5 `a2ec01f0` (probe 27/27 @ `254cc22e` + PS1 fix) em INT; H5 25%; programa 21,9%→25,5% | 25,5%
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.
