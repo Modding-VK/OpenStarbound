@@ -435,8 +435,9 @@ Depende de H0 para identidade e comparação.
 - [ ] CPU-01: primeiro recorte proprietário de custom terrain em 25%; completar
   contexto privado com dependências/RNG de inicialização auditados e admissão.
 - [x] CPU-02 e MD-01: candidatos leves e resultado vazio versionado
-  (primeiro recorte 25% sombra; ver
-  [prepared sector](../sector-runtime-h1-prepared-sector-2026-11-27.md)).
+  (primeiro recorte 25% sombra; API canônica H1 em
+  [prepared sector](../sector-runtime-h1-prepared-sector-2026-11-27.md);
+  cache/prefetch/batch H2 em headers dedicados).
 - [x] CPU-03: capacidade processual e granularidade inicial
   (primeiro recorte 25% sombra; ver
   [cancel/mailbox/scheduler](../sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md)).
@@ -455,11 +456,17 @@ no streaming. Publicação mantém a ordem autoritativa aprovada.
 Propósito: preparar a rota antes da demanda urgente e evitar recomputação.
 RAM-01 começa em H0; as caches dependem das versões/produtos de H1.
 
-- [ ] CPU-02: compartilhar terreno/campos/candidatos entre consumidores.
-- [ ] RAM-02/03: caches versionadas, retenção por demanda e pressão/histerese.
-- [ ] RAM-04/05: rota prevista, cancelamento e consumo compartilhado.
-- [ ] WT-03: entrada síncrona usando admissão da região inteira.
-- [ ] IO-01: promover tiles decodificados sem refazer leitura/decode.
+- [x] CPU-02 (primeiro recorte): na integração a API canônica é a de H1
+  ([prepared](../sector-runtime-h1-prepared-sector-2026-11-27.md)); o relatório
+  H2 de identidade ([h2](../sector-runtime-h2-prepared-sector-2026-11-27.md))
+  permanece como evidência histórica da frente, sem substituir o header H1.
+- [x] RAM-02 (primeiro recorte): cache por produto/revisão e invalidação seletiva
+  em `cursor/h2-products-prefetch-9f77` ([relatório](../sector-runtime-h2-product-revision-cache-2026-11-27.md)).
+- [x] RAM-03/04/05 + WT-03 + IO-01 (primeiros recortes): retenção/histerese,
+  prefetch, consumidores, batch regional e promoção Prefetch→Visible
+  ([relatório](../sector-runtime-h2-resident-prefetch-batch-io-2026-11-27.md)).
+- [ ] H2 restantes: payloads BaseTiles/`PreparedSector` reais, WorldStorage,
+  WorldThread, justiça multi-mundo e compartilhamento entre etapas.
 
 Saída: ganho em antecipação e revisita, bytes únicos observáveis e ausência
 de crescimento persistente após mudança de rota ou fechamento do mundo.

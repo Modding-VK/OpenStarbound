@@ -82,6 +82,11 @@ Aceitação: entrada no planeta reproduz output e estado ativo, mas consegue
 executar vários produtores independentes antes da primeira espera. Benchmark
 de startup fica separado do streaming contínuo.
 
+Primeiro recorte H2: `WorldGenerationRegionDemandBatch` planeja/admite/marca
+ready|failed|cancelled por setor da região antes de qualquer espera. Sem
+integração ao WorldThread nem benchmark de startup. Ver
+[relatório](../sector-runtime-h2-resident-prefetch-batch-io-2026-11-27.md).
+
 ## WT-04 — Publicação mais barata
 
 Receber deltas tipados e operações preparadas. Agrupar invalidação de colisão,

@@ -40,6 +40,8 @@ For the current state and the next work, start here:
 - [H0 diagonal adjacent sector shadow](doc/sector-runtime-h0-sector-shadow-diagonal-adjacent-2026-11-27.md)
 - [Latest H1 report: executive interest and priority](doc/sector-runtime-h1-executive-interest-priority-2026-11-27.md)
 - [H1 executive shadow graph (DAG-02)](doc/sector-runtime-h1-executive-shadow-2026-11-27.md)
+- [Latest H2 report: resident cache/prefetch/batch (RAM-02..IO-01)](doc/sector-runtime-h2-resident-prefetch-batch-io-2026-11-27.md)
+- [H2 product revision cache](doc/sector-runtime-h2-product-revision-cache-2026-11-27.md)
 - [Performance backlog](doc/performance-backlog.md)
 
 <details>

@@ -38,15 +38,19 @@ histórico, sem outra fila de prioridades. O
 [painel de progressão](sector-runtime/progress.md) consolida percentuais por
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
-Branch de integração: `cursor/integration-sector-runtime-7342` (H0+H1 mergeados).
+Branch de integração: `cursor/integration-sector-runtime-7342` (H0+H1+H2 mergeados).
 Relatório H1 atual:
 [Interest/priority DAG-03 50%](sector-runtime-h1-executive-interest-priority-2026-11-27.md).
+H2 na mesma linha (PreparedSector canônico = H1; extras H2 em headers dedicados):
+[H2 resident/prefetch/batch/IO](sector-runtime-h2-resident-prefetch-batch-io-2026-11-27.md),
+[H2 product revision cache](sector-runtime-h2-product-revision-cache-2026-11-27.md).
 H0 na mesma linha:
 [Candidate itemKind](sector-runtime-h0-candidate-item-kind-2026-11-27.md),
 com antecedentes em
 [Candidate queue snapshot](sector-runtime-h0-candidate-queue-snapshot-2026-11-27.md),
 [Capstone 2×2 + tight ledger](sector-runtime-h0-sector-shadow-four-sector-tight-ledger-2026-11-27.md),
-[Sombra por setor](sector-runtime-h0-sector-shadow-2026-11-26.md) e
+[Sombra por setor](sector-runtime-h0-sector-shadow-2026-11-26.md),
+[Memory/prefetch](sector-runtime/memory-and-prefetch.md) e
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
@@ -248,8 +252,13 @@ executivo e o planejador menor são propostas, ainda não implementadas.
 
 - [ ] H0/H1: estabilizar IDs, baseline de streaming e grafo executivo com
   preparação CPU/limites processuais; verificar entrega e ordem dos efeitos.
-- [ ] H2: produtos `PreparedSector`, caches versionadas e prefetch por rota,
-  com orçamento de RAM e contabilização de memória compartilhada.
+- [x] H2 (primeiro marco dos 6 contratos): cache versionada, retenção,
+  prefetch planejado, batch regional e ticket de promoção Prefetch→Visible em
+  `cursor/h2-products-prefetch-9f77`.
+- [x] CPU-02 (primeiro marco, entrada H1 / continua em H2): identidade e
+  handle `PreparedSector` residente sem publicação.
+- [ ] H2 restante: payloads `PreparedSector`/BaseTiles reais, WorldStorage,
+  WorldThread startup e justiça multi-mundo.
 - [ ] H3: ampliar kernels CPU e preparar batches de publicação validáveis.
 - [ ] H4/H5: GPU compute opcional, comparação CPU/GPU em sombra, seleção por
   custo e orçamento de VRAM/latência; manter execução CPU independente.

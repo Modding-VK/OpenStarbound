@@ -183,6 +183,10 @@ SET (star_game_HEADERS
     StarWorldGenerationMemory.hpp
     StarWorldGenerationMemoryEnvelope.hpp
     StarWorldGenerationMemoryPressure.hpp
+    StarWorldGenerationProductRevisionCache.hpp
+    StarWorldGenerationPrefetchPlan.hpp
+    StarWorldGenerationRegionDemandBatch.hpp
+    StarWorldGenerationDecodePromotion.hpp
     StarWorldGenerationMemoryRetry.hpp
     StarWorldGenerationBaseTileLiquid.hpp
     StarWorldGenerationBaseTileInput.hpp

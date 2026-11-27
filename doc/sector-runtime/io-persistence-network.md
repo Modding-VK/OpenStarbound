@@ -31,6 +31,12 @@ executar callbacks. Revalidar antes de qualquer criação de entidade ou índice
 Aceitação: Tiles→Loaded, unload/reload, cancelamento e write posterior não
 duplicam decode nem instalam um resultado de uma solicitação velha.
 
+Primeiro recorte H2: `WorldGenerationDecodePromotionTicket` /
+`WorldGenerationDecodePromotionRegistry` reutilizam o mesmo trabalho de decode
+ao subir Prefetch→Visible e recusam promoção com identidade viva divergente.
+Sem SQLite/`WorldStorage`. Ver
+[relatório](../sector-runtime-h2-resident-prefetch-batch-io-2026-11-27.md).
+
 ## IO-02 — Serviço de banco e transações
 
 O objetivo futuro é retirar espera bloqueante da dona através de um serviço
