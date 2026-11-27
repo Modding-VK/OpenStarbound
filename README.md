@@ -36,7 +36,7 @@ For the current state and the next work, start here:
 - [Roadmap and acceptance criteria](doc/sector-runtime/roadmap.md)
 - [Progress, evidence and next steps](doc/sector-runtime/progress.md)
 - [Operational checklist and current report](doc/regional-runtime-execution-checklist.md)
-- [Latest H0 report: sector shadow task invalidate](doc/sector-runtime-h0-sector-shadow-task-invalidate-2026-11-26.md)
+- [Latest H0 report: sector shadow preparation abandon](doc/sector-runtime-h0-sector-shadow-preparation-abandon-2026-11-26.md)
 - [Performance backlog](doc/performance-backlog.md)
 
 <details>

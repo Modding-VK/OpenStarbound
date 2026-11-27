@@ -19,5 +19,6 @@ ASan/UBSan: 1×20; **789/789** contrato.
 
 ## Próximo passo
 
-Gates H0 restantes / preparação abandonada, ou H1 quando aplicável. Não
-disparar Actions.
+Abandono coberto em
+[abandono de preparação](sector-runtime-h0-sector-shadow-preparation-abandon-2026-11-26.md).
+Segue gates H0 antes de H1. Não disparar Actions.

@@ -129,6 +129,34 @@ TEST(WorldGenerationSectorShadowTest, TryAdmitFromCompositeReusesBaseTilesIdenti
   EXPECT_EQ(before.resources, ledger.snapshot().resources);
 }
 
+TEST(WorldGenerationSectorShadowTest, AbandonedPreparationDiscardsShadowWithoutHandoff) {
+  WorldGenerationMemoryLedger ledger;
+  WorldGenerationTasks tasks(1, WorldRegionPartition(WorldGeometry(Vec2U{64, 64})), 1,
+      WorldGenerationSectorShadow::retainedBytes());
+  std::optional<WorldGenerationSectorShadow> shadow;
+  {
+    WorldGenerationTaskPreparation preparation(tasks, {0, 0}, WorldGenerationTaskStage::BaseTiles,
+        WorldGenerationSectorShadow::retainedBytes());
+    ASSERT_TRUE(preparation.task());
+    WorldGenerationBaseTilesIdentity identity;
+    identity.task = preparation.task()->identity;
+    identity.tileRevision = 1;
+    identity.templateRevision = 9;
+    identity.worldSize = {64, 64};
+    identity.tileRegion = RectI(0, 0, int(WorldSectorSize), int(WorldSectorSize));
+    shadow = WorldGenerationSectorShadow::tryAdmit(ledger, identity);
+    ASSERT_TRUE(shadow.has_value());
+    shadow->tiles()(0, 0).foreground = MaterialId(81);
+    EXPECT_TRUE(shadow->matches(identity));
+    EXPECT_EQ(1u, tasks.size());
+    // Leave without handoff: preparation dtor abandons the Queued task.
+  }
+  EXPECT_EQ(0u, tasks.size());
+  EXPECT_TRUE(shadow->active());
+  shadow->discard();
+  EXPECT_EQ(0u, ledger.snapshot().resources);
+}
+
 TEST(WorldGenerationSectorShadowTest, TaskInvalidateDuringHandoffDiscardsWithoutPublishing) {
   WorldGenerationMemoryLedger ledger;
   WorldGenerationTasks tasks(1, WorldRegionPartition(WorldGeometry(Vec2U{64, 64})), 1,
