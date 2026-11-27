@@ -1,4 +1,4 @@
-# H5 Windows contract probe — pure model suites (27 tests).
+# H5 Windows contract probe - pure model suites (27 tests).
 # Does not enable STAR_ENABLE_WORLDGEN_GL_COMPUTE or claim GPU compute.
 param(
   [Parameter(Mandatory = $false)]
@@ -22,7 +22,7 @@ $filter = @(
 ) -join ":"
 
 if (-not (Test-Path -LiteralPath $ExePath)) {
-  Write-Error "Missing $ExePath — build target world_generation_contract_tests first."
+  Write-Error "Missing $ExePath - build target world_generation_contract_tests first."
 }
 
 Write-Host "H5 contract probe"
