@@ -494,10 +494,10 @@ do kernel CPU e do resultado versionado.
   countCancelledOpenKernels + anyCancelledOpenKernels + listPendingOpenKernels +
   countPendingOpenKernels + anyPendingOpenKernels +
   listPendingOpenTicketsByKernel + pendingOpenTicketsByKernel +
-  anyPendingOpenTicketsByKernel (primeiro recorte 25%; integração WorldThread
-  pendente).
+  anyPendingOpenTicketsByKernel + discardPendingOpenTicketsByKernel (primeiro
+  recorte 25%; integração WorldThread pendente).
 - [x] GPU-03: kernels densos DenseUint32* incl.
-  HalfMaskHigh/HalfBitTest/HalfIsolateLsb + submitBatch (primeiro recorte 25%;
+  HalfIsolateMsb/HalfClearLsb/HalfLsbMask + submitBatch (primeiro recorte 25%;
   terreno/bioma/ganho pendentes).
 - [x] GPU-04: compareShadow/compareShadowBatch/compareShadowNamed +
   commit/RngStream + fingerprintIdentity + summarizeShadowReports +
