@@ -764,6 +764,78 @@ TEST_F(WorldGenerationRealBlockInfoTest, RealNoisesAndCachedSelectorTreeMatchGri
   sector(*world, Access::procedural(*database), EmptyLiquidId, false);
 }
 
+TEST_F(WorldGenerationRealBlockInfoTest, SectorShadowPrivateNoiseCachesMatchCompositeBaseTiles) {
+  auto r = root();
+  auto database = r->terrainDatabase();
+  auto liveLayout = Access::procedural(*database);
+  auto privateLayout = Access::procedural(*database);
+  auto unusedLayout = Access::procedural(*database);
+  auto world = planet(liveLayout);
+  world->addCustomTerrainRegion(PolyF(RectF::withSize({4, 4}, {8, 8})));
+  auto revision = world->generationRevision();
+
+  WorldGenerationSelectorContextIdentity selectors;
+  selectors.worldEpoch = 1;
+  selectors.sequence = 1;
+  selectors.templateRevision = revision;
+  selectors.worldWidth = 64;
+  selectors.baseHeight = 16;
+  selectors.regionSeed = 42;
+
+  WorldGenerationBaseTilesIdentity baseTiles;
+  baseTiles.task = {1, 1, {0, 0}, {0, 0}, WorldGenerationTaskStage::BaseTiles};
+  baseTiles.tileRevision = 1;
+  baseTiles.templateRevision = revision;
+  baseTiles.worldSize = {64, 64};
+  baseTiles.tileRegion = RectI(0, 0, int(WorldSectorSize), int(WorldSectorSize));
+
+  Random::init(918);
+  auto context = WorldGenerationCompositeContext::tryCapture(ledger, selectors, baseTiles, *world);
+  ASSERT_TRUE(context.has_value());
+  EXPECT_EQ(1u, context->staticInputs().customTerrainRegionCount());
+  auto beforeShadow = ledger.snapshot();
+  auto shadow = WorldGenerationSectorShadow::tryAdmit(ledger, *context);
+  ASSERT_TRUE(shadow.has_value());
+
+  RealSource candidate{context->staticInputs(), privateLayout};
+  auto materials = Root::singleton().materialDatabase();
+  WorldGenerationLookupResolver resolver{*world, *materials};
+  auto expected = std::make_unique<ServerTileSectorArray::Array>();
+  size_t solid = 0, empty = 0;
+  for (int x = 0; x != 32; ++x) for (int y = 0; y != 32; ++y) {
+    auto normal = world->blockInfo(x, y), captured = candidate.sample(x, y);
+    EXPECT_EQ(fields(normal), fields(captured)) << x << ',' << y;
+    initialize((*expected)(x, y));
+    initialize(shadow->tiles()(x, y));
+    applyWorldGenerationBaseTile((*expected)(x, y), tileInput(normal, y), resolver);
+    applyWorldGenerationBaseTile(shadow->tiles()(x, y), tileInput(captured, y), resolver);
+    if (shadow->tiles()(x, y).foreground == EmptyMaterialId)
+      ++empty;
+    else
+      ++solid;
+  }
+  auto comparison = compareWorldGenerationBaseTiles(*expected, shadow->tiles(), context->baseTilesIdentity());
+  EXPECT_TRUE(comparison.equal());
+  EXPECT_EQ(1024u, comparison.comparedTiles);
+  EXPECT_GT(solid, 0u);
+  EXPECT_GT(empty, 0u);
+  EXPECT_TRUE(shadow->matches(context->baseTilesIdentity()));
+
+  auto warm = std::dynamic_pointer_cast<CacheSelector const>(privateLayout->getTerrainSelector(1));
+  auto unused = std::dynamic_pointer_cast<CacheSelector const>(unusedLayout->getTerrainSelector(1));
+  ASSERT_TRUE(warm);
+  ASSERT_TRUE(unused);
+  EXPECT_NE(warm.get(), unused.get());
+  EXPECT_GT(warm->m_cache.currentSize(), 0u);
+  EXPECT_EQ(0u, unused->m_cache.currentSize());
+  warm->m_cache.clear();
+  EXPECT_EQ(0u, unused->m_cache.currentSize());
+
+  shadow->discard();
+  EXPECT_EQ(beforeShadow.resources, ledger.snapshot().resources);
+  EXPECT_EQ(bits(0.75f), bits(context->configFloat("biomeTransitionThreshold", 0)));
+}
+
 TEST_F(WorldGenerationRealBlockInfoTest, ColdWarmAndRebuiltCachedTreesKeepSampleBits) {
   auto r = root(); auto database = r->terrainDatabase();
   auto warm = database->createSelectorType("cache", Access::treeConfig(), Access::parameters());

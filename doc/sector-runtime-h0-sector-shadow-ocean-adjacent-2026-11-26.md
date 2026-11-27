@@ -22,5 +22,6 @@ ASan/UBSan: 3 sombras × 5 repetições; **65/65** RealBlockInfo.
 
 ## Próximo passo
 
-Noises/caches privados alinhados ao composto + sombra, ainda sem publicação.
-Não disparar Actions.
+Feito em
+[sombra noises/caches](sector-runtime-h0-sector-shadow-noise-caches-2026-11-26.md).
+Segue IslandSurface/sombras concorrentes. Não disparar Actions.

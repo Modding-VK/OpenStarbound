@@ -39,10 +39,10 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[Sombra oceano/setor adjacente](sector-runtime-h0-sector-shadow-ocean-adjacent-2026-11-26.md),
+[Sombra noises/caches](sector-runtime-h0-sector-shadow-noise-caches-2026-11-26.md),
 com antecedentes em
-[Sombra por setor](sector-runtime-h0-sector-shadow-2026-11-26.md),
-[Contexto composto](sector-runtime-h0-composite-context-2026-11-26.md) e
+[Sombra oceano/adjacente](sector-runtime-h0-sector-shadow-ocean-adjacent-2026-11-26.md),
+[Sombra por setor](sector-runtime-h0-sector-shadow-2026-11-26.md) e
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
