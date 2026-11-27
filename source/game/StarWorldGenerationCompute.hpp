@@ -33,7 +33,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32Max = 7,
   DenseUint32Sub = 8, // wrapping uint32 subtract (value - parameter)
   DenseUint32Shl = 9, // value << (parameter & 31)
-  DenseUint32Shr = 10 // logical value >> (parameter & 31)
+  DenseUint32Shr = 10, // logical value >> (parameter & 31)
+  DenseUint32Rotl = 11, // rotate left by (parameter & 31)
+  DenseUint32Rotr = 12, // rotate right by (parameter & 31)
+  DenseUint32Not = 13 // bitwise complement (~value); parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -215,6 +218,15 @@ public:
       WorldGenerationComputeResult* out = nullptr);
 
   bool cancel(WorldGenerationComputeTicket ticket);
+
+  // GPU-02: cancel many tickets; each result is independent (true if that id
+  // was open and revoked on the owner thread).
+  List<bool> cancelBatch(List<WorldGenerationComputeTicket> tickets);
+
+  // GPU-02: poll many tickets; each status/result is independent. When outs is
+  // non-null it is resized to tickets.size(); Ready slots fill values.
+  List<WorldGenerationComputePollStatus> pollBatch(List<WorldGenerationComputeTicket> tickets,
+      List<WorldGenerationComputeResult>* outs = nullptr);
 
   // Context/driver failure (GPU-02): recalculate open tickets on the CPU
   // reference path, then reject later duplicate polls for those ids (late GPU

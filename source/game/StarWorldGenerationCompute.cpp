@@ -53,7 +53,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32Max
       || kernel == WorldGenerationComputeKernel::DenseUint32Sub
       || kernel == WorldGenerationComputeKernel::DenseUint32Shl
-      || kernel == WorldGenerationComputeKernel::DenseUint32Shr;
+      || kernel == WorldGenerationComputeKernel::DenseUint32Shr
+      || kernel == WorldGenerationComputeKernel::DenseUint32Rotl
+      || kernel == WorldGenerationComputeKernel::DenseUint32Rotr
+      || kernel == WorldGenerationComputeKernel::DenseUint32Not;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -71,7 +74,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32Max,
       WorldGenerationComputeKernel::DenseUint32Sub,
       WorldGenerationComputeKernel::DenseUint32Shl,
-      WorldGenerationComputeKernel::DenseUint32Shr};
+      WorldGenerationComputeKernel::DenseUint32Shr,
+      WorldGenerationComputeKernel::DenseUint32Rotl,
+      WorldGenerationComputeKernel::DenseUint32Rotr,
+      WorldGenerationComputeKernel::DenseUint32Not};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -119,6 +125,17 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
     uint32_t shift = parameter & 31u;
     for (uint32_t value : input)
       out.append(value >> shift);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Rotl) {
+    uint32_t rot = parameter & 31u;
+    for (uint32_t value : input)
+      out.append((value << rot) | (value >> ((32u - rot) & 31u)));
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Rotr) {
+    uint32_t rot = parameter & 31u;
+    for (uint32_t value : input)
+      out.append((value >> rot) | (value << ((32u - rot) & 31u)));
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Not) {
+    for (uint32_t value : input)
+      out.append(~value);
   }
   return out;
 }
@@ -465,6 +482,53 @@ bool WorldGenerationComputeService::cancel(WorldGenerationComputeTicket ticket) 
     it->second.output.clear();
   }
   return true;
+}
+
+List<bool> WorldGenerationComputeService::cancelBatch(List<WorldGenerationComputeTicket> tickets) {
+  List<bool> out;
+  out.reserve(tickets.size());
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked()) {
+    for (size_t i = 0; i < tickets.size(); ++i)
+      out.append(false);
+    return out;
+  }
+  for (auto ticket : tickets) {
+    auto it = m_entries.find(ticket.id);
+    if (it == m_entries.end()) {
+      out.append(false);
+      continue;
+    }
+    it->second.publicationRevoked = true;
+    if (it->second.state == EntryState::Pending || it->second.state == EntryState::Ready) {
+      it->second.state = EntryState::Cancelled;
+      it->second.output.clear();
+    }
+    out.append(true);
+  }
+  return out;
+}
+
+List<WorldGenerationComputePollStatus> WorldGenerationComputeService::pollBatch(
+    List<WorldGenerationComputeTicket> tickets, List<WorldGenerationComputeResult>* outs) {
+  List<WorldGenerationComputePollStatus> statuses;
+  statuses.reserve(tickets.size());
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if (outs)
+    outs->resize(tickets.size());
+  if (!ownerAllowsLocked()) {
+    for (size_t i = 0; i < tickets.size(); ++i) {
+      statuses.append(WorldGenerationComputePollStatus::UnknownTicket);
+      if (outs)
+        (*outs)[i] = WorldGenerationComputeResult{};
+    }
+    return statuses;
+  }
+  for (size_t i = 0; i < tickets.size(); ++i) {
+    WorldGenerationComputeResult* slot = outs ? &(*outs)[i] : nullptr;
+    statuses.append(pollLocked(tickets[i], slot));
+  }
+  return statuses;
 }
 
 size_t WorldGenerationComputeService::failContext() {
