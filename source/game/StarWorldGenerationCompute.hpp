@@ -57,7 +57,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32SatSub = 31, // saturating subtract (clamp to 0)
   DenseUint32OrNot = 32, // value | ~parameter
   DenseUint32Avg = 33, // ((uint64)value + parameter) >> 1
-  DenseUint32IsPow2 = 34 // nonzero power-of-two mask; parameter ignored
+  DenseUint32IsPow2 = 34, // nonzero power-of-two mask; parameter ignored
+  DenseUint32Bswap = 35, // byte-swap; parameter ignored
+  DenseUint32Parity = 36, // popcount(value) & 1; parameter ignored
+  DenseUint32BitTest = 37 // ((value >> (parameter & 31)) & 1) ? 0xffffffff : 0
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -341,11 +344,17 @@ public:
   static List<uint32_t> runKernel(WorldGenerationComputeKernel kernel, uint32_t kernelVersion,
       List<uint32_t> const& input, uint32_t parameter);
 
+  // GPU-01: run by stable ASCII name; empty when the name/version is unsupported.
+  static List<uint32_t> runNamedKernel(char const* name, uint32_t kernelVersion,
+      List<uint32_t> const& input, uint32_t parameter);
+
   // GPU-01 capability catalog (asset-free): kernels accepted at a version.
   static bool isKernelSupported(WorldGenerationComputeKernel kernel,
       uint32_t kernelVersion = 1u) noexcept;
   static List<WorldGenerationComputeKernel> supportedKernels(uint32_t kernelVersion = 1u);
   static size_t supportedKernelCount(uint32_t kernelVersion = 1u) noexcept;
+  static bool isBackendSupported(WorldGenerationComputeBackend backend,
+      WorldGenerationComputeCapabilities const& capabilities) noexcept;
   // Stable ASCII name for catalogs/logs; nullptr if the enum is unknown.
   static char const* kernelName(WorldGenerationComputeKernel kernel) noexcept;
   // Inverse of kernelName; empty when the token is unknown (asset-free).

@@ -78,7 +78,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32SatSub
       || kernel == WorldGenerationComputeKernel::DenseUint32OrNot
       || kernel == WorldGenerationComputeKernel::DenseUint32Avg
-      || kernel == WorldGenerationComputeKernel::DenseUint32IsPow2;
+      || kernel == WorldGenerationComputeKernel::DenseUint32IsPow2
+      || kernel == WorldGenerationComputeKernel::DenseUint32Bswap
+      || kernel == WorldGenerationComputeKernel::DenseUint32Parity
+      || kernel == WorldGenerationComputeKernel::DenseUint32BitTest;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -120,7 +123,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32SatSub,
       WorldGenerationComputeKernel::DenseUint32OrNot,
       WorldGenerationComputeKernel::DenseUint32Avg,
-      WorldGenerationComputeKernel::DenseUint32IsPow2};
+      WorldGenerationComputeKernel::DenseUint32IsPow2,
+      WorldGenerationComputeKernel::DenseUint32Bswap,
+      WorldGenerationComputeKernel::DenseUint32Parity,
+      WorldGenerationComputeKernel::DenseUint32BitTest};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -130,7 +136,24 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 34u;
+  return 37u;
+}
+
+List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
+    uint32_t kernelVersion, List<uint32_t> const& input, uint32_t parameter) {
+  auto kernel = parseKernelName(name);
+  if (!kernel)
+    return {};
+  return runKernel(*kernel, kernelVersion, input, parameter);
+}
+
+bool WorldGenerationComputeService::isBackendSupported(WorldGenerationComputeBackend backend,
+    WorldGenerationComputeCapabilities const& capabilities) noexcept {
+  if (backend == WorldGenerationComputeBackend::CpuReference)
+    return capabilities.cpuReference;
+  if (backend == WorldGenerationComputeBackend::GpuOpenGlCompute)
+    return capabilities.gpuOpenGlCompute;
+  return false;
 }
 
 char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKernel kernel) noexcept {
@@ -169,6 +192,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32OrNot: return "DenseUint32OrNot";
     case WorldGenerationComputeKernel::DenseUint32Avg: return "DenseUint32Avg";
     case WorldGenerationComputeKernel::DenseUint32IsPow2: return "DenseUint32IsPow2";
+    case WorldGenerationComputeKernel::DenseUint32Bswap: return "DenseUint32Bswap";
+    case WorldGenerationComputeKernel::DenseUint32Parity: return "DenseUint32Parity";
+    case WorldGenerationComputeKernel::DenseUint32BitTest: return "DenseUint32BitTest";
   }
   return nullptr;
 }
@@ -434,6 +460,19 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
       bool pow2 = value != 0u && (value & (value - 1u)) == 0u;
       out.append(pow2 ? 0xffffffffu : 0u);
     }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Bswap) {
+    for (uint32_t value : input) {
+      uint32_t swapped = ((value & 0x000000ffu) << 24) | ((value & 0x0000ff00u) << 8)
+          | ((value & 0x00ff0000u) >> 8) | ((value & 0xff000000u) >> 24);
+      out.append(swapped);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Parity) {
+    for (uint32_t value : input)
+      out.append(densePopcount(value) & 1u);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32BitTest) {
+    uint32_t bit = parameter & 31u;
+    for (uint32_t value : input)
+      out.append(((value >> bit) & 1u) ? 0xffffffffu : 0u);
   }
   return out;
 }

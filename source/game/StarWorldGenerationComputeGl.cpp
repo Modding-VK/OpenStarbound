@@ -94,6 +94,9 @@ GLuint g_satSubProgram = 0;
 GLuint g_orNotProgram = 0;
 GLuint g_avgProgram = 0;
 GLuint g_isPow2Program = 0;
+GLuint g_bswapProgram = 0;
+GLuint g_parityProgram = 0;
+GLuint g_bitTestProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -589,6 +592,51 @@ void main() {
 }
 )GLSL";
 
+char const* BswapShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  values[i] = ((v & 0x000000ffu) << 24) | ((v & 0x0000ff00u) << 8)
+      | ((v & 0x00ff0000u) >> 8) | ((v & 0xff000000u) >> 24);
+}
+)GLSL";
+
+char const* ParityShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = bitCount(values[i]) & 1u;
+}
+)GLSL";
+
+char const* BitTestShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint bit = uParameter & 31u;
+  values[i] = ((values[i] >> bit) & 1u) != 0u ? 0xffffffffu : 0u;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -773,6 +821,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_isPow2Program);
     g_isPow2Program = 0;
   }
+  if (g_bswapProgram) {
+    glDeleteProgram(g_bswapProgram);
+    g_bswapProgram = 0;
+  }
+  if (g_parityProgram) {
+    glDeleteProgram(g_parityProgram);
+    g_parityProgram = 0;
+  }
+  if (g_bitTestProgram) {
+    glDeleteProgram(g_bitTestProgram);
+    g_bitTestProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -893,7 +953,10 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_satSubProgram, SatSubShader, "DenseUint32SatSub")
       || !requireProgram(g_orNotProgram, OrNotShader, "DenseUint32OrNot")
       || !requireProgram(g_avgProgram, AvgShader, "DenseUint32Avg")
-      || !requireProgram(g_isPow2Program, IsPow2Shader, "DenseUint32IsPow2"))
+      || !requireProgram(g_isPow2Program, IsPow2Shader, "DenseUint32IsPow2")
+      || !requireProgram(g_bswapProgram, BswapShader, "DenseUint32Bswap")
+      || !requireProgram(g_parityProgram, ParityShader, "DenseUint32Parity")
+      || !requireProgram(g_bitTestProgram, BitTestShader, "DenseUint32BitTest"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -1026,6 +1089,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_avgProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32IsPow2)
     program = g_isPow2Program;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Bswap)
+    program = g_bswapProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Parity)
+    program = g_parityProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32BitTest)
+    program = g_bitTestProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
