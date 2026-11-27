@@ -263,8 +263,10 @@ executivo e o planejador menor são propostas, ainda não implementadas.
 - [x] H3 integração cruzada sombra WT-04→IO-03→IO-05 (sem elevação a 50%).
 - [x] H3 flora/spawn sombra (CPU-04 adicional; sem elevação a 50%)
   ([Flora/spawn](sector-runtime-h3-flora-spawn-plan-2026-11-27.md)).
-- [ ] H3 além do primeiro recorte: decode TMX real; `replaceBiomeBlocks`;
-  equivalência viva / publish autoritativo só com `apis_ready` live-publish.
+- [x] H3 replaceBiomeBlocks sombra (CPU-04 adicional; sem elevação a 50%)
+  ([ReplaceBiome](sector-runtime-h3-replace-biome-plan-2026-11-27.md)).
+- [ ] H3 além do primeiro recorte: decode TMX real; equivalência viva /
+  publish autoritativo só com `apis_ready` live-publish.
 - [ ] H4/H5: GPU compute opcional, comparação CPU/GPU em sombra, seleção por
   custo e orçamento de VRAM/latência; manter execução CPU independente.
 

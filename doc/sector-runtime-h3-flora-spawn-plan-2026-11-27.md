@@ -25,9 +25,9 @@ NoAssets `WorldGenerationFloraSpawnPlanTest.*`: **6/6**.
 
 ## Maturidade
 
-CPU-04 permanece em **25%**: falta `replaceBiomeBlocks`, equivalência viva ao
-`prepareSector`, hue shifts autoritativos e publicação. Este recorte não
-concede 50%.
+CPU-04 permanece em **25%**: falta equivalência viva ao `prepareSector` e
+publicação. `replaceBiomeBlocks` sombra:
+[ReplaceBiome](sector-runtime-h3-replace-biome-plan-2026-11-27.md).
 
 ## Próximo
 

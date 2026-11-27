@@ -163,12 +163,14 @@ latência; uma janela excessiva pode apenas produzir resultados stale.
 Recortes em `cursor/h3-kernels-publication-9f77`:
 `WorldGenerationCaveLiquidPlan` (seeds + delta de pressão),
 `WorldGenerationFinalizePlan` (normalização oceano/cores/`collisionCacheDirty`)
-e `WorldGenerationFloraSpawnPlan` (grass-mod + spawn intents sem escrita)
-sobre amostras privadas, com `tryConsume` só após revalidação e sem
-publicação. Ver [CaveLiquid](../sector-runtime-h3-cave-liquid-plan-2026-11-27.md),
-[Finalize](../sector-runtime-h3-finalize-normalize-2026-11-27.md) e
-[Flora/spawn](../sector-runtime-h3-flora-spawn-plan-2026-11-27.md).
-`replaceBiomeBlocks`, hue autoritativo e equivalência viva continuam abertos.
+`WorldGenerationFloraSpawnPlan` (grass-mod + spawn intents) e
+`WorldGenerationReplaceBiomePlan` (placeholders → materiais/hues) sobre
+amostras privadas, com `tryConsume` só após revalidação e sem publicação.
+Ver [CaveLiquid](../sector-runtime-h3-cave-liquid-plan-2026-11-27.md),
+[Finalize](../sector-runtime-h3-finalize-normalize-2026-11-27.md),
+[Flora/spawn](../sector-runtime-h3-flora-spawn-plan-2026-11-27.md) e
+[ReplaceBiome](../sector-runtime-h3-replace-biome-plan-2026-11-27.md).
+Collision autoritativa e equivalência viva continuam abertos.
 
 **BaseTiles:** preservar materiais preexistentes e regras de oceanos/bioma.
 O cálculo já é privado; reduzir cópias e publicação/invalidação de colisão
