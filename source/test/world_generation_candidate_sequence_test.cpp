@@ -167,6 +167,44 @@ TEST(WorldGenerationCandidateSequenceTest, StablePrioritySortMatchesBiomeItemPla
   EXPECT_TRUE(result.equal());
 }
 
+TEST(WorldGenerationCandidateSequenceTest, MicroDungeonAndTreasurePayloadCompare) {
+  using ItemField = WorldGenerationBiomeItemField;
+  auto namesA = BiomeItem{MicroDungeonNames(StringSet{"alpha", "beta"})};
+  auto namesB = BiomeItem{MicroDungeonNames(StringSet{"beta", "alpha"})};
+  auto namesC = BiomeItem{MicroDungeonNames(StringSet{"alpha"})};
+  auto sameNames = compareWorldGenerationBiomeItems(namesA, namesB);
+  EXPECT_TRUE(sameNames.equal());
+  auto diffNames = compareWorldGenerationBiomeItems(namesA, namesC);
+  EXPECT_FALSE(diffNames.equal());
+  EXPECT_EQ(diffNames.differentFields, static_cast<uint32_t>(ItemField::Payload));
+
+  auto treasureA = BiomeItem{TreasureBoxSet(String("chest"))};
+  auto treasureB = BiomeItem{TreasureBoxSet(String("chest"))};
+  auto treasureC = BiomeItem{TreasureBoxSet(String("other"))};
+  EXPECT_TRUE(compareWorldGenerationBiomeItems(treasureA, treasureB).equal());
+  auto treasureDiff = compareWorldGenerationBiomeItems(treasureA, treasureC);
+  EXPECT_EQ(treasureDiff.differentFields, static_cast<uint32_t>(ItemField::Payload));
+
+  auto grass = BiomeItem{GrassVariant{}};
+  auto grassSupported = compareWorldGenerationBiomeItems(grass, grass);
+  EXPECT_FALSE(grassSupported.equal());
+  EXPECT_EQ(grassSupported.differentFields, static_cast<uint32_t>(ItemField::UnsupportedPayload));
+  EXPECT_TRUE(compareWorldGenerationBiomeItems(grass, grass, WorldGenerationBiomeItemComparisonMode::KindOnly).equal());
+}
+
+TEST(WorldGenerationCandidateSequenceTest, PlacementPayloadSequenceDetectsNameSetDiff) {
+  BiomeItemPlacement left{BiomeItem{MicroDungeonNames(StringSet{"one", "two"})}, Vec2I(0, 0), 1.0f};
+  BiomeItemPlacement right{BiomeItem{MicroDungeonNames(StringSet{"one"})}, Vec2I(0, 0), 1.0f};
+  auto result = compareWorldGenerationCandidatePlacements({left}, {right});
+  EXPECT_FALSE(result.equal());
+  EXPECT_EQ(result.differentFields, mask(Field::ItemPayload));
+  EXPECT_EQ(result.firstDifference.value(), 0u);
+
+  auto kindOnly = compareWorldGenerationCandidatePlacements({left}, {right}, {}, {},
+      WorldGenerationBiomeItemComparisonMode::KindOnly);
+  EXPECT_TRUE(kindOnly.equal());
+}
+
 TEST(WorldGenerationCandidateSequenceTest, ItemKindDiffersWithoutComparingPayload) {
   auto grassKind = BiomeItem{GrassVariant{}}.typeIndex();
   auto dungeonKind = BiomeItem{MicroDungeonNames(StringSet{"x"})}.typeIndex();
