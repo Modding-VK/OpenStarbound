@@ -48,7 +48,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32AbsDiff = 22, // unsigned |value - parameter|
   DenseUint32Gt = 23, // unsigned value > parameter ? 0xffffffff : 0
   DenseUint32Geu = 24, // unsigned value >= parameter ? 0xffffffff : 0
-  DenseUint32Xnor = 25 // ~(value ^ parameter)
+  DenseUint32Xnor = 25, // ~(value ^ parameter)
+  DenseUint32Nand = 26, // ~(value & parameter)
+  DenseUint32Nor = 27, // ~(value | parameter)
+  DenseUint32MulHi = 28 // high 32 bits of (uint64)value * parameter
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {

@@ -85,6 +85,9 @@ GLuint g_absDiffProgram = 0;
 GLuint g_gtProgram = 0;
 GLuint g_geuProgram = 0;
 GLuint g_xnorProgram = 0;
+GLuint g_nandProgram = 0;
+GLuint g_norProgram = 0;
+GLuint g_mulHiProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -447,6 +450,51 @@ void main() {
 }
 )GLSL";
 
+char const* NandShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = ~(values[i] & uParameter);
+}
+)GLSL";
+
+char const* NorShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = ~(values[i] | uParameter);
+}
+)GLSL";
+
+char const* MulHiShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint msb;
+  uint lsb;
+  umulExtended(values[i], uParameter, msb, lsb);
+  values[i] = msb;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -595,6 +643,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_xnorProgram);
     g_xnorProgram = 0;
   }
+  if (g_nandProgram) {
+    glDeleteProgram(g_nandProgram);
+    g_nandProgram = 0;
+  }
+  if (g_norProgram) {
+    glDeleteProgram(g_norProgram);
+    g_norProgram = 0;
+  }
+  if (g_mulHiProgram) {
+    glDeleteProgram(g_mulHiProgram);
+    g_mulHiProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -706,7 +766,10 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_absDiffProgram, AbsDiffShader, "DenseUint32AbsDiff")
       || !requireProgram(g_gtProgram, GtShader, "DenseUint32Gt")
       || !requireProgram(g_geuProgram, GeuShader, "DenseUint32Geu")
-      || !requireProgram(g_xnorProgram, XnorShader, "DenseUint32Xnor"))
+      || !requireProgram(g_xnorProgram, XnorShader, "DenseUint32Xnor")
+      || !requireProgram(g_nandProgram, NandShader, "DenseUint32Nand")
+      || !requireProgram(g_norProgram, NorShader, "DenseUint32Nor")
+      || !requireProgram(g_mulHiProgram, MulHiShader, "DenseUint32MulHi"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -821,6 +884,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_geuProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32Xnor)
     program = g_xnorProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Nand)
+    program = g_nandProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Nor)
+    program = g_norProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32MulHi)
+    program = g_mulHiProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
