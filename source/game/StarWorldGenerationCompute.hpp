@@ -509,6 +509,10 @@ public:
   // Does not complete Pending.
   size_t discardTerminalOpenTicketsByKernel(WorldGenerationComputeKernel kernel);
 
+  // GPU-02: poll+discard every Ready/Failed/Cancelled open ticket (owner-thread).
+  // Does not complete Pending.
+  size_t discardTerminalOpenTickets();
+
   // GPU-02 accounting for RAM-01 consumers (asset-free observation only).
   WorldGenerationComputeStagingSnapshot stagingSnapshot() const;
   void resetPeakStagingBytes() noexcept;
