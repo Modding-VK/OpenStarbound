@@ -284,6 +284,9 @@ public:
   // Ready open tickets whose identity.kernel matches (asset-free observation).
   List<WorldGenerationComputeTicket> listReadyOpenTicketsByKernel(
       WorldGenerationComputeKernel kernel) const;
+  // Failed open tickets whose identity.kernel matches (asset-free observation).
+  List<WorldGenerationComputeTicket> listFailedOpenTicketsByKernel(
+      WorldGenerationComputeKernel kernel) const;
   size_t countOpenTicketsByKernel(WorldGenerationComputeKernel kernel) const;
   // True while the ticket id is still present in the open-entry table.
   bool ticketIsOpen(WorldGenerationComputeTicket ticket) const;
