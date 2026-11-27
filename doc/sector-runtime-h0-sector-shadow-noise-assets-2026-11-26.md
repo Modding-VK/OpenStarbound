@@ -19,4 +19,6 @@ ASan/UBSan: 1×5; **99/99** RealBlockInfo.
 
 ## Próximo passo
 
-Adjacente sob assets; demais gates H0. Não disparar Actions.
+Adjacente assets em
+[adjacent assets](sector-runtime-h0-sector-shadow-adjacent-assets-2026-11-26.md).
+Segue gates H0 restantes. Não disparar Actions.
