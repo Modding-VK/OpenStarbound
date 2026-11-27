@@ -2146,6 +2146,17 @@ bool WorldGenerationComputeService::anyInFlightByKernel(
   return false;
 }
 
+size_t WorldGenerationComputeService::pendingOpenTicketsByKernel(
+    WorldGenerationComputeKernel kernel) const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  size_t count = 0;
+  for (auto const& entry : m_entries) {
+    if (entry.second.state == EntryState::Pending && entry.second.identity.kernel == kernel)
+      ++count;
+  }
+  return count;
+}
+
 size_t WorldGenerationComputeService::readyOpenTicketsByKernel(
     WorldGenerationComputeKernel kernel) const {
   std::lock_guard<std::mutex> lock(m_mutex);
