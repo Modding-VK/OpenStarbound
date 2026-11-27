@@ -256,6 +256,9 @@ GLuint g_halfRorNibblesProgram = 0;
 GLuint g_halfHasZeroNibbleProgram = 0;
 GLuint g_halfCountZeroNibblesProgram = 0;
 GLuint g_halfBroadcastNibbleProgram = 0;
+GLuint g_halfSextNibbleProgram = 0;
+GLuint g_halfExtractNibbleProgram = 0;
+GLuint g_halfInsertNibbleProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -3463,6 +3466,55 @@ void main() {
 }
 )GLSL";
 
+char const* HalfSextNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint shift = (uParameter & 3u) * 4u;
+  uint n = ((values[i] & 0xffffu) >> shift) & 0xfu;
+  values[i] = ((n & 0x8u) != 0u) ? (n | 0xfffffff0u) : n;
+}
+)GLSL";
+
+char const* HalfExtractNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint shift = (uParameter & 3u) * 4u;
+  values[i] = ((values[i] & 0xffffu) >> shift) & 0xfu;
+}
+)GLSL";
+
+char const* HalfInsertNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint shift = (uParameter & 3u) * 4u;
+  uint nib = (uParameter >> 8) & 0xfu;
+  uint mask = ~(0xfu << shift) & 0xffffu;
+  uint lo = values[i] & 0xffffu;
+  values[i] = (lo & mask) | (nib << shift);
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -4295,6 +4347,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfBroadcastNibbleProgram);
     g_halfBroadcastNibbleProgram = 0;
   }
+  if (g_halfSextNibbleProgram) {
+    glDeleteProgram(g_halfSextNibbleProgram);
+    g_halfSextNibbleProgram = 0;
+  }
+  if (g_halfExtractNibbleProgram) {
+    glDeleteProgram(g_halfExtractNibbleProgram);
+    g_halfExtractNibbleProgram = 0;
+  }
+  if (g_halfInsertNibbleProgram) {
+    glDeleteProgram(g_halfInsertNibbleProgram);
+    g_halfInsertNibbleProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -4604,7 +4668,12 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfCountZeroNibblesProgram, HalfCountZeroNibblesShader,
             "DenseUint32HalfCountZeroNibbles")
       || !requireProgram(g_halfBroadcastNibbleProgram, HalfBroadcastNibbleShader,
-            "DenseUint32HalfBroadcastNibble"))
+            "DenseUint32HalfBroadcastNibble")
+      || !requireProgram(g_halfSextNibbleProgram, HalfSextNibbleShader, "DenseUint32HalfSextNibble")
+      || !requireProgram(g_halfExtractNibbleProgram, HalfExtractNibbleShader,
+            "DenseUint32HalfExtractNibble")
+      || !requireProgram(g_halfInsertNibbleProgram, HalfInsertNibbleShader,
+            "DenseUint32HalfInsertNibble"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -5061,6 +5130,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfCountZeroNibblesProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfBroadcastNibble)
     program = g_halfBroadcastNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSextNibble)
+    program = g_halfSextNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfExtractNibble)
+    program = g_halfExtractNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfInsertNibble)
+    program = g_halfInsertNibbleProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
