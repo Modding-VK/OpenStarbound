@@ -398,3 +398,33 @@ PRs GitHub com base na integração: **nenhum**.
 - **Sem merge de frentes** (H4 hold GL; H5 blocked).
 - Próximo quando ready: **H4** `80825c7c`. Sem comentários em PR (fila vazia).
 
+
+## Revisão sync 27/11/2026 ~06:25 UTC
+
+Bases: Exp `0efebf99` · INT **`89ada4ee`**. Frentes **não** editadas.
+Neste ciclo: sem merge em `main`; sem merge H4/H5; flow-doc push liberado após gates verdes.
+PRs GitHub com base na integração: **nenhum**.
+
+| Frente | Tip remoto | vs Exp | vs INT | Ancestral INT | phase (store) |
+| --- | --- | ---: | ---: | --- | --- |
+| H0 | `c124f899` | 21 | 0 | sim | ready-for-integration (já na INT) |
+| H1 | `4d014af2` | 8 | 0 | sim | standby (já na INT) |
+| H2 | `b1162b5d` | 3 | 0 | sim | ready-for-integration (já na INT) |
+| H3 | `3bdf1927` | 19 | 0 | sim | ready-for-integration (já na INT; espera live-publish) |
+| H4 | `80825c7c` | 2 | **+2** | não | standby (hold GL) |
+| H5 | `cfd1aa5e` | 3 | **+3** | não | blocked(h4) |
+| R1 | `6947bbb9` | 7 | 0 | sim | standby (já na INT) |
+| R2 | `f86b4d17` | 4 | 0 | sim | ready-for-integration (já na INT) |
+
+### Delta vs sync ~05:30
+
+- Tips das frentes **inalteradas** (H3 sem commits novos).
+- INT avançou por CI: tip `89ada4ee` = fix NoAssets signed-zero sob `-ffast-math` (`EmptyObjectPreservesCallerFallbacks`); jemalloc OFF + StarMemory já na tip anterior.
+- CI #9 (`4a4d5283`) falhou só no signed-zero fallback float ABI (não jemalloc). Build #80 + CI #11 **success** em `89ada4ee`.
+- Revisão 06:00 ficou só no store enquanto gates rodavam (política anti-cancel).
+
+### Vereditos
+
+- **Sem merge de frentes** (H4 hold GL; H5 blocked).
+- Gates tip: Build #80 success · CI Integration #11 success.
+- Próximo quando ready: **H4** `80825c7c`. Sem comentários em PR (fila vazia).
