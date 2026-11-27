@@ -464,6 +464,8 @@ public:
   size_t countFailedOpenTickets() const;
   // True while any Ready open ticket exists (asset-free observation).
   bool anyReadyOpenTickets() const;
+  // True while any Failed open ticket exists (asset-free observation).
+  bool anyFailedOpenTickets() const;
   // True while any Pending open ticket exists (asset-free observation).
   bool anyPendingOpenTickets() const;
   // True while any Pending open ticket exists (asset-free observation).

@@ -1520,6 +1520,28 @@ TEST(WorldGenerationComputeTest, CountFailedOpenTicketsTracksFailedTicketCount) 
 }
 
 
+TEST(WorldGenerationComputeTest, AnyFailedOpenTicketsTracksFailedPresence) {
+  WorldGenerationComputeCapabilities caps = WorldGenerationComputeService::probeCapabilities();
+  caps.gpuOpenGlCompute = true;
+  WorldGenerationComputeService service(caps);
+  service.setDeferredCpuCompletion(true);
+  EXPECT_FALSE(service.anyFailedOpenTickets());
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(1480, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute));
+  EXPECT_EQ(1u, service.completeOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+#ifndef STAR_ENABLE_WORLDGEN_GL_COMPUTE
+  EXPECT_TRUE(service.anyFailedOpenTickets());
+  EXPECT_EQ(1u, service.discardFailedOpenTickets());
+  EXPECT_FALSE(service.anyFailedOpenTickets());
+#else
+  EXPECT_TRUE(service.anyFailedOpenTickets() || service.anyReadyOpenTickets());
+  service.discardFailedOpenTickets();
+  service.discardReadyOpenTickets();
+  EXPECT_FALSE(service.anyFailedOpenTickets());
+#endif
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32HalfSumMaxMinExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();
