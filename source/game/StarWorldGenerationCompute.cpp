@@ -1421,6 +1421,17 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::listReadyOpenK
   return out;
 }
 
+size_t WorldGenerationComputeService::countReadyOpenKernels() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  std::unordered_set<uint8_t> seen;
+  for (auto const& pair : m_entries) {
+    if (pair.second.state != EntryState::Ready)
+      continue;
+    seen.insert((uint8_t)pair.second.identity.kernel);
+  }
+  return seen.size();
+}
+
 List<WorldGenerationComputeTicket> WorldGenerationComputeService::listOpenTicketsByKernel(
     WorldGenerationComputeKernel kernel) const {
   std::lock_guard<std::mutex> lock(m_mutex);
