@@ -19,4 +19,6 @@ ASan/UBSan: 1×5; **74/74** RealBlockInfo.
 
 ## Próximo passo
 
-Gates H0 restantes antes de H1. Não disparar Actions.
+Falha de produtor em
+[falha de produtor](sector-runtime-h0-sector-shadow-producer-failure-2026-11-26.md).
+Segue gates H0 antes de H1. Não disparar Actions.

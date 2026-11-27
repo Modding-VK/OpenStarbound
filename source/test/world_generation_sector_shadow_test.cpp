@@ -129,6 +129,42 @@ TEST(WorldGenerationSectorShadowTest, TryAdmitFromCompositeReusesBaseTilesIdenti
   EXPECT_EQ(before.resources, ledger.snapshot().resources);
 }
 
+TEST(WorldGenerationSectorShadowTest, ProducerFailureRetiresFailedAndDiscardsShadow) {
+  WorldGenerationMemoryLedger ledger;
+  WorldGenerationTasks tasks(1, WorldRegionPartition(WorldGeometry(Vec2U{64, 64})), 1,
+      WorldGenerationSectorShadow::retainedBytes());
+  auto task = tasks.reserve({0, 0}, WorldGenerationTaskStage::BaseTiles,
+      WorldGenerationSectorShadow::retainedBytes());
+  ASSERT_TRUE(task);
+
+  WorldGenerationBaseTilesIdentity identity;
+  identity.task = task->identity;
+  identity.tileRevision = 1;
+  identity.templateRevision = 9;
+  identity.worldSize = {64, 64};
+  identity.tileRegion = RectI(0, 0, int(WorldSectorSize), int(WorldSectorSize));
+
+  auto admitted = WorldGenerationSectorShadow::tryAdmit(ledger, identity);
+  ASSERT_TRUE(admitted.has_value());
+  auto shadow = std::make_shared<WorldGenerationSectorShadow>(std::move(*admitted));
+  shadow->tiles()(0, 0).foreground = MaterialId(91);
+
+  WorkerPool pool("Sector shadow producer failure", 1);
+  auto promise = pool.addProducer<std::shared_ptr<WorldGenerationSectorShadow>>(
+      [task, shadow]() -> std::shared_ptr<WorldGenerationSectorShadow> {
+        EXPECT_TRUE(task->start());
+        EXPECT_TRUE(task->fail());
+        throw StarException("controlled sector shadow producer failure");
+      });
+  EXPECT_THROW(promise.get(), StarException);
+  EXPECT_TRUE(shadow->active());
+  EXPECT_EQ(MaterialId(91), shadow->tiles()(0, 0).foreground);
+  EXPECT_TRUE(tasks.retire(task, WorldGenerationTaskOutcome::Failed));
+  pool.finish();
+  shadow->discard();
+  EXPECT_EQ(0u, ledger.snapshot().resources);
+}
+
 TEST(WorldGenerationSectorShadowTest, AbandonedPreparationDiscardsShadowWithoutHandoff) {
   WorldGenerationMemoryLedger ledger;
   WorldGenerationTasks tasks(1, WorldRegionPartition(WorldGeometry(Vec2U{64, 64})), 1,
