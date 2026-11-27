@@ -144,7 +144,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32BroadcastNibble
       || kernel == WorldGenerationComputeKernel::DenseUint32SwapAdjacentNibbles
       || kernel == WorldGenerationComputeKernel::DenseUint32RolNibbles
-      || kernel == WorldGenerationComputeKernel::DenseUint32RorNibbles;
+      || kernel == WorldGenerationComputeKernel::DenseUint32RorNibbles
+      || kernel == WorldGenerationComputeKernel::DenseUint32HasZeroNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32SextNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32CountZeroNibbles;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -252,7 +255,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32BroadcastNibble,
       WorldGenerationComputeKernel::DenseUint32SwapAdjacentNibbles,
       WorldGenerationComputeKernel::DenseUint32RolNibbles,
-      WorldGenerationComputeKernel::DenseUint32RorNibbles};
+      WorldGenerationComputeKernel::DenseUint32RorNibbles,
+      WorldGenerationComputeKernel::DenseUint32HasZeroNibble,
+      WorldGenerationComputeKernel::DenseUint32SextNibble,
+      WorldGenerationComputeKernel::DenseUint32CountZeroNibbles};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -262,7 +268,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 100u;
+  return 103u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -384,6 +390,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32SwapAdjacentNibbles: return "DenseUint32SwapAdjacentNibbles";
     case WorldGenerationComputeKernel::DenseUint32RolNibbles: return "DenseUint32RolNibbles";
     case WorldGenerationComputeKernel::DenseUint32RorNibbles: return "DenseUint32RorNibbles";
+    case WorldGenerationComputeKernel::DenseUint32HasZeroNibble: return "DenseUint32HasZeroNibble";
+    case WorldGenerationComputeKernel::DenseUint32SextNibble: return "DenseUint32SextNibble";
+    case WorldGenerationComputeKernel::DenseUint32CountZeroNibbles: return "DenseUint32CountZeroNibbles";
   }
   return nullptr;
 }
@@ -1048,6 +1057,26 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
     uint32_t rot = (parameter & 7u) * 4u;
     for (uint32_t value : input)
       out.append((value >> rot) | (value << ((32u - rot) & 31u)));
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HasZeroNibble) {
+    for (uint32_t value : input) {
+      bool hasZero = ((value - 0x11111111u) & ~value & 0x88888888u) != 0u;
+      out.append(hasZero ? 0xffffffffu : 0u);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32SextNibble) {
+    uint32_t shift = (parameter & 7u) * 4u;
+    for (uint32_t value : input) {
+      uint32_t n = (value >> shift) & 0xfu;
+      out.append((n & 0x8u) ? (n | 0xfffffff0u) : n);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32CountZeroNibbles) {
+    for (uint32_t value : input) {
+      uint32_t count = 0;
+      for (uint32_t shift = 0; shift < 32; shift += 4) {
+        if (((value >> shift) & 0xfu) == 0u)
+          ++count;
+      }
+      out.append(count);
+    }
   }
   return out;
 }
@@ -1251,6 +1280,27 @@ size_t WorldGenerationComputeService::drainOpenTicketsByKernel(
     ++drained;
   }
   return drained;
+}
+
+size_t WorldGenerationComputeService::discardReadyOpenTicketsByKernel(
+    WorldGenerationComputeKernel kernel) {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return 0;
+  List<WorldGenerationComputeTicket> tickets;
+  for (auto const& pair : m_entries) {
+    if (pair.second.state != EntryState::Ready || pair.second.identity.kernel != kernel)
+      continue;
+    WorldGenerationComputeTicket ticket;
+    ticket.id = pair.first;
+    tickets.append(ticket);
+  }
+  size_t discarded = 0;
+  for (auto ticket : tickets) {
+    pollLocked(ticket, nullptr);
+    ++discarded;
+  }
+  return discarded;
 }
 
 size_t WorldGenerationComputeService::inFlight() const {
