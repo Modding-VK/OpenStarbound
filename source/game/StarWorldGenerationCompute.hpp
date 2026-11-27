@@ -96,7 +96,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32LsbMask = 70, // value ^ (value - 1); bits through lowest set bit
   DenseUint32ClearLsb = 71, // value & (value - 1); parameter ignored
   DenseUint32GrayEncode = 72, // value ^ (value >> 1); parameter ignored
-  DenseUint32GrayDecode = 73 // binary from reflected Gray code; parameter ignored
+  DenseUint32GrayDecode = 73, // binary from reflected Gray code; parameter ignored
+  DenseUint32SmearLsb = 74, // value | (value - 1); ones through lowest set bit
+  DenseUint32ClearMsb = 75, // clear highest set bit; 0 stays 0; parameter ignored
+  DenseUint32ByteXor = 76 // XOR of the four bytes as uint32; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
