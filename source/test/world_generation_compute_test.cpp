@@ -405,6 +405,67 @@ TEST(WorldGenerationComputeTest, DenseUint32AndOrMulExactCpuAndShadow) {
 #endif
 }
 
+TEST(WorldGenerationComputeTest, StagingSnapshotTracksPeakPoolAndGpuEstimate) {
+  // GPU-02 → RAM-01: observe staging/pool/VRAM estimate without assets.
+  WorldGenerationComputeCapabilities caps = WorldGenerationComputeService::probeCapabilities();
+  caps.maxInFlight = 4;
+  WorldGenerationComputeService service(caps);
+  service.setDeferredCpuCompletion(true);
+  service.resetPeakStagingBytes();
+
+  auto before = service.stagingSnapshot();
+  EXPECT_EQ(0u, before.stagingBytes);
+  EXPECT_EQ(0u, before.peakStagingBytes);
+  EXPECT_EQ(caps.maxStagingBytes, before.maxStagingBytes);
+  EXPECT_EQ(0u, before.inFlight);
+  EXPECT_EQ(caps.gpuOpenGlCompute, before.gpuCapable);
+
+  auto input = sampleInput();
+  uint64_t bytes = (uint64_t)input.size() * sizeof(uint32_t);
+  auto a = service.submit(makeIdentity(120), input, 1u);
+  auto b = service.submit(makeIdentity(121), input, 2u);
+  ASSERT_TRUE(a);
+  ASSERT_TRUE(b);
+
+  auto mid = service.stagingSnapshot();
+  EXPECT_EQ(2u * bytes, mid.stagingBytes);
+  EXPECT_EQ(2u * bytes, mid.peakStagingBytes);
+  EXPECT_EQ(2u, mid.inFlight);
+  EXPECT_EQ(2u, mid.openTickets);
+  EXPECT_EQ(0u, mid.gpuInFlight);
+  EXPECT_EQ(0u, mid.estimatedVramBytes);
+
+  EXPECT_TRUE(service.complete(*a));
+  WorldGenerationComputeResult result;
+  EXPECT_EQ(WorldGenerationComputePollStatus::Ready, service.poll(*a, &result));
+  auto afterPoll = service.stagingSnapshot();
+  EXPECT_EQ(bytes, afterPoll.stagingBytes);
+  EXPECT_EQ(2u * bytes, afterPoll.peakStagingBytes); // peak retained
+  EXPECT_GE(afterPoll.pooledBufferCount, 1u);
+  EXPECT_GE(afterPoll.pooledBufferBytes, bytes);
+
+  service.resetPeakStagingBytes();
+  EXPECT_EQ(bytes, service.stagingSnapshot().peakStagingBytes);
+
+  // Forced GPU capability still estimates VRAM only for GPU-backend tickets.
+  caps.gpuOpenGlCompute = true;
+  WorldGenerationComputeService gpuService(caps);
+  gpuService.setDeferredCpuCompletion(true);
+  auto gpuTicket = gpuService.submit(makeIdentity(122), input, 1u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute);
+  // Without live GL device, GPU submit may be refused even with the bit set.
+  if (gpuTicket) {
+    auto gpuSnap = gpuService.stagingSnapshot();
+    EXPECT_EQ(1u, gpuSnap.gpuInFlight);
+    EXPECT_EQ(bytes, gpuSnap.estimatedVramBytes);
+  } else {
+    // Capability alone is insufficient without dispatch; snapshot stays CPU-shaped.
+    auto refused = gpuService.stagingSnapshot();
+    EXPECT_EQ(0u, refused.gpuInFlight);
+    EXPECT_EQ(0u, refused.estimatedVramBytes);
+  }
+}
+
 TEST(WorldGenerationComputeTest, CommitRevalidatesIdentityAndInputFingerprint) {
   // GPU-04: equivalence alone is not publication — commit checks live inputs.
   WorldGenerationComputeService service;

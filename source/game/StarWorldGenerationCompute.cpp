@@ -124,6 +124,35 @@ size_t WorldGenerationComputeService::pooledBuffers() const {
   return m_bufferPool.size();
 }
 
+WorldGenerationComputeStagingSnapshot WorldGenerationComputeService::stagingSnapshot() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  WorldGenerationComputeStagingSnapshot snap;
+  snap.stagingBytes = m_stagingBytes;
+  snap.peakStagingBytes = m_peakStagingBytes;
+  snap.maxStagingBytes = m_capabilities.maxStagingBytes;
+  snap.openTickets = m_entries.size();
+  snap.gpuCapable = m_capabilities.gpuOpenGlCompute;
+  snap.pooledBufferCount = m_bufferPool.size();
+  for (auto const& buffer : m_bufferPool)
+    snap.pooledBufferBytes += bufferBytes(buffer);
+  for (auto const& pair : m_entries) {
+    Entry const& entry = pair.second;
+    if (entry.state == EntryState::Pending)
+      ++snap.inFlight;
+    if (entry.backend == WorldGenerationComputeBackend::GpuOpenGlCompute
+        && entry.state == EntryState::Pending) {
+      ++snap.gpuInFlight;
+      snap.estimatedVramBytes += entry.stagingBytes;
+    }
+  }
+  return snap;
+}
+
+void WorldGenerationComputeService::resetPeakStagingBytes() noexcept {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  m_peakStagingBytes = m_stagingBytes;
+}
+
 bool WorldGenerationComputeService::runBackendKernel(WorldGenerationComputeBackend backend,
     WorldGenerationComputeKernel kernel, uint32_t kernelVersion, List<uint32_t> const& input,
     uint32_t parameter, List<uint32_t>& out) const {
@@ -193,6 +222,8 @@ Maybe<WorldGenerationComputeTicket> WorldGenerationComputeService::submitLocked(
   entry.inputFingerprint = fingerprintInput(entry.input);
   entry.stagingBytes = bytes;
   m_stagingBytes += bytes;
+  if (m_stagingBytes > m_peakStagingBytes)
+    m_peakStagingBytes = m_stagingBytes;
 
   // GPU completions use the same sync/deferred switch as CPU for the first
   // harness: deferred leaves Pending until pump()/complete(); sync runs now.

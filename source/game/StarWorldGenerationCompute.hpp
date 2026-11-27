@@ -135,6 +135,20 @@ struct WorldGenerationComputeShadowReport {
   WorldGenerationComputeShadowReproducer reproducer;
 };
 
+// GPU-02 → RAM-01: staging / pool / estimated VRAM observation (no assets).
+struct WorldGenerationComputeStagingSnapshot {
+  uint64_t stagingBytes = 0;
+  uint64_t peakStagingBytes = 0;
+  uint64_t maxStagingBytes = 0;
+  uint64_t pooledBufferBytes = 0;
+  size_t pooledBufferCount = 0;
+  size_t openTickets = 0;
+  size_t inFlight = 0;
+  size_t gpuInFlight = 0;
+  uint64_t estimatedVramBytes = 0; // in-flight GPU staging estimate (SSBO-sized)
+  bool gpuCapable = false;
+};
+
 // Owner-thread service: explicit queue, reusable staging pool, in-flight limit,
 // fence pump, cancel/fail recovery. Results never write the live world.
 class WorldGenerationComputeService {
@@ -153,6 +167,10 @@ public:
   size_t inFlight() const;
   size_t stagingBytes() const;
   size_t pooledBuffers() const;
+
+  // GPU-02 accounting for RAM-01 consumers (asset-free observation only).
+  WorldGenerationComputeStagingSnapshot stagingSnapshot() const;
+  void resetPeakStagingBytes() noexcept;
 
   // Deferred CPU completion leaves Pending until pump()/complete(). Synchronous
   // mode (default) finishes CPU work before submit returns.
@@ -249,6 +267,7 @@ private:
   mutable std::mutex m_mutex;
   uint64_t m_nextTicket = 1;
   uint64_t m_stagingBytes = 0;
+  uint64_t m_peakStagingBytes = 0;
   std::unordered_map<uint64_t, Entry> m_entries;
   std::unordered_set<uint64_t> m_rejectedDuplicates;
   List<List<uint32_t>> m_bufferPool;

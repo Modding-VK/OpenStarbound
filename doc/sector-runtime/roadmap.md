@@ -474,8 +474,8 @@ do kernel CPU e do resultado versionado.
 - [x] GPU-01: interface CPU/GPU, capacidades e build CPU independente
   (primeiro recorte 25%: serviço + CPU reference; probe GL opt-in em
   `STAR_ENABLE_WORLDGEN_GL_COMPUTE`, evidência RTX pendente).
-- [x] GPU-02: fila/buffers em voo/pump/failContext no CPU
-  (primeiro recorte 25%; failContext recalcula na CPU; thread WorldThread pendente).
+- [x] GPU-02: fila/buffers em voo/pump/failContext + stagingSnapshot
+  (primeiro recorte 25%; accounting para RAM-01; thread WorldThread pendente).
 - [x] GPU-03: kernels exatos DenseUint32Xor/Add/And/Or/Mul + submitBatch
   (primeiro recorte 25%; shaders densos no opt-in; terreno/bioma/ganho pendentes).
 - [x] GPU-04: compareShadow + corpus/reprodutor + commit revalidate

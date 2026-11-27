@@ -9,12 +9,11 @@ liberar CPU para outros produtores. O renderer atual negocia contexto OpenGL
 moderno quando disponível, mas não fornece uma API de compute de worldgen.
 
 **Estado (27/11/2026, `cursor/h4-gpu-shadow-9f77`):** GPU-01/02/03/04 no
-primeiro marco (25%). Probe, And/Or/Mul e failContext/reprodutor na INT.
-Recorte seguinte asset-free: `commit` com revalidação de identidade +
-fingerprint de input (`fingerprintInput`). Build **normal** não claima OpenGL
-compute. Ver
-[commit revalidate](../sector-runtime-h4-gpu04-commit-revalidate-2026-11-27.md),
-[failContext/reprodutor](../sector-runtime-h4-gpu02-04-failcontext-reproducer-2026-11-27.md)
+primeiro marco (25%). Probe, kernels densos, failContext/reprodutor e commit
+na INT. Recorte seguinte asset-free: `stagingSnapshot` (staging/pico/pool/
+estimativa VRAM) para RAM-01. Build **normal** não claima OpenGL compute. Ver
+[staging accounting](../sector-runtime-h4-gpu02-staging-accounting-2026-11-27.md),
+[commit revalidate](../sector-runtime-h4-gpu04-commit-revalidate-2026-11-27.md)
 e [checklist probe](../sector-runtime-h4-gpu-probe-windows-rtx-checklist-2026-11-27.md).
 Sem 50% enquanto terreno/bioma/ganho e multi-driver faltarem.
 

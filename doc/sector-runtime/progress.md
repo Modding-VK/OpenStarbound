@@ -3,11 +3,11 @@
 Atualizado em **27/11/2026**. Branch: `cursor/h4-gpu-shadow-9f77`
 (frente H4; H0 continua em `Experimental`).
 Base inspecionada: `e55c008f`;
-última implementação de runtime nesta frente: GPU-04 commit com revalidação
-de identidade/fingerprint de input (asset-free).
+última implementação de runtime nesta frente: GPU-02 stagingSnapshot
+(contabilização staging/VRAM asset-free para RAM-01).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico H4](../sector-runtime-h4-gpu04-commit-revalidate-2026-11-27.md)
+· [Último relatório técnico H4](../sector-runtime-h4-gpu02-staging-accounting-2026-11-27.md)
 · [Último relatório H0](../sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
 · [Backlog geral](../performance-backlog.md)
 
@@ -182,7 +182,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 31 | H3 | [IO-04](io-persistence-network.md) | Unload, drain e retorno ao legado | 0% | Encerrar sem liberar buffers/produtores ainda ativos |
 | 32 | H3 | [IO-05](io-persistence-network.md) | Pacotes e aplicação no cliente | 0% | Medir entrega até o cliente, não apenas commit |
 | 33 | H4 | [GPU-01](gpu-compute.md) | Interface e capacidades CPU/GPU | 25% | Serviço submit/poll/cancel + CPU reference; probe GL pendente |
-| 34 | H4 | [GPU-02](gpu-compute.md) | Contexto e buffers em voo | 25% | failContext recalcula na CPU; thread WorldThread/GL dona pendente |
+| 34 | H4 | [GPU-02](gpu-compute.md) | Contexto e buffers em voo | 25% | stagingSnapshot+failContext; thread WorldThread/GL dona pendente |
 | 35 | H4 | [GPU-03](gpu-compute.md) | Kernels e equivalência | 25% | DenseUint32Xor/Add/And/Or/Mul + batch; terreno/ganho pendentes |
 | 36 | H4 | [GPU-04](gpu-compute.md) | Comparação em sombra | 25% | corpus+reprodutor+commit revalidate; multi-driver pendente |
 | 37 | H5 | [GPU-05](gpu-compute.md) | Seleção heterogênea e render | 0% | Escolher backend pelo custo de entrega, incluindo transporte |
@@ -211,7 +211,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
 | GPU-01 | [interface+CPU reference](../sector-runtime-h4-gpu01-compute-interface-2026-11-27.md); harness opt-in [checklist](../sector-runtime-h4-gpu-probe-windows-rtx-checklist-2026-11-27.md) | Probe em hardware local ainda não reportado; sem 50% |
-| GPU-02 | [failContext recovery](../sector-runtime-h4-gpu02-04-failcontext-reproducer-2026-11-27.md) | Sem thread dona WorldThread; sem 50% |
+| GPU-02 | [failContext](../sector-runtime-h4-gpu02-04-failcontext-reproducer-2026-11-27.md) + [staging](../sector-runtime-h4-gpu02-staging-accounting-2026-11-27.md) | Sem thread dona WorldThread; sem 50% |
 | GPU-03 | [Xor/Add](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) + [And/Or/Mul](../sector-runtime-h4-gpu03-dense-and-or-mul-2026-11-27.md) | Sem terreno/bioma nem ganho medido; sem 50% |
 | GPU-04 | [reprodutor](../sector-runtime-h4-gpu02-04-failcontext-reproducer-2026-11-27.md) + [commit](../sector-runtime-h4-gpu04-commit-revalidate-2026-11-27.md) | Sem campanha multi-driver; sem 50% |
 
@@ -318,6 +318,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | GPU-03 And/Or/Mul | Família densa asset-free ampliada (CPU+GL opt-in); H4 permanece 25% | 5,6% |
 | 27/11/2026 | GPU-02/04 recovery+repro | failContext→CPU + shadowEdgeCorpus/reproducer; H4 permanece 25% | 5,6% |
 | 27/11/2026 | GPU-04 commit revalidate | fingerprintInput + commit gate; H4 permanece 25% | 5,6% |
+| 27/11/2026 | GPU-02 staging accounting | stagingSnapshot peak/pool/VRAM estimate; H4 permanece 25% | 5,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.
