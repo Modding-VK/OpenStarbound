@@ -487,6 +487,8 @@ public:
   List<WorldGenerationComputeKernel> listTerminalOpenKernels() const;
   // Count of distinct identity.kernel values among terminal open tickets.
   size_t countTerminalOpenKernels() const;
+  // True while any terminal open ticket exists (distinct-kernel presence).
+  bool anyTerminalOpenKernels() const;
   // Distinct identity.kernel values among Pending open tickets (asset-free).
   List<WorldGenerationComputeKernel> listPendingOpenKernels() const;
   // Count of distinct identity.kernel values among Pending open tickets (asset-free).
