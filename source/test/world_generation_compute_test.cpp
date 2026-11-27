@@ -756,6 +756,33 @@ TEST(WorldGenerationComputeTest, DiscardTerminalOpenTicketsByKernelIsSelective) 
       service.discardTerminalOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add));
 }
 
+TEST(WorldGenerationComputeTest, ListOpenKernelsReturnsDistinctKernels) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  EXPECT_TRUE(service.listOpenKernels().empty());
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(840, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(841, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{2u}, 0u));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(842, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{3u}, 0u));
+
+  auto kernels = service.listOpenKernels();
+  ASSERT_EQ(2u, kernels.size());
+  EXPECT_TRUE(kernels[0] == WorldGenerationComputeKernel::DenseUint32Xor
+      || kernels[0] == WorldGenerationComputeKernel::DenseUint32Add);
+  EXPECT_TRUE(kernels[1] == WorldGenerationComputeKernel::DenseUint32Xor
+      || kernels[1] == WorldGenerationComputeKernel::DenseUint32Add);
+  EXPECT_NE(kernels[0], kernels[1]);
+
+  EXPECT_EQ(2u, service.drainOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  kernels = service.listOpenKernels();
+  ASSERT_EQ(1u, kernels.size());
+  EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32Add, kernels[0]);
+  EXPECT_EQ(1u, service.drainOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+  EXPECT_TRUE(service.listOpenKernels().empty());
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32HalfSumMaxMinExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();
