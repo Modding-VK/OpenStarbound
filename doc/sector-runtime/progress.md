@@ -3,11 +3,11 @@
 Atualizado em **27/11/2026**. Branch: `cursor/h4-gpu-shadow-9f77`
 (frente H4; H0 continua em `Experimental`).
 Base inspecionada: `e55c008f`;
-última implementação de runtime nesta frente: DenseUint32 Min/Max/Sub +
-RngStream + commitBatch (asset-free).
+última implementação de runtime nesta frente: DenseUint32 Shl/Shr +
+supportedKernels + compareShadowBatch (asset-free).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico H4](../sector-runtime-h4-gpu03-04-minmax-rng-commitbatch-2026-11-27.md)
+· [Último relatório técnico H4](../sector-runtime-h4-gpu01-03-04-shl-catalog-shadowbatch-2026-11-27.md)
 · [Último relatório H0](../sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
 · [Backlog geral](../performance-backlog.md)
 
@@ -181,10 +181,10 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 30 | H3 | [IO-03](io-persistence-network.md) | Checkpoint e recuperação | 0% | Estado confirmado/recuperável; continua em R1 |
 | 31 | H3 | [IO-04](io-persistence-network.md) | Unload, drain e retorno ao legado | 0% | Encerrar sem liberar buffers/produtores ainda ativos |
 | 32 | H3 | [IO-05](io-persistence-network.md) | Pacotes e aplicação no cliente | 0% | Medir entrega até o cliente, não apenas commit |
-| 33 | H4 | [GPU-01](gpu-compute.md) | Interface e capacidades CPU/GPU | 25% | Serviço submit/poll/cancel + CPU reference; probe GL pendente |
+| 33 | H4 | [GPU-01](gpu-compute.md) | Interface e capacidades CPU/GPU | 25% | Serviço+catalog supportedKernels; probe GL opt-in |
 | 34 | H4 | [GPU-02](gpu-compute.md) | Contexto e buffers em voo | 25% | staging+ownerThread+failContext; WorldThread integração pendente |
-| 35 | H4 | [GPU-03](gpu-compute.md) | Kernels e equivalência | 25% | DenseUint32* incl. Min/Max/Sub; terreno/ganho pendentes |
-| 36 | H4 | [GPU-04](gpu-compute.md) | Comparação em sombra | 25% | commit/commitBatch+RngStream; multi-driver pendente |
+| 35 | H4 | [GPU-03](gpu-compute.md) | Kernels e equivalência | 25% | DenseUint32* incl. Shl/Shr; terreno/ganho pendentes |
+| 36 | H4 | [GPU-04](gpu-compute.md) | Comparação em sombra | 25% | compareShadowBatch+commit/Rng; multi-driver pendente |
 | 37 | H5 | [GPU-05](gpu-compute.md) | Seleção heterogênea e render | 0% | Escolher backend pelo custo de entrega, incluindo transporte |
 | 38 | H5 | [VAL-03](validation-and-telemetry.md) | Métricas e marcos de entrega | 0% | Cobertura integral do novo pipeline e CPU/RAM/VRAM |
 | 39 | H5 | [VAL-04](validation-and-telemetry.md) | Matriz de cenários | 0% | Escala, mundos, memória, GPU/fallback e multiplayer |
@@ -210,10 +210,10 @@ de todas as implementações antigas para conceder crédito retroativo.
 | MOD-01 | [Leitores imutáveis](../sector-runtime-h0-distribution-bundles-2026-11-09.md), [proteção da seleção](../sector-runtime-h0-planning-storage-2026-11-09.md) e [lifecycle/scope 2](../sector-runtime-h0-lookup-source-generations-2026-11-09.md) | Metadata não é sincronização/commit nem auditoria de toda mutação; fronteira biomeTransition e integração abertas |
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
-| GPU-01 | [interface+CPU reference](../sector-runtime-h4-gpu01-compute-interface-2026-11-27.md); harness opt-in [checklist](../sector-runtime-h4-gpu-probe-windows-rtx-checklist-2026-11-27.md) | Probe em hardware local ainda não reportado; sem 50% |
+| GPU-01 | [interface](../sector-runtime-h4-gpu01-compute-interface-2026-11-27.md) + [catalog](../sector-runtime-h4-gpu01-03-04-shl-catalog-shadowbatch-2026-11-27.md) | Sem 50% (publicação versionada / caps driver completas) |
 | GPU-02 | [failContext](../sector-runtime-h4-gpu02-04-failcontext-reproducer-2026-11-27.md) + [staging](../sector-runtime-h4-gpu02-staging-accounting-2026-11-27.md) + [owner](../sector-runtime-h4-gpu02-owner-thread-2026-11-27.md) | Sem integração WorldThread; sem 50% |
-| GPU-03 | [And/Or/Mul](../sector-runtime-h4-gpu03-dense-and-or-mul-2026-11-27.md) + [Min/Max/Sub](../sector-runtime-h4-gpu03-04-minmax-rng-commitbatch-2026-11-27.md) | Sem terreno/bioma nem ganho; sem 50% |
-| GPU-04 | [commit](../sector-runtime-h4-gpu04-commit-revalidate-2026-11-27.md) + [rng/commitBatch](../sector-runtime-h4-gpu03-04-minmax-rng-commitbatch-2026-11-27.md) | Sem multi-driver; sem 50% |
+| GPU-03 | [Min/Max/Sub](../sector-runtime-h4-gpu03-04-minmax-rng-commitbatch-2026-11-27.md) + [Shl/Shr](../sector-runtime-h4-gpu01-03-04-shl-catalog-shadowbatch-2026-11-27.md) | Sem terreno/bioma nem ganho; sem 50% |
+| GPU-04 | [rng/commitBatch](../sector-runtime-h4-gpu03-04-minmax-rng-commitbatch-2026-11-27.md) + [shadowBatch](../sector-runtime-h4-gpu01-03-04-shl-catalog-shadowbatch-2026-11-27.md) | Sem multi-driver; sem 50% |
 
 CPU-01 recebe o primeiro marco porque agora existe cálculo com dados próprios
 que independe da origem/Root após captura, não só callbacks/catálogos ou contagem
@@ -321,6 +321,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | GPU-02 staging accounting | stagingSnapshot peak/pool/VRAM estimate; H4 permanece 25% | 5,6% |
 | 27/11/2026 | GPU-02 owner thread | adoptOwnerThread; mutações recusam thread estrangeira; H4 permanece 25% | 5,6% |
 | 27/11/2026 | GPU-03/04 dense+rng+batch | Min/Max/Sub + RngStream + commitBatch; H4 permanece 25% | 5,6% |
+| 27/11/2026 | GPU-01/03/04 shl+catalog | Shl/Shr + supportedKernels + compareShadowBatch; H4 permanece 25% | 5,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

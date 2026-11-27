@@ -472,14 +472,13 @@ capacidade pode avançar em paralelo a H1/H2; publicação exige contrato estáv
 do kernel CPU e do resultado versionado.
 
 - [x] GPU-01: interface CPU/GPU, capacidades e build CPU independente
-  (primeiro recorte 25%: serviço + CPU reference; probe GL opt-in em
-  `STAR_ENABLE_WORLDGEN_GL_COMPUTE`, evidência RTX pendente).
+  (primeiro recorte 25%: serviço + supportedKernels + probe GL opt-in).
 - [x] GPU-02: fila/buffers em voo/pump/failContext + stagingSnapshot +
   adoptOwnerThread (primeiro recorte 25%; integração WorldThread pendente).
-- [x] GPU-03: kernels exatos DenseUint32Xor/Add/And/Or/Mul/Min/Max/Sub +
-  submitBatch (primeiro recorte 25%; terreno/bioma/ganho pendentes).
-- [x] GPU-04: compareShadow + corpus/reprodutor + commit/commitBatch +
-  RngStream (primeiro recorte 25%; multi-driver pendente).
+- [x] GPU-03: kernels densos DenseUint32* incl. Shl/Shr + submitBatch
+  (primeiro recorte 25%; terreno/bioma/ganho pendentes).
+- [x] GPU-04: compareShadow/compareShadowBatch + commit/RngStream
+  (primeiro recorte 25%; multi-driver pendente).
 
 Saída: equivalência e custo completo demonstrados, sem publicar divergências.
 A existência de shaders/uso de GPU no gráfico não conclui esta entrega.
