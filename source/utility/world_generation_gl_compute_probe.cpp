@@ -141,6 +141,12 @@ int main() {
       "DenseUint32BroadcastByte");
   rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32ByteSum, 0u,
       "DenseUint32ByteSum");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32Sext8, 0u,
+      "DenseUint32Sext8");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32Sext16, 0u,
+      "DenseUint32Sext16");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32ExtractByte, 1u,
+      "DenseUint32ExtractByte");
 
   auto ticket = service.submit(makeIdentity(99, WorldGenerationComputeKernel::DenseUint32Xor),
       edgeCorpus(), 0x55aa55aau, WorldGenerationComputeBackend::GpuOpenGlCompute);
