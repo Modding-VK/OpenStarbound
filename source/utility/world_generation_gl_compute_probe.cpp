@@ -405,6 +405,12 @@ int main() {
       "DenseUint32HalfSmearMsb");
   rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfKeepOddBits, 0u,
       "DenseUint32HalfKeepOddBits");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfKeepEvenBits, 0u,
+      "DenseUint32HalfKeepEvenBits");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfSwapAdjacentBits, 0u,
+      "DenseUint32HalfSwapAdjacentBits");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfCompressOddBits, 0u,
+      "DenseUint32HalfCompressOddBits");
 
   auto ticket = service.submit(makeIdentity(99, WorldGenerationComputeKernel::DenseUint32Xor),
       edgeCorpus(), 0x55aa55aau, WorldGenerationComputeBackend::GpuOpenGlCompute);

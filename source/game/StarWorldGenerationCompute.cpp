@@ -219,7 +219,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfSmearLsb
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfClearMsb
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfSmearMsb
-      || kernel == WorldGenerationComputeKernel::DenseUint32HalfKeepOddBits;
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfKeepOddBits
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfKeepEvenBits
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfSwapAdjacentBits
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfCompressOddBits;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -402,7 +405,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32HalfSmearLsb,
       WorldGenerationComputeKernel::DenseUint32HalfClearMsb,
       WorldGenerationComputeKernel::DenseUint32HalfSmearMsb,
-      WorldGenerationComputeKernel::DenseUint32HalfKeepOddBits};
+      WorldGenerationComputeKernel::DenseUint32HalfKeepOddBits,
+      WorldGenerationComputeKernel::DenseUint32HalfKeepEvenBits,
+      WorldGenerationComputeKernel::DenseUint32HalfSwapAdjacentBits,
+      WorldGenerationComputeKernel::DenseUint32HalfCompressOddBits};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -412,7 +418,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 175u;
+  return 178u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -609,6 +615,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32HalfClearMsb: return "DenseUint32HalfClearMsb";
     case WorldGenerationComputeKernel::DenseUint32HalfSmearMsb: return "DenseUint32HalfSmearMsb";
     case WorldGenerationComputeKernel::DenseUint32HalfKeepOddBits: return "DenseUint32HalfKeepOddBits";
+    case WorldGenerationComputeKernel::DenseUint32HalfKeepEvenBits: return "DenseUint32HalfKeepEvenBits";
+    case WorldGenerationComputeKernel::DenseUint32HalfSwapAdjacentBits: return "DenseUint32HalfSwapAdjacentBits";
+    case WorldGenerationComputeKernel::DenseUint32HalfCompressOddBits: return "DenseUint32HalfCompressOddBits";
   }
   return nullptr;
 }
@@ -1733,6 +1742,24 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
   } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfKeepOddBits) {
     for (uint32_t value : input)
       out.append((value & 0xffffu) & 0x5555u);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfKeepEvenBits) {
+    for (uint32_t value : input)
+      out.append((value & 0xffffu) & 0xaaaau);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSwapAdjacentBits) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t odd = (lo & 0x5555u) << 1;
+      uint32_t even = (lo & 0xaaaau) >> 1;
+      out.append((odd | even) & 0xffffu);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfCompressOddBits) {
+    for (uint32_t value : input) {
+      uint32_t x = (value & 0xffffu) & 0x5555u;
+      x = (x | (x >> 1)) & 0x3333u;
+      x = (x | (x >> 2)) & 0x0f0fu;
+      x = (x | (x >> 4)) & 0x00ffu;
+      out.append(x);
+    }
   }
   return out;
 }
@@ -1811,6 +1838,19 @@ List<WorldGenerationComputeTicket> WorldGenerationComputeService::listPendingOpe
   List<WorldGenerationComputeTicket> out;
   for (auto const& pair : m_entries) {
     if (pair.second.state != EntryState::Pending)
+      continue;
+    WorldGenerationComputeTicket ticket;
+    ticket.id = pair.first;
+    out.append(ticket);
+  }
+  return out;
+}
+
+List<WorldGenerationComputeTicket> WorldGenerationComputeService::listReadyOpenTickets() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  List<WorldGenerationComputeTicket> out;
+  for (auto const& pair : m_entries) {
+    if (pair.second.state != EntryState::Ready)
       continue;
     WorldGenerationComputeTicket ticket;
     ticket.id = pair.first;

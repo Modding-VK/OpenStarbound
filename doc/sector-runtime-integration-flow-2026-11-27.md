@@ -767,3 +767,7 @@ integração: **nenhum**.
 - INT tip `d8ce2438` (H4 `8e48af1c` 136/136). Ahead: H0–H4/R1/R2/H3=0; H5=`24bdb5e6` ahead=1 (scale metrics bridge — só anotar, sem ready).
 - Build `46075958751` in_progress @ `a4a84b28` intacto; 1 Build tip final após terminal; sem spam/dispatch nesta revisão.
 - Sem PRs abertos na base INT. Desktop bootstrap: ausente. Sem merge main; sem editar frentes.
+
+## Revisão 2026-11-27T22:34Z
+- Merge H4 `3289c13d` (HalfKeepEvenBits/HalfSwapAdjacentBits/HalfCompressOddBits + listReadyOpenTickets; 138/138).
+- Build `46075958751` @ `a4a84b28` intacto; 1 Build tip final após terminal; sem spam.
