@@ -697,3 +697,8 @@ integração: **nenhum**.
 - Merge H4 `e9aadc63` (HalfIsDivisible/HalfGcd/HalfSelect + anyFailedOpenKernels; 112/112).
 - Build `46067036173` @ `2d4b047f` intacto; 1 Build tip final após terminal; sem spam.
 - Conflito só `progress.md`; reconciliado.
+
+## Revisão 2026-11-27T21:07Z
+- Merge H4 `ca61eb1f` (HalfLcm/HalfCoprime/HalfAlignUp + listCancelledOpenKernels; 114/114).
+- Build `46067036173` @ `2d4b047f` intacto; 1 Build tip final após terminal; sem spam.
+- Conflito só `progress.md`; reconciliado.

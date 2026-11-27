@@ -183,7 +183,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfCeilDiv
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfIsDivisible
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfGcd
-      || kernel == WorldGenerationComputeKernel::DenseUint32HalfSelect;
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfSelect
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfLcm
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfCoprime
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfAlignUp;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -330,7 +333,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32HalfCeilDiv,
       WorldGenerationComputeKernel::DenseUint32HalfIsDivisible,
       WorldGenerationComputeKernel::DenseUint32HalfGcd,
-      WorldGenerationComputeKernel::DenseUint32HalfSelect};
+      WorldGenerationComputeKernel::DenseUint32HalfSelect,
+      WorldGenerationComputeKernel::DenseUint32HalfLcm,
+      WorldGenerationComputeKernel::DenseUint32HalfCoprime,
+      WorldGenerationComputeKernel::DenseUint32HalfAlignUp};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -340,7 +346,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 139u;
+  return 142u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -501,6 +507,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32HalfIsDivisible: return "DenseUint32HalfIsDivisible";
     case WorldGenerationComputeKernel::DenseUint32HalfGcd: return "DenseUint32HalfGcd";
     case WorldGenerationComputeKernel::DenseUint32HalfSelect: return "DenseUint32HalfSelect";
+    case WorldGenerationComputeKernel::DenseUint32HalfLcm: return "DenseUint32HalfLcm";
+    case WorldGenerationComputeKernel::DenseUint32HalfCoprime: return "DenseUint32HalfCoprime";
+    case WorldGenerationComputeKernel::DenseUint32HalfAlignUp: return "DenseUint32HalfAlignUp";
   }
   return nullptr;
 }
@@ -1418,6 +1427,40 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
       uint32_t hi = value >> 16;
       out.append((parameter & 1u) ? hi : lo);
     }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfLcm) {
+    for (uint32_t value : input) {
+      uint32_t a = value & 0xffffu;
+      uint32_t b = value >> 16;
+      if (a == 0u || b == 0u) {
+        out.append(0u);
+        continue;
+      }
+      uint32_t x = a;
+      uint32_t y = b;
+      while (y != 0u) {
+        uint32_t t = x % y;
+        x = y;
+        y = t;
+      }
+      out.append((a / x) * b);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfCoprime) {
+    for (uint32_t value : input) {
+      uint32_t a = value & 0xffffu;
+      uint32_t b = value >> 16;
+      while (b != 0u) {
+        uint32_t t = a % b;
+        a = b;
+        b = t;
+      }
+      out.append(a == 1u ? 0xffffffffu : 0u);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfAlignUp) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t hi = value >> 16;
+      out.append(hi == 0u ? lo : ((lo + hi - 1u) / hi) * hi);
+    }
   }
   return out;
 }
@@ -1588,6 +1631,22 @@ bool WorldGenerationComputeService::anyFailedOpenKernels() const {
       return true;
   }
   return false;
+}
+
+List<WorldGenerationComputeKernel> WorldGenerationComputeService::listCancelledOpenKernels() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  List<WorldGenerationComputeKernel> out;
+  std::unordered_set<uint8_t> seen;
+  for (auto const& pair : m_entries) {
+    if (pair.second.state != EntryState::Cancelled)
+      continue;
+    auto kernel = pair.second.identity.kernel;
+    uint8_t key = (uint8_t)kernel;
+    if (!seen.insert(key).second)
+      continue;
+    out.append(kernel);
+  }
+  return out;
 }
 
 List<WorldGenerationComputeTicket> WorldGenerationComputeService::listOpenTicketsByKernel(
