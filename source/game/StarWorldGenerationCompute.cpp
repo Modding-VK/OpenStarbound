@@ -1156,6 +1156,20 @@ size_t WorldGenerationComputeService::inFlightByKernel(WorldGenerationComputeKer
   return count;
 }
 
+List<WorldGenerationComputeTicket> WorldGenerationComputeService::listInFlightByKernel(
+    WorldGenerationComputeKernel kernel) const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  List<WorldGenerationComputeTicket> out;
+  for (auto const& pair : m_entries) {
+    if (pair.second.state != EntryState::Pending || pair.second.identity.kernel != kernel)
+      continue;
+    WorldGenerationComputeTicket ticket;
+    ticket.id = pair.first;
+    out.append(ticket);
+  }
+  return out;
+}
+
 size_t WorldGenerationComputeService::readyOpenTicketsByKernel(
     WorldGenerationComputeKernel kernel) const {
   std::lock_guard<std::mutex> lock(m_mutex);

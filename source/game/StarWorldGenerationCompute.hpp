@@ -271,6 +271,9 @@ public:
   size_t inFlight() const;
   // Pending tickets whose identity.kernel matches (asset-free observation).
   size_t inFlightByKernel(WorldGenerationComputeKernel kernel) const;
+  // Pending open tickets whose identity.kernel matches (asset-free observation).
+  List<WorldGenerationComputeTicket> listInFlightByKernel(
+      WorldGenerationComputeKernel kernel) const;
   // Ready open tickets whose identity.kernel matches (asset-free observation).
   size_t readyOpenTicketsByKernel(WorldGenerationComputeKernel kernel) const;
   // Cancelled open tickets whose identity.kernel matches (asset-free observation).
