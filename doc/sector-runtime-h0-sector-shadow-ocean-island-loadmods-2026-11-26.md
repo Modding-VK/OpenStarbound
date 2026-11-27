@@ -21,4 +21,6 @@ ASan/UBSan: 1×5; **97/97** RealBlockInfo.
 
 ## Próximo passo
 
-Noise/adjacente sob assets; demais gates H0. Não disparar Actions.
+Noise assets em
+[noise assets](sector-runtime-h0-sector-shadow-noise-assets-2026-11-26.md).
+Segue adjacente sob assets. Não disparar Actions.
