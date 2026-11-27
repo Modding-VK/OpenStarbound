@@ -238,6 +238,9 @@ GLuint g_halfKeepOddBitsProgram = 0;
 GLuint g_halfKeepEvenBitsProgram = 0;
 GLuint g_halfSwapAdjacentBitsProgram = 0;
 GLuint g_halfCompressOddBitsProgram = 0;
+GLuint g_halfCompressEvenBitsProgram = 0;
+GLuint g_halfExpandLow8ToOddProgram = 0;
+GLuint g_halfExpandLow8ToEvenProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -3120,6 +3123,60 @@ void main() {
 }
 )GLSL";
 
+char const* HalfCompressEvenBitsShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint x = ((values[i] & 0xffffu) >> 1) & 0x5555u;
+  x = (x | (x >> 1)) & 0x3333u;
+  x = (x | (x >> 2)) & 0x0f0fu;
+  x = (x | (x >> 4)) & 0x00ffu;
+  values[i] = x;
+}
+)GLSL";
+
+char const* HalfExpandLow8ToOddShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint x = values[i] & 0xffu;
+  x = (x | (x << 4)) & 0x0f0fu;
+  x = (x | (x << 2)) & 0x3333u;
+  x = (x | (x << 1)) & 0x5555u;
+  values[i] = x;
+}
+)GLSL";
+
+char const* HalfExpandLow8ToEvenShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint x = values[i] & 0xffu;
+  x = (x | (x << 4)) & 0x0f0fu;
+  x = (x | (x << 2)) & 0x3333u;
+  x = (x | (x << 1)) & 0x5555u;
+  values[i] = (x << 1) & 0xffffu;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -3880,6 +3937,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfCompressOddBitsProgram);
     g_halfCompressOddBitsProgram = 0;
   }
+  if (g_halfCompressEvenBitsProgram) {
+    glDeleteProgram(g_halfCompressEvenBitsProgram);
+    g_halfCompressEvenBitsProgram = 0;
+  }
+  if (g_halfExpandLow8ToOddProgram) {
+    glDeleteProgram(g_halfExpandLow8ToOddProgram);
+    g_halfExpandLow8ToOddProgram = 0;
+  }
+  if (g_halfExpandLow8ToEvenProgram) {
+    glDeleteProgram(g_halfExpandLow8ToEvenProgram);
+    g_halfExpandLow8ToEvenProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -4162,7 +4231,13 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfSwapAdjacentBitsProgram, HalfSwapAdjacentBitsShader,
             "DenseUint32HalfSwapAdjacentBits")
       || !requireProgram(g_halfCompressOddBitsProgram, HalfCompressOddBitsShader,
-            "DenseUint32HalfCompressOddBits"))
+            "DenseUint32HalfCompressOddBits")
+      || !requireProgram(g_halfCompressEvenBitsProgram, HalfCompressEvenBitsShader,
+            "DenseUint32HalfCompressEvenBits")
+      || !requireProgram(g_halfExpandLow8ToOddProgram, HalfExpandLow8ToOddShader,
+            "DenseUint32HalfExpandLow8ToOdd")
+      || !requireProgram(g_halfExpandLow8ToEvenProgram, HalfExpandLow8ToEvenShader,
+            "DenseUint32HalfExpandLow8ToEven"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -4583,6 +4658,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfSwapAdjacentBitsProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfCompressOddBits)
     program = g_halfCompressOddBitsProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfCompressEvenBits)
+    program = g_halfCompressEvenBitsProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfExpandLow8ToOdd)
+    program = g_halfExpandLow8ToOddProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfExpandLow8ToEven)
+    program = g_halfExpandLow8ToEvenProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
