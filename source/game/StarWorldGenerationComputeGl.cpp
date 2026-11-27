@@ -241,6 +241,9 @@ GLuint g_halfCompressOddBitsProgram = 0;
 GLuint g_halfCompressEvenBitsProgram = 0;
 GLuint g_halfExpandLow8ToOddProgram = 0;
 GLuint g_halfExpandLow8ToEvenProgram = 0;
+GLuint g_halfInterleaveBytesProgram = 0;
+GLuint g_halfDeinterleaveBytesProgram = 0;
+GLuint g_halfSwapBytesProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -3177,6 +3180,65 @@ void main() {
 }
 )GLSL";
 
+char const* HalfInterleaveBytesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+uint expandOdd8(uint x) {
+  x &= 0xffu;
+  x = (x | (x << 4)) & 0x0f0fu;
+  x = (x | (x << 2)) & 0x3333u;
+  x = (x | (x << 1)) & 0x5555u;
+  return x;
+}
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  values[i] = ((expandOdd8(lo >> 8) << 1) | expandOdd8(lo)) & 0xffffu;
+}
+)GLSL";
+
+char const* HalfDeinterleaveBytesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+uint compressOdd16(uint x) {
+  x &= 0x5555u;
+  x = (x | (x >> 1)) & 0x3333u;
+  x = (x | (x >> 2)) & 0x0f0fu;
+  x = (x | (x >> 4)) & 0x00ffu;
+  return x;
+}
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  values[i] = ((compressOdd16(lo >> 1) << 8) | compressOdd16(lo)) & 0xffffu;
+}
+)GLSL";
+
+char const* HalfSwapBytesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  values[i] = (((lo & 0xffu) << 8) | ((lo >> 8) & 0xffu)) & 0xffffu;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -3949,6 +4011,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfExpandLow8ToEvenProgram);
     g_halfExpandLow8ToEvenProgram = 0;
   }
+  if (g_halfInterleaveBytesProgram) {
+    glDeleteProgram(g_halfInterleaveBytesProgram);
+    g_halfInterleaveBytesProgram = 0;
+  }
+  if (g_halfDeinterleaveBytesProgram) {
+    glDeleteProgram(g_halfDeinterleaveBytesProgram);
+    g_halfDeinterleaveBytesProgram = 0;
+  }
+  if (g_halfSwapBytesProgram) {
+    glDeleteProgram(g_halfSwapBytesProgram);
+    g_halfSwapBytesProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -4237,7 +4311,12 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfExpandLow8ToOddProgram, HalfExpandLow8ToOddShader,
             "DenseUint32HalfExpandLow8ToOdd")
       || !requireProgram(g_halfExpandLow8ToEvenProgram, HalfExpandLow8ToEvenShader,
-            "DenseUint32HalfExpandLow8ToEven"))
+            "DenseUint32HalfExpandLow8ToEven")
+      || !requireProgram(g_halfInterleaveBytesProgram, HalfInterleaveBytesShader,
+            "DenseUint32HalfInterleaveBytes")
+      || !requireProgram(g_halfDeinterleaveBytesProgram, HalfDeinterleaveBytesShader,
+            "DenseUint32HalfDeinterleaveBytes")
+      || !requireProgram(g_halfSwapBytesProgram, HalfSwapBytesShader, "DenseUint32HalfSwapBytes"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -4664,6 +4743,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfExpandLow8ToOddProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfExpandLow8ToEven)
     program = g_halfExpandLow8ToEvenProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfInterleaveBytes)
+    program = g_halfInterleaveBytesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfDeinterleaveBytes)
+    program = g_halfDeinterleaveBytesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSwapBytes)
+    program = g_halfSwapBytesProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))

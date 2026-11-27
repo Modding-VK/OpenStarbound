@@ -225,7 +225,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfCompressOddBits
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfCompressEvenBits
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfExpandLow8ToOdd
-      || kernel == WorldGenerationComputeKernel::DenseUint32HalfExpandLow8ToEven;
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfExpandLow8ToEven
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfInterleaveBytes
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfDeinterleaveBytes
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfSwapBytes;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -414,7 +417,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32HalfCompressOddBits,
       WorldGenerationComputeKernel::DenseUint32HalfCompressEvenBits,
       WorldGenerationComputeKernel::DenseUint32HalfExpandLow8ToOdd,
-      WorldGenerationComputeKernel::DenseUint32HalfExpandLow8ToEven};
+      WorldGenerationComputeKernel::DenseUint32HalfExpandLow8ToEven,
+      WorldGenerationComputeKernel::DenseUint32HalfInterleaveBytes,
+      WorldGenerationComputeKernel::DenseUint32HalfDeinterleaveBytes,
+      WorldGenerationComputeKernel::DenseUint32HalfSwapBytes};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -424,7 +430,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 181u;
+  return 184u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -627,6 +633,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32HalfCompressEvenBits: return "DenseUint32HalfCompressEvenBits";
     case WorldGenerationComputeKernel::DenseUint32HalfExpandLow8ToOdd: return "DenseUint32HalfExpandLow8ToOdd";
     case WorldGenerationComputeKernel::DenseUint32HalfExpandLow8ToEven: return "DenseUint32HalfExpandLow8ToEven";
+    case WorldGenerationComputeKernel::DenseUint32HalfInterleaveBytes: return "DenseUint32HalfInterleaveBytes";
+    case WorldGenerationComputeKernel::DenseUint32HalfDeinterleaveBytes: return "DenseUint32HalfDeinterleaveBytes";
+    case WorldGenerationComputeKernel::DenseUint32HalfSwapBytes: return "DenseUint32HalfSwapBytes";
   }
   return nullptr;
 }
@@ -1793,6 +1802,39 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
       x = (x | (x << 1)) & 0x5555u;
       out.append((x << 1) & 0xffffu);
     }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfInterleaveBytes) {
+    for (uint32_t value : input) {
+      auto expandOdd8 = [](uint32_t x) {
+        x &= 0xffu;
+        x = (x | (x << 4)) & 0x0f0fu;
+        x = (x | (x << 2)) & 0x3333u;
+        x = (x | (x << 1)) & 0x5555u;
+        return x;
+      };
+      uint32_t lo = value & 0xffffu;
+      uint32_t odd = expandOdd8(lo);
+      uint32_t even = expandOdd8(lo >> 8);
+      out.append(((even << 1) | odd) & 0xffffu);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfDeinterleaveBytes) {
+    for (uint32_t value : input) {
+      auto compressOdd16 = [](uint32_t x) {
+        x &= 0x5555u;
+        x = (x | (x >> 1)) & 0x3333u;
+        x = (x | (x >> 2)) & 0x0f0fu;
+        x = (x | (x >> 4)) & 0x00ffu;
+        return x;
+      };
+      uint32_t lo = value & 0xffffu;
+      uint32_t odd = compressOdd16(lo);
+      uint32_t even = compressOdd16(lo >> 1);
+      out.append(((even << 8) | odd) & 0xffffu);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSwapBytes) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      out.append((((lo & 0xffu) << 8) | ((lo >> 8) & 0xffu)) & 0xffffu);
+    }
   }
   return out;
 }
@@ -2072,6 +2114,15 @@ size_t WorldGenerationComputeService::countReadyOpenTickets() const {
       ++count;
   }
   return count;
+}
+
+bool WorldGenerationComputeService::anyReadyOpenTickets() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  for (auto const& pair : m_entries) {
+    if (pair.second.state == EntryState::Ready)
+      return true;
+  }
+  return false;
 }
 
 bool WorldGenerationComputeService::anyPendingOpenKernels() const {
