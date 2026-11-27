@@ -181,13 +181,10 @@ ordem acima. Antes do merge H1/H2/H5, decidir ownership único de
 - Merge `--no-ff` H0 `d6a6419a` → integração **`d87516d0`** (autorizado pelo Project)
 - Só `cursor/integration-sector-runtime-7342`; não `main`
 
-## Plano de merge H1 (27/11/2026 ~01:43 UTC)
+## Plano de merge H1 (27/11/2026 ~01:43 UTC) — **FEITO**
 
-- Head H1: `7ed91dec` (front-status: `standby`) → base integração `d87516d0`
-- Compare:
-  https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/h1-graph-cpu-9f77?expand=1
-- Preview pós-H0: **conflitos** em `README.md`, `checklist`, `progress.md`; CMake OK; abortado
-- Escopo: 7 commits / 33 files (Executive* + PreparedSector + ResourceGovernor)
-- Ação pendente: autorização explícita; ao mergear, reconciliar os 3 docs e tratar
-  PreparedSector/ResourceGovernor de H1 como canônicos da integração (H2/H5 rebaseiam)
+- Merge `--no-ff` H1 `7ed91dec` → tip integração **`b43fc767`**
+- Conflitos resolvidos (unificado H0+H1): `README.md`,
+  `doc/regional-runtime-execution-checklist.md`, `doc/sector-runtime/progress.md`
+- CMake auto-merge limpo; PreparedSector/ResourceGovernor de H1 canônicos na integração
 - Store: `internal/h1-merge-plan-2026-11-27.md`
