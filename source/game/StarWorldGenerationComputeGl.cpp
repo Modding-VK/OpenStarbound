@@ -68,6 +68,8 @@ GLuint g_mulProgram = 0;
 GLuint g_minProgram = 0;
 GLuint g_maxProgram = 0;
 GLuint g_subProgram = 0;
+GLuint g_shlProgram = 0;
+GLuint g_shrProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -187,6 +189,34 @@ void main() {
 }
 )GLSL";
 
+char const* ShlShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = values[i] << (uParameter & 31u);
+}
+)GLSL";
+
+char const* ShrShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = values[i] >> (uParameter & 31u);
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -266,6 +296,14 @@ void destroyContextUnlocked() {
   if (g_subProgram) {
     glDeleteProgram(g_subProgram);
     g_subProgram = 0;
+  }
+  if (g_shlProgram) {
+    glDeleteProgram(g_shlProgram);
+    g_shlProgram = 0;
+  }
+  if (g_shrProgram) {
+    glDeleteProgram(g_shrProgram);
+    g_shrProgram = 0;
   }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
@@ -361,7 +399,9 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_mulProgram, MulShader, "DenseUint32Mul")
       || !requireProgram(g_minProgram, MinShader, "DenseUint32Min")
       || !requireProgram(g_maxProgram, MaxShader, "DenseUint32Max")
-      || !requireProgram(g_subProgram, SubShader, "DenseUint32Sub"))
+      || !requireProgram(g_subProgram, SubShader, "DenseUint32Sub")
+      || !requireProgram(g_shlProgram, ShlShader, "DenseUint32Shl")
+      || !requireProgram(g_shrProgram, ShrShader, "DenseUint32Shr"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -442,6 +482,10 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_maxProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32Sub)
     program = g_subProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Shl)
+    program = g_shlProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Shr)
+    program = g_shrProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))

@@ -31,7 +31,9 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32Mul = 5, // wrapping uint32 multiply
   DenseUint32Min = 6,
   DenseUint32Max = 7,
-  DenseUint32Sub = 8 // wrapping uint32 subtract (value - parameter)
+  DenseUint32Sub = 8, // wrapping uint32 subtract (value - parameter)
+  DenseUint32Shl = 9, // value << (parameter & 31)
+  DenseUint32Shr = 10 // logical value >> (parameter & 31)
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -266,6 +268,22 @@ public:
 
   static List<uint32_t> runKernel(WorldGenerationComputeKernel kernel, uint32_t kernelVersion,
       List<uint32_t> const& input, uint32_t parameter);
+
+  // GPU-01 capability catalog (asset-free): kernels accepted at a version.
+  static bool isKernelSupported(WorldGenerationComputeKernel kernel,
+      uint32_t kernelVersion = 1u) noexcept;
+  static List<WorldGenerationComputeKernel> supportedKernels(uint32_t kernelVersion = 1u);
+
+  struct ShadowBatchItem {
+    WorldGenerationComputeInputIdentity identity;
+    uint32_t parameter = 0;
+  };
+
+  // GPU-04: shadow many kernels against the same immutable input corpus.
+  List<WorldGenerationComputeShadowReport> compareShadowBatch(List<uint32_t> const& input,
+      List<ShadowBatchItem> items,
+      WorldGenerationComputeBackend primary = WorldGenerationComputeBackend::CpuReference,
+      WorldGenerationComputeBackend shadow = WorldGenerationComputeBackend::CpuReference);
 
 private:
   enum class EntryState : uint8_t { Pending, Ready, Failed, Cancelled };
