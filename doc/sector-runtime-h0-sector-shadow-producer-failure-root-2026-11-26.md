@@ -19,4 +19,6 @@ ASan/UBSan: 1×5; **75/75** RealBlockInfo.
 
 ## Próximo passo
 
-Gates H0 restantes antes de H1. Não disparar Actions.
+loadMods+reload em
+[loadMods+reload sob sombra](sector-runtime-h0-sector-shadow-loadmods-reload-2026-11-26.md).
+Segue gates H0 antes de H1. Não disparar Actions.
