@@ -27,5 +27,6 @@ ASan/UBSan: 1×5; **115/115** RealBlockInfo.
 
 ## Próximo passo
 
-Gates H0 restantes (pressão/admissão em variantes, setor vertical, VAL-02
-além de BaseTiles). Não disparar Actions.
+Setor vertical em
+[vertical adjacent](sector-runtime-h0-sector-shadow-vertical-adjacent-2026-11-27.md).
+Segue diagonal `{1,1}` / VAL-02. Não disparar Actions.
