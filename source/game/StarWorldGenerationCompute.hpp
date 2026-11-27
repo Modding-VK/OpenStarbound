@@ -247,6 +247,9 @@ public:
   // (owner-thread). Returns how many tickets were drained.
   size_t drainOpenTickets();
 
+  // GPU-02: drain only open tickets whose identity.kernel matches (owner-thread).
+  size_t drainOpenTicketsByKernel(WorldGenerationComputeKernel kernel);
+
   // GPU-02 accounting for RAM-01 consumers (asset-free observation only).
   WorldGenerationComputeStagingSnapshot stagingSnapshot() const;
   void resetPeakStagingBytes() noexcept;
