@@ -484,6 +484,53 @@ bool WorldGenerationComputeService::cancel(WorldGenerationComputeTicket ticket) 
   return true;
 }
 
+List<bool> WorldGenerationComputeService::cancelBatch(List<WorldGenerationComputeTicket> tickets) {
+  List<bool> out;
+  out.reserve(tickets.size());
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked()) {
+    for (size_t i = 0; i < tickets.size(); ++i)
+      out.append(false);
+    return out;
+  }
+  for (auto ticket : tickets) {
+    auto it = m_entries.find(ticket.id);
+    if (it == m_entries.end()) {
+      out.append(false);
+      continue;
+    }
+    it->second.publicationRevoked = true;
+    if (it->second.state == EntryState::Pending || it->second.state == EntryState::Ready) {
+      it->second.state = EntryState::Cancelled;
+      it->second.output.clear();
+    }
+    out.append(true);
+  }
+  return out;
+}
+
+List<WorldGenerationComputePollStatus> WorldGenerationComputeService::pollBatch(
+    List<WorldGenerationComputeTicket> tickets, List<WorldGenerationComputeResult>* outs) {
+  List<WorldGenerationComputePollStatus> statuses;
+  statuses.reserve(tickets.size());
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if (outs)
+    outs->resize(tickets.size());
+  if (!ownerAllowsLocked()) {
+    for (size_t i = 0; i < tickets.size(); ++i) {
+      statuses.append(WorldGenerationComputePollStatus::UnknownTicket);
+      if (outs)
+        (*outs)[i] = WorldGenerationComputeResult{};
+    }
+    return statuses;
+  }
+  for (size_t i = 0; i < tickets.size(); ++i) {
+    WorldGenerationComputeResult* slot = outs ? &(*outs)[i] : nullptr;
+    statuses.append(pollLocked(tickets[i], slot));
+  }
+  return statuses;
+}
+
 size_t WorldGenerationComputeService::failContext() {
   std::lock_guard<std::mutex> lock(m_mutex);
   if (!ownerAllowsLocked())

@@ -517,6 +517,43 @@ TEST(WorldGenerationComputeTest, CompareShadowBatchRunsIndependentKernels) {
   }
 }
 
+TEST(WorldGenerationComputeTest, CancelAndPollBatchAreIndependent) {
+  WorldGenerationComputeCapabilities caps;
+  caps.maxInFlight = 4;
+  WorldGenerationComputeService service(caps);
+  service.setDeferredCpuCompletion(true);
+
+  List<WorldGenerationComputeTicket> tickets;
+  for (uint64_t i = 0; i < 3; ++i) {
+    auto ticket = service.submit(makeIdentity(200 + i), List<uint32_t>{(uint32_t)i}, 1u);
+    ASSERT_TRUE((bool)ticket);
+    tickets.append(*ticket);
+  }
+
+  auto cancels = service.cancelBatch(List<WorldGenerationComputeTicket>{tickets[0], tickets[1],
+      WorldGenerationComputeTicket{999999}});
+  ASSERT_EQ(3u, cancels.size());
+  EXPECT_TRUE(cancels[0]);
+  EXPECT_TRUE(cancels[1]);
+  EXPECT_FALSE(cancels[2]);
+
+  List<WorldGenerationComputeResult> outs;
+  auto statuses = service.pollBatch(tickets, &outs);
+  ASSERT_EQ(3u, statuses.size());
+  ASSERT_EQ(3u, outs.size());
+  EXPECT_EQ(WorldGenerationComputePollStatus::Cancelled, statuses[0]);
+  EXPECT_EQ(WorldGenerationComputePollStatus::Cancelled, statuses[1]);
+  EXPECT_EQ(WorldGenerationComputePollStatus::Pending, statuses[2]);
+
+  EXPECT_EQ(1u, service.pump());
+  statuses = service.pollBatch(List<WorldGenerationComputeTicket>{tickets[2]}, &outs);
+  ASSERT_EQ(1u, statuses.size());
+  EXPECT_EQ(WorldGenerationComputePollStatus::Ready, statuses[0]);
+  ASSERT_EQ(1u, outs.size());
+  ASSERT_EQ(1u, outs[0].values.size());
+  EXPECT_EQ(2u ^ 1u, outs[0].values[0]);
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32RotlRotrNotExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();

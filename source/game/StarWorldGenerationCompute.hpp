@@ -219,6 +219,15 @@ public:
 
   bool cancel(WorldGenerationComputeTicket ticket);
 
+  // GPU-02: cancel many tickets; each result is independent (true if that id
+  // was open and revoked on the owner thread).
+  List<bool> cancelBatch(List<WorldGenerationComputeTicket> tickets);
+
+  // GPU-02: poll many tickets; each status/result is independent. When outs is
+  // non-null it is resized to tickets.size(); Ready slots fill values.
+  List<WorldGenerationComputePollStatus> pollBatch(List<WorldGenerationComputeTicket> tickets,
+      List<WorldGenerationComputeResult>* outs = nullptr);
+
   // Context/driver failure (GPU-02): recalculate open tickets on the CPU
   // reference path, then reject later duplicate polls for those ids (late GPU
   // results must not publish). Returns the number of open tickets affected.
