@@ -112,6 +112,9 @@ GLuint g_bitToggleProgram = 0;
 GLuint g_negProgram = 0;
 GLuint g_absProgram = 0;
 GLuint g_rolBytesProgram = 0;
+GLuint g_rorBytesProgram = 0;
+GLuint g_signMaskProgram = 0;
+GLuint g_isZeroProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -889,6 +892,50 @@ void main() {
 }
 )GLSL";
 
+char const* RorBytesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint shift = (uParameter & 3u) * 8u;
+  uint v = values[i];
+  values[i] = shift == 0u ? v : ((v >> shift) | (v << (32u - shift)));
+}
+)GLSL";
+
+char const* SignMaskShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = (values[i] & 0x80000000u) != 0u ? 0xffffffffu : 0u;
+}
+)GLSL";
+
+char const* IsZeroShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = values[i] == 0u ? 0xffffffffu : 0u;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -1145,6 +1192,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_rolBytesProgram);
     g_rolBytesProgram = 0;
   }
+  if (g_rorBytesProgram) {
+    glDeleteProgram(g_rorBytesProgram);
+    g_rorBytesProgram = 0;
+  }
+  if (g_signMaskProgram) {
+    glDeleteProgram(g_signMaskProgram);
+    g_signMaskProgram = 0;
+  }
+  if (g_isZeroProgram) {
+    glDeleteProgram(g_isZeroProgram);
+    g_isZeroProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -1283,7 +1342,10 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_bitToggleProgram, BitToggleShader, "DenseUint32BitToggle")
       || !requireProgram(g_negProgram, NegShader, "DenseUint32Neg")
       || !requireProgram(g_absProgram, AbsShader, "DenseUint32Abs")
-      || !requireProgram(g_rolBytesProgram, RolBytesShader, "DenseUint32RolBytes"))
+      || !requireProgram(g_rolBytesProgram, RolBytesShader, "DenseUint32RolBytes")
+      || !requireProgram(g_rorBytesProgram, RorBytesShader, "DenseUint32RorBytes")
+      || !requireProgram(g_signMaskProgram, SignMaskShader, "DenseUint32SignMask")
+      || !requireProgram(g_isZeroProgram, IsZeroShader, "DenseUint32IsZero"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -1452,6 +1514,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_absProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32RolBytes)
     program = g_rolBytesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32RorBytes)
+    program = g_rorBytesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32SignMask)
+    program = g_signMaskProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32IsZero)
+    program = g_isZeroProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
