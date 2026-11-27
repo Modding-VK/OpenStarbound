@@ -21,4 +21,6 @@ ASan/UBSan: 1×5; **101/101** RealBlockInfo.
 
 ## Próximo passo
 
-Gates H0 restantes antes de H1. Não disparar Actions.
+Stale oceano/Island em
+[ocean-island stale](sector-runtime-h0-sector-shadow-ocean-island-stale-2026-11-26.md).
+Segue gates H0 restantes. Não disparar Actions.

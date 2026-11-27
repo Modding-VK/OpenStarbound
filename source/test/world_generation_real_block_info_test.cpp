@@ -3292,6 +3292,132 @@ TEST_F(WorldGenerationRealBlockInfoTest, SectorShadowDiscardsWhenTemplateRevisio
   EXPECT_EQ(revision, context->baseTilesIdentity().templateRevision);
 }
 
+TEST_F(WorldGenerationRealBlockInfoTest, OceanSectorShadowDiscardsWhenTemplateRevisionGoesStale) {
+  writeTerrestrialAssets();
+  auto r = root();
+  TerrestrialWorldParameters params{};
+  setupTerrestrial(params, true);
+  auto first = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto second = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto world = planet(first);
+  auto revision = world->generationRevision();
+
+  WorldGenerationSelectorContextIdentity selectors;
+  selectors.worldEpoch = 1;
+  selectors.sequence = 1;
+  selectors.templateRevision = revision;
+  selectors.worldWidth = 64;
+  selectors.baseHeight = 16;
+  selectors.regionSeed = 42;
+
+  WorldGenerationBaseTilesIdentity baseTiles;
+  baseTiles.task = {1, 1, {0, 0}, {0, 0}, WorldGenerationTaskStage::BaseTiles};
+  baseTiles.tileRevision = 1;
+  baseTiles.templateRevision = revision;
+  baseTiles.worldSize = {64, 64};
+  baseTiles.tileRegion = RectI(0, 0, int(WorldSectorSize), int(WorldSectorSize));
+
+  Random::init(918);
+  auto context = WorldGenerationCompositeContext::tryCapture(ledger, selectors, baseTiles, *world);
+  ASSERT_TRUE(context.has_value());
+  auto beforeShadow = ledger.snapshot();
+  auto shadow = WorldGenerationSectorShadow::tryAdmit(ledger, *context);
+  ASSERT_TRUE(shadow.has_value());
+
+  RealSource candidate{context->staticInputs(), second};
+  auto materials = Root::singleton().materialDatabase();
+  WorldGenerationLookupResolver resolver{*world, *materials};
+  auto expected = std::make_unique<ServerTileSectorArray::Array>();
+  size_t oceanTiles = 0;
+  for (int x = 0; x != 32; ++x) for (int y = 0; y != 32; ++y) {
+    auto normal = world->blockInfo(x, y), captured = candidate.sample(x, y);
+    EXPECT_EQ(fields(normal), fields(captured)) << x << ',' << y;
+    initialize((*expected)(x, y));
+    initialize(shadow->tiles()(x, y));
+    applyWorldGenerationBaseTile((*expected)(x, y), tileInput(normal, y), resolver);
+    applyWorldGenerationBaseTile(shadow->tiles()(x, y), tileInput(captured, y), resolver);
+    if (shadow->tiles()(x, y).liquid.liquid == LiquidId(3))
+      ++oceanTiles;
+  }
+  EXPECT_TRUE(compareWorldGenerationBaseTiles(*expected, shadow->tiles(), context->baseTilesIdentity()).equal());
+  EXPECT_GT(oceanTiles, 0u);
+  EXPECT_TRUE(shadow->matches(context->baseTilesIdentity()));
+
+  world->addCustomTerrainRegion(PolyF(RectF::withSize({8, 8}, {4, 4})));
+  EXPECT_NE(revision, world->generationRevision());
+  auto liveExpectation = context->baseTilesIdentity();
+  liveExpectation.templateRevision = world->generationRevision();
+  EXPECT_FALSE(shadow->matches(liveExpectation));
+  EXPECT_TRUE(shadow->active());
+  EXPECT_TRUE(compareWorldGenerationBaseTiles(*expected, shadow->tiles(), context->baseTilesIdentity()).equal());
+
+  shadow->discard();
+  EXPECT_FALSE(shadow->active());
+  EXPECT_EQ(beforeShadow.resources, ledger.snapshot().resources);
+  EXPECT_EQ(0u, context->staticInputs().customTerrainRegionCount());
+  EXPECT_EQ(revision, context->baseTilesIdentity().templateRevision);
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, IslandSurfaceSectorShadowDiscardsWhenTemplateRevisionGoesStale) {
+  auto r = root();
+  auto database = r->terrainDatabase();
+  auto liveLayout = Access::island(*database);
+  auto privateLayout = Access::island(*database);
+  auto world = planet(liveLayout);
+  auto revision = world->generationRevision();
+
+  WorldGenerationSelectorContextIdentity selectors;
+  selectors.worldEpoch = 1;
+  selectors.sequence = 1;
+  selectors.templateRevision = revision;
+  selectors.worldWidth = 64;
+  selectors.baseHeight = 16;
+  selectors.regionSeed = 42;
+
+  WorldGenerationBaseTilesIdentity baseTiles;
+  baseTiles.task = {1, 1, {0, 0}, {0, 0}, WorldGenerationTaskStage::BaseTiles};
+  baseTiles.tileRevision = 1;
+  baseTiles.templateRevision = revision;
+  baseTiles.worldSize = {64, 64};
+  baseTiles.tileRegion = RectI(0, 0, int(WorldSectorSize), int(WorldSectorSize));
+
+  Random::init(918);
+  auto context = WorldGenerationCompositeContext::tryCapture(ledger, selectors, baseTiles, *world);
+  ASSERT_TRUE(context.has_value());
+  auto beforeShadow = ledger.snapshot();
+  auto shadow = WorldGenerationSectorShadow::tryAdmit(ledger, *context);
+  ASSERT_TRUE(shadow.has_value());
+
+  RealSource candidate{context->staticInputs(), privateLayout};
+  auto materials = Root::singleton().materialDatabase();
+  WorldGenerationLookupResolver resolver{*world, *materials};
+  auto expected = std::make_unique<ServerTileSectorArray::Array>();
+  for (int x = 0; x != 32; ++x) for (int y = 0; y != 32; ++y) {
+    auto normal = world->blockInfo(x, y), captured = candidate.sample(x, y);
+    EXPECT_EQ(fields(normal), fields(captured)) << x << ',' << y;
+    initialize((*expected)(x, y));
+    initialize(shadow->tiles()(x, y));
+    applyWorldGenerationBaseTile((*expected)(x, y), tileInput(normal, y), resolver);
+    applyWorldGenerationBaseTile(shadow->tiles()(x, y), tileInput(captured, y), resolver);
+  }
+  EXPECT_TRUE(compareWorldGenerationBaseTiles(*expected, shadow->tiles(), context->baseTilesIdentity()).equal());
+  EXPECT_TRUE(shadow->matches(context->baseTilesIdentity()));
+
+  world->addCustomTerrainRegion(PolyF(RectF::withSize({8, 8}, {4, 4})));
+  EXPECT_NE(revision, world->generationRevision());
+  auto liveExpectation = context->baseTilesIdentity();
+  liveExpectation.templateRevision = world->generationRevision();
+  EXPECT_FALSE(shadow->matches(liveExpectation));
+  EXPECT_TRUE(shadow->active());
+  EXPECT_TRUE(compareWorldGenerationBaseTiles(*expected, shadow->tiles(), context->baseTilesIdentity()).equal());
+
+  shadow->discard();
+  EXPECT_FALSE(shadow->active());
+  EXPECT_EQ(beforeShadow.resources, ledger.snapshot().resources);
+  EXPECT_EQ(0u, context->staticInputs().customTerrainRegionCount());
+  EXPECT_EQ(revision, context->baseTilesIdentity().templateRevision);
+}
+
 TEST_F(WorldGenerationRealBlockInfoTest, SectorShadowProducesPrivateTerrestrialBaseTilesThenDiscards) {
   writeTerrestrialAssets();
   auto r = root();
