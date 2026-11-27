@@ -24,5 +24,5 @@ ASan/UBSan: 1×5; **72/72** RealBlockInfo.
 
 ## Próximo passo
 
-Continuar contexto profundo (mods/loadMods sob sombra) ou gates H0 antes de H1.
-Não disparar Actions.
+Feito em [sombra vs loadMods](sector-runtime-h0-sector-shadow-loadmods-2026-11-26.md).
+Segue gates H0 antes de H1. Não disparar Actions.

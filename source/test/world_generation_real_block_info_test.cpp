@@ -500,7 +500,7 @@ WorldGenerationBaseTileInput tileInput(WorldTemplate::BlockInfo const& b, int y)
 }
 class WorldGenerationRealBlockInfoTest : public testing::Test {
 protected:
-  Star::Test::GenerationTestDirectory source, storage;
+  Star::Test::GenerationTestDirectory source, storage, mods;
   WorldGenerationMemoryLedger ledger;
   Json config = JsonObject{{"customTerrainBlendSize", 4}, {"customTerrainBlendWeight", 32}, {"blockCacheSize", 16},
     {"biomeTransitionThreshold", 0.75}, {"surfaceCaveAttenuationDist", 0}, {"surfaceCaveAttenuationFactor", 1}};
@@ -536,6 +536,16 @@ protected:
     source.write("terrestrial_worlds.config", "{\"useSecondaryEnvironmentBiomeIndex\":false}");
     config = config.set("playerStartSearchYRange", 4);
     source.write("world_template.config", config.repr());
+  }
+  void prepareModOverride() {
+    auto overridePath = File::relativeTo(mods.path(), "override");
+    File::makeDirectory(overridePath);
+    File::writeFile(String("{\"name\":\"real-block-info-override\",\"priority\":10}"),
+        File::relativeTo(overridePath, "_metadata"));
+    File::writeFile(String("{\"marker\":9}"), File::relativeTo(overridePath, "probe.config"));
+    Json material = JsonObject{{"materialId", 21}, {"materialName", String("realfixture21")}, {"category", "fixture"},
+      {"supportsMods", false}, {"damageTable", JsonObject{{"damageFactors", JsonObject{{"blockish", 1}}}, {"damageRecovery", 1}}}};
+    File::writeFile(material.repr(), File::relativeTo(overridePath, "probe21.material"));
   }
   static void setupTerrestrial(TerrestrialWorldParameters& params, bool ocean = false) {
     params.worldSize = {64, 64}; params.primaryBiome = "fixture-biome";
@@ -1332,6 +1342,80 @@ TEST_F(WorldGenerationRealBlockInfoTest, CompositeContextStaticInputsMatchTerres
   world.reset();
   EXPECT_EQ(bits(0.75f), bits(context->configFloat("biomeTransitionThreshold", 0)));
   EXPECT_GT(context->customTerrainWeighting(4, 4).second, 0);
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, SectorShadowSurvivesLoadModsUntilOwnerDiscards) {
+  writeTerrestrialAssets();
+  source.write("probe.config", "{\"marker\":1}");
+  prepareModOverride();
+  auto r = root();
+  TerrestrialWorldParameters params{};
+  setupTerrestrial(params);
+  auto first = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto second = std::make_shared<WorldLayout>(WorldLayout::buildTerrestrialLayout(params, 42));
+  auto world = planet(first);
+  auto revision = world->generationRevision();
+  auto sources = r->worldGenerationLookupSources();
+  ASSERT_TRUE(sources.valid());
+  auto sourcesScope = sources.scope(1, revision);
+  ASSERT_TRUE(sourcesScope.has_value());
+  EXPECT_EQ(1u, r->assets()->json("/probe.config").getUInt("marker"));
+
+  WorldGenerationSelectorContextIdentity selectors;
+  selectors.worldEpoch = 1;
+  selectors.sequence = 1;
+  selectors.templateRevision = revision;
+  selectors.worldWidth = 64;
+  selectors.baseHeight = 16;
+  selectors.regionSeed = 42;
+
+  WorldGenerationBaseTilesIdentity baseTiles;
+  baseTiles.task = {1, 1, {0, 0}, {0, 0}, WorldGenerationTaskStage::BaseTiles};
+  baseTiles.tileRevision = 1;
+  baseTiles.templateRevision = revision;
+  baseTiles.worldSize = {64, 64};
+  baseTiles.tileRegion = RectI(0, 0, int(WorldSectorSize), int(WorldSectorSize));
+
+  Random::init(918);
+  auto context = WorldGenerationCompositeContext::tryCapture(ledger, selectors, baseTiles, *world);
+  ASSERT_TRUE(context.has_value());
+  auto beforeShadow = ledger.snapshot();
+  auto shadow = WorldGenerationSectorShadow::tryAdmit(ledger, *context);
+  ASSERT_TRUE(shadow.has_value());
+
+  RealSource candidate{context->staticInputs(), second};
+  auto materials = Root::singleton().materialDatabase();
+  WorldGenerationLookupResolver resolver{*world, *materials};
+  auto expected = std::make_unique<ServerTileSectorArray::Array>();
+  for (int x = 0; x != 32; ++x) for (int y = 0; y != 32; ++y) {
+    auto normal = world->blockInfo(x, y), captured = candidate.sample(x, y);
+    EXPECT_EQ(fields(normal), fields(captured)) << x << ',' << y;
+    initialize((*expected)(x, y));
+    initialize(shadow->tiles()(x, y));
+    applyWorldGenerationBaseTile((*expected)(x, y), tileInput(normal, y), resolver);
+    applyWorldGenerationBaseTile(shadow->tiles()(x, y), tileInput(captured, y), resolver);
+  }
+  EXPECT_TRUE(compareWorldGenerationBaseTiles(*expected, shadow->tiles(), context->baseTilesIdentity()).equal());
+
+  r->loadMods(StringList{mods.path()}, false);
+  EXPECT_FALSE(sources.valid());
+  auto deferred = r->worldGenerationLookupSources();
+  ASSERT_TRUE(deferred.valid());
+  auto deferredScope = deferred.scope(1, revision);
+  ASSERT_TRUE(deferredScope.has_value());
+  EXPECT_NE(deferredScope->sourceEpoch, sourcesScope->sourceEpoch);
+  EXPECT_EQ(deferred.assets(), sources.assets());
+  EXPECT_EQ(1u, r->assets()->json("/probe.config").getUInt("marker"));
+
+  EXPECT_TRUE(shadow->matches(context->baseTilesIdentity()));
+  EXPECT_TRUE(compareWorldGenerationBaseTiles(*expected, shadow->tiles(), context->baseTilesIdentity()).equal());
+  shadow->discard();
+  EXPECT_EQ(beforeShadow.resources, ledger.snapshot().resources);
+
+  r->reload();
+  auto applied = r->worldGenerationLookupSources();
+  ASSERT_TRUE(applied.valid());
+  EXPECT_EQ(9u, r->assets()->json("/probe.config").getUInt("marker"));
 }
 
 TEST_F(WorldGenerationRealBlockInfoTest, SectorShadowSurvivesAssetHotReloadUntilOwnerDiscards) {

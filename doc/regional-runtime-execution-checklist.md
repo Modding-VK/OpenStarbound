@@ -39,9 +39,9 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0. O relatório atual é
-[Sombra vs hotReload](sector-runtime-h0-sector-shadow-asset-hotreload-2026-11-26.md),
+[Sombra vs loadMods](sector-runtime-h0-sector-shadow-loadmods-2026-11-26.md),
 com antecedentes em
-[Handoffs concorrentes Root](sector-runtime-h0-sector-shadow-concurrent-handoff-root-2026-11-26.md),
+[Sombra vs hotReload](sector-runtime-h0-sector-shadow-asset-hotreload-2026-11-26.md),
 [Sombra por setor](sector-runtime-h0-sector-shadow-2026-11-26.md) e
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
