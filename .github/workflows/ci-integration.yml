@@ -59,6 +59,9 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      # linux-release enables jemalloc; its C++ new/delete collide with StarMemory
+      # on Linux GCC link (multiple definition). INT CI disables jemalloc only here;
+      # build.yml manual linux-release is unchanged.
       - name: Configure and Build (linux-release)
         uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10
         env:
@@ -67,6 +70,7 @@ jobs:
         with:
           cmakeListsTxtPath: '${{ github.workspace }}/source/CMakeLists.txt'
           configurePreset: 'linux-release'
+          configurePresetAdditionalArgs: "['-DSTAR_USE_JEMALLOC=OFF']"
           buildPreset: 'linux-release'
 
       - name: Run NoAssets Tests (linux-release)
