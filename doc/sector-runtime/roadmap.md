@@ -475,11 +475,11 @@ do kernel CPU e do resultado versionado.
   (primeiro recorte 25%: serviço + CPU reference; probe GL opt-in em
   `STAR_ENABLE_WORLDGEN_GL_COMPUTE`, evidência RTX pendente).
 - [x] GPU-02: fila/buffers em voo/pump/failContext no CPU
-  (primeiro recorte 25%; fence/SSBO no harness opt-in; thread WorldThread pendente).
+  (primeiro recorte 25%; failContext recalcula na CPU; thread WorldThread pendente).
 - [x] GPU-03: kernels exatos DenseUint32Xor/Add/And/Or/Mul + submitBatch
   (primeiro recorte 25%; shaders densos no opt-in; terreno/bioma/ganho pendentes).
-- [x] GPU-04: compareShadow + corpus de bordas
-  (primeiro recorte 25%; compareShadow GPU no harness opt-in; multi-driver pendente).
+- [x] GPU-04: compareShadow + corpus/reprodutor mínimo
+  (primeiro recorte 25%; shadowEdgeCorpus + ShadowReproducer; multi-driver pendente).
 
 Saída: equivalência e custo completo demonstrados, sem publicar divergências.
 A existência de shaders/uso de GPU no gráfico não conclui esta entrega.

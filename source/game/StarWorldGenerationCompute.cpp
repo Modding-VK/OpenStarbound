@@ -351,12 +351,69 @@ size_t WorldGenerationComputeService::failContext() {
   for (auto& pair : m_entries) {
     Entry& entry = pair.second;
     entry.contextFailed = true;
-    entry.publicationRevoked = true;
-    entry.state = EntryState::Cancelled;
-    entry.output.clear();
+    // GPU-02: recover by recomputing on the CPU reference; one poll may publish
+    // the recovered result, then the ticket id is rejected as a duplicate.
+    entry.publicationRevoked = false;
+    entry.backend = WorldGenerationComputeBackend::CpuReference;
+    if (supported(entry.identity.kernel, entry.identity.kernelVersion)) {
+      entry.output = runKernel(entry.identity.kernel, entry.identity.kernelVersion, entry.input,
+          entry.parameter);
+      entry.state = EntryState::Ready;
+    } else {
+      entry.output.clear();
+      entry.state = EntryState::Failed;
+    }
     ++affected;
   }
   return affected;
+}
+
+List<uint32_t> WorldGenerationComputeService::shadowEdgeCorpus() {
+  // Negative sector-ish coords as uint32 two's complement, wrap edges, and
+  // near-limit patterns — no world/assets required.
+  return List<uint32_t>{0u, 1u, 2u, 0xffffffffu /* -1 */, 0xffffffe0u /* -32 */,
+      0x80000000u, 0x7fffffffu, 0xfffffffeu, 0x80000001u, 0x55aa55aau, 0xa5a5a5a5u,
+      0x0000ffffu, 0xffff0000u};
+}
+
+WorldGenerationComputeShadowReport WorldGenerationComputeService::compareShadowBuffers(
+    WorldGenerationComputeInputIdentity identity, List<uint32_t> const& input, uint32_t parameter,
+    List<uint32_t> const& primaryValues, List<uint32_t> const& shadowValues,
+    WorldGenerationComputeBackend primary, WorldGenerationComputeBackend shadow) {
+  WorldGenerationComputeShadowReport report;
+  report.identity = identity;
+  report.parameter = parameter;
+  report.primaryBackend = primary;
+  report.shadowBackend = shadow;
+
+  size_t n = std::min(primaryValues.size(), shadowValues.size());
+  report.comparedValues = n;
+  for (size_t i = 0; i < n; ++i) {
+    if (primaryValues[i] != shadowValues[i]) {
+      if (!report.divergenceCount) {
+        report.firstDivergenceIndex = i;
+        report.primarySample = primaryValues[i];
+        report.shadowSample = shadowValues[i];
+        report.reproducer.valid = true;
+        report.reproducer.worldEpoch = identity.worldEpoch;
+        report.reproducer.sequence = identity.sequence;
+        report.reproducer.kernelVersion = identity.kernelVersion;
+        report.reproducer.kernel = identity.kernel;
+        report.reproducer.parameter = parameter;
+        report.reproducer.index = i;
+        report.reproducer.inputSample = i < input.size() ? input[i] : 0u;
+        report.reproducer.primarySample = primaryValues[i];
+        report.reproducer.shadowSample = shadowValues[i];
+      }
+      ++report.divergenceCount;
+    }
+  }
+  if (primaryValues.size() != shadowValues.size())
+    ++report.divergenceCount;
+  report.verdict = report.divergenceCount
+      ? WorldGenerationComputeShadowVerdict::Diverged
+      : WorldGenerationComputeShadowVerdict::Equal;
+  return report;
 }
 
 WorldGenerationComputeShadowReport WorldGenerationComputeService::compareShadow(
@@ -364,6 +421,7 @@ WorldGenerationComputeShadowReport WorldGenerationComputeService::compareShadow(
     WorldGenerationComputeBackend primary, WorldGenerationComputeBackend shadow) {
   WorldGenerationComputeShadowReport report;
   report.identity = identity;
+  report.parameter = parameter;
   report.primaryBackend = primary;
   report.shadowBackend = shadow;
   report.comparedValues = input.size();
@@ -380,25 +438,8 @@ WorldGenerationComputeShadowReport WorldGenerationComputeService::compareShadow(
     report.verdict = WorldGenerationComputeShadowVerdict::ShadowUnavailable;
     return report;
   }
-
-  size_t n = std::min(primaryValues.size(), shadowValues.size());
-  report.comparedValues = n;
-  for (size_t i = 0; i < n; ++i) {
-    if (primaryValues[i] != shadowValues[i]) {
-      if (!report.divergenceCount) {
-        report.firstDivergenceIndex = i;
-        report.primarySample = primaryValues[i];
-        report.shadowSample = shadowValues[i];
-      }
-      ++report.divergenceCount;
-    }
-  }
-  if (primaryValues.size() != shadowValues.size())
-    ++report.divergenceCount;
-  report.verdict = report.divergenceCount
-      ? WorldGenerationComputeShadowVerdict::Diverged
-      : WorldGenerationComputeShadowVerdict::Equal;
-  return report;
+  return compareShadowBuffers(identity, input, parameter, primaryValues, shadowValues, primary,
+      shadow);
 }
 
 }

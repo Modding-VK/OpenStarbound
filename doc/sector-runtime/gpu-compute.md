@@ -9,14 +9,14 @@ liberar CPU para outros produtores. O renderer atual negocia contexto OpenGL
 moderno quando disponível, mas não fornece uma API de compute de worldgen.
 
 **Estado (27/11/2026, `cursor/h4-gpu-shadow-9f77`):** GPU-01/02/03/04 no
-primeiro marco (25%). Probe GL opt-in validado em RTX 3050 e integrado na INT.
-Família densa asset-free: `DenseUint32Xor`/`Add`/`And`/`Or`/`Mul` (CPU +
-shaders opt-in). Build **normal** não claima OpenGL compute. Ver
-[GPU-01](../sector-runtime-h4-gpu01-compute-interface-2026-11-27.md),
-[GPU-02/03/04](../sector-runtime-h4-gpu02-03-04-2026-11-27.md),
+primeiro marco (25%). Probe GL e DenseUint32 And/Or/Mul na INT. Recorte
+seguinte asset-free: `failContext` recalcula na CPU; corpus/reprodutor mínimo
+de sombra (`shadowEdgeCorpus`, `ShadowReproducer`). Build **normal** não claima
+OpenGL compute. Ver
+[failContext/reprodutor](../sector-runtime-h4-gpu02-04-failcontext-reproducer-2026-11-27.md),
 [And/Or/Mul](../sector-runtime-h4-gpu03-dense-and-or-mul-2026-11-27.md) e
 [checklist probe](../sector-runtime-h4-gpu-probe-windows-rtx-checklist-2026-11-27.md).
-Sem 50% enquanto terreno/bioma/ganho e campanha multi-driver faltarem.
+Sem 50% enquanto terreno/bioma/ganho e multi-driver faltarem.
 
 ## GPU-01 — Interface e capacidades
 
