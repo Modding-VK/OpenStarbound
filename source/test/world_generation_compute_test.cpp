@@ -1031,6 +1031,22 @@ TEST(WorldGenerationComputeTest, CountCancelledOpenKernelsTracksCancelledDistinc
   EXPECT_EQ(0u, service.countCancelledOpenKernels());
 }
 
+TEST(WorldGenerationComputeTest, AnyCancelledOpenKernelsTracksCancelledPresence) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  EXPECT_FALSE(service.anyCancelledOpenKernels());
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(1060, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u));
+  EXPECT_FALSE(service.anyCancelledOpenKernels());
+  EXPECT_TRUE(service.anyOpenKernels());
+  EXPECT_EQ(1u, service.cancelOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_TRUE(service.anyCancelledOpenKernels());
+  EXPECT_EQ(1u, service.countCancelledOpenKernels());
+  EXPECT_EQ(1u, service.drainOpenTickets());
+  EXPECT_FALSE(service.anyCancelledOpenKernels());
+  EXPECT_EQ(0u, service.countCancelledOpenKernels());
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32HalfSumMaxMinExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();
