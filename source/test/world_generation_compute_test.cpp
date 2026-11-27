@@ -1445,6 +1445,23 @@ TEST(WorldGenerationComputeTest, ListInFlightByKernelReturnsPendingIdsOnly) {
   EXPECT_EQ(1u, service.listInFlightByKernel(WorldGenerationComputeKernel::DenseUint32Add).size());
 }
 
+TEST(WorldGenerationComputeTest, AnyInFlightByKernelTracksPendingPresence) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  EXPECT_FALSE(service.anyInFlightByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(680, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(681, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{2u}, 0u));
+  EXPECT_TRUE(service.anyInFlightByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_TRUE(service.anyInFlightByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+  EXPECT_FALSE(service.anyInFlightByKernel(WorldGenerationComputeKernel::DenseUint32Mul));
+  EXPECT_EQ(1u, service.completeOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_FALSE(service.anyInFlightByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_TRUE(service.anyOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_TRUE(service.anyInFlightByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+}
+
 TEST(WorldGenerationComputeTest, CompareShadowNamedResolvesKernelAndRejectsUnknown) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();
