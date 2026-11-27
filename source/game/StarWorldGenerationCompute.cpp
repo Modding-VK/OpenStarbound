@@ -526,6 +526,28 @@ size_t WorldGenerationComputeService::clearRejectedDuplicates() {
   return cleared;
 }
 
+size_t WorldGenerationComputeService::drainOpenTickets() {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return 0;
+  List<WorldGenerationComputeTicket> tickets;
+  tickets.reserve(m_entries.size());
+  for (auto const& pair : m_entries) {
+    WorldGenerationComputeTicket ticket;
+    ticket.id = pair.first;
+    tickets.append(ticket);
+  }
+  size_t drained = 0;
+  for (auto ticket : tickets) {
+    auto it = m_entries.find(ticket.id);
+    if (it != m_entries.end() && it->second.state == EntryState::Pending)
+      completeEntry(it->second);
+    pollLocked(ticket, nullptr);
+    ++drained;
+  }
+  return drained;
+}
+
 size_t WorldGenerationComputeService::inFlight() const {
   std::lock_guard<std::mutex> lock(m_mutex);
   size_t count = 0;
@@ -553,6 +575,7 @@ WorldGenerationComputeStagingSnapshot WorldGenerationComputeService::stagingSnap
   snap.peakStagingBytes = m_peakStagingBytes;
   snap.maxStagingBytes = m_capabilities.maxStagingBytes;
   snap.openTickets = m_entries.size();
+  snap.peakOpenTickets = m_peakOpenTickets;
   snap.gpuCapable = m_capabilities.gpuOpenGlCompute;
   snap.pooledBufferCount = m_bufferPool.size();
   for (auto const& buffer : m_bufferPool)
@@ -575,6 +598,13 @@ void WorldGenerationComputeService::resetPeakStagingBytes() noexcept {
   if (!ownerAllowsLocked())
     return;
   m_peakStagingBytes = m_stagingBytes;
+}
+
+void WorldGenerationComputeService::resetPeakOpenTickets() noexcept {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return;
+  m_peakOpenTickets = m_entries.size();
 }
 
 bool WorldGenerationComputeService::runBackendKernel(WorldGenerationComputeBackend backend,
@@ -657,6 +687,8 @@ Maybe<WorldGenerationComputeTicket> WorldGenerationComputeService::submitLocked(
     entry.state = EntryState::Pending;
 
   m_entries.emplace(ticket.id, std::move(entry));
+  if (m_entries.size() > m_peakOpenTickets)
+    m_peakOpenTickets = m_entries.size();
   return ticket;
 }
 

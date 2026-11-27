@@ -517,6 +517,27 @@ TEST(WorldGenerationComputeTest, CompareShadowBatchRunsIndependentKernels) {
   }
 }
 
+TEST(WorldGenerationComputeTest, DrainOpenTicketsAndPeakOpenTickets) {
+  WorldGenerationComputeCapabilities caps;
+  caps.maxInFlight = 4;
+  WorldGenerationComputeService service(caps);
+  service.setDeferredCpuCompletion(true);
+  EXPECT_EQ(0u, service.drainOpenTickets());
+  EXPECT_EQ(0u, service.stagingSnapshot().peakOpenTickets);
+  ASSERT_TRUE((bool)service.submit(makeIdentity(330), List<uint32_t>{1u}, 0u));
+  ASSERT_TRUE((bool)service.submit(makeIdentity(331), List<uint32_t>{2u}, 0u));
+  EXPECT_EQ(2u, service.openTickets());
+  EXPECT_EQ(2u, service.stagingSnapshot().peakOpenTickets);
+  EXPECT_EQ(2u, service.drainOpenTickets());
+  EXPECT_EQ(0u, service.openTickets());
+  EXPECT_EQ(2u, service.stagingSnapshot().peakOpenTickets);
+  service.resetPeakOpenTickets();
+  EXPECT_EQ(0u, service.stagingSnapshot().peakOpenTickets);
+  ASSERT_TRUE((bool)service.submit(makeIdentity(332), List<uint32_t>{3u}, 0u));
+  EXPECT_EQ(1u, service.stagingSnapshot().peakOpenTickets);
+  EXPECT_EQ(1u, service.drainOpenTickets());
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32OrNotAvgIsPow2ExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();

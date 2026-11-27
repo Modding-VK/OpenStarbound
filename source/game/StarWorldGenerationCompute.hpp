@@ -192,6 +192,7 @@ struct WorldGenerationComputeStagingSnapshot {
   uint64_t pooledBufferBytes = 0;
   size_t pooledBufferCount = 0;
   size_t openTickets = 0;
+  size_t peakOpenTickets = 0;
   size_t inFlight = 0;
   size_t gpuInFlight = 0;
   uint64_t estimatedVramBytes = 0; // in-flight GPU staging estimate (SSBO-sized)
@@ -226,9 +227,14 @@ public:
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 
+  // GPU-02: complete any Pending tickets, then poll+discard every open ticket
+  // (owner-thread). Returns how many tickets were drained.
+  size_t drainOpenTickets();
+
   // GPU-02 accounting for RAM-01 consumers (asset-free observation only).
   WorldGenerationComputeStagingSnapshot stagingSnapshot() const;
   void resetPeakStagingBytes() noexcept;
+  void resetPeakOpenTickets() noexcept;
 
   // GPU-02 owner-thread affinity (asset-free; no WorldThread yet). When adopted,
   // mutating ops and compareShadow/dispatch refuse foreign threads. Observation
@@ -404,6 +410,7 @@ private:
   uint64_t m_nextTicket = 1;
   uint64_t m_stagingBytes = 0;
   uint64_t m_peakStagingBytes = 0;
+  size_t m_peakOpenTickets = 0;
   std::unordered_map<uint64_t, Entry> m_entries;
   std::unordered_set<uint64_t> m_rejectedDuplicates;
   List<List<uint32_t>> m_bufferPool;
