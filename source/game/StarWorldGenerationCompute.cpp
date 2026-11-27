@@ -4030,6 +4030,10 @@ List<WorldGenerationComputeTicket> WorldGenerationComputeService::rejectedDuplic
   return listRejectedDuplicates();
 }
 
+bool WorldGenerationComputeService::rejectedDuplicatesAny() const {
+  return anyRejectedDuplicates();
+}
+
 size_t WorldGenerationComputeService::clearRejectedDuplicates() {
   std::lock_guard<std::mutex> lock(m_mutex);
   if (!ownerAllowsLocked())
