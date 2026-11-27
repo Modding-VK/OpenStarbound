@@ -13,7 +13,6 @@ on:
   push:
     branches:
       - cursor/integration-sector-runtime-7342
-      - 'cursor/**'
   workflow_dispatch:
 
 jobs:
