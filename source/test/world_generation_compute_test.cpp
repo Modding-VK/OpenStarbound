@@ -1562,6 +1562,24 @@ TEST(WorldGenerationComputeTest, AnyFailedOpenTicketsTracksFailedPresence) {
 
 
 
+
+TEST(WorldGenerationComputeTest, HasRejectedDuplicateTracksTicketMembership) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  auto ticket = service.submit(makeIdentity(1830), List<uint32_t>{3u}, 1u);
+  ASSERT_TRUE((bool)ticket);
+  EXPECT_FALSE(service.hasRejectedDuplicate(*ticket));
+  EXPECT_EQ(1u, service.failContext());
+  WorldGenerationComputeResult result;
+  EXPECT_EQ(WorldGenerationComputePollStatus::Ready, service.poll(*ticket, &result));
+  EXPECT_TRUE(service.hasRejectedDuplicate(*ticket));
+  WorldGenerationComputeTicket missing;
+  missing.id = ticket->id + 999u;
+  EXPECT_FALSE(service.hasRejectedDuplicate(missing));
+  EXPECT_EQ(1u, service.clearRejectedDuplicates());
+  EXPECT_FALSE(service.hasRejectedDuplicate(*ticket));
+}
+
 TEST(WorldGenerationComputeTest, ListRejectedDuplicatesSnapshotsRejectIds) {
   WorldGenerationComputeService service;
   service.setDeferredCpuCompletion(true);

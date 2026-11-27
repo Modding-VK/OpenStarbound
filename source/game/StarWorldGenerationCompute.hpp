@@ -579,6 +579,8 @@ public:
   size_t countRejectedDuplicates() const;
   // Snapshot of ticket ids currently tracked as rejected duplicates (asset-free).
   List<WorldGenerationComputeTicket> listRejectedDuplicates() const;
+  // True if ticket.id is currently tracked as a rejected duplicate (asset-free).
+  bool hasRejectedDuplicate(WorldGenerationComputeTicket ticket) const;
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 

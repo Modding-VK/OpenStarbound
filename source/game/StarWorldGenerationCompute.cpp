@@ -3644,6 +3644,11 @@ List<WorldGenerationComputeTicket> WorldGenerationComputeService::listRejectedDu
   return out;
 }
 
+bool WorldGenerationComputeService::hasRejectedDuplicate(WorldGenerationComputeTicket ticket) const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  return m_rejectedDuplicates.count(ticket.id) != 0;
+}
+
 size_t WorldGenerationComputeService::clearRejectedDuplicates() {
   std::lock_guard<std::mutex> lock(m_mutex);
   if (!ownerAllowsLocked())
