@@ -138,7 +138,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32BroadcastNibbleAt = 112, // broadcast nibble (parameter & 7) across all nibbles
   DenseUint32HalfSum = 113, // (value & 0xffff) + (value >> 16); parameter ignored
   DenseUint32HalfMax = 114, // max(low16, high16); parameter ignored
-  DenseUint32HalfMin = 115 // min(low16, high16); parameter ignored
+  DenseUint32HalfMin = 115, // min(low16, high16); parameter ignored
+  DenseUint32HalfXor = 116, // (value & 0xffff) ^ (value >> 16); parameter ignored
+  DenseUint32HalfOr = 117, // (value & 0xffff) | (value >> 16); parameter ignored
+  DenseUint32HalfAnd = 118 // (value & 0xffff) & (value >> 16); parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -324,6 +327,8 @@ public:
   List<WorldGenerationComputeTicket> listOpenTickets() const;
   // Distinct identity.kernel values among currently open tickets (asset-free).
   List<WorldGenerationComputeKernel> listOpenKernels() const;
+  // Count of distinct identity.kernel values among open tickets (asset-free).
+  size_t countOpenKernels() const;
   // Open tickets whose identity.kernel matches (asset-free observation).
   List<WorldGenerationComputeTicket> listOpenTicketsByKernel(
       WorldGenerationComputeKernel kernel) const;
