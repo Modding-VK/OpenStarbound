@@ -22,7 +22,7 @@ enum class WorldGenerationComputeBackend : uint8_t {
   GpuOpenGlCompute = 1
 };
 
-enum class WorldGenerationComputeKernel : uint8_t {
+enum class WorldGenerationComputeKernel : uint16_t {
   // Exact-integer dense transforms (GPU-03 first candidate family; asset-free).
   DenseUint32Xor = 1,
   DenseUint32Add = 2,
@@ -273,7 +273,28 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32HalfSmearLsbNibble = 247, // nibble | (nibble-1) for each low16 nibble; parameter ignored
   DenseUint32HalfIsolateMsbNibble = 248, // highest set bit of each low16 nibble; 0 stays 0
   DenseUint32HalfClearMsbNibble = 249, // clear highest set bit of each low16 nibble; 0 stays 0
-  DenseUint32HalfSmearMsbNibble = 250 // fill ones downward from MSB of each low16 nibble; 0 stays 0
+  DenseUint32HalfSmearMsbNibble = 250, // fill ones downward from MSB of each low16 nibble; 0 stays 0
+  DenseUint32HalfLsbMaskNibble = 251, // nibble ^ (nibble-1) for each low16 nibble; parameter ignored
+  DenseUint32HalfKeepOddBitsNibble = 252, // each low16 nibble & 0x5; parameter ignored
+  DenseUint32HalfKeepEvenBitsNibble = 253, // each low16 nibble & 0xa; parameter ignored
+  DenseUint32HalfSwapAdjacentBitsNibble = 254, // swap bit pairs in each low16 nibble; parameter ignored
+  DenseUint32HalfGrayEncodeNibble = 255, // nibble ^ (nibble >> 1) for each low16 nibble; parameter ignored
+  DenseUint32HalfGrayDecodeNibble = 256, // binary from Gray code of each low16 nibble; parameter ignored
+  DenseUint32HalfClzNibble = 257, // leading zero count of each low16 nibble in 4-bit width; 4 if 0
+  DenseUint32HalfCtzNibble = 258, // trailing zero count of each low16 nibble; 4 if 0
+  DenseUint32HalfCloNibble = 259, // leading one count of each low16 nibble in 4-bit width; 4 if 0xf
+  DenseUint32HalfCtoNibble = 260, // trailing one count of each low16 nibble; 4 if 0xf
+  DenseUint32HalfBitLengthNibble = 261, // floor(log2(n))+1 per low16 nibble; 0 if n==0
+  DenseUint32HalfIsPowerOfTwoNibble = 262, // 1 in nibble if power-of-two (incl. 1); else 0; parameter ignored
+  DenseUint32HalfNextPow2Nibble = 263, // next power-of-two per low16 nibble (0->0; >8 clamps to 0xf)
+  DenseUint32HalfPrevPow2Nibble = 264, // largest power-of-two <= nibble (0->0)
+  DenseUint32HalfBroadcastLsbNibble = 265, // fill each low16 nibble with its LSB (0 or 0xf)
+  DenseUint32HalfBroadcastMsbNibble = 266, // fill each low16 nibble with its MSB (0 or 0xf)
+  DenseUint32HalfParityFillNibble = 267, // 0xf if nibble popcount odd, else 0; parameter ignored
+  DenseUint32HalfRotl1Nibble = 268, // rotate-left by 1 within each low16 nibble; parameter ignored
+  DenseUint32HalfRotr1Nibble = 269, // rotate-right by 1 within each low16 nibble; parameter ignored
+  DenseUint32HalfNegateNibble = 270, // bitwise not of each low16 nibble (&0xf); parameter ignored
+  DenseUint32HalfIncWrapNibble = 271 // (n+1)&0xf per low16 nibble; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -479,6 +500,8 @@ public:
   bool anyOpenKernels() const;
   // True while any open ticket exists (ticket-named alias; asset-free).
   bool anyOpenTickets() const;
+  // Count of open tickets (ticket-named alias of openTickets; asset-free).
+  size_t countOpenTickets() const;
   // Distinct identity.kernel values among Ready open tickets (asset-free).
   List<WorldGenerationComputeKernel> listReadyOpenKernels() const;
   // Count of distinct identity.kernel values among Ready open tickets (asset-free).
@@ -556,6 +579,18 @@ public:
   bool ticketIsOpen(WorldGenerationComputeTicket ticket) const;
   // Count of ticket ids rejected as late duplicates after failContext/commit revoke.
   size_t rejectedDuplicateCount() const;
+  // True while any rejected-duplicate ticket id is tracked (asset-free).
+  bool anyRejectedDuplicates() const;
+  // Count alias of rejectedDuplicateCount (asset-free observation naming).
+  size_t countRejectedDuplicates() const;
+  // Snapshot of ticket ids currently tracked as rejected duplicates (asset-free).
+  List<WorldGenerationComputeTicket> listRejectedDuplicates() const;
+  // True if ticket.id is currently tracked as a rejected duplicate (asset-free).
+  bool hasRejectedDuplicate(WorldGenerationComputeTicket ticket) const;
+  // Removes one rejected-duplicate ticket id if present (asset-free; owner-thread gated).
+  bool removeRejectedDuplicate(WorldGenerationComputeTicket ticket);
+  // Order-independent XOR fingerprint of rejected-duplicate ticket ids (asset-free).
+  uint64_t fingerprintRejectedDuplicates() const;
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 

@@ -852,3 +852,7 @@ integração: **nenhum**.
 - H4 janela ~0 min desde `9aca17c8` — **hold** (<15 min).
 - H3: sem commits novos. PRs base INT: nenhum.
 - Build `46083012409` @ `9aca17c8` in_progress. Sem Actions neste review; sem merge main.
+
+## Revisão 2026-11-27T23:47Z — lote H4 74c52528
+- Merge H4 tip `74c52528` (200/200; inclui `4c9e20e1`+).
+- Build `46083012409` intacto; 1 Build tip final após terminal; sem spam.
