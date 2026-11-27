@@ -69,7 +69,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32AbsDiff
       || kernel == WorldGenerationComputeKernel::DenseUint32Gt
       || kernel == WorldGenerationComputeKernel::DenseUint32Geu
-      || kernel == WorldGenerationComputeKernel::DenseUint32Xnor;
+      || kernel == WorldGenerationComputeKernel::DenseUint32Xnor
+      || kernel == WorldGenerationComputeKernel::DenseUint32Nand
+      || kernel == WorldGenerationComputeKernel::DenseUint32Nor
+      || kernel == WorldGenerationComputeKernel::DenseUint32MulHi;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -102,7 +105,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32AbsDiff,
       WorldGenerationComputeKernel::DenseUint32Gt,
       WorldGenerationComputeKernel::DenseUint32Geu,
-      WorldGenerationComputeKernel::DenseUint32Xnor};
+      WorldGenerationComputeKernel::DenseUint32Xnor,
+      WorldGenerationComputeKernel::DenseUint32Nand,
+      WorldGenerationComputeKernel::DenseUint32Nor,
+      WorldGenerationComputeKernel::DenseUint32MulHi};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -135,6 +141,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32Gt: return "DenseUint32Gt";
     case WorldGenerationComputeKernel::DenseUint32Geu: return "DenseUint32Geu";
     case WorldGenerationComputeKernel::DenseUint32Xnor: return "DenseUint32Xnor";
+    case WorldGenerationComputeKernel::DenseUint32Nand: return "DenseUint32Nand";
+    case WorldGenerationComputeKernel::DenseUint32Nor: return "DenseUint32Nor";
+    case WorldGenerationComputeKernel::DenseUint32MulHi: return "DenseUint32MulHi";
   }
   return nullptr;
 }
@@ -369,6 +378,15 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
   } else if (kernel == WorldGenerationComputeKernel::DenseUint32Xnor) {
     for (uint32_t value : input)
       out.append(~(value ^ parameter));
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Nand) {
+    for (uint32_t value : input)
+      out.append(~(value & parameter));
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Nor) {
+    for (uint32_t value : input)
+      out.append(~(value | parameter));
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32MulHi) {
+    for (uint32_t value : input)
+      out.append((uint32_t)(((uint64_t)value * (uint64_t)parameter) >> 32));
   }
   return out;
 }
@@ -440,6 +458,25 @@ List<WorldGenerationComputeTicket> WorldGenerationComputeService::listOpenTicket
     out.append(ticket);
   }
   return out;
+}
+
+bool WorldGenerationComputeService::ticketIsOpen(WorldGenerationComputeTicket ticket) const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  return m_entries.find(ticket.id) != m_entries.end();
+}
+
+size_t WorldGenerationComputeService::rejectedDuplicateCount() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  return m_rejectedDuplicates.size();
+}
+
+size_t WorldGenerationComputeService::clearRejectedDuplicates() {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return 0;
+  size_t cleared = m_rejectedDuplicates.size();
+  m_rejectedDuplicates.clear();
+  return cleared;
 }
 
 size_t WorldGenerationComputeService::inFlight() const {
