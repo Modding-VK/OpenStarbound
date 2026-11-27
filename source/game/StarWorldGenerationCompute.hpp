@@ -162,7 +162,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32HalfCeilDiv = 136, // high16==0 ? 0 : (low16 + high16 - 1) / high16; parameter ignored
   DenseUint32HalfIsDivisible = 137, // 0xffffffff if high16!=0 && low16%high16==0, else 0; parameter ignored
   DenseUint32HalfGcd = 138, // gcd(low16, high16); 0 if both 0; parameter ignored
-  DenseUint32HalfSelect = 139 // (parameter & 1) ? high16 : low16; parameter selects half
+  DenseUint32HalfSelect = 139, // (parameter & 1) ? high16 : low16; parameter selects half
+  DenseUint32HalfLcm = 140, // lcm(low16, high16); 0 if either 0; parameter ignored
+  DenseUint32HalfCoprime = 141, // 0xffffffff if gcd(low16, high16)==1, else 0; parameter ignored
+  DenseUint32HalfAlignUp = 142 // high16==0 ? low16 : ((low16 + high16 - 1) / high16) * high16; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
