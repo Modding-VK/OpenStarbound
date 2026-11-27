@@ -35,7 +35,6 @@ publica no mundo vivo.
 
 ## Próximo passo
 
-Matriz geográfica de sombra BaseTiles 2×2 + pressão de admissão
-fechada neste recorte. Segue VAL-02 além de BaseTiles (candidatos/IDs/
-prioridades/ordem) ou MOD-01/VAL-01 conforme fila H0 — só com autorização
-do Project se depender de outra frente. Não disparar Actions.
+Fechado pelo
+[comparador de sequência de candidatos](sector-runtime-h0-candidate-sequence-2026-11-27.md).
+Não disparar Actions.
