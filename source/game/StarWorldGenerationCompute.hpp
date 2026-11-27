@@ -477,6 +477,8 @@ public:
   size_t countOpenKernels() const;
   // True while any open ticket exists (asset-free observation).
   bool anyOpenKernels() const;
+  // True while any open ticket exists (ticket-named alias; asset-free).
+  bool anyOpenTickets() const;
   // Distinct identity.kernel values among Ready open tickets (asset-free).
   List<WorldGenerationComputeKernel> listReadyOpenKernels() const;
   // Count of distinct identity.kernel values among Ready open tickets (asset-free).
