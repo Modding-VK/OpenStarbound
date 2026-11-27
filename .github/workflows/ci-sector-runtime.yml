@@ -11,12 +11,21 @@ concurrency:
 # Keeps ci-integration.yml as the lean Linux CPU gate and does not touch build.yml
 # (no Inno installer, no Linux ARM packaging).
 #
-# Smoke RTX (Desktop-Vinicius): no GitHub Actions self-hosted runner labels are
-# registered/documented yet for that host. Leave run_rtx_smoke=false (default) so
-# cloud gates never queue on a missing runner. When a GHA runner exists, dispatch
-# with run_rtx_smoke=true and set rtx_runs_on to its label JSON array.
-# Manual fallback: doc/sector-runtime-h4-gpu-probe-windows-rtx-checklist-2026-11-27.md
-# + scripts/windows/run-h4-gl-compute-probe.ps1
+# --- Desktop-Vinicius / RTX smoke (as of 2026-11-27) ---
+# Desktop-Vinicius is a Cursor private agent worker (Windows RTX,
+# checkout m:\StarboundTeste\OpenStarbound). It is NOT a registered GitHub
+# Actions self-hosted runner. Repo/org GHA runner APIs are not usable here to
+# discover labels, and no GHA runner labels for that host are documented.
+#
+# Therefore rtx_runs_on defaults below are PLACEHOLDERS only. Leave
+# run_rtx_smoke=false (default) so push/PR cloud gates never queue on a
+# missing runner. When a real GHA runner is installed on Desktop-Vinicius,
+# dispatch with run_rtx_smoke=true and set rtx_runs_on to that runner's
+# actual label JSON (replace the placeholders).
+#
+# Manual GPU smoke (current path):
+#   doc/sector-runtime-h4-gpu-probe-windows-rtx-checklist-2026-11-27.md
+#   scripts/windows/run-h4-gl-compute-probe.ps1
 on:
   push:
     branches:
@@ -30,22 +39,25 @@ on:
         type: string
         description: >-
           JSON array for the Windows GL probe job runs-on (x64 only).
-          Default hosted windows-latest. Override only if a self-hosted Windows
-          x64 runner is registered (e.g. ["self-hosted","Windows","X64"]).
+          Default hosted ["windows-latest"]. Override only if a self-hosted
+          Windows x64 GHA runner is registered (not the Cursor worker).
         default: '["windows-latest"]'
       run_rtx_smoke:
         type: boolean
         description: >-
-          Optional H4 probe smoke on a self-hosted RTX runner (Desktop-Vinicius).
-          Default false — cloud/push/PR gates never wait for that machine.
+          Opt-in H4 probe smoke on a GHA self-hosted RTX runner. Default false.
+          Desktop-Vinicius has no documented GHA labels yet — do not enable
+          until a runner is registered, or the job will queue forever.
+          Cloud push/PR gates skip this job when false.
         default: false
       rtx_runs_on:
         type: string
         description: >-
-          JSON array of labels for the optional RTX smoke job. Placeholder until a
-          GHA runner is registered on Desktop-Vinicius
-          (e.g. ["self-hosted","Windows","X64","Desktop-Vinicius"]).
-        default: '["self-hosted","Windows","X64","Desktop-Vinicius"]'
+          PLACEHOLDER labels for smoke_rtx until a GHA runner exists on
+          Desktop-Vinicius. Suggested convention once registered:
+          ["self-hosted","Windows","X64","Desktop-Vinicius","RTX"].
+          Replace with the runner's real labels before enabling run_rtx_smoke.
+        default: '["self-hosted","Windows","X64","Desktop-Vinicius","RTX"]'
 
 jobs:
   windows_gl_probe:
@@ -129,6 +141,34 @@ jobs:
           compression-level: 1
           if-no-files-found: error
 
+  # Always-green cloud note: makes the opt-in/manual policy visible in Actions UI.
+  # Does not build, does not require GPU, does not block on Desktop-Vinicius.
+  rtx_smoke_policy:
+    name: RTX smoke policy (informational)
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Document opt-in RTX smoke + placeholders
+        run: |
+          cat <<'EOF'
+          CI Sector Runtime — RTX smoke policy
+          ------------------------------------
+          Cloud gate = windows_gl_probe only (hosted windows-latest by default).
+
+          Desktop-Vinicius is a Cursor agent worker (Windows RTX), NOT a GitHub
+          Actions self-hosted runner. No real GHA runner labels are known for it.
+
+          Inputs (workflow_dispatch):
+            run_rtx_smoke  — default false; keep false for push/PR cloud gates
+            rtx_runs_on    — PLACEHOLDER JSON labels, default:
+                             ["self-hosted","Windows","X64","Desktop-Vinicius","RTX"]
+                             Replace with real GHA runner labels before enabling smoke.
+            windows_runs_on — default ["windows-latest"] (x64 hosted)
+
+          Manual GPU path until a GHA runner exists:
+            doc/sector-runtime-h4-gpu-probe-windows-rtx-checklist-2026-11-27.md
+            scripts/windows/run-h4-gl-compute-probe.ps1
+          EOF
+
   # Optional only: skipped unless workflow_dispatch + run_rtx_smoke.
   # Never part of the required cloud gate when left at default false.
   smoke_rtx:
@@ -136,6 +176,9 @@ jobs:
     needs: windows_gl_probe
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_rtx_smoke == true }}
     runs-on: ${{ fromJson(inputs.rtx_runs_on) }}
+    # Caps runtime once a runner picks up the job; does not cancel indefinite
+    # queue wait if labels match no registered runner — keep run_rtx_smoke=false.
+    timeout-minutes: 30
     steps:
       - name: Checkout (scripts + checklist)
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -156,6 +199,7 @@ jobs:
             throw "Probe binary missing after artifact download: $probe"
           }
           Write-Host "Running $probe (self-hosted RTX smoke)"
+          Write-Host "runs-on labels came from workflow_dispatch input rtx_runs_on (placeholders until a real GHA runner exists)."
           & $probe
           if ($LASTEXITCODE -ne 0) {
             throw "world_generation_gl_compute_probe exited $LASTEXITCODE"
