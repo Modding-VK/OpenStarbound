@@ -52,3 +52,10 @@ CMakeUserPresets.json
 
 # Nix Flake
 result
+
+# Local DevOnly gameplay drop (All-DevOnly extract + sbinit bootstrap)
+/Instalaveis/
+/storage-instalaveis/
+/storage-instalaveis-backup-*/
+/logs-instalaveis/
+
