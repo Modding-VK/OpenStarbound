@@ -484,7 +484,9 @@ A existência de shaders/uso de GPU no gráfico não conclui esta entrega.
 Propósito: escolher recursos pelo menor tempo de entrega e usar hardware com
 folga de forma sustentada. Depende de H1/H2 e H4 para backends autoritativos.
 
-- [ ] GPU-05: roteamento por custo de transporte/execução e prazo.
+- [~] GPU-05: roteamento por custo de transporte/execução e prazo
+  (primeiro recorte: seletor puro com fallback CPU;
+  [relatório](../sector-runtime-h5-hardware-selection-2026-11-27.md)).
 - [ ] CPU-05: política completa de CPU/RAM/VRAM, perfis e limites manuais.
 - [ ] VAL-03/04/05: métricas de recursos e campanhas de escala equivalentes.
 - [ ] MOD-02/03/04: adoção, fallback e migração de configuração documentados.

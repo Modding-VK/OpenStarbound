@@ -135,6 +135,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_memory_batch_test.cpp
   world_generation_memory_retry_test.cpp
   world_generation_memory_capacity_test.cpp
+  world_generation_hardware_selection_test.cpp
   world_generation_base_tile_liquid_test.cpp
   world_generation_base_tiles_test.cpp
   world_generation_block_info_test.cpp
@@ -180,6 +181,7 @@ FOREACH(world_region_test_suite
     WorldGenerationMemoryBatchTest
     WorldGenerationMemoryRetryTest
     WorldGenerationMemoryCapacityTest
+    WorldGenerationHardwareSelectionTest
     WorldGenerationBaseTileLiquidTest
     WorldGenerationBaseTilesTest
     WorldGenerationBlockInfoTest

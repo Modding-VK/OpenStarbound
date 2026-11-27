@@ -37,6 +37,7 @@ For the current state and the next work, start here:
 - [Progress, evidence and next steps](doc/sector-runtime/progress.md)
 - [Operational checklist and current report](doc/regional-runtime-execution-checklist.md)
 - [Latest H0 report: concurrent ocean sector shadows](doc/sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
+- [Latest H5 report: hardware delivery-cost selection](doc/sector-runtime-h5-hardware-selection-2026-11-27.md)
 - [Performance backlog](doc/performance-backlog.md)
 
 <details>

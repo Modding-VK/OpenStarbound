@@ -77,6 +77,13 @@ do commit; equivalência de kernel não substitui validade do ticket.
 
 ## GPU-05 — Seleção heterogênea e render
 
+Primeiro recorte (27/11/2026, branch `cursor/h5-hardware-scale-9f77`):
+[`WorldGenerationHardwareSelector`](../source/game/StarWorldGenerationHardwareSelection.hpp)
+escolhe Cpu/Gpu pelo custo completo de entrega com fallback CPU obrigatório e
+histerese; relatório em
+[hardware selection](../sector-runtime-h5-hardware-selection-2026-11-27.md).
+Ainda não há backend GPU, publicação nem medição de ganho ponta a ponta.
+
 Comparar custo CPU com espera GPU + upload + dispatch + fence + readback +
 materialização. Escolher backend por classe/tamanho e prazo, com histerese.
 Lotes antecipados podem amortizar transferências; setor urgente pode ter
