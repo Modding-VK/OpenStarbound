@@ -27,15 +27,15 @@ NoAssets `WorldGenerationTmxStaticProductTest.*`: **6/6**.
 
 ## Limitações
 
-Não lê arquivos TMX reais nem amarra brushes. Aceitação 50%+ exige decode
-de mapas reais, cache com invalidação de reload e ligação MD-03.
+Decode Json controlado (sem Assets/compressão):
+[TMX decode](sector-runtime-h3-tmx-static-decode-2026-11-27.md). Aceitação
+50%+ ainda exige compressão/Assets, cache/reload e ligação MD-03 viva.
 
 ## Publicação
 
-H0 está `ready-for-integration`, mas `apis_ready` cobre sombra/candidatos —
-não live-publish/commit. Publicação autoritativa permanece fora deste recorte.
+`apis_ready` cobre sombra — não live-publish/commit. Publicação autoritativa
+permanece fora deste recorte.
 
 ## Próximo
 
-MD-03 ligação RNG em sombra, ou decode a partir de Json TMX controlado.
-Não disparar Actions.
+Codec comprimido sombra, ou equivalência viva só com live-publish.

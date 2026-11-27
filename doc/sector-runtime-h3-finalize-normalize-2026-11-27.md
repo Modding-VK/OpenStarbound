@@ -26,11 +26,11 @@ NoAssets: Finalize **8/8** + CaveLiquid **7/7** + estágio coexistente **1**.
 
 ## Limitações
 
-Sem `replaceBiomeBlocks`/`placeBiomeGrass`, sem consulta a PlantDatabase/
-ObjectDatabase, sem equivalência ao `prepareSector` vivo, sem WT-04.
-CPU-04 permanece em 25%.
+Sem `replaceBiomeBlocks`, sem consulta a PlantDatabase/ObjectDatabase viva,
+sem equivalência ao `prepareSector` vivo. Grass/spawn intents em sombra:
+[Flora/spawn](sector-runtime-h3-flora-spawn-plan-2026-11-27.md). CPU-04
+permanece em 25%.
 
 ## Próximo
 
-Equivalência CaveLiquid/Finalize contra fixture, ou MD-02 estático em sombra.
-Publicação só com `apis_ready` adequado em H0/H1.
+Decode TMX real ou equivalência viva — só com `apis_ready` live-publish.

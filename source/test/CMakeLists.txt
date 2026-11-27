@@ -183,7 +183,12 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_base_tile_liquid_test.cpp
   world_generation_cave_liquid_plan_test.cpp
   world_generation_finalize_plan_test.cpp
+  world_generation_flora_spawn_plan_test.cpp
+  world_generation_replace_biome_plan_test.cpp
   world_generation_tmx_static_product_test.cpp
+  world_generation_tmx_static_decode_test.cpp
+  world_generation_tmx_shadow_assets_test.cpp
+  world_generation_tmx_shadow_cache_test.cpp
   world_generation_tmx_binding_plan_test.cpp
   world_generation_structure_command_plan_test.cpp
   world_generation_structure_batch_staging_test.cpp
@@ -192,6 +197,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_shadow_checkpoint_test.cpp
   world_generation_shadow_unload_test.cpp
   world_generation_shadow_packet_test.cpp
+  world_generation_shadow_integration_test.cpp
   world_generation_base_tiles_test.cpp
   world_generation_block_info_test.cpp
   world_generation_custom_terrain_test.cpp

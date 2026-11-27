@@ -1,0 +1,36 @@
+# H3 / MD-02: decode Json TMX estático em sombra
+
+Data: 27/11/2026 UTC. Branch `cursor/h3-kernels-publication-9f77`.
+Antecedente: [TMX static product](sector-runtime-h3-tmx-static-product-2026-11-27.md).
+Extensão: [codec gzip/zlib/zstd](sector-runtime-h3-tmx-static-codec-2026-11-27.md).
+
+## Objetivo
+
+Recorte adicional de MD-02: decodificar Json TMX controlado (tilelayers com
+`data` array ou base64±gzip/zlib/zstd + objectgroups) para
+`WorldGenerationTmxStaticProduct` sem Root/Assets/tilesets e sem materializar
+brushes. CPU-only / NoAssets.
+
+## Escopo
+
+| Artefato | Papel |
+| --- | --- |
+| `tryDecodeWorldGenerationTmxStaticBlueprint` | Json → blueprint |
+| `tryDecodeWorldGenerationTmxStaticProduct` | Json → produto estático |
+| tilelayer | array ou base64; codecs no relatório de codec |
+| tilesets | ignorados (sem `tilesetDatabase`) |
+| objectgroup | nome/posição/tamanho + connector props |
+
+## Validação
+
+NoAssets `WorldGenerationTmxStaticDecodeTest.*`: **9/9**.
+
+## Maturidade
+
+MD-02 permanece em **25%**: falta carga via Assets, cache/reload e
+equivalência a `TMXMap`+tilesets vivos. Não concede 50%.
+
+## Próximo
+
+Entregue: [Assets-fixture sombra](sector-runtime-h3-tmx-shadow-assets-2026-11-27.md).
+Seguinte: cache/reload ou equivalência viva só com live-publish.

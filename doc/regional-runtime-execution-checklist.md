@@ -281,7 +281,21 @@ executivo e o planejador menor são propostas, ainda não implementadas.
   [Shadow DB](sector-runtime-h3-shadow-db-2026-11-27.md),
   [Shadow checkpoint](sector-runtime-h3-shadow-checkpoint-2026-11-27.md),
   [Shadow unload](sector-runtime-h3-shadow-unload-2026-11-27.md),
-  [Shadow packet](sector-runtime-h3-shadow-packet-2026-11-27.md)).
+  [Shadow packet](sector-runtime-h3-shadow-packet-2026-11-27.md),
+  [Shadow integration](sector-runtime-h3-shadow-integration-2026-11-27.md)).
+- [x] H3 integração cruzada sombra WT-04→IO-03→IO-05 (sem elevação a 50%).
+- [x] H3 flora/spawn sombra (CPU-04 adicional; sem elevação a 50%)
+  ([Flora/spawn](sector-runtime-h3-flora-spawn-plan-2026-11-27.md)).
+- [x] H3 replaceBiomeBlocks sombra (CPU-04 adicional; sem elevação a 50%)
+  ([ReplaceBiome](sector-runtime-h3-replace-biome-plan-2026-11-27.md)).
+- [x] H3 decode Json TMX sombra (MD-02 adicional; sem elevação a 50%)
+  ([TMX decode](sector-runtime-h3-tmx-static-decode-2026-11-27.md)).
+- [x] H3 codec TMX gzip/zlib/zstd sombra (MD-02 adicional; sem elevação a 50%)
+  ([TMX codec](sector-runtime-h3-tmx-static-codec-2026-11-27.md)).
+- [x] H3 Assets-backed TMX decode sombra (fixture in-memory; sem elevação a 50%)
+  ([TMX Assets-fixture](sector-runtime-h3-tmx-shadow-assets-2026-11-27.md)).
+- [x] H3 cache/reload TMX sombra (MD-02 adicional; sem elevação a 50%)
+  ([TMX cache](sector-runtime-h3-tmx-shadow-cache-2026-11-27.md)).
 - [ ] H3 além do primeiro recorte: equivalência viva / publish autoritativo
   só com `apis_ready` live-publish.
 - [ ] H4/H5: GPU compute opcional, comparação CPU/GPU em sombra, seleção por

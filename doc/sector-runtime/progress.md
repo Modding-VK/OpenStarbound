@@ -2,20 +2,21 @@
 
 Atualizado em **27/11/2026**. Branch de integração:
 `cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+R1+R2; não `main`).
+Última H3: TMX cache/reload + flora/replaceBiome + decode/codec (`3bdf1927`); H3 25%.
 Última R2: AuthoritativeOps + REG-03/04/05 sombra (`f86b4d17`).
 Última R1: ThreadStub CPU/OS (`6947bbb9`).
 Última H0: MOD-01 EffectBoundary profundo; VAL-02 BiomeItem completo (25%).
 Última H1: PreparedSector payload/WorldStorage path (`4d014af2`); DAG-03 50%.
 Última H2: consume sobre API H1 (`b1162b5d`); PreparedSector canônico = H1.
-Última H3: CPU-04..IO-05 sombra (25%).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
 · [Relatório H0](../sector-runtime-h0-effect-boundary-deep-2026-11-27.md)
 · [Relatório H1](../sector-runtime-h1-prepared-sector-2026-11-27.md)
 · [Relatório H2](../sector-runtime-h2-prepared-sector-consume-2026-11-27.md)
-· [Relatório H3](../sector-runtime-h3-shadow-packet-2026-11-27.md)
+· [Relatório H3](../sector-runtime-h3-tmx-shadow-cache-2026-11-27.md)
 · [Relatório R1](../sector-runtime-r1-thread-stub-cpu-2026-11-27.md)
 · [Relatório R2](../sector-runtime-r2-authoritative-ops-2026-11-27.md)
+· [Backlog geral](../performance-backlog.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -37,7 +38,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **19,9%** — 39 marcos verificados de 196 |
 | Contratos com avanço registrado | **38 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | H0–H3 + R1/R2 regionais + H1 payload/path + H2 consume; PreparedSector = API H1; sem Actions |
+| Última evidência de testes | H0–H3 (incl. TMX cache/decode/flora) + R1/R2 + H1 payload/path + H2 consume; PreparedSector = API H1; sem Actions |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 19,9% não significam que o jogo esteja só 19,9% pronto.** O runtime anterior
@@ -340,8 +341,27 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 26/11/2026 | Ocean/Island stale | TemplateRevision bump sob sombra oceano/Island; 103 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 26/11/2026 | Noise/adjacent stale | TemplateRevision bump sob noise e setor {1,0}; 105 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 26/11/2026 | Concurrent ocean | Duas sombras oceano no ledger; 106 RealBlockInfo. Sem novo marco completo | 3,6% |
-
 | 27/11/2026 | Integração R2 | Merge `--no-ff` R2 `f86b4d17` em `cursor/integration-sector-runtime-7342`; R2 25%; programa 18,4%→19,9% | 19,9% |
+| 27/11/2026 | H3 CPU-04 CaveLiquid plan | Plano/delta privado sem publish; 7 testes NoAssets. CPU-04 0→25%; H3 2,5%; programa 4,1% | 4,1% |
+| 27/11/2026 | H3 CPU-04 Finalize normalize | Delta normalização privado + estágio FinalizePlan; 7+7 NoAssets. Sem novo marco (CPU-04 permanece 25%) | 4,1% |
+| 27/11/2026 | H3 CPU-04 Finalize intents | Placement intents ordenados sem spawn; 8 Finalize NoAssets. Sem novo marco | 4,1% |
+| 27/11/2026 | H3 MD-02 TMX static | Produto intermediário camadas/conectores sem RNG/publish; 6 NoAssets. MD-02 0→25%; H3 5%; programa 4,6% | 4,6% |
+| 27/11/2026 | H3 MD-03 TMX binding | Escolhas ordenadas sem facade; 5 NoAssets. MD-03 0→25%; H3 7,5%; programa 5,1% | 5,1% |
+| 27/11/2026 | H3 MD-04 structure commands | Footprint/comandos/reservas sombra; 6 NoAssets. MD-04 0→25%; H3 10%; programa 5,6% | 5,6% |
+| 27/11/2026 | H3 MD-05 batch staging | Batches ordenados + staging invisível/resume; 6 NoAssets. MD-05 0→25%; H3 12,5%; programa 6,1% | 6,1% |
+| 27/11/2026 | H3 WT-04 publication pass | Orçamento de passagem + dirty diferido sombra; 5 NoAssets. WT-04 0→25%; H3 15%; programa 6,6% | 6,6% |
+| 27/11/2026 | H3 IO-02 shadow DB | Harness commit/rollback/checkpoint + frontier blob; 7 NoAssets. IO-02 0→25%; H3 17,5%; programa 7,1% | 7,1% |
+| 27/11/2026 | H3 IO-03 shadow checkpoint | Unidade lógica + seal/recover/reject; 6 NoAssets. IO-03 0→25%; H3 20%; programa 7,7% | 7,7% |
+| 27/11/2026 | H3 IO-04 shadow unload | Unload/drain/keepAlive/handoff bloqueado; 6 NoAssets. IO-04 0→25%; H3 22,5%; programa 8,2% | 8,2% |
+| 27/11/2026 | H3 IO-05 shadow packet | Pacotes confirmados + marcos + clocks; 6 NoAssets. IO-05 0→25%; H3 25%; programa 8,7% | 8,7% |
+| 27/11/2026 | H3 shadow integration | WT-04 frontier→IO-03→IO-05; 4 NoAssets. Sem novo marco % (contratos seguem 25%) | 8,7% |
+| 27/11/2026 | H3 CPU-04 flora/spawn | Grass-mod + spawn intents sombra; 6 NoAssets. Sem novo marco % (CPU-04 25%) | 8,7% |
+| 27/11/2026 | H3 CPU-04 replaceBiome | Placeholders→materiais/hues sombra; 6 NoAssets. Sem novo marco % (CPU-04 25%) | 8,7% |
+| 27/11/2026 | H3 MD-02 TMX Json decode | Decode Json controlado→produto estático; 6 NoAssets. Sem novo marco % (MD-02 25%) | 8,7% |
+| 27/11/2026 | H3 MD-02 TMX codec | gzip/zlib/zstd base64 + flip strip; 9 NoAssets. Sem novo marco % (MD-02 25%) | 8,7% |
+| 27/11/2026 | H3 MD-02 TMX Assets-fixture | Store in-memory + tileset refs/hash; NoAssets. Sem novo marco % (MD-02 25%) | 8,7% |
+| 27/11/2026 | H3 MD-02 TMX cache/reload | Budget LRU + invalidate/reload epoch; 8 NoAssets. Sem novo marco % (MD-02 25%) | 8,7% |
+| 27/11/2026 | Integração H3 delta | Merge `--no-ff` H3 `3bdf1927` (flora/replaceBiome/TMX decode/cache) em INT; H3 permanece 25% | 19,9% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

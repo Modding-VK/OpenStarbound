@@ -199,7 +199,12 @@ SET (star_game_HEADERS
     StarWorldGenerationEffectBoundary.hpp
     StarWorldGenerationCaveLiquidPlan.hpp
     StarWorldGenerationFinalizePlan.hpp
+    StarWorldGenerationFloraSpawnPlan.hpp
+    StarWorldGenerationReplaceBiomePlan.hpp
     StarWorldGenerationTmxStaticProduct.hpp
+    StarWorldGenerationTmxStaticDecode.hpp
+    StarWorldGenerationTmxShadowAssets.hpp
+    StarWorldGenerationTmxShadowCache.hpp
     StarWorldGenerationTmxBindingPlan.hpp
     StarWorldGenerationStructureCommandPlan.hpp
     StarWorldGenerationStructureBatchStaging.hpp
@@ -208,6 +213,7 @@ SET (star_game_HEADERS
     StarWorldGenerationShadowCheckpoint.hpp
     StarWorldGenerationShadowUnload.hpp
     StarWorldGenerationShadowPacket.hpp
+    StarWorldGenerationShadowIntegration.hpp
     StarWorldGenerationBlockInfo.hpp
     StarWorldGenerationCustomTerrain.hpp
     StarWorldGenerationBlockInfoStaticInputs.hpp

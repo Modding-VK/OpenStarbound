@@ -475,14 +475,21 @@ de crescimento persistente após mudança de rota ou fechamento do mundo.
 
 Propósito: reduzir trabalho serial após o desbloqueio do pipeline.
 
-- [x] CPU-04 (recortes sombra): CaveLiquid plan/delta e Finalize normalização
-  em `cursor/h3-kernels-publication-9f77`
+- [x] CPU-04 (recortes sombra): CaveLiquid, Finalize, Flora/spawn e
+  ReplaceBiome em `cursor/h3-kernels-publication-9f77`
   ([CaveLiquid](../sector-runtime-h3-cave-liquid-plan-2026-11-27.md),
-  [Finalize](../sector-runtime-h3-finalize-normalize-2026-11-27.md)); flora e
-  equivalência viva pendentes.
-- [x] MD-02 (primeiro recorte): produto TMX estático em sombra em
-  `cursor/h3-kernels-publication-9f77`
-  ([relatório](../sector-runtime-h3-tmx-static-product-2026-11-27.md)).
+  [Finalize](../sector-runtime-h3-finalize-normalize-2026-11-27.md),
+  [Flora/spawn](../sector-runtime-h3-flora-spawn-plan-2026-11-27.md),
+  [ReplaceBiome](../sector-runtime-h3-replace-biome-plan-2026-11-27.md));
+  equivalência viva / collision pendentes (permanece 25%).
+- [x] MD-02 (recortes sombra): produto TMX + decode Json + codec gzip/zlib/zstd
+  + Assets-fixture + cache/reload em `cursor/h3-kernels-publication-9f77`
+  ([produto](../sector-runtime-h3-tmx-static-product-2026-11-27.md),
+  [decode](../sector-runtime-h3-tmx-static-decode-2026-11-27.md),
+  [codec](../sector-runtime-h3-tmx-static-codec-2026-11-27.md),
+  [Assets-fixture](../sector-runtime-h3-tmx-shadow-assets-2026-11-27.md),
+  [cache](../sector-runtime-h3-tmx-shadow-cache-2026-11-27.md));
+  equivalência viva pendente (permanece 25%).
 - [x] MD-03 (primeiro recorte): plano de ligação/escolhas em sombra
   ([relatório](../sector-runtime-h3-tmx-binding-plan-2026-11-27.md)); stream
   RNG vivo e efeitos pendentes.
@@ -505,6 +512,12 @@ Propósito: reduzir trabalho serial após o desbloqueio do pipeline.
 - [x] IO-05 (primeiro recorte): pacotes confirmados em sombra
   ([relatório](../sector-runtime-h3-shadow-packet-2026-11-27.md));
   sem rede/`.world`.
+- [x] Integração cruzada sombra (pós-25%): WT-04 frontier → IO-03 unit →
+  IO-05 packet
+  ([relatório](../sector-runtime-h3-shadow-integration-2026-11-27.md));
+  sem publish vivo; não eleva contratos a 50%.
+- [ ] Além do primeiro recorte: decode TMX via Assets; equivalência viva /
+  publish autoritativo só com `apis_ready` live-publish.
 
 Saída: custo serial menor por setor/estrutura, com save, scripts e rede
 equivalentes. Cada kernel pode avançar separadamente; uma dungeon composta
