@@ -9,11 +9,11 @@ liberar CPU para outros produtores. O renderer atual negocia contexto OpenGL
 moderno quando disponível, mas não fornece uma API de compute de worldgen.
 
 **Estado (27/11/2026, `cursor/h4-gpu-shadow-9f77`):** GPU-01/02/03/04 no
-primeiro marco (25%). Após lote `a39bcd20`, recortes asset-free:
-`DenseUint32HalfIsNonzeroNibble/HalfEqNibble/HalfNeNibble`,
-`countTerminalOpenKernels`. Build **normal**
+primeiro marco (25%). Após lote `31b32ca9`, recortes asset-free:
+`DenseUint32HalfLtNibble/HalfLeNibble/HalfGtNibble`,
+`anyTerminalOpenKernels`. Build **normal**
 não claima OpenGL compute.
-Ver [halfnibblecmp/countterminalopenkernels](../sector-runtime-h4-gpu02-03-halfnibblecmp-countterminalopenkernels-2026-11-27.md).
+Ver [halfnibbleord/anyterminalopenkernels](../sector-runtime-h4-gpu02-03-halfnibbleord-anyterminalopenkernels-2026-11-27.md).
 Sem 50% enquanto terreno/bioma/ganho e multi-driver faltarem.
 
 ## GPU-01 — Interface e capacidades
