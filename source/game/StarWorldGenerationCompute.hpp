@@ -60,7 +60,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32IsPow2 = 34, // nonzero power-of-two mask; parameter ignored
   DenseUint32Bswap = 35, // byte-swap; parameter ignored
   DenseUint32Parity = 36, // popcount(value) & 1; parameter ignored
-  DenseUint32BitTest = 37 // ((value >> (parameter & 31)) & 1) ? 0xffffffff : 0
+  DenseUint32BitTest = 37, // ((value >> (parameter & 31)) & 1) ? 0xffffffff : 0
+  DenseUint32HasZeroByte = 38, // any zero byte in value ? 0xffffffff : 0; parameter ignored
+  DenseUint32NextPow2 = 39, // round up to power of two (0 stays 0; overflow wraps to 0)
+  DenseUint32MaskLow = 40 // value & low-bit mask; parameter = bit count clamped to [0,32]
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
