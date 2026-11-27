@@ -374,6 +374,10 @@ Primeiro recorte (27/11/2026):
 [`WorldGenerationValidationScenario`](../source/game/StarWorldGenerationScenarioMatrix.hpp)
 enumera os cenários abaixo sem executá-los;
 [fundações H5](../sector-runtime-h5-scale-foundations-2026-11-27.md).
+Segundo recorte:
+[`WorldGenerationScenarioCampaignRecorder`](../source/game/StarWorldGenerationScenarioCampaign.hpp)
+registra Passed/Failed/Skipped* e cobre GPU rows via ScaleMetrics;
+[scenario campaign](../sector-runtime-h5-scenario-campaign-2026-11-27.md).
 
 | Cenário | Falha ou ganho procurado |
 | --- | --- |

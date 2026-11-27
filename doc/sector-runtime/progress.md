@@ -3,10 +3,10 @@
 Atualizado em **27/11/2026**. Branch ativa desta frente: `cursor/h5-hardware-scale-9f77`
 (H0 continua em `Experimental`).
 Base inspecionada H5: `720f51e5` + fundações VAL/MOD/CPU;
-última implementação H5: scale gates + transferMs calibrado (VAL-03/VAL-05).
+última implementação H5: scenario campaign + governor scale bridge (VAL-04/CPU-05).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico H5](../sector-runtime-h5-scale-gates-metrics-2026-11-27.md)
+· [Último relatório técnico H5](../sector-runtime-h5-scenario-campaign-2026-11-27.md)
 · [Último relatório H0](../sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
 · [Backlog geral](../performance-backlog.md)
 
@@ -26,7 +26,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **7,7%** — 15 marcos verificados de 196 |
 | Contratos com avanço registrado | **15 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | 36/36 H5 contract suites (gates + ScaleMetrics); H0 ainda 791 padrão +106 RealBlockInfo |
+| Última evidência de testes | 40/40 H5 contract suites (campaign + gates); H0 ainda 791 padrão +106 RealBlockInfo |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 7,7% não significam que o jogo esteja só 7,7% pronto.** O runtime anterior
@@ -187,7 +187,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 36 | H4 | [GPU-04](gpu-compute.md) | Comparação em sombra | 0% | Corpus de precisão/bordas/drivers antes da publicação |
 | 37 | H5 | [GPU-05](gpu-compute.md) | Seleção heterogênea e render | 25% | Seletor + ScaleMetrics; ganho ponta a ponta Desktop ainda parcial |
 | 38 | H5 | [VAL-03](validation-and-telemetry.md) | Métricas e marcos de entrega | 25% | transferMs calibrado + bridge; sem Tracy/WorldThread |
-| 39 | H5 | [VAL-04](validation-and-telemetry.md) | Matriz de cenários | 25% | Cenários tipados; campanhas reais/streaming pendentes |
+| 39 | H5 | [VAL-04](validation-and-telemetry.md) | Matriz de cenários | 25% | Campaign recorder + skip tipado; streaming real pendente |
 | 40 | H5 | [VAL-05](validation-and-telemetry.md) | Gates de adoção e relatório | 25% | ScaleMetrics→evidence + summary; adopt segue fechado sem suite completa |
 | 41 | H5 | [MOD-02](compatibility.md) | Equivalência e versionamento | 25% | Épocas/máscaras; sem comparador de mundo completo |
 | 42 | H5 | [MOD-03](compatibility.md) | Perfis de execução e fallback | 25% | Migração explícita dos modes existentes; regional exige checkpoint |
@@ -212,12 +212,12 @@ de todas as implementações antigas para conceder crédito retroativo.
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
 | GPU-05 | [hardware selection](../sector-runtime-h5-hardware-selection-2026-11-27.md) + [scale bridge](../sector-runtime-h5-scale-metrics-shadow-bridge-2026-11-27.md) | Sem publicação GPU; ganho ponta a ponta Desktop ainda parcial |
 | VAL-03 | [fundações](../sector-runtime-h5-scale-foundations-2026-11-27.md) + [gates/metrics](../sector-runtime-h5-scale-gates-metrics-2026-11-27.md) | Sem instrumentação no WorldThread/Tracy nem cobertura completa de pipeline |
-| VAL-04 | mesma entrega, scenario matrix tipada | Sem campanhas executadas nem A/B de streaming |
+| VAL-04 | [scenario campaign](../sector-runtime-h5-scenario-campaign-2026-11-27.md) | Sem streaming/A-B real; skips nao contam como pass |
 | VAL-05 | [gates/metrics](../sector-runtime-h5-scale-gates-metrics-2026-11-27.md) | Adoção permanece falsa sob evidência parcial; sem gate de pipeline completo |
 | MOD-02 | mesma entrega, equivalence version/mask | Sem comparador de saves/multiplayer/conteúdo completo |
 | MOD-03 | mesma entrega, execution profile binding | Sem ativação regional nem migração de config persistida |
 | MOD-04 | mesma entrega, platform/subsystem matrix | Sem builds por plataforma nem matriz CI |
-| CPU-05 | mesma entrega, resource governor advice | Sem resize ao vivo de WorkerPool nem orçamento processual ligado |
+| CPU-05 | [scenario campaign](../sector-runtime-h5-scenario-campaign-2026-11-27.md) governor-from-scale | Sem resize ao vivo de WorkerPool nem orçamento processual ligado |
 
 CPU-01 recebe o primeiro marco porque agora existe cálculo com dados próprios
 que independe da origem/Root após captura, não só callbacks/catálogos ou contagem
@@ -318,6 +318,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | H5 fundações VAL/MOD + CPU-05 | Métricas, cenários, gates, perfis, equivalência, plataformas, governador; 27 testes. H5 25%; H1 5%; programa 4,1→7,7% | 7,7% |
 | 27/11/2026 | H5 scale metrics bridge | ScaleMetrics + H4 tip kernels; 33 testes. H5 permanece 25%; programa 7,7% | 7,7% |
 | 27/11/2026 | H5 scale gates + transferMs | AdoptionFromScaleMetrics + calibrated transfer; 36 testes. H5 25%; programa 7,7% | 7,7% |
+| 27/11/2026 | H5 scenario campaign | Campaign recorder + governor-from-scale; 40 testes. H5 25%; programa 7,7% | 7,7% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.
