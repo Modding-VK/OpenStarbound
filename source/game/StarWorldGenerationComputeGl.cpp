@@ -166,6 +166,9 @@ GLuint g_countZeroNibblesProgram = 0;
 GLuint g_packLowNibblesProgram = 0;
 GLuint g_packHighNibblesProgram = 0;
 GLuint g_expandLowNibblesProgram = 0;
+GLuint g_expandHighNibblesProgram = 0;
+GLuint g_replaceNibbleProgram = 0;
+GLuint g_maskNibblesProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -1850,6 +1853,68 @@ void main() {
 }
 )GLSL";
 
+char const* ExpandHighNibblesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint p = values[i] & 0xffffu;
+  values[i] = ((p & 0xfu) << 4) | (((p >> 4) & 0xfu) << 12) | (((p >> 8) & 0xfu) << 20)
+      | (((p >> 12) & 0xfu) << 28);
+}
+)GLSL";
+
+char const* ReplaceNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint from = uParameter & 0xfu;
+  uint to = (uParameter >> 8) & 0xfu;
+  uint v = values[i];
+  uint result = 0u;
+  for (uint n = 0u; n < 8u; ++n) {
+    uint shift = n * 4u;
+    uint nib = (v >> shift) & 0xfu;
+    result |= (nib == from ? to : nib) << shift;
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* MaskNibblesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint select = uParameter & 0xffu;
+  uint v = values[i];
+  uint result = 0u;
+  for (uint n = 0u; n < 8u; ++n) {
+    if ((select & (1u << n)) != 0u) {
+      uint shift = n * 4u;
+      result |= v & (0xfu << shift);
+    }
+  }
+  values[i] = result;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -2322,6 +2387,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_expandLowNibblesProgram);
     g_expandLowNibblesProgram = 0;
   }
+  if (g_expandHighNibblesProgram) {
+    glDeleteProgram(g_expandHighNibblesProgram);
+    g_expandHighNibblesProgram = 0;
+  }
+  if (g_replaceNibbleProgram) {
+    glDeleteProgram(g_replaceNibbleProgram);
+    g_replaceNibbleProgram = 0;
+  }
+  if (g_maskNibblesProgram) {
+    glDeleteProgram(g_maskNibblesProgram);
+    g_maskNibblesProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -2527,7 +2604,11 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_packHighNibblesProgram, PackHighNibblesShader,
             "DenseUint32PackHighNibbles")
       || !requireProgram(g_expandLowNibblesProgram, ExpandLowNibblesShader,
-            "DenseUint32ExpandLowNibbles"))
+            "DenseUint32ExpandLowNibbles")
+      || !requireProgram(g_expandHighNibblesProgram, ExpandHighNibblesShader,
+            "DenseUint32ExpandHighNibbles")
+      || !requireProgram(g_replaceNibbleProgram, ReplaceNibbleShader, "DenseUint32ReplaceNibble")
+      || !requireProgram(g_maskNibblesProgram, MaskNibblesShader, "DenseUint32MaskNibbles"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -2804,6 +2885,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_packHighNibblesProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32ExpandLowNibbles)
     program = g_expandLowNibblesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32ExpandHighNibbles)
+    program = g_expandHighNibblesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32ReplaceNibble)
+    program = g_replaceNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32MaskNibbles)
+    program = g_maskNibblesProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
