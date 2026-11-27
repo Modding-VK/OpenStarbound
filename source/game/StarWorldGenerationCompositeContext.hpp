@@ -75,6 +75,22 @@ public:
   TerrainSelectorParameters foregroundCave() const { return m_selectors.foregroundCave(); }
   TerrainSelectorParameters backgroundCave() const { return m_selectors.backgroundCave(); }
 
+  // PureKernel consumption: materialize private selector PODs + BaseTiles
+  // identity from an already-admitted composite. Does not re-run capture, RNG,
+  // Assets, Root, or live-world mutation. Json/custom-terrain reads stay on the
+  // composite (PreparedDependency) — this reconstructs only POD pure inputs.
+  struct PureInputs {
+    static constexpr unsigned ModelVersion = 1;
+    TerrainSelectorParameters terrain;
+    TerrainSelectorParameters foregroundCave;
+    TerrainSelectorParameters backgroundCave;
+    WorldGenerationBaseTilesIdentity baseTiles;
+  };
+
+  PureInputs reconstructPureInputs() const {
+    return PureInputs{terrain(), foregroundCave(), backgroundCave(), m_baseTiles};
+  }
+
 private:
   WorldGenerationCompositeContext(WorldGenerationRegionSelectorContext selectors,
       WorldGenerationBlockInfoStaticInputs staticInputs,

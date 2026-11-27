@@ -9,7 +9,7 @@ using namespace Star;
 
 TEST(WorldGenerationEffectBoundaryTest, CatalogSatisfiesH0Invariants) {
   EXPECT_TRUE(worldGenerationEffectBoundaryCatalogValid());
-  EXPECT_GE(worldGenerationEffectBoundaryCount(), 70u);
+  EXPECT_GE(worldGenerationEffectBoundaryCount(), 76u);
 }
 
 TEST(WorldGenerationEffectBoundaryTest, IdsAreUniqueAndFindable) {
@@ -165,4 +165,66 @@ TEST(WorldGenerationEffectBoundaryTest, TaskLifecycleBoundariesStayPrivate) {
   auto invalidate = worldGenerationEffectBoundaryFind("task-invalidate");
   ASSERT_TRUE(invalidate);
   EXPECT_EQ(invalidate->kind, WorldGenerationEffectKind::AuthoritativeCallback);
+}
+
+TEST(WorldGenerationEffectBoundaryTest, WorkerAllowsPureKernelRefusesAuthoritative) {
+  EXPECT_TRUE(worldGenerationEffectBoundaryAllows(
+      "base-tiles-apply", WorldGenerationEffectExecutionRole::Worker));
+  EXPECT_TRUE(worldGenerationEffectBoundaryAllows(
+      "composite-context-reconstruct", WorldGenerationEffectExecutionRole::Worker));
+  EXPECT_TRUE(worldGenerationEffectBoundaryAllows(
+      "effect-boundary-enforce", WorldGenerationEffectExecutionRole::Worker));
+
+  EXPECT_EQ(worldGenerationEffectBoundaryDecide(
+                "microdungeon-plan-apply", WorldGenerationEffectExecutionRole::Worker),
+      WorldGenerationEffectBoundaryDecision::RefuseWorkerAuthoritative);
+  EXPECT_FALSE(worldGenerationEffectBoundaryAllows(
+      "root-load-mods", WorldGenerationEffectExecutionRole::Worker));
+  EXPECT_FALSE(worldGenerationEffectBoundaryAllows(
+      "placement-queue-take", WorldGenerationEffectExecutionRole::Worker));
+
+  EXPECT_TRUE(worldGenerationEffectBoundaryAllows(
+      "microdungeon-plan-apply", WorldGenerationEffectExecutionRole::Owner));
+  EXPECT_TRUE(worldGenerationEffectBoundaryAllows(
+      "root-load-mods", WorldGenerationEffectExecutionRole::Diagnostic));
+}
+
+TEST(WorldGenerationEffectBoundaryTest, WorkerRefusesOwnerThreadPreparedDependency) {
+  EXPECT_EQ(worldGenerationEffectBoundaryDecide(
+                "composite-context-capture", WorldGenerationEffectExecutionRole::Worker),
+      WorldGenerationEffectBoundaryDecision::RefuseWorkerOwnerThread);
+  EXPECT_EQ(worldGenerationEffectBoundaryDecide(
+                "sector-shadow-admit", WorldGenerationEffectExecutionRole::Worker),
+      WorldGenerationEffectBoundaryDecision::RefuseWorkerOwnerThread);
+  // PreparedDependency without owner/script/live flags remains worker-safe.
+  EXPECT_TRUE(worldGenerationEffectBoundaryAllows(
+      "region-selector-snapshot", WorldGenerationEffectExecutionRole::Worker));
+  EXPECT_TRUE(worldGenerationEffectBoundaryAllows(
+      "container-factor-query", WorldGenerationEffectExecutionRole::Worker));
+}
+
+TEST(WorldGenerationEffectBoundaryTest, EnforcementRefusesUnknownAndNamesDecisions) {
+  EXPECT_EQ(worldGenerationEffectBoundaryDecide(
+                "missing-operation", WorldGenerationEffectExecutionRole::Owner),
+      WorldGenerationEffectBoundaryDecision::RefuseUnknown);
+  EXPECT_EQ(worldGenerationEffectBoundaryDecide(
+                nullptr, WorldGenerationEffectExecutionRole::Worker),
+      WorldGenerationEffectBoundaryDecision::RefuseUnknown);
+  EXPECT_STREQ("Allow",
+      worldGenerationEffectBoundaryDecisionName(WorldGenerationEffectBoundaryDecision::Allow));
+  EXPECT_STREQ("RefuseWorkerAuthoritative",
+      worldGenerationEffectBoundaryDecisionName(
+          WorldGenerationEffectBoundaryDecision::RefuseWorkerAuthoritative));
+  EXPECT_STREQ("RefuseWorkerOwnerThread",
+      worldGenerationEffectBoundaryDecisionName(
+          WorldGenerationEffectBoundaryDecision::RefuseWorkerOwnerThread));
+
+  auto reconstruct = worldGenerationEffectBoundaryFind("composite-context-reconstruct");
+  ASSERT_TRUE(reconstruct);
+  EXPECT_EQ(reconstruct->kind, WorldGenerationEffectKind::PureKernel);
+  auto enforce = worldGenerationEffectBoundaryFind("effect-boundary-enforce");
+  ASSERT_TRUE(enforce);
+  EXPECT_EQ(enforce->kind, WorldGenerationEffectKind::PureKernel);
+  EXPECT_GE(worldGenerationEffectBoundaryCountForSurface("EffectBoundary"), 1u);
+  EXPECT_GE(worldGenerationEffectBoundaryCountForSurface("CompositeContext"), 3u);
 }

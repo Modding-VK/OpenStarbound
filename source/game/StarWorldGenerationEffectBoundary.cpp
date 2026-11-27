@@ -12,6 +12,10 @@ constexpr WorldGenerationEffectBoundary kCatalog[] = {
         "Diagnostic field compare; never memcmp padding"},
     {"composite-context-capture", "CompositeContext", WorldGenerationEffectKind::PreparedDependency, false, false, true,
         false, "Owner-thread capture of selectors/static inputs/BaseTiles identity"},
+    {"composite-context-reconstruct", "CompositeContext", WorldGenerationEffectKind::PureKernel, false, false, false,
+        false, "Materialize POD selectors + BaseTiles identity from admitted composite; no RNG/Assets/live mutation"},
+    {"effect-boundary-enforce", "EffectBoundary", WorldGenerationEffectKind::PureKernel, false, false, false, false,
+        "Role gate for catalogued ops; refuses Worker AuthoritativeCallback/owner-thread/script/live"},
     {"sector-shadow-admit", "SectorShadow", WorldGenerationEffectKind::PreparedDependency, false, false, true, false,
         "Ledger admit of private BaseTiles array; discard without publication"},
     {"sector-shadow-discard", "SectorShadow", WorldGenerationEffectKind::PreparedDependency, false, false, true, false,
@@ -219,6 +223,54 @@ bool worldGenerationEffectBoundaryCatalogValid() {
       return false;
   }
   return true;
+}
+
+WorldGenerationEffectBoundaryDecision worldGenerationEffectBoundaryDecide(
+    char const* id, WorldGenerationEffectExecutionRole role) {
+  auto entry = worldGenerationEffectBoundaryFind(id);
+  if (!entry)
+    return WorldGenerationEffectBoundaryDecision::RefuseUnknown;
+  if (entry->kind == WorldGenerationEffectKind::MultiRegionEffect)
+    return WorldGenerationEffectBoundaryDecision::RefuseMultiRegion;
+
+  if (role == WorldGenerationEffectExecutionRole::Owner
+      || role == WorldGenerationEffectExecutionRole::Diagnostic)
+    return WorldGenerationEffectBoundaryDecision::Allow;
+
+  // Worker path: PureKernel always; PreparedDependency only when flags permit.
+  if (entry->kind == WorldGenerationEffectKind::AuthoritativeCallback)
+    return WorldGenerationEffectBoundaryDecision::RefuseWorkerAuthoritative;
+  if (entry->requiresOwnerThread)
+    return WorldGenerationEffectBoundaryDecision::RefuseWorkerOwnerThread;
+  if (entry->mayInvokeScript)
+    return WorldGenerationEffectBoundaryDecision::RefuseWorkerScript;
+  if (entry->mutatesLiveWorld)
+    return WorldGenerationEffectBoundaryDecision::RefuseWorkerLiveMutation;
+  return WorldGenerationEffectBoundaryDecision::Allow;
+}
+
+bool worldGenerationEffectBoundaryAllows(char const* id, WorldGenerationEffectExecutionRole role) {
+  return worldGenerationEffectBoundaryDecide(id, role) == WorldGenerationEffectBoundaryDecision::Allow;
+}
+
+char const* worldGenerationEffectBoundaryDecisionName(WorldGenerationEffectBoundaryDecision decision) {
+  switch (decision) {
+    case WorldGenerationEffectBoundaryDecision::Allow:
+      return "Allow";
+    case WorldGenerationEffectBoundaryDecision::RefuseUnknown:
+      return "RefuseUnknown";
+    case WorldGenerationEffectBoundaryDecision::RefuseWorkerAuthoritative:
+      return "RefuseWorkerAuthoritative";
+    case WorldGenerationEffectBoundaryDecision::RefuseWorkerOwnerThread:
+      return "RefuseWorkerOwnerThread";
+    case WorldGenerationEffectBoundaryDecision::RefuseWorkerScript:
+      return "RefuseWorkerScript";
+    case WorldGenerationEffectBoundaryDecision::RefuseWorkerLiveMutation:
+      return "RefuseWorkerLiveMutation";
+    case WorldGenerationEffectBoundaryDecision::RefuseMultiRegion:
+      return "RefuseMultiRegion";
+  }
+  return "Unknown";
 }
 
 }
