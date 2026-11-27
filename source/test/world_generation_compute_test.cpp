@@ -1546,6 +1546,31 @@ TEST(WorldGenerationComputeTest, AnyFailedOpenTicketsTracksFailedPresence) {
 
 
 
+TEST(WorldGenerationComputeTest, ListTerminalOpenTicketsReturnsNonPendingIds) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  EXPECT_TRUE(service.listTerminalOpenTickets().empty());
+  auto ready = service.submit(
+      makeIdentity(1550, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u);
+  auto cancel = service.submit(
+      makeIdentity(1551, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{2u}, 0u);
+  auto pending = service.submit(
+      makeIdentity(1552, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{3u}, 0u);
+  ASSERT_TRUE((bool)ready);
+  ASSERT_TRUE((bool)cancel);
+  ASSERT_TRUE((bool)pending);
+  EXPECT_TRUE(service.complete(*ready));
+  EXPECT_TRUE(service.cancel(*cancel));
+  auto terminal = service.listTerminalOpenTickets();
+  ASSERT_EQ(2u, terminal.size());
+  EXPECT_TRUE(terminal[0] == *ready || terminal[0] == *cancel);
+  EXPECT_TRUE(terminal[1] == *ready || terminal[1] == *cancel);
+  EXPECT_NE(terminal[0].id, terminal[1].id);
+  EXPECT_EQ(1u, service.inFlightByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+  EXPECT_EQ(2u, service.discardTerminalOpenTickets());
+  EXPECT_TRUE(service.listTerminalOpenTickets().empty());
+}
+
 TEST(WorldGenerationComputeTest, AnyCancelledOpenTicketsTracksCancelledPresence) {
   WorldGenerationComputeService service;
   service.setDeferredCpuCompletion(true);
