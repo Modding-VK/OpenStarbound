@@ -19,4 +19,6 @@ ASan/UBSan: 1×5; **83/83** RealBlockInfo.
 
 ## Próximo passo
 
-Gates H0 restantes (Island/noise lifecycle). Não disparar Actions.
+IslandSurface lifecycle em
+[island lifecycle](sector-runtime-h0-sector-shadow-island-lifecycle-2026-11-26.md).
+Segue noise lifecycle. Não disparar Actions.
