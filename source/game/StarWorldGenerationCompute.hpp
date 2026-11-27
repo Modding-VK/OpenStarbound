@@ -303,7 +303,10 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfMuxNibble = 277, // (sel ? b : a) per bit; a=n, b=parameter&0xf, sel=(parameter>>4)&0xf
   DenseUint32HalfImpliesNibble = 278, // (~n | (parameter&0xf)) & 0xf per low16 nibble
   DenseUint32HalfNeqFillNibble = 279, // 0xf if nibble != (parameter&0xf), else 0
-  DenseUint32HalfAbsDiffNibble = 280 // abs(n - (parameter&0xf)) per low16 nibble
+  DenseUint32HalfAbsDiffNibble = 280, // abs(n - (parameter&0xf)) per low16 nibble
+  DenseUint32HalfEqFillNibble = 281, // 0xf if nibble == (parameter&0xf), else 0
+  DenseUint32HalfOddFillNibble = 282, // 0xf if nibble odd, else 0; parameter ignored
+  DenseUint32HalfEvenFillNibble = 283 // 0xf if nibble even, else 0; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
