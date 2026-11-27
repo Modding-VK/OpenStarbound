@@ -265,6 +265,8 @@ public:
   size_t cancelledOpenTicketsByKernel(WorldGenerationComputeKernel kernel) const;
   // True while any open ticket matches identity.kernel (asset-free observation).
   bool anyOpenTicketsByKernel(WorldGenerationComputeKernel kernel) const;
+  // Failed open tickets whose identity.kernel matches (asset-free observation).
+  size_t failedOpenTicketsByKernel(WorldGenerationComputeKernel kernel) const;
   size_t stagingBytes() const;
   size_t pooledBuffers() const;
 
