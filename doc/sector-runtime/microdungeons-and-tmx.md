@@ -65,6 +65,11 @@ entidades nem conteúdo de estrutura. Retries não repetem escolhas ou efeitos.
 
 ## MD-04 — Comandos, footprint e reserva
 
+Primeiro recorte em `cursor/h3-kernels-publication-9f77`:
+`WorldGenerationStructureCommandPlan` descreve comandos, footprint
+read/write/entityReach e reservas regionais ordenadas sem install.
+Ver [relatório](../sector-runtime-h3-structure-command-plan-2026-11-27.md).
+
 Converter a facade/writer em descrição completa de leituras e efeitos:
 materiais, mods, líquidos, IDs, proteção, player start, limpeza de entidades,
 objetos, flora, NPCs, veículos, stagehands, drops, fios e marcações.

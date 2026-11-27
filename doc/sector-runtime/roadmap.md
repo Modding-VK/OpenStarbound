@@ -465,7 +465,9 @@ Propósito: reduzir trabalho serial após o desbloqueio do pipeline.
 - [x] MD-03 (primeiro recorte): plano de ligação/escolhas em sombra
   ([relatório](../sector-runtime-h3-tmx-binding-plan-2026-11-27.md)); stream
   RNG vivo e efeitos pendentes.
-- [ ] MD-04: mapa completo de efeitos, footprints e comandos de estruturas.
+- [x] MD-04 (primeiro recorte): footprint/comandos/reservas em sombra
+  ([relatório](../sector-runtime-h3-structure-command-plan-2026-11-27.md));
+  writer vivo pendente.
 - [ ] MD-05 e WT-04: aplicação em batches e staging quando necessário.
 - [ ] IO-02/03/04: banco, checkpoint e unload coerentes com novos produtos.
 - [ ] IO-05: pacote confirmado e medição até aplicação no cliente.

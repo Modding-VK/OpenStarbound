@@ -189,6 +189,7 @@ SET (star_game_HEADERS
     StarWorldGenerationFinalizePlan.hpp
     StarWorldGenerationTmxStaticProduct.hpp
     StarWorldGenerationTmxBindingPlan.hpp
+    StarWorldGenerationStructureCommandPlan.hpp
     StarWorldGenerationBlockInfo.hpp
     StarWorldGenerationCustomTerrain.hpp
     StarWorldGenerationBlockInfoStaticInputs.hpp
