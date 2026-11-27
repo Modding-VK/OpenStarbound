@@ -38,13 +38,17 @@ histórico, sem outra fila de prioridades. O
 [painel de progressão](sector-runtime/progress.md) consolida percentuais por
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
-Branch de integração: `cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+R1+R2).
+Branch de integração: `cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+H4+R1+R2).
 Relatório H1 atual:
 [Interest/priority DAG-03 50%](sector-runtime-h1-executive-interest-priority-2026-11-27.md);
 [PreparedSector payload/path](sector-runtime-h1-prepared-sector-2026-11-27.md).
 H2 na mesma linha (PreparedSector canônico = H1; extras H2 em headers dedicados):
 [H2 resident/prefetch/batch/IO](sector-runtime-h2-resident-prefetch-batch-io-2026-11-27.md),
 [H2 product revision cache](sector-runtime-h2-product-revision-cache-2026-11-27.md).
+H4 na mesma linha (GPU-01…04 CPU-first + probe GL PASS Desktop-Vinicius):
+[GPU-02/03/04](sector-runtime-h4-gpu02-03-04-2026-11-27.md),
+[GPU-01](sector-runtime-h4-gpu01-compute-interface-2026-11-27.md),
+[probe harness](sector-runtime-h4-gpu-probe-harness-2026-11-27.md).
 H0 na mesma linha:
 [MOD-01 EffectBoundary deep](sector-runtime-h0-effect-boundary-deep-2026-11-27.md),
 [MOD-01 EffectBoundary complete](sector-runtime-h0-effect-boundary-complete-2026-11-27.md),

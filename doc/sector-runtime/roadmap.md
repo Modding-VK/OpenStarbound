@@ -529,10 +529,15 @@ Propósito: criar o caminho concreto de uso da GPU. O protótipo de interface e
 capacidade pode avançar em paralelo a H1/H2; publicação exige contrato estável
 do kernel CPU e do resultado versionado.
 
-- [ ] GPU-01: interface CPU/GPU, capacidades e build CPU independente.
-- [ ] GPU-02: thread de contexto, buffers, fences e recuperação.
-- [ ] GPU-03: primeiro kernel exato e lotes apropriados.
-- [ ] GPU-04: comparação em sombra e corpus de bordas/precisão/drivers.
+- [x] GPU-01: interface CPU/GPU, capacidades e build CPU independente
+  (primeiro recorte 25%: serviço + CPU reference; probe GL opt-in em
+  `STAR_ENABLE_WORLDGEN_GL_COMPUTE`, evidência RTX pendente).
+- [x] GPU-02: fila/buffers em voo/pump/failContext no CPU
+  (primeiro recorte 25%; fence/SSBO no harness opt-in; thread WorldThread pendente).
+- [x] GPU-03: kernels exatos DenseUint32Xor/Add + submitBatch
+  (primeiro recorte 25%; shaders DenseUint32* no opt-in; terreno/ganho pendentes).
+- [x] GPU-04: compareShadow + corpus de bordas
+  (primeiro recorte 25%; compareShadow GPU no harness opt-in; multi-driver pendente).
 
 Saída: equivalência e custo completo demonstrados, sem publicar divergências.
 A existência de shaders/uso de GPU no gráfico não conclui esta entrega.

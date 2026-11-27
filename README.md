@@ -48,6 +48,8 @@ For the current state and the next work, start here:
 - [Latest H2 report: resident cache/prefetch/batch (RAM-02..IO-01)](doc/sector-runtime-h2-resident-prefetch-batch-io-2026-11-27.md)
 - [Latest H3 report: TMX shadow cache](doc/sector-runtime-h3-tmx-shadow-cache-2026-11-27.md)
 - [H3 shadow packet IO-05](doc/sector-runtime-h3-shadow-packet-2026-11-27.md)
+- [Latest H4 report: GPU-02/03/04 CPU-first queue, batches, shadow](doc/sector-runtime-h4-gpu02-03-04-2026-11-27.md)
+- [H4 GPU probe harness](doc/sector-runtime-h4-gpu-probe-harness-2026-11-27.md)
 - [Latest R1 report: OS thread CPU stub](doc/sector-runtime-r1-thread-stub-cpu-2026-11-27.md)
 - [R1 OS thread stub shadow](doc/sector-runtime-r1-thread-stub-shadow-2026-11-27.md)
 - [H2 product revision cache](doc/sector-runtime-h2-product-revision-cache-2026-11-27.md)

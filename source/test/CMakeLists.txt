@@ -119,6 +119,8 @@ ADD_EXECUTABLE(world_generation_contract_tests
   ../game/StarWorldGenerationPreparedSector.cpp
   ../game/StarWorldGenerationResourceGovernor.cpp
   ../game/StarWorldGenerationTasks.cpp
+  ../game/StarWorldGenerationCompute.cpp
+  ../game/StarWorldGenerationComputeGl.cpp
   ../game/StarWorldGenerationMemory.cpp
   ../game/StarLiquidTypes.cpp
   ../game/StarWorldGenerationBaseTiles.cpp
@@ -169,6 +171,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_candidate_sequence_test.cpp
   world_generation_effect_boundary_test.cpp
   world_generation_tasks_test.cpp
+  world_generation_compute_test.cpp
   world_generation_memory_test.cpp
   world_generation_memory_envelope_test.cpp
   world_generation_memory_admission_test.cpp
@@ -251,6 +254,7 @@ FOREACH(world_region_test_suite
     WorldGenerationCandidateSequenceTest
     WorldGenerationEffectBoundaryTest
     WorldGenerationTasksTest
+    WorldGenerationComputeTest
     WorldGenerationMemoryTest
     WorldGenerationMemoryEnvelopeTest
     WorldGenerationMemoryAdmissionTest
