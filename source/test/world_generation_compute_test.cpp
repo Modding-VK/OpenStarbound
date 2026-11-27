@@ -1570,6 +1570,25 @@ TEST(WorldGenerationComputeTest, AnyFailedOpenTicketsTracksFailedPresence) {
 
 
 
+
+TEST(WorldGenerationComputeTest, RejectedDuplicatesFingerprintAliasesFingerprintRejectedDuplicates) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  EXPECT_EQ(0u, service.rejectedDuplicatesFingerprint());
+  auto t1 = service.submit(makeIdentity(1910), List<uint32_t>{1u}, 1u);
+  auto t2 = service.submit(makeIdentity(1911), List<uint32_t>{2u}, 1u);
+  ASSERT_TRUE((bool)t1);
+  ASSERT_TRUE((bool)t2);
+  EXPECT_EQ(2u, service.failContext());
+  WorldGenerationComputeResult result;
+  EXPECT_EQ(WorldGenerationComputePollStatus::Ready, service.poll(*t1, &result));
+  EXPECT_EQ(WorldGenerationComputePollStatus::Ready, service.poll(*t2, &result));
+  EXPECT_EQ(service.fingerprintRejectedDuplicates(), service.rejectedDuplicatesFingerprint());
+  EXPECT_EQ(t1->id ^ t2->id, service.rejectedDuplicatesFingerprint());
+  EXPECT_EQ(2u, service.clearRejectedDuplicates());
+  EXPECT_EQ(0u, service.rejectedDuplicatesFingerprint());
+}
+
 TEST(WorldGenerationComputeTest, RejectedDuplicatesEmptyTracksRejectSet) {
   WorldGenerationComputeService service;
   service.setDeferredCpuCompletion(true);

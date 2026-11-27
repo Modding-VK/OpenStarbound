@@ -3839,6 +3839,10 @@ bool WorldGenerationComputeService::rejectedDuplicatesEmpty() const {
   return m_rejectedDuplicates.empty();
 }
 
+uint64_t WorldGenerationComputeService::rejectedDuplicatesFingerprint() const {
+  return fingerprintRejectedDuplicates();
+}
+
 size_t WorldGenerationComputeService::clearRejectedDuplicates() {
   std::lock_guard<std::mutex> lock(m_mutex);
   if (!ownerAllowsLocked())
