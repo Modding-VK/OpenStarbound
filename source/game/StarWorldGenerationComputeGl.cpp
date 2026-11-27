@@ -157,6 +157,9 @@ GLuint g_nibbleMinProgram = 0;
 GLuint g_extractNibbleProgram = 0;
 GLuint g_insertNibbleProgram = 0;
 GLuint g_broadcastNibbleProgram = 0;
+GLuint g_swapAdjacentNibblesProgram = 0;
+GLuint g_rolNibblesProgram = 0;
+GLuint g_rorNibblesProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -1696,6 +1699,51 @@ void main() {
 }
 )GLSL";
 
+char const* SwapAdjacentNibblesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  values[i] = ((v & 0x0f0f0f0fu) << 4) | ((v & 0xf0f0f0f0u) >> 4);
+}
+)GLSL";
+
+char const* RolNibblesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint r = (uParameter & 7u) * 4u;
+  values[i] = (values[i] << r) | (values[i] >> ((32u - r) & 31u));
+}
+)GLSL";
+
+char const* RorNibblesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint r = (uParameter & 7u) * 4u;
+  values[i] = (values[i] >> r) | (values[i] << ((32u - r) & 31u));
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -2132,6 +2180,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_broadcastNibbleProgram);
     g_broadcastNibbleProgram = 0;
   }
+  if (g_swapAdjacentNibblesProgram) {
+    glDeleteProgram(g_swapAdjacentNibblesProgram);
+    g_swapAdjacentNibblesProgram = 0;
+  }
+  if (g_rolNibblesProgram) {
+    glDeleteProgram(g_rolNibblesProgram);
+    g_rolNibblesProgram = 0;
+  }
+  if (g_rorNibblesProgram) {
+    glDeleteProgram(g_rorNibblesProgram);
+    g_rorNibblesProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -2324,7 +2384,11 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_extractNibbleProgram, ExtractNibbleShader, "DenseUint32ExtractNibble")
       || !requireProgram(g_insertNibbleProgram, InsertNibbleShader, "DenseUint32InsertNibble")
       || !requireProgram(g_broadcastNibbleProgram, BroadcastNibbleShader,
-            "DenseUint32BroadcastNibble"))
+            "DenseUint32BroadcastNibble")
+      || !requireProgram(g_swapAdjacentNibblesProgram, SwapAdjacentNibblesShader,
+            "DenseUint32SwapAdjacentNibbles")
+      || !requireProgram(g_rolNibblesProgram, RolNibblesShader, "DenseUint32RolNibbles")
+      || !requireProgram(g_rorNibblesProgram, RorNibblesShader, "DenseUint32RorNibbles"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -2583,6 +2647,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_insertNibbleProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32BroadcastNibble)
     program = g_broadcastNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32SwapAdjacentNibbles)
+    program = g_swapAdjacentNibblesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32RolNibbles)
+    program = g_rolNibblesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32RorNibbles)
+    program = g_rorNibblesProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
