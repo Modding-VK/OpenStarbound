@@ -192,6 +192,7 @@ SET (star_game_HEADERS
     StarWorldGenerationTmxStaticProduct.hpp
     StarWorldGenerationTmxStaticDecode.hpp
     StarWorldGenerationTmxShadowAssets.hpp
+    StarWorldGenerationTmxShadowCache.hpp
     StarWorldGenerationTmxBindingPlan.hpp
     StarWorldGenerationStructureCommandPlan.hpp
     StarWorldGenerationStructureBatchStaging.hpp

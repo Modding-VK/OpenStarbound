@@ -28,10 +28,10 @@ missing, embedded, hash change, empty tilesets). Regressão
 
 ## Maturidade
 
-MD-02 permanece em **25%**: falta cache/reload e equivalência a
-`TMXMap`+`tilesetDatabase` vivos. Não concede 50%.
+MD-02 permanece em **25%**: falta equivalência a `TMXMap`+`tilesetDatabase`
+vivos. Não concede 50%.
 
 ## Próximo
 
-Cache/reload do produto TMX em sombra, ou equivalência viva só com
-live-publish.
+Entregue: [cache/reload sombra](sector-runtime-h3-tmx-shadow-cache-2026-11-27.md).
+Seguinte: equivalência viva só com live-publish.
