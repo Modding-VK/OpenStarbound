@@ -1,0 +1,80 @@
+name: CI Integration
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: ci-integration-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Lightweight Linux CPU build+test for the integration line.
+# Does not replace or trigger the manual release workflow (build.yml).
+on:
+  push:
+    branches:
+      - cursor/integration-sector-runtime-7342
+      - 'cursor/**'
+  workflow_dispatch:
+
+jobs:
+  linux_cpu:
+    name: Linux CPU build + NoAssets tests
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Install Packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkgconf libxmu-dev libgl-dev libglu1-mesa-dev libasound2-dev libpulse-dev \
+          libaudio-dev libjack-dev libsndio-dev libx11-dev libxext-dev \
+          libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev \
+          libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev \
+          libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev \
+          autoconf autoconf-archive automake libtool patchelf
+
+      - name: Install CMake & Ninja
+        uses: lukka/get-cmake@da37b03df250c343a90268c30948f7814f31d88e # latest resolved 2026-10-25
+        with:
+          cmakeVersion: 3.29.2
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          submodules: 'recursive'
+
+      - name: sccache
+        uses: hendrikmuhs/ccache-action@5ebbd400eff9e74630f759d94ddd7b6c26299639 # v1.2
+        with:
+          variant: sccache
+          key: ${{ github.job }}-${{ runner.os }}-integration
+          max-size: 250M
+
+      - name: vcpkg
+        uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
+        id: runvcpkg
+        with:
+          vcpkgJsonGlob: '**/source/vcpkg.json'
+          vcpkgConfigurationJsonGlob: '**/source/vcpkg-configuration.json'
+
+      - name: Restore vcpkg cache
+        id: vcpkg-cache
+        uses: TAServers/vcpkg-cache@4f07be616a4604dd29f3c6885975cf2c04abee71 # v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure and Build (linux-release)
+        uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10
+        env:
+          VCPKG_FEATURE_FLAGS: "binarycaching"
+          VCPKG_BINARY_SOURCES: "clear;files,${{ steps.vcpkg-cache.outputs.path }},readwrite"
+        with:
+          cmakeListsTxtPath: '${{ github.workspace }}/source/CMakeLists.txt'
+          configurePreset: 'linux-release'
+          buildPreset: 'linux-release'
+
+      - name: Run NoAssets Tests (linux-release)
+        uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10
+        env:
+          VCPKG_FEATURE_FLAGS: "binarycaching"
+          VCPKG_BINARY_SOURCES: "clear;files,${{ steps.vcpkg-cache.outputs.path }},readwrite"
+        with:
+          cmakeListsTxtPath: '${{ github.workspace }}/source/CMakeLists.txt'
+          testPreset: 'linux-release'
