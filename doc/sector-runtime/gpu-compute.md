@@ -7,7 +7,12 @@
 Usar GPU disponível para reduzir o tempo de kernels regulares em lotes e
 liberar CPU para outros produtores. O renderer atual negocia contexto OpenGL
 moderno quando disponível, mas não fornece uma API de compute de worldgen.
-Todo o backend deste módulo é proposto; não há geração GPU implementada.
+
+**Estado (27/11/2026, `cursor/h4-gpu-shadow-9f77`):** GPU-01 tem o primeiro
+recorte funcional — `WorldGenerationComputeService` com submit/poll/cancel,
+probe de capacidades e backend CPU de referência para `DenseUint32Xor`. OpenGL
+compute ainda não é claimado. Ver
+[relatório GPU-01](../sector-runtime-h4-gpu01-compute-interface-2026-11-27.md).
 
 ## GPU-01 — Interface e capacidades
 

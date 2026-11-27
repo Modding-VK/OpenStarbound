@@ -471,7 +471,8 @@ Propósito: criar o caminho concreto de uso da GPU. O protótipo de interface e
 capacidade pode avançar em paralelo a H1/H2; publicação exige contrato estável
 do kernel CPU e do resultado versionado.
 
-- [ ] GPU-01: interface CPU/GPU, capacidades e build CPU independente.
+- [x] GPU-01: interface CPU/GPU, capacidades e build CPU independente
+  (primeiro recorte 25%: serviço + CPU reference; probe GL ainda pendente).
 - [ ] GPU-02: thread de contexto, buffers, fences e recuperação.
 - [ ] GPU-03: primeiro kernel exato e lotes apropriados.
 - [ ] GPU-04: comparação em sombra e corpus de bordas/precisão/drivers.
