@@ -186,6 +186,7 @@ SET (star_game_HEADERS
     StarWorldGenerationLookupResolver.hpp
     StarWorldGenerationBaseTiles.hpp
     StarWorldGenerationCandidateSequence.hpp
+    StarWorldGenerationEffectBoundary.hpp
     StarWorldGenerationBlockInfo.hpp
     StarWorldGenerationCustomTerrain.hpp
     StarWorldGenerationBlockInfoStaticInputs.hpp
@@ -489,6 +490,7 @@ SET (star_game_SOURCES
     StarWorldGenerationMemory.cpp
     StarWorldGenerationBaseTiles.cpp
     StarWorldGenerationCandidateSequence.cpp
+    StarWorldGenerationEffectBoundary.cpp
     StarWorldGenerationCustomTerrain.cpp
     StarWorldGenerationBlockInfoStaticInputs.cpp
     StarTileDamageState.cpp

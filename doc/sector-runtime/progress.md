@@ -1,12 +1,12 @@
 # Progressão do projeto — percentuais e ordem das tarefas
 
 Atualizado em **27/11/2026**. Branch: `cursor/h0-foundations-9f77`.
-Base inspecionada: `7b1bbbbc`;
-última implementação H0: TileDamageParameters no payload de plantas
-(ver relatório VAL-02).
+Base inspecionada: `54f69cd2`;
+última implementação H0: catálogo MOD-01 de fronteiras de efeito
+(ver relatório MOD-01).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h0-candidate-tile-damage-payload-2026-11-27.md)
+· [Último relatório técnico](../sector-runtime-h0-effect-boundary-2026-11-27.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -23,7 +23,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **3,6%** — 7 marcos verificados de 196 |
 | Contratos com avanço registrado | **7 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | contract CandidateSequence 13/13 +134 RealBlockInfo; ASan/UBSan; gates H0 antes de H1 |
+| Última evidência de testes | EffectBoundary 6/6 + CandidateSequence 13/13 +134 RealBlockInfo; ASan/UBSan; gates H0 |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,6% não significam que o jogo esteja só 3,6% pronto.** O runtime anterior
@@ -121,10 +121,10 @@ autoritativa. GPU é opcional, com fallback CPU completo.
    BiomeItem completo em diagnóstico; falta planeta/mods e streaming.
    Manter os controles de colisões de hash como gate de qualquer
    eliminação de cópias.
-3. **MOD-01:** completar a fronteira de efeitos/inputs puros do próximo kernel,
-   incluindo inicialização/RNG/dependências. Seed automática corrigida e sequências
-   explícitas verificadas; Perlin, biomeTransition/SkyParameters e a auditoria de
-   consumo/reconstrução do contexto completo continuam abertos.
+3. **MOD-01:** catálogo `WorldGenerationEffectBoundary` classifica PureKernel/
+   PreparedDependency/AuthoritativeCallback no recorte H0; defaults auditados
+   (Perlin/biomeTransition/Sky/baseHeight) ficam sinalizados, não corrigidos.
+   Falta consumo/reconstrução completa do contexto e mais superfícies.
 4. **VAL-01 + validação de DAG-01/DAG-04:** executar streaming com rota, save,
    config, assets/mods e estado inicial fixos; medir setores inéditos entregues/s,
    interesse→entrega e resposta do update/frame. Não pedir apenas outra run
@@ -151,7 +151,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 2 | H0 | [DAG-04](dependency-scheduler.md) | Conclusões e progresso dentro da passagem | 25% | Mailbox executiva/reação a conclusões; continuação/avanço já corrigidos no recorte |
 | 3 | H0 | [RAM-01](memory-and-prefetch.md) | Reserva e contabilização de bytes | 25% | Json retido medido/deduplicado no contexto estático; polígonos/wrappers e admissão/contexto/consumidor globais pendentes |
 | 4 | H0 | [VAL-02](validation-and-telemetry.md) | Comparador de outputs e produtores controlados | 25% | BaseTiles + sombra 2×2 + candidatos BiomeItem (incl. TileDamage); falta planeta/mods e streaming |
-| 5 | H0 | [MOD-01](compatibility.md) | Classificar operações por efeito | 25% | Config lazy preserva ramos/falhas, custom terrain Root-free; adapter normal conserva Assets e restante do contexto é pendente |
+| 5 | H0 | [MOD-01](compatibility.md) | Classificar operações por efeito | 25% | Catálogo EffectBoundary H0 + audits de default; falta consumo/reconstrução completa do contexto e mais superfícies |
 | 6 | H0 | [VAL-01](validation-and-telemetry.md) | Benchmark de streaming | 25% | Rota/save/config fixos, streaming real e A/B equivalente |
 | 7 | H1 | [DAG-02](dependency-scheduler.md) | Grafo persistente e demanda compartilhada | 0% | Grafo executivo em sombra, separado das dependências de publicação |
 | 8 | H1 | [DAG-03](dependency-scheduler.md) | Prioridade, justiça e distância correta | 0% | Prioridade herdada e justiça entre consumidores com wrap |
@@ -205,7 +205,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | DAG-04 | `2131ead3`, [passagem/continuação](../sector-runtime-h0-streaming-pass-2026-11-09.md) | Não implementa a mailbox executiva nem reação a conclusões na mesma passagem |
 | RAM-01 | Recortes `5c3c4c8f` a `e076d96a`, [inventário](memory-and-prefetch.md), [envelope](../sector-runtime-memory-envelope.md) e [último relatório](../sector-runtime-h0-real-sector-sampling-2026-11-10.md) | Json v2 acompanha capturas rastreadas; polígonos/wrappers/layout, admissão completa, consumidor/demanda/provider/fairness e pressão externa pendentes |
 | VAL-02 | [Harness inicial](../sector-runtime-h0-streaming-pass-2026-11-09.md), [comparador de tiles](../sector-runtime-h0-base-tiles-identity-2026-11-09.md), [kernel blockInfo](../sector-runtime-h0-block-info-kernel-2026-11-10.md) e [amostragem/BaseTiles reais](../sector-runtime-h0-real-sector-sampling-2026-11-10.md) | Noise/caches mutáveis, builder de planeta/assets/mods completos/streaming pendentes; controles de hash continuam gates |
-| MOD-01 | [Leitores imutáveis](../sector-runtime-h0-distribution-bundles-2026-11-09.md), [proteção da seleção](../sector-runtime-h0-planning-storage-2026-11-09.md) e [lifecycle/scope 2](../sector-runtime-h0-lookup-source-generations-2026-11-09.md) | Metadata não é sincronização/commit nem auditoria de toda mutação; fronteira biomeTransition e integração abertas |
+| MOD-01 | Bundles/planning/lookup + [EffectBoundary](../sector-runtime-h0-effect-boundary-2026-11-27.md) | Catálogo H0 parcial; defaults auditados não normalizados; consumo/reconstrução completa e integração abertas |
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
 
@@ -319,6 +319,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | Candidate plant payload | Grass/Bush/TreePair campos públicos; 13 testes contract. ObjectPool/TileDamage ainda fora. Sem novo marco completo | 3,6% |
 | 27/11/2026 | Candidate ObjectPool payload | ObjectPool peso/nome/Json ordenado; 13 testes contract. TileDamage plantas ainda fora. Sem novo marco completo | 3,6% |
 | 27/11/2026 | Candidate TileDamage payload | TileDamageParameters bit-a-bit em Grass/Bush/Tree; 13 testes contract. Sem planeta/streaming. Sem novo marco completo | 3,6% |
+| 27/11/2026 | MOD-01 EffectBoundary | Catálogo PureKernel/Prepared/Authoritative + audits default; 6 testes contract. Sem normalizar defaults. Sem novo marco completo | 3,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.
