@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <mutex>
+#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -172,6 +173,14 @@ public:
   WorldGenerationComputeStagingSnapshot stagingSnapshot() const;
   void resetPeakStagingBytes() noexcept;
 
+  // GPU-02 owner-thread affinity (asset-free; no WorldThread yet). When adopted,
+  // mutating ops and compareShadow/dispatch refuse foreign threads. Observation
+  // getters remain usable under the mutex from any thread.
+  void adoptOwnerThread() noexcept;
+  void clearOwnerThread() noexcept;
+  bool hasOwnerThread() const noexcept;
+  bool isOwnerThread() const noexcept;
+
   // Deferred CPU completion leaves Pending until pump()/complete(). Synchronous
   // mode (default) finishes CPU work before submit returns.
   void setDeferredCpuCompletion(bool deferred) noexcept;
@@ -262,8 +271,12 @@ private:
   WorldGenerationComputePollStatus pollLocked(WorldGenerationComputeTicket ticket,
       WorldGenerationComputeResult* out);
 
+  bool ownerAllowsLocked() const noexcept;
+
   WorldGenerationComputeCapabilities m_capabilities;
   bool m_deferredCpu = false;
+  bool m_hasOwnerThread = false;
+  std::thread::id m_ownerThread;
   mutable std::mutex m_mutex;
   uint64_t m_nextTicket = 1;
   uint64_t m_stagingBytes = 0;

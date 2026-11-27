@@ -94,8 +94,36 @@ void WorldGenerationComputeService::releaseBuffer(List<uint32_t>&& buffer) {
     m_bufferPool.append(std::move(buffer));
 }
 
+bool WorldGenerationComputeService::ownerAllowsLocked() const noexcept {
+  return !m_hasOwnerThread || std::this_thread::get_id() == m_ownerThread;
+}
+
+void WorldGenerationComputeService::adoptOwnerThread() noexcept {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  m_ownerThread = std::this_thread::get_id();
+  m_hasOwnerThread = true;
+}
+
+void WorldGenerationComputeService::clearOwnerThread() noexcept {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  m_hasOwnerThread = false;
+  m_ownerThread = std::thread::id{};
+}
+
+bool WorldGenerationComputeService::hasOwnerThread() const noexcept {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  return m_hasOwnerThread;
+}
+
+bool WorldGenerationComputeService::isOwnerThread() const noexcept {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  return ownerAllowsLocked() && m_hasOwnerThread;
+}
+
 void WorldGenerationComputeService::setDeferredCpuCompletion(bool deferred) noexcept {
   std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return;
   m_deferredCpu = deferred;
 }
 
@@ -150,6 +178,8 @@ WorldGenerationComputeStagingSnapshot WorldGenerationComputeService::stagingSnap
 
 void WorldGenerationComputeService::resetPeakStagingBytes() noexcept {
   std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return;
   m_peakStagingBytes = m_stagingBytes;
 }
 
@@ -240,12 +270,16 @@ Maybe<WorldGenerationComputeTicket> WorldGenerationComputeService::submit(
     WorldGenerationComputeInputIdentity identity, List<uint32_t> input, uint32_t parameter,
     WorldGenerationComputeBackend backend) {
   std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return {};
   return submitLocked(std::move(identity), std::move(input), parameter, backend);
 }
 
 Maybe<List<WorldGenerationComputeTicket>> WorldGenerationComputeService::submitBatch(
     List<WorldGenerationComputeBatchItem> items, WorldGenerationComputeBackend backend) {
   std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return {};
   if (items.empty())
     return List<WorldGenerationComputeTicket>{};
 
@@ -292,6 +326,8 @@ Maybe<List<WorldGenerationComputeTicket>> WorldGenerationComputeService::submitB
 
 size_t WorldGenerationComputeService::pump(size_t maxCompletions) {
   std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return 0;
   size_t completed = 0;
   for (auto& pair : m_entries) {
     if (maxCompletions && completed >= maxCompletions)
@@ -307,6 +343,8 @@ size_t WorldGenerationComputeService::pump(size_t maxCompletions) {
 
 bool WorldGenerationComputeService::complete(WorldGenerationComputeTicket ticket) {
   std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return false;
   auto it = m_entries.find(ticket.id);
   if (it == m_entries.end())
     return false;
@@ -361,11 +399,15 @@ WorldGenerationComputePollStatus WorldGenerationComputeService::pollLocked(
 WorldGenerationComputePollStatus WorldGenerationComputeService::poll(
     WorldGenerationComputeTicket ticket, WorldGenerationComputeResult* out) {
   std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return WorldGenerationComputePollStatus::UnknownTicket;
   return pollLocked(ticket, out);
 }
 
 bool WorldGenerationComputeService::cancel(WorldGenerationComputeTicket ticket) {
   std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return false;
   auto it = m_entries.find(ticket.id);
   if (it == m_entries.end())
     return false;
@@ -379,6 +421,8 @@ bool WorldGenerationComputeService::cancel(WorldGenerationComputeTicket ticket) 
 
 size_t WorldGenerationComputeService::failContext() {
   std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return 0;
   size_t affected = 0;
   for (auto& pair : m_entries) {
     Entry& entry = pair.second;
@@ -428,6 +472,13 @@ WorldGenerationComputeCommitReport WorldGenerationComputeService::commit(
   report.ticket = ticket;
   report.liveIdentity = liveIdentity;
   report.liveInputFingerprint = liveInputFingerprint;
+
+  if (!ownerAllowsLocked()) {
+    report.verdict = WorldGenerationComputeCommitVerdict::UnknownTicket;
+    if (out)
+      *out = WorldGenerationComputeResult{};
+    return report;
+  }
 
   if (m_rejectedDuplicates.count(ticket.id)) {
     report.verdict = WorldGenerationComputeCommitVerdict::UnknownTicket;
@@ -546,6 +597,14 @@ WorldGenerationComputeShadowReport WorldGenerationComputeService::compareShadow(
   report.primaryBackend = primary;
   report.shadowBackend = shadow;
   report.comparedValues = input.size();
+
+  {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (!ownerAllowsLocked()) {
+      report.verdict = WorldGenerationComputeShadowVerdict::ShadowUnavailable;
+      return report;
+    }
+  }
 
   List<uint32_t> primaryValues;
   List<uint32_t> shadowValues;

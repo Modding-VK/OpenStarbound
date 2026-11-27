@@ -2,6 +2,9 @@
 
 #include "gtest/gtest.h"
 
+#include <atomic>
+#include <thread>
+
 using namespace Star;
 
 namespace {
@@ -403,6 +406,45 @@ TEST(WorldGenerationComputeTest, DenseUint32AndOrMulExactCpuAndShadow) {
     }
   }
 #endif
+}
+
+TEST(WorldGenerationComputeTest, OwnerThreadRejectsForeignMutations) {
+  // GPU-02: submission/dispatch stay on the adopted owner thread (asset-free).
+  WorldGenerationComputeService service;
+  EXPECT_FALSE(service.hasOwnerThread());
+  service.adoptOwnerThread();
+  EXPECT_TRUE(service.hasOwnerThread());
+  EXPECT_TRUE(service.isOwnerThread());
+
+  auto ticket = service.submit(makeIdentity(130), sampleInput(), 1u);
+  ASSERT_TRUE(ticket);
+  EXPECT_EQ(1u, service.openTickets()); // observation OK from owner
+
+  std::atomic<bool> foreignSubmitOk{true};
+  std::atomic<bool> foreignPollUnknown{false};
+  std::atomic<bool> foreignCancelOk{true};
+  std::atomic<size_t> foreignFail{1};
+  std::thread foreign([&] {
+    foreignSubmitOk = (bool)service.submit(makeIdentity(131), sampleInput(), 2u);
+    WorldGenerationComputeResult result;
+    foreignPollUnknown =
+        service.poll(*ticket, &result) == WorldGenerationComputePollStatus::UnknownTicket;
+    foreignCancelOk = service.cancel(*ticket);
+    foreignFail = service.failContext();
+  });
+  foreign.join();
+
+  EXPECT_FALSE(foreignSubmitOk);
+  EXPECT_TRUE(foreignPollUnknown);
+  EXPECT_FALSE(foreignCancelOk);
+  EXPECT_EQ(0u, foreignFail);
+  EXPECT_EQ(1u, service.openTickets());
+
+  WorldGenerationComputeResult result;
+  EXPECT_EQ(WorldGenerationComputePollStatus::Ready, service.poll(*ticket, &result));
+  service.clearOwnerThread();
+  EXPECT_FALSE(service.hasOwnerThread());
+  EXPECT_TRUE(service.submit(makeIdentity(132), sampleInput(), 3u));
 }
 
 TEST(WorldGenerationComputeTest, StagingSnapshotTracksPeakPoolAndGpuEstimate) {
