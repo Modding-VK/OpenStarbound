@@ -2,6 +2,12 @@
 
 Atualizado em **27/11/2026**. Branch de integração:
 `cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+H4+H5+R1+R2; não `main`).
+Tip INT atual: **`8155297f`** (merge PR#3 `ci-sector-runtime.yml` sobre base H5).
+Gates tip YAML: CI Integration #20 + CI Sector Runtime #2 **SUCCESS** (3 checks;
+Smoke RTX skipped). Instalador válido: **Build #86** @ tip material
+**`33628d9b`** (H5 merge). Sem `build.yml` para tip só-workflow. Sem smoke de
+jogo até base/instalador local do usuário. Não mergear frentes até entregarem
+commits novos (ahead>0).
 Última H5: scale foundations + probe 27/27 RTX (`a2ec01f0`); H5 25%.
 Última H4: GPU-01…04 + probe GL PASS Desktop-Vinicius (`c44b1a38`); H4 25%.
 Última H3: TMX cache/reload + flora/replaceBiome + decode/codec (`3bdf1927`); H3 25%.
@@ -44,8 +50,9 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **25,5%** — 50 marcos verificados de 196 |
 | Contratos com avanço registrado | **49 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | H0–H5 + R1/R2; H4 probe GL PASS; H5 27/27 RTX; PreparedSector = API H1; Actions manuais |
+| Última evidência de testes | H0–H5 + R1/R2; H4 probe GL PASS; H5 27/27 RTX; PreparedSector = API H1; CI Integration #20 + CI Sector Runtime #2 SUCCESS em `8155297f`; Build #86 @ `33628d9b`; Actions manuais |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
+| Smoke / instalador local | Pendente base local do usuário; sem smoke até lá |
 
 **Os 25,5% não significam que o jogo esteja só 25,5% pronto.** O runtime anterior
 já possui workers, schedulers, IO/decode e previews. O denominador aqui são os
@@ -111,6 +118,11 @@ autoritativa. GPU é opcional, com fallback CPU completo.
 
 ## Próximas ações — fila imediata
 
+0. **Integração (hold):** tip `8155297f` verde para CI YAML; instalador =
+   Build #86 @ `33628d9b`. Não disparar `build.yml` por tip só-workflow. Não
+   mergear H0–H5/R1/R2 até a frente entregar commits novos (ahead>0). Smoke de
+   jogo só após base/instalador local. Workflow `ci-sector-runtime.yml` ativo
+   na INT (Windows GL-compute probe; Smoke RTX opcional self-hosted skipped).
 1. **H0: DAG-01/RAM-01 com MOD-01/VAL-02:** catálogo compacto e binding de fontes
    reais, com clock/binding 1 e scope 2, agora comparados aos leitores reais de
    WorldTemplate/MaterialDatabase e corpo independente com metadata controlada.
@@ -383,10 +395,11 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | GPU-01 interface | `WorldGenerationComputeService` + CPU `DenseUint32Xor`; 6 testes. GPU-01 0→25%; H4 6,3% | 4,1% |
 | 27/11/2026 | GPU-02/03/04 CPU-first | Fila/batch/sombra; 14 testes. GPU-02/03/04 0→25%; H4 25% | 5,6% |
 | 27/11/2026 | GPU probe harness opt-in | `STAR_ENABLE_WORLDGEN_GL_COMPUTE`, shaders DenseUint32*, checklist Windows/RTX; H4 permanece 25% até PASS local | 5,6% |
-| 27/11/2026 | Integração H4 | Merge `--no-ff` H4 `c44b1a38` (probe PASS `c7f6e605` + gtest opt-in) em INT; H4 25%; programa 19,9%→21,9% | 21,9%
+| 27/11/2026 | Integração H4 | Merge `--no-ff` H4 `c44b1a38` (probe PASS `c7f6e605` + gtest opt-in) em INT; H4 25%; programa 19,9%→21,9% | 21,9% |
 | 27/11/2026 | H5 GPU-05 seletor | `WorldGenerationHardwareSelector` por custo completo + fallback CPU; 7 testes. GPU-05 0→25%; H5 0→3,6%; programa 3,6→4,1% | 4,1% |
 | 27/11/2026 | H5 fundações VAL/MOD + CPU-05 | Métricas, cenários, gates, perfis, equivalência, plataformas, governador; 27 testes. H5 25%; H1 5%; programa 4,1→7,7% | 7,7% |
-| 27/11/2026 | Integração H5 | Merge `--no-ff` H5 `a2ec01f0` (probe 27/27 @ `254cc22e` + PS1 fix) em INT; H5 25%; programa 21,9%→25,5% | 25,5%
+| 27/11/2026 | Integração H5 | Merge `--no-ff` H5 `a2ec01f0` (probe 27/27 @ `254cc22e` + PS1 fix) em INT; tip `33628d9b`; Build #86 + CI #19 SUCCESS; H5 25%; programa 21,9%→25,5% | 25,5% |
+| 27/11/2026 | CI Sector Runtime | Merge PR#3 (`ci-sector-runtime.yml`) → tip `8155297f`; CI Integration #20 + CI Sector Runtime #2 SUCCESS; Build #86 @ `33628d9b` permanece instalador; tip YAML ≠ tip material (`build.yml` não disparado); sem smoke até base local; % inalterado | 25,5% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

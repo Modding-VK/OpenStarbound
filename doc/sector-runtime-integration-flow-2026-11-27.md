@@ -512,3 +512,40 @@ PRs GitHub com base na integração: **nenhum**.
 
 - **Sem merge de frentes** (H4 hold GL; H5 blocked).
 - Próximo quando ready: **H4** `80825c7c`. Sem comentários em PR (fila vazia).
+
+## Revisão pós-gates 27/11/2026 ~18:15 UTC
+
+INT tip base: **`8155297f`** (PR#3 `ci-sector-runtime.yml`). Frentes **não**
+editadas; **sem** merge de frentes H*/R*; **sem** `build.yml`.
+
+### Estado integrado
+
+| Item | Valor |
+| --- | --- |
+| Stack na INT | H0+H1+H2+H3+H4+H5+R1+R2 |
+| Tip material (jogo) | `33628d9b` — merge H5; **Build #86 SUCCESS** (instalador) |
+| Tip YAML | `8155297f` — merge PR#3 |
+| CI Integration #20 | **SUCCESS** (`46043261908`) |
+| CI Sector Runtime #2 | **SUCCESS** (`46043262209`; Smoke RTX skipped) |
+| Programa | **25,5%** (tip YAML não cria marco) |
+| Smoke jogo | **Hold** até base/instalador local do usuário |
+
+### Frentes vs INT (`8155297f`) — ahead=0
+
+H0 `c124f899` · H1 `4d014af2` · H2 `b1162b5d` · H3 `3bdf1927` ·
+H4 `c44b1a38` · H5 `a2ec01f0` · R1 `6947bbb9` · R2 `f86b4d17`.
+
+### Política Build / merge
+
+- Tip material = código/assets do jogo. `.github/workflows/*` e flow-doc **não**
+  disparam `build.yml`. Build #86 @ `33628d9b` permanece instalador.
+- Watch: CI Integration + CI Sector Runtime.
+- **Não mergear frentes** até ahead>0.
+- **PR #4** (`cursor/ci-sector-runtime-rtx-docs-4d5a`): documenta placeholders
+  smoke RTX (Desktop-Vinicius ≠ GHA runner). Merge na INT **só após CI do PR
+  verde**; tip `8155297f` já verde autoriza o merge quando o CI do #4 terminar.
+
+### Vereditos
+
+- Hold frentes. Hold smoke local. Sem `build.yml`.
+- PR #4: aguardar CI → merge YAML docs.

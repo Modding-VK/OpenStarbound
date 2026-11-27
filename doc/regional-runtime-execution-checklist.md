@@ -39,6 +39,10 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Branch de integração: `cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+H4+H5+R1+R2).
+Tip INT YAML: `8155297f` (PR#3 `ci-sector-runtime.yml`; CI Integration #20 +
+CI Sector Runtime #2 SUCCESS). Tip material / instalador: Build #86 @
+`33628d9b`. Sem `build.yml` para tip só-workflow. Sem smoke até base local.
+Não mergear frentes até ahead>0. Painel: [progress.md](sector-runtime/progress.md).
 Relatório H1 atual:
 [Interest/priority DAG-03 50%](sector-runtime-h1-executive-interest-priority-2026-11-27.md);
 [PreparedSector payload/path](sector-runtime-h1-prepared-sector-2026-11-27.md).
