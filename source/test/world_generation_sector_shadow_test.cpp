@@ -1,5 +1,7 @@
 #include "StarWorldGenerationSectorShadow.hpp"
 #include "StarWorldGenerationCompositeContext.hpp"
+#include "StarWorldGenerationTasks.hpp"
+#include "StarWorkerPool.hpp"
 #include "StarRandom.hpp"
 #include "StarWorldTemplateTypes.hpp"
 #include "gtest/gtest.h"
@@ -125,6 +127,82 @@ TEST(WorldGenerationSectorShadowTest, TryAdmitFromCompositeReusesBaseTilesIdenti
       ledger.snapshot().reservedBytes);
   shadow->discard();
   EXPECT_EQ(before.resources, ledger.snapshot().resources);
+}
+
+TEST(WorldGenerationSectorShadowTest, TaskHandoffRetiresStaleWithoutPublishingShadowPayload) {
+  WorldGenerationMemoryLedger ledger;
+  WorldGenerationTasks tasks(1, WorldRegionPartition(WorldGeometry(Vec2U{64, 64})), 1,
+      WorldGenerationSectorShadow::retainedBytes());
+  auto task = tasks.reserve({0, 0}, WorldGenerationTaskStage::BaseTiles,
+      WorldGenerationSectorShadow::retainedBytes());
+  ASSERT_TRUE(task);
+
+  WorldGenerationBaseTilesIdentity identity;
+  identity.task = task->identity;
+  identity.tileRevision = 1;
+  identity.templateRevision = 9;
+  identity.worldSize = {64, 64};
+  identity.tileRegion = RectI(0, 0, int(WorldSectorSize), int(WorldSectorSize));
+
+  WorkerPool pool("Sector shadow task handoff", 1);
+  {
+    auto admitted = WorldGenerationSectorShadow::tryAdmit(ledger, identity);
+    ASSERT_TRUE(admitted.has_value());
+    auto shadow = std::make_shared<WorldGenerationSectorShadow>(std::move(*admitted));
+    shadow->tiles()(0, 0).foreground = MaterialId(55);
+    auto promise = pool.addProducer<std::shared_ptr<WorldGenerationSectorShadow>>([task, shadow] {
+      EXPECT_TRUE(task->start());
+      EXPECT_TRUE(task->ready());
+      return shadow;
+    });
+    auto owner = identity;
+    ++owner.tileRevision;
+    auto const& result = promise.get();
+    EXPECT_FALSE(result->matches(owner));
+    EXPECT_TRUE(result->active());
+    EXPECT_EQ(MaterialId(55), result->tiles()(0, 0).foreground);
+    EXPECT_TRUE(tasks.retire(task, WorldGenerationTaskOutcome::Stale));
+    pool.finish();
+    EXPECT_EQ(1u, ledger.snapshot().resources);
+    result->discard();
+  }
+  EXPECT_EQ(0u, ledger.snapshot().resources);
+}
+
+TEST(WorldGenerationSectorShadowTest, TaskHandoffMatchesAndRetiresWithoutPublishing) {
+  WorldGenerationMemoryLedger ledger;
+  WorldGenerationTasks tasks(1, WorldRegionPartition(WorldGeometry(Vec2U{64, 64})), 1,
+      WorldGenerationSectorShadow::retainedBytes());
+  auto task = tasks.reserve({0, 0}, WorldGenerationTaskStage::BaseTiles,
+      WorldGenerationSectorShadow::retainedBytes());
+  ASSERT_TRUE(task);
+
+  WorldGenerationBaseTilesIdentity identity;
+  identity.task = task->identity;
+  identity.tileRevision = 1;
+  identity.templateRevision = 9;
+  identity.worldSize = {64, 64};
+  identity.tileRegion = RectI(0, 0, int(WorldSectorSize), int(WorldSectorSize));
+
+  WorkerPool pool("Sector shadow task commit path refused", 1);
+  {
+    auto admitted = WorldGenerationSectorShadow::tryAdmit(ledger, identity);
+    ASSERT_TRUE(admitted.has_value());
+    auto shadow = std::make_shared<WorldGenerationSectorShadow>(std::move(*admitted));
+    auto promise = pool.addProducer<std::shared_ptr<WorldGenerationSectorShadow>>([task, shadow] {
+      EXPECT_TRUE(task->start());
+      EXPECT_TRUE(task->ready());
+      return shadow;
+    });
+    auto const& result = promise.get();
+    EXPECT_TRUE(result->matches(identity));
+    // Owner may retire Stale/Cancelled even when identity matches: sector
+    // shadow has no publish API into the live world.
+    EXPECT_TRUE(tasks.retire(task, WorldGenerationTaskOutcome::Cancelled));
+    pool.finish();
+    result->discard();
+  }
+  EXPECT_EQ(0u, ledger.snapshot().resources);
 }
 
 TEST(WorldGenerationSectorShadowTest, TemplateRevisionBumpFailsOwnerMatchesWithoutDroppingPayload) {

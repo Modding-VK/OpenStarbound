@@ -111,10 +111,10 @@ CacheSelector/Perlin e a referência terrestre já avançaram; em 26/11/2026 o
 e o [contexto composto](../sector-runtime-h0-composite-context-2026-11-26.md)
 e a [sombra por setor](../sector-runtime-h0-sector-shadow-2026-11-26.md) fecham
 admissão POD + static inputs + identidade BaseTiles e array privado com
-revalidação/descarte (oceano/adjacente/noises/concorrência/Island/pressão/stale),
-com auditoria de defaults. Próximo: contexto profundo restante ou adoção em
-jobs sem publicação. Não criar outro accessor isolado como substituto. Não
-otimizar consultas isoladas como fim em si mesmo.
+revalidação/descarte e handoff de task sem publicação (família de sombra H0),
+com auditoria de defaults. Próximo: contexto profundo/assets restante. Não
+criar outro accessor isolado como substituto. Não otimizar consultas isoladas
+como fim em si mesmo.
 CPU-01 completo, contexto profundo e ganho de WorldTemplate seguem pendentes.
 
 Aceitação: execução concorrente não alcança template vivo, callbacks ou RNG

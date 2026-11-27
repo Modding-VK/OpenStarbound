@@ -21,5 +21,6 @@ ASan/UBSan: 8 sombras × 10 → **785/785** contrato; stale × 5; **69/69** Real
 
 ## Próximo passo
 
-Fechar lacunas restantes de CPU-01 (contexto profundo/jobs) ou avançar gates
-H0 aplicáveis antes de H1. Não disparar Actions.
+Handoff de task coberto em
+[handoff task+sombra](sector-runtime-h0-sector-shadow-task-handoff-2026-11-26.md).
+Segue contexto profundo/assets. Não disparar Actions.

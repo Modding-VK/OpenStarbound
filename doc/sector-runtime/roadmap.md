@@ -387,10 +387,9 @@ liga seletores admitidos, static inputs e identidade BaseTiles no mesmo ledger.
 A [sombra por setor](../sector-runtime-h0-sector-shadow-2026-11-26.md) admite o
 array BaseTiles privado, revalida no dono e descarta sem publicação.
 
-Próximo trabalho executável: contexto profundo restante de CPU-01 ou adoção em
-jobs sem publicação. Família de sombra (terrestre/oceano/adjacente/noises/
-concorrência/Island/pressão/stale) coberta até
-[sombra template stale](../sector-runtime-h0-sector-shadow-stale-template-2026-11-26.md).
+Próximo trabalho executável: contexto profundo/assets restante de CPU-01.
+Handoff de task sem publicação coberto em
+[handoff task+sombra](../sector-runtime-h0-sector-shadow-task-handoff-2026-11-26.md).
 Não confundir a LRU validada com CacheSelector. Manter caches exclusivos; o
 lifecycle de Root mínimo já foi testado, não repetir o mesmo recorte. Não
 antecipar consultas, assumir resolver arbitrário puro ou alterar cópias/RNG.
