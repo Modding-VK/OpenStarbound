@@ -286,3 +286,31 @@ PRs GitHub com base na integração: **nenhum**.
 - Próximo candidato quando Project/H4 marcar ready: **H4** (`80825c7c`, +2, conflitos ~docs/CMake) → depois só deltas novos.
 - Sem comentários em PR (fila vazia).
 
+## Revisão sync 27/11/2026 ~04:00 UTC
+
+Bases: Exp `0efebf99` · INT **`d07dc87b`** · default `main` **`bf7f4638`**.
+Frentes **não** editadas. Sem dispatch de Actions / sem merge em `main` neste ciclo.
+PRs GitHub com base na integração: **nenhum**.
+
+| Frente | Tip remoto | vs Exp | vs INT | Ancestral INT | phase (store) |
+| --- | --- | ---: | ---: | --- | --- |
+| H0 | `c124f899` | 21 | 0 | sim | ready-for-integration (já na INT) |
+| H1 | `4d014af2` | 8 | 0 | sim | standby (já na INT) |
+| H2 | `b1162b5d` | 3 | 0 | sim | ready-for-integration (já na INT) |
+| H3 | `3bdf1927` | 19 | 0 | sim | ready-for-integration (já na INT; espera live-publish) |
+| H4 | `80825c7c` | 2 | **+2** | não | standby (hold GL) |
+| H5 | `cfd1aa5e` | 3 | **+3** | não | blocked(h4) |
+| R1 | `6947bbb9` | 7 | 0 | sim | standby (já na INT) |
+| R2 | `f86b4d17` | 4 | 0 | sim | ready-for-integration (já na INT) |
+
+### Delta vs sync ~03:30
+
+- Tips das frentes **inalteradas** (H3 sem commits novos).
+- CI discovery: workflow registado na default via [PR #2](https://github.com/Modding-VK/OpenStarbound/pull/2) → `main` `bf7f4638` (API `CI Integration` active); PR #1 em Experimental permanece.
+- Branches temporárias dos PRs CI removidas no remoto; INT não tocada por isso.
+
+### Vereditos
+
+- **Sem merge de frentes:** H4 continua hold GL; H5 blocked; restantes já ancestrais da INT.
+- Próximo quando ready: **H4** `80825c7c`. Sem comentários em PR (fila vazia).
+
