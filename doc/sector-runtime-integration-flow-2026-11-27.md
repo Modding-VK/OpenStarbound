@@ -652,3 +652,36 @@ após terminal do `460590`). PRs GitHub com base na integração: **nenhum**.
 - **Hold frentes** (nada ahead). Sem conflito/bloqueio.
 - H4 continua. Sem comentários em PR.
 - Sem `build.yml` neste ciclo docs (Build tip já em voo).
+
+## Revisão sync 27/11/2026 ~20:30 UTC
+
+Bases: INT **`ba8e7be5`**. Frentes **não** editadas; **sem** merge em `main`;
+**sem** disparo de Actions neste ciclo de revisão. PRs GitHub com base na
+integração: **nenhum**.
+
+| Frente | Tip remoto | vs INT | Ancestral INT |
+| --- | --- | ---: | --- |
+| H0 | `c124f899` | 0 | sim |
+| H1 | `4d014af2` | 0 | sim |
+| H2 | `b1162b5d` | 0 | sim |
+| H3 | _(remote ausente)_ | — | — |
+| H4 | `2b185c3c` | 0 | sim |
+| H5 | `a2ec01f0` | 0 | sim |
+| R1 | `da79144b` | 0 | sim |
+| R2 | `f86b4d17` | 0 | sim |
+
+### Delta desde sync ~20:00
+
+- H4 mergeado até `2b185c3c` (SwapAdjacent/Rol/RorNibbles + anyCancelled; 86/86)
+  e fatias Extract/Insert/BroadcastNibble…/NibbleSum…/NibbleXor…/Interleave…/
+  Compress…/KeepBits….
+- Build `46060790428` @ `0e08cc90` **PASS** (ThreadStub PASS); Build
+  `46062954171` @ `bf7aab20` **in_progress** — 1 Build tip final após terminal.
+- Frentes **ahead=0**; H3 remote ausente (não bloqueio).
+- Política H4: asset-free / **não hold**.
+
+### Vereditos
+
+- **Hold frentes** (nada ahead). Sem conflito/bloqueio.
+- H4 continua. Sem comentários em PR.
+- Sem `build.yml` neste ciclo docs (Build tip já em voo).
