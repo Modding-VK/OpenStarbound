@@ -231,6 +231,12 @@ int main() {
       "DenseUint32InterleaveHalves");
   rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32DeinterleaveHalves, 0u,
       "DenseUint32DeinterleaveHalves");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32NibbleXor, 0u,
+      "DenseUint32NibbleXor");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32NibbleOr, 0u,
+      "DenseUint32NibbleOr");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32NibbleAnd, 0u,
+      "DenseUint32NibbleAnd");
 
   auto ticket = service.submit(makeIdentity(99, WorldGenerationComputeKernel::DenseUint32Xor),
       edgeCorpus(), 0x55aa55aau, WorldGenerationComputeBackend::GpuOpenGlCompute);
