@@ -50,6 +50,7 @@ For the current state and the next work, start here:
 - [Latest R1 report: OS thread CPU stub](doc/sector-runtime-r1-thread-stub-cpu-2026-11-27.md)
 - [R1 OS thread stub shadow](doc/sector-runtime-r1-thread-stub-shadow-2026-11-27.md)
 - [H2 product revision cache](doc/sector-runtime-h2-product-revision-cache-2026-11-27.md)
+- [Latest R2 report: authoritative ops](doc/sector-runtime-r2-authoritative-ops-2026-11-27.md)
 - [Performance backlog](doc/performance-backlog.md)
 
 <details>

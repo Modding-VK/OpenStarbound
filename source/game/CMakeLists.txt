@@ -232,6 +232,10 @@ SET (star_game_HEADERS
     StarWorldRegionCheckpoint.hpp
     StarWorldRegionAuthority.hpp
     StarWorldRegionThreadStub.hpp
+    StarWorldRegionCrossOp.hpp
+    StarWorldRegionEntityHandoff.hpp
+    StarWorldRegionRecovery.hpp
+    StarWorldRegionAuthoritativeOps.hpp
     StarWorldImpl.hpp
     StarWorldLayout.hpp
     StarWorldParameters.hpp
@@ -540,6 +544,10 @@ SET (star_game_SOURCES
     StarWorldRegionCheckpoint.cpp
     StarWorldRegionAuthority.cpp
     StarWorldRegionThreadStub.cpp
+    StarWorldRegionCrossOp.cpp
+    StarWorldRegionEntityHandoff.cpp
+    StarWorldRegionRecovery.cpp
+    StarWorldRegionAuthoritativeOps.cpp
     StarWorldLayout.cpp
     StarWorldParameters.cpp
     StarWorldPerformance.cpp

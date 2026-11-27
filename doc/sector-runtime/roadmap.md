@@ -566,6 +566,9 @@ propriedade e efeitos; não é liberada por um kernel GPU aprovado.
 - [ ] R1: WT-05 restante — integração WorldServerThread / legado.
 - [ ] R1/H3: IO-03 restante — journal/.world e recuperação pós-falha.
 - [ ] R2: REG-03/04/05 — intenções multirregião, handoff, falhas e custo real.
+  Sombra + gate `WorldRegionAuthoritativeOps` (consome R1
+  `WorldRegionAuthoritativeOwner`); rede/custo medido/passos independentes
+  seguem abertos.
 - [ ] R2 posterior: avaliar independência de passos após relógio/rede/save
   específicos; registrar decisão antes de remover barreira comum.
 

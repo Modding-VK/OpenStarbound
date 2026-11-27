@@ -75,6 +75,17 @@ confirmada na fronteira do passo. Cada thread executa no máximo um turno
 local aplicável, produzindo intenções remotas versionadas. Conclusão mais
 rápida não decide a ordem de conflito.
 
+Primeiro recorte em sombra (`WorldRegionCrossOpShadow`, branch
+`cursor/r2-regional-ops-9f77`): intenções versionadas, reserva exclusiva do
+footprint em ordem lexicográfica, Conflict sem hold parcial e
+commit/rejeição/timeout. Não concede dona autoritativa nem remove a barreira
+de passo. Ver [relatório](../sector-runtime-r2-cross-op-shadow-2026-11-27.md).
+
+Além da sombra: `WorldRegionAuthoritativeOps` exige
+`WorldRegionAuthoritativeOwner` (R1) em origem/alvos antes de propor. Harness
+Active sozinho é recusado. Ver
+[ops autoritativas](../sector-runtime-r2-authoritative-ops-2026-11-27.md).
+
 Operações multirregião reservam footprint completo numa ordem estável, sem
 Lua segurando locks de outros donos e sem espera circular entre threads.
 Definir commit/rejeição, timeout e recuperação. Fios, líquidos e roteadores
@@ -91,6 +102,14 @@ dona autoritativa por passo. Origem prepara transferência, destino valida e
 o commit atualiza dono/índice/rede conjuntamente. Mensagens antigas são
 rejeitadas; idempotência impede update, item ou dano duplicado.
 
+Primeiro recorte em sombra (`WorldRegionEntityHandoffShadow`): seed exclusivo,
+um Prepared por entidade, commit com checagem de geração, rejeição e
+idempotência por passo. Sem índice/rede vivos. Ver
+[relatório](../sector-runtime-r2-entity-handoff-shadow-2026-11-27.md).
+
+Além da sombra: prepare via `WorldRegionAuthoritativeOps` exige origem e
+destino Authoritative.
+
 Manter a autoridade atual de jogadores, entidades master do cliente,
 monstros, veículos e stagehands conforme o tipo. Projeções de leitura não
 executam IA. Essa tarefa não retoma externalização de NPCs, que segue suspensa.
@@ -100,6 +119,13 @@ executam IA. Essa tarefa não retoma externalização de NPCs, que segue suspens
 Uma falha invalida saídas ainda não confirmadas e interrompe o passo afetado.
 Retorno ao legado exige checkpoint consistente ou novo carregamento. Não
 reaproveitar uma região parcialmente publicada como se tivesse sido revertida.
+
+Primeiro recorte em sombra (`WorldRegionRecoveryShadow`): unconfirmed → fail
+(invalida e mantém marca parcial) → checkpoint consistente ou `reloadLegacy`.
+Sem métricas de custo de threads. Ver
+[relatório](../sector-runtime-r2-recovery-shadow-2026-11-27.md).
+
+Além da sombra: `noteUnconfirmed` via gate exige região Authoritative.
 
 Medir pilhas, memória por thread, criação/join, latência de acordar, threads
 simultaneamente prontas, custo da barreira, mensagens e regiões lentas. Threads

@@ -38,7 +38,7 @@ histórico, sem outra fila de prioridades. O
 [painel de progressão](sector-runtime/progress.md) consolida percentuais por
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
-Branch de integração: `cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+R1; H1 payload/path).
+Branch de integração: `cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+R1+R2).
 Relatório H1 atual:
 [Interest/priority DAG-03 50%](sector-runtime-h1-executive-interest-priority-2026-11-27.md);
 [PreparedSector payload/path](sector-runtime-h1-prepared-sector-2026-11-27.md).
@@ -57,6 +57,11 @@ com antecedentes em
 [Sombra por setor](sector-runtime-h0-sector-shadow-2026-11-26.md),
 [Memory/prefetch](sector-runtime/memory-and-prefetch.md) e
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
+Frente desta branch (`cursor/r2-regional-ops-9f77`): R2 AuthoritativeOps. O
+[cross-op sombra](sector-runtime-r2-cross-op-shadow-2026-11-27.md).
+- [x] R2 (REG-03/04/05 sombra + AuthoritativeOps): cross-op/handoff/recovery em
+  `cursor/r2-regional-ops-9f77` ([ops](sector-runtime-r2-authoritative-ops-2026-11-27.md)).
+- [ ] R2 além da sombra: multiplayer/recovery vivo e owners OS reais.
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
 corrigido opt-in e VAL-01/02 têm harness sintético inicial, com 26 testes H0

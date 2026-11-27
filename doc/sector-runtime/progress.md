@@ -1,11 +1,12 @@
 # Progressão do projeto — percentuais e ordem das tarefas
 
 Atualizado em **27/11/2026**. Branch de integração:
-`cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+R1; não `main`).
+`cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+R1+R2; não `main`).
+Última R2: AuthoritativeOps + REG-03/04/05 sombra (`f86b4d17`).
 Última R1: ThreadStub CPU/OS (`6947bbb9`).
 Última H0: MOD-01 EffectBoundary profundo; VAL-02 BiomeItem completo (25%).
 Última H1: PreparedSector payload/WorldStorage path (`4d014af2`); DAG-03 50%.
-Última H2: consume path sobre APIs H1 (`b1162b5d`); PreparedSector canônico = H1.
+Última H2: consume sobre API H1 (`b1162b5d`); PreparedSector canônico = H1.
 Última H3: CPU-04..IO-05 sombra (25%).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
@@ -14,13 +15,7 @@ Atualizado em **27/11/2026**. Branch de integração:
 · [Relatório H2](../sector-runtime-h2-prepared-sector-consume-2026-11-27.md)
 · [Relatório H3](../sector-runtime-h3-shadow-packet-2026-11-27.md)
 · [Relatório R1](../sector-runtime-r1-thread-stub-cpu-2026-11-27.md)
-
-[Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Relatório H0](../sector-runtime-h0-effect-boundary-deep-2026-11-27.md)
-· [Relatório H1](../sector-runtime-h1-prepared-sector-2026-11-27.md)
-· [Relatório H2](../sector-runtime-h2-resident-prefetch-batch-io-2026-11-27.md)
-· [Relatório H3](../sector-runtime-h3-shadow-packet-2026-11-27.md)
-· [Relatório R1](../sector-runtime-r1-thread-stub-cpu-2026-11-27.md)
+· [Relatório R2](../sector-runtime-r2-authoritative-ops-2026-11-27.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -32,27 +27,22 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 
 | Indicador | Estado |
 | --- | --- |
-| Frente ativa | Integração — H0+H1+H2+H3+R1; próximo R2/H4 conforme ready |
+| Frente ativa | Integração — H0+H1+H2+H3+R1+R2; próximo H4 conforme ready-for-integration |
 | Progresso de maturidade de H0 | **25,0%** — 6 marcos verificados de 24 |
 | Progresso de maturidade de H1 | **27,5%** — 11 marcos verificados de 40 |
 | Progresso de maturidade de H2 | **25,0%** — 6 marcos verificados de 24 |
 | Progresso de maturidade de H3 | **25,0%** — 10 marcos verificados de 40 |
 | Progresso de maturidade de R1 | **25,0%** — 3 marcos verificados de 12 |
-| Progresso de maturidade do programa | **18,4%** — 36 marcos verificados de 196 |
-| Contratos com avanço registrado | **35 de 49**; todos ainda parciais |
+| Progresso de maturidade de R2 | **25,0%** — 3 marcos verificados de 12 |
+| Progresso de maturidade do programa | **19,9%** — 39 marcos verificados de 196 |
+| Contratos com avanço registrado | **38 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| 11 | H1 | [CPU-02](cpu-and-stages.md) | Produto PreparedSector | 25% | payload/path H1 + consume H2 sobre API canônica H1; install vivo pendente |
+| Última evidência de testes | H0–H3 + R1/R2 regionais + H1 payload/path + H2 consume; PreparedSector = API H1; sem Actions |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
-**Os 18,4% não significam que o jogo esteja só 18,4% pronto.** O runtime anterior
-| Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
-
-**Os 16,8% não significam que o jogo esteja só 16,8% pronto.** O runtime anterior
+**Os 19,9% não significam que o jogo esteja só 19,9% pronto.** O runtime anterior
 já possui workers, schedulers, IO/decode e previews. O denominador aqui são os
 49 contratos completos do rework, incluindo GPU e simulação regional futura.
-Recortes de RAM-01/CPU-04 podem estar implementados/testados e o contrato
-abrangente ainda permanecer em 25%. Quantidade de commits/testes não aumenta
-essa nota automaticamente. Ver o [baseline](baseline.md) para o que já existia.
 
 ## Como os percentuais são calculados
 
@@ -76,8 +66,9 @@ Fórmulas:
 - **Contrato:** número de marcos consecutivos verificados × 25%.
 - **Fase de entrada:** soma das notas dos contratos nela cadastrados ÷ número
   desses contratos.
-- **Programa:** soma das notas dos 49 contratos ÷ 49. Hoje: 900 ÷ 49 = 18,4%
-  arredondado; equivalentemente, 36 ÷ (49 × 4) × 100.
+- **Programa:** soma das notas dos 49 contratos ÷ 49. Hoje: 975 ÷ 49 = 19,9%
+  arredondado; equivalentemente, 39 ÷ (49 × 4) × 100.
+
 - **Aceitação integral:** contratos em 100% ÷ 49. Hoje: 0%.
 
 São percentuais de **maturidade comprovada**, não de horas, esforço, linhas de
@@ -102,8 +93,8 @@ obriga concluir todo trabalho transversal para iniciar um protótipo em sombra.
 | 5 | H4 — backend GPU e comparação em sombra | 4 | 0 / 16 | 0% | Protótipo pode acompanhar H1/H2; publicação depende do kernel CPU equivalente |
 | 6 | H5 — seleção de hardware e escala | 7 | 0 / 28 | 0% | Produtos/backends validados e custo completo de entrega medido |
 | 7 | R1 — donos regionais e coordenadora | 3 | 3 / 12 | 25,0% | REG-01/02 + WT-05 harness/owner/stub sombra; donas OS reais pendentes |
-| 8 | R2 — operações e transferências entre regiões | 3 | 0 / 12 | 0% | Lifecycle/estado de R1, recovery e matriz de multiplayer |
-| — | **Total** | **49** | **36 / 196** | **18,4%** | Não equivale a ganho de desempenho ou autorização de release |
+| 8 | R2 — operações e transferências entre regiões | 3 | 3 / 12 | 25,0% | REG-03/04/05 sombra + AuthoritativeOps; multiplayer vivo pendente |
+| — | **Total** | **49** | **39 / 196** | **19,9%** | Não equivale a ganho de desempenho ou autorização de release |
 
 Essa é uma ordem de prioridade/dependência, não uma proibição de frentes
 paralelas autorizadas pelo roadmap. Setores comuns permanecem prioritários.
@@ -161,7 +152,7 @@ concorrente.
 
 ## Catálogo ordenado das 49 tarefas
 
-Trinta e uma notas de 25% e uma de 50% (DAG-03) usam as evidências após o catálogo.
+Trinta e sete notas de 25% e uma de 50% (DAG-03) usam as evidências após o catálogo.
 Demais 0% significam **sem marco do novo contrato reconhecido nesta leitura do
 roadmap**, não ausência de código relacionado no baseline. Não foi feita nova
 auditoria de todas as implementações antigas para conceder crédito retroativo.
@@ -179,6 +170,11 @@ auditoria de todas as implementações antigas para conceder crédito retroativo
 | 9 | H1 | [DAG-05](dependency-scheduler.md) | Cancelamento, falha e invalidação | 25% | Retry/drain sombra; retenção até término físico no executor vivo pendente |
 | 10 | H1 | [CPU-01](cpu-and-stages.md) | Contexto privado de cálculo | 25% | Composto+sombra+handoff+hotReload/loadMods; falta gates H0 antes de H1 |
 | 11 | H1 | [CPU-02](cpu-and-stages.md) | Produto PreparedSector | 25% | payload/path H1 + consume H2 sobre API canônica H1; install vivo pendente |
+| 12 | H1 | [MD-01](microdungeons-and-tmx.md) | Seleção leve e identidade | 25% | Candidatos sem halo na sombra; path MicroDungeons vivo pendente |
+| 13 | H1 | [CPU-03](cpu-and-stages.md) | Executor processual e granularidade | 25% | Scheduler sombra startNext/complete; pool/afinidade/lotes multi-setor pendentes |
+| 14 | H1 | [WT-01](worldthread.md) | Serviço de conclusões e drenagem | 25% | drainMailbox sombra; pontos no caminho vivo e fora-de-ordem autoritativo pendentes |
+| 15 | H1 | [WT-02](worldthread.md) | Orçamento produtivo e resposta do jogo | 25% | runPass com exit reasons; separação sim/prep/publish viva e overrun tipado pendentes |
+| 16 | H1 | [CPU-05](cpu-and-stages.md) | Governador de recursos e perfis | 25% | suggest Balanced/HighThroughput; pools físicas/render/GPU e perfis dinâmicos pendentes |
 | 17 | H2 | [RAM-02](memory-and-prefetch.md) | Camadas de cache e invalidação | 25% | Cache por kind/setor/revisões + invalidação; payloads reais pendentes |
 | 18 | H2 | [RAM-03](memory-and-prefetch.md) | Política de retenção | 25% | Soft/hard + histerese + demanda/benefício; justiça multi-mundo pendente |
 | 19 | H2 | [RAM-04](memory-and-prefetch.md) | Prefetch previsto e dependências | 25% | Plano por velocidade/wrap/orçamento; sem WorldStorage |
@@ -209,9 +205,9 @@ auditoria de todas as implementações antigas para conceder crédito retroativo
 | 44 | R1 | [REG-01](regional-threads.md) | Lifecycle e identidade da dona | 25% | + OS thread CPU stub; sem WorldServer/WorldStorage vivo |
 | 45 | R1 | [REG-02](regional-threads.md) | Estado local e visões de borda | 25% | + contorno parcial/ForeignCell; sem estado vivo integrado |
 | 46 | R1 | [WT-05](worldthread.md) | Coordenadora do runtime regional | 25% | + perimeter skeleton; sem WorldServerThread |
-| 47 | R2 | [REG-03](regional-threads.md) | Tempo e operações entre regiões | 0% | Intenções multirregião e ordem autoritativa |
-| 48 | R2 | [REG-04](regional-threads.md) | Transferência de entidades | 0% | Handoff sem dupla autoridade; não é externalização de NPCs |
-| 49 | R2 | [REG-05](regional-threads.md) | Falha, checkpoint e custo de escala | 0% | Recuperação e ganho regional real; avaliar passos independentes só depois |
+| 47 | R2 | [REG-03](regional-threads.md) | Tempo e operações entre regiões | 25% | Sombra + gate Authoritative; rede/vivo pendente |
+| 48 | R2 | [REG-04](regional-threads.md) | Transferência de entidades | 25% | Handoff + gate Authoritative; índice/vivo pendente |
+| 49 | R2 | [REG-05](regional-threads.md) | Falha, checkpoint e custo de escala | 25% | Recovery + gate Authoritative; escala viva pendente |
 
 ## Evidências das notas atuais
 
@@ -346,6 +342,8 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 26/11/2026 | Noise/adjacent stale | TemplateRevision bump sob noise e setor {1,0}; 105 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 26/11/2026 | Concurrent ocean | Duas sombras oceano no ledger; 106 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 11 | H1 | [CPU-02](cpu-and-stages.md) | Produto PreparedSector | 25% | payload/path H1 + consume H2 sobre API canônica H1; install vivo pendente |
+
+| 27/11/2026 | Integração R2 | Merge `--no-ff` R2 `f86b4d17` em `cursor/integration-sector-runtime-7342`; R2 25%; programa 18,4%→19,9% | 19,9% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.
