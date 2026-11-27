@@ -2116,6 +2116,15 @@ size_t WorldGenerationComputeService::countReadyOpenTickets() const {
   return count;
 }
 
+bool WorldGenerationComputeService::anyReadyOpenTickets() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  for (auto const& pair : m_entries) {
+    if (pair.second.state == EntryState::Ready)
+      return true;
+  }
+  return false;
+}
+
 bool WorldGenerationComputeService::anyPendingOpenKernels() const {
   std::lock_guard<std::mutex> lock(m_mutex);
   for (auto const& pair : m_entries) {
