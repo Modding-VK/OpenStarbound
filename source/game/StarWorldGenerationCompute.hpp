@@ -45,7 +45,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32BitReverse = 19, // bitfield reverse; parameter ignored
   DenseUint32Lt = 20, // unsigned value < parameter ? 0xffffffff : 0
   DenseUint32Leu = 21, // unsigned value <= parameter ? 0xffffffff : 0
-  DenseUint32AbsDiff = 22 // unsigned |value - parameter|
+  DenseUint32AbsDiff = 22, // unsigned |value - parameter|
+  DenseUint32Gt = 23, // unsigned value > parameter ? 0xffffffff : 0
+  DenseUint32Geu = 24, // unsigned value >= parameter ? 0xffffffff : 0
+  DenseUint32Xnor = 25 // ~(value ^ parameter)
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {

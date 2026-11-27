@@ -66,7 +66,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32BitReverse
       || kernel == WorldGenerationComputeKernel::DenseUint32Lt
       || kernel == WorldGenerationComputeKernel::DenseUint32Leu
-      || kernel == WorldGenerationComputeKernel::DenseUint32AbsDiff;
+      || kernel == WorldGenerationComputeKernel::DenseUint32AbsDiff
+      || kernel == WorldGenerationComputeKernel::DenseUint32Gt
+      || kernel == WorldGenerationComputeKernel::DenseUint32Geu
+      || kernel == WorldGenerationComputeKernel::DenseUint32Xnor;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -96,7 +99,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32BitReverse,
       WorldGenerationComputeKernel::DenseUint32Lt,
       WorldGenerationComputeKernel::DenseUint32Leu,
-      WorldGenerationComputeKernel::DenseUint32AbsDiff};
+      WorldGenerationComputeKernel::DenseUint32AbsDiff,
+      WorldGenerationComputeKernel::DenseUint32Gt,
+      WorldGenerationComputeKernel::DenseUint32Geu,
+      WorldGenerationComputeKernel::DenseUint32Xnor};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -126,6 +132,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32Lt: return "DenseUint32Lt";
     case WorldGenerationComputeKernel::DenseUint32Leu: return "DenseUint32Leu";
     case WorldGenerationComputeKernel::DenseUint32AbsDiff: return "DenseUint32AbsDiff";
+    case WorldGenerationComputeKernel::DenseUint32Gt: return "DenseUint32Gt";
+    case WorldGenerationComputeKernel::DenseUint32Geu: return "DenseUint32Geu";
+    case WorldGenerationComputeKernel::DenseUint32Xnor: return "DenseUint32Xnor";
   }
   return nullptr;
 }
@@ -313,6 +322,15 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
   } else if (kernel == WorldGenerationComputeKernel::DenseUint32AbsDiff) {
     for (uint32_t value : input)
       out.append(value > parameter ? value - parameter : parameter - value);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Gt) {
+    for (uint32_t value : input)
+      out.append(value > parameter ? 0xffffffffu : 0u);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Geu) {
+    for (uint32_t value : input)
+      out.append(value >= parameter ? 0xffffffffu : 0u);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Xnor) {
+    for (uint32_t value : input)
+      out.append(~(value ^ parameter));
   }
   return out;
 }
