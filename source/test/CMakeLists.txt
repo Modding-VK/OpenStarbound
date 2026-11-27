@@ -137,6 +137,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_memory_capacity_test.cpp
   world_generation_base_tile_liquid_test.cpp
   world_generation_cave_liquid_plan_test.cpp
+  world_generation_finalize_plan_test.cpp
   world_generation_base_tiles_test.cpp
   world_generation_block_info_test.cpp
   world_generation_custom_terrain_test.cpp

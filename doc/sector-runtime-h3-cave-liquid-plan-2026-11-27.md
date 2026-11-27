@@ -37,5 +37,6 @@ das etapas de CPU-04.
 
 ## Próximo passo
 
-Finalize puro em sombra, ou equivalência CaveLiquid contra fixture controlada.
-Não disparar Actions.
+Finalize normalização entregue em
+[finalize-normalize](sector-runtime-h3-finalize-normalize-2026-11-27.md).
+Seguir flora intents ou equivalência viva. Não disparar Actions.
