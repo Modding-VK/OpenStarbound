@@ -220,7 +220,6 @@ auditoria de todas as implementações antigas para conceder crédito retroativo
 | MOD-01 | Bundles/planning/lookup + [EffectBoundary](../sector-runtime-h0-effect-boundary-2026-11-27.md) + [profundo](../sector-runtime-h0-effect-boundary-deep-2026-11-27.md) | Catálogo+enforcement+reconstruct POD; defaults não normalizados; call sites/Json e integração abertas |
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
-| 11 | H1 | [CPU-02](cpu-and-stages.md) | Produto PreparedSector | 25% | payload/path H1 + consume H2 sobre API canônica H1; install vivo pendente |
 | RAM-02 | [Product revision cache](../sector-runtime-h2-product-revision-cache-2026-11-27.md) | Sem payloads BaseTiles/candidatos reais |
 | RAM-03 | [Retenção/prefetch/batch/IO](../sector-runtime-h2-resident-prefetch-batch-io-2026-11-27.md) | Sem justiça multi-mundo nem pressão RSS externa |
 | RAM-04 | idem | Sem carga WorldStorage nem encolher por stale de rota ao vivo |
@@ -341,7 +340,6 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 26/11/2026 | Ocean/Island stale | TemplateRevision bump sob sombra oceano/Island; 103 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 26/11/2026 | Noise/adjacent stale | TemplateRevision bump sob noise e setor {1,0}; 105 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 26/11/2026 | Concurrent ocean | Duas sombras oceano no ledger; 106 RealBlockInfo. Sem novo marco completo | 3,6% |
-| 11 | H1 | [CPU-02](cpu-and-stages.md) | Produto PreparedSector | 25% | payload/path H1 + consume H2 sobre API canônica H1; install vivo pendente |
 
 | 27/11/2026 | Integração R2 | Merge `--no-ff` R2 `f86b4d17` em `cursor/integration-sector-runtime-7342`; R2 25%; programa 18,4%→19,9% | 19,9% |
 
