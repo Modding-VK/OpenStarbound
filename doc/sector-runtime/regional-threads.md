@@ -78,6 +78,11 @@ dona autoritativa por passo. Origem prepara transferência, destino valida e
 o commit atualiza dono/índice/rede conjuntamente. Mensagens antigas são
 rejeitadas; idempotência impede update, item ou dano duplicado.
 
+Primeiro recorte em sombra (`WorldRegionEntityHandoffShadow`): seed exclusivo,
+um Prepared por entidade, commit com checagem de geração, rejeição e
+idempotência por passo. Sem índice/rede vivos. Ver
+[relatório](../sector-runtime-r2-entity-handoff-shadow-2026-11-27.md).
+
 Manter a autoridade atual de jogadores, entidades master do cliente,
 monstros, veículos e stagehands conforme o tipo. Projeções de leitura não
 executam IA. Essa tarefa não retoma externalização de NPCs, que segue suspensa.

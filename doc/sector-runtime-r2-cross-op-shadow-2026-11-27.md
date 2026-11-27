@@ -34,3 +34,6 @@ de passo; passos independentes permanecem entrega posterior.
 ## Progresso
 
 REG-03: **0% → 25%**. Programa: **3,6% → 4,1%** (8 marcos / 196).
+
+Próximo: REG-04 em
+[entity handoff sombra](sector-runtime-r2-entity-handoff-shadow-2026-11-27.md).

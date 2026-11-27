@@ -122,10 +122,12 @@ ADD_EXECUTABLE(world_generation_contract_tests
   ../game/StarBiomePlacementDefaults.cpp
   ../game/StarWorldRegionCoordinator.cpp
   ../game/StarWorldRegionCrossOp.cpp
+  ../game/StarWorldRegionEntityHandoff.cpp
   gtest/gtest-all.cc
   core_tests_main.cpp
   world_region_partition_test.cpp
   world_region_cross_op_test.cpp
+  world_region_entity_handoff_test.cpp
   world_generation_dependency_test.cpp
   world_generation_pass_test.cpp
   StarWorldGenerationPassHarness.hpp
@@ -214,6 +216,7 @@ FOREACH(world_region_test_suite
     BlockAllocatorExceptionTest
     WorldRegionCoordinatorTest
     WorldRegionCrossOpTest
+    WorldRegionEntityHandoffTest
     WorldRegionObservationTest)
   ADD_TEST(NAME world_generation_contract_${world_region_test_suite}
     COMMAND $<TARGET_FILE:world_generation_contract_tests>
