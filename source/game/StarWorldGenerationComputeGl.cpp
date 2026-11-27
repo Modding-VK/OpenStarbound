@@ -208,6 +208,9 @@ GLuint g_halfRotrProgram = 0;
 GLuint g_halfPopcountProgram = 0;
 GLuint g_halfClzProgram = 0;
 GLuint g_halfCtzProgram = 0;
+GLuint g_halfParityProgram = 0;
+GLuint g_halfBitReverseProgram = 0;
+GLuint g_halfBswapProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -2623,6 +2626,49 @@ void main() {
 }
 )GLSL";
 
+char const* HalfParityShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = bitCount(values[i] & 0xffffu) & 1u;
+}
+)GLSL";
+
+char const* HalfBitReverseShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = bitfieldReverse(values[i] & 0xffffu) >> 16;
+}
+)GLSL";
+
+char const* HalfBswapShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  values[i] = ((lo & 0xffu) << 8) | ((lo >> 8) & 0xffu);
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -3263,6 +3309,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfCtzProgram);
     g_halfCtzProgram = 0;
   }
+  if (g_halfParityProgram) {
+    glDeleteProgram(g_halfParityProgram);
+    g_halfParityProgram = 0;
+  }
+  if (g_halfBitReverseProgram) {
+    glDeleteProgram(g_halfBitReverseProgram);
+    g_halfBitReverseProgram = 0;
+  }
+  if (g_halfBswapProgram) {
+    glDeleteProgram(g_halfBswapProgram);
+    g_halfBswapProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -3513,7 +3571,10 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfRotrProgram, HalfRotrShader, "DenseUint32HalfRotr")
       || !requireProgram(g_halfPopcountProgram, HalfPopcountShader, "DenseUint32HalfPopcount")
       || !requireProgram(g_halfClzProgram, HalfClzShader, "DenseUint32HalfClz")
-      || !requireProgram(g_halfCtzProgram, HalfCtzShader, "DenseUint32HalfCtz"))
+      || !requireProgram(g_halfCtzProgram, HalfCtzShader, "DenseUint32HalfCtz")
+      || !requireProgram(g_halfParityProgram, HalfParityShader, "DenseUint32HalfParity")
+      || !requireProgram(g_halfBitReverseProgram, HalfBitReverseShader, "DenseUint32HalfBitReverse")
+      || !requireProgram(g_halfBswapProgram, HalfBswapShader, "DenseUint32HalfBswap"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -3874,6 +3935,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfClzProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfCtz)
     program = g_halfCtzProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfParity)
+    program = g_halfParityProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfBitReverse)
+    program = g_halfBitReverseProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfBswap)
+    program = g_halfBswapProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
