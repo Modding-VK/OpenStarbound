@@ -2,14 +2,15 @@
 
 Atualizado em **27/11/2026**. Branch de integração:
 `cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+H4+H5+R1+R2; não `main`).
-Tip INT atual: **`8155297f`** (merge PR#3 `ci-sector-runtime.yml` sobre base H5).
-Gates tip YAML: CI Integration #20 + CI Sector Runtime #2 **SUCCESS** (3 checks;
-Smoke RTX skipped). Instalador válido: **Build #86** @ tip material
-**`33628d9b`** (H5 merge). Sem `build.yml` para tip só-workflow. Sem smoke de
-jogo até base/instalador local do usuário. Não mergear frentes até entregarem
-commits novos (ahead>0).
+Tip INT: merge H4 GPU-03 `7754b2ca` (DenseUint32 And/Or/Mul) sobre docs
+`f0d753b5` / YAML `8155297f`. Tip material → Build autorizado após merge.
+Instalador anterior: **Build #86** @ `33628d9b` até novo Build da tip H4.
+Gates YAML prévios: CI Integration #20 + CI Sector Runtime #2 SUCCESS em
+`8155297f`. Sem smoke de jogo até base/instalador local. Não mergear outras
+frentes até ahead>0.
+Última H4: GPU-03 DenseUint32 And/Or/Mul asset-free (`7754b2ca`); 16/16
+WorldGenerationComputeTest; H4 25%.
 Última H5: scale foundations + probe 27/27 RTX (`a2ec01f0`); H5 25%.
-Última H4: GPU-01…04 + probe GL PASS Desktop-Vinicius (`c44b1a38`); H4 25%.
 Última H3: TMX cache/reload + flora/replaceBiome + decode/codec (`3bdf1927`); H3 25%.
 Última R2: AuthoritativeOps + REG-03/04/05 sombra (`f86b4d17`).
 Última R1: ThreadStub CPU/OS (`6947bbb9`).
@@ -22,11 +23,10 @@ commits novos (ahead>0).
 · [Relatório H1](../sector-runtime-h1-prepared-sector-2026-11-27.md)
 · [Relatório H2](../sector-runtime-h2-prepared-sector-consume-2026-11-27.md)
 · [Relatório H3](../sector-runtime-h3-tmx-shadow-cache-2026-11-27.md)
-· [Relatório H4](../sector-runtime-h4-gpu02-03-04-2026-11-27.md)
+· [Relatório H4](../sector-runtime-h4-gpu03-dense-and-or-mul-2026-11-27.md)
 · [Relatório H5](../sector-runtime-h5-scale-foundations-2026-11-27.md)
 · [Relatório R1](../sector-runtime-r1-thread-stub-cpu-2026-11-27.md)
 · [Relatório R2](../sector-runtime-r2-authoritative-ops-2026-11-27.md)
-· [Backlog geral](../performance-backlog.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -50,7 +50,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **25,5%** — 50 marcos verificados de 196 |
 | Contratos com avanço registrado | **49 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | H0–H5 + R1/R2; H4 probe GL PASS; H5 27/27 RTX; PreparedSector = API H1; CI Integration #20 + CI Sector Runtime #2 SUCCESS em `8155297f`; Build #86 @ `33628d9b`; Actions manuais |
+| Última evidência de testes | H0–H5 + R1/R2; H4 GPU-03 And/Or/Mul 16/16 + probe GL PASS; H5 27/27 RTX; PreparedSector = API H1; CI #20 + SR #2 SUCCESS em `8155297f`; Build pós-merge H4; Actions manuais |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 | Smoke / instalador local | Pendente base local do usuário; sem smoke até lá |
 
@@ -118,11 +118,11 @@ autoritativa. GPU é opcional, com fallback CPU completo.
 
 ## Próximas ações — fila imediata
 
-0. **Integração (hold):** tip `8155297f` verde para CI YAML; instalador =
-   Build #86 @ `33628d9b`. Não disparar `build.yml` por tip só-workflow. Não
-   mergear H0–H5/R1/R2 até a frente entregar commits novos (ahead>0). Smoke de
-   jogo só após base/instalador local. Workflow `ci-sector-runtime.yml` ativo
-   na INT (Windows GL-compute probe; Smoke RTX opcional self-hosted skipped).
+0. **Integração:** H4 GPU-03 `7754b2ca` mergeado (tip material → Build ok).
+   Tip docs/`8155297f` YAML não dispara Build. Instalador anterior Build #86 @
+   `33628d9b` até novo Build. Não mergear outras frentes até ahead>0. Smoke de
+   jogo só após base/instalador local. PR #4 (placeholders RTX) merge após CI
+   verde. Workflow `ci-sector-runtime.yml` ativo na INT.
 1. **H0: DAG-01/RAM-01 com MOD-01/VAL-02:** catálogo compacto e binding de fontes
    reais, com clock/binding 1 e scope 2, agora comparados aos leitores reais de
    WorldTemplate/MaterialDatabase e corpo independente com metadata controlada.
@@ -212,7 +212,7 @@ auditoria de todas as implementações antigas para conceder crédito retroativo
 | 32 | H3 | [IO-05](io-persistence-network.md) | Pacotes e aplicação no cliente | 25% | Pacotes/marcos sombra; rede/cliente vivos pendentes |
 | 33 | H4 | [GPU-01](gpu-compute.md) | Interface e capacidades CPU/GPU | 25% | Serviço submit/poll/cancel + CPU reference; probe GL PASS |
 | 34 | H4 | [GPU-02](gpu-compute.md) | Contexto e buffers em voo | 25% | Fila/pool/pump/failContext + harness GL; thread dona WorldThread pendente |
-| 35 | H4 | [GPU-03](gpu-compute.md) | Kernels e equivalência | 25% | DenseUint32Xor/Add + batch; terreno/ganho pendentes |
+| 35 | H4 | [GPU-03](gpu-compute.md) | Kernels e equivalência | 25% | DenseUint32Xor/Add/And/Or/Mul + batch; terreno/ganho pendentes |
 | 36 | H4 | [GPU-04](gpu-compute.md) | Comparação em sombra | 25% | compareShadow Equal no RTX 3050; multi-driver/publicação pendentes |
 | 37 | H5 | [GPU-05](gpu-compute.md) | Seleção heterogênea e render | 25% | Seletor por custo completo + fallback CPU; backend GPU/ganho medido pendentes |
 | 38 | H5 | [VAL-03](validation-and-telemetry.md) | Métricas e marcos de entrega | 25% | Recorder dos marcos; sem bus de telemetria nem Tracy |
@@ -260,7 +260,7 @@ auditoria de todas as implementações antigas para conceder crédito retroativo
 | WT-05 | [RuntimeCoordinator](../sector-runtime-r1-border-runtime-2026-11-27.md) | Sem integração WorldServerThread nem thread dedicada por região |
 | GPU-01 | [interface+CPU reference](../sector-runtime-h4-gpu01-compute-interface-2026-11-27.md); probe PASS Desktop-Vinicius | Sem 50%: publicação versionada e caminho vivo pendentes |
 | GPU-02 | [fila/voo/recuperação](../sector-runtime-h4-gpu02-03-04-2026-11-27.md); SSBO/fence no harness | Sem thread dona integrada à WorldThread; sem 50% |
-| GPU-03 | [lotes + DenseUint32*](../sector-runtime-h4-gpu02-03-04-2026-11-27.md); shaders no opt-in | Sem kernels de terreno/bioma nem ganho medido |
+| GPU-03 | [Xor/Add](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) + [And/Or/Mul](../sector-runtime-h4-gpu03-dense-and-or-mul-2026-11-27.md); 16/16 testes | Sem kernels de terreno/bioma nem ganho medido |
 | GPU-04 | [compareShadow](../sector-runtime-h4-gpu02-03-04-2026-11-27.md); Equal no RTX 3050 | Sem campanha multi-driver / publicação; permanece 25% |
 | GPU-05 | [hardware selection](../sector-runtime-h5-hardware-selection-2026-11-27.md), `StarWorldGenerationHardwareSelection.hpp`, 7 testes de contrato | Sem backend GPU, sem custos observados de runtime, sem ganho ponta a ponta nem publicação |
 | VAL-03 | [fundações H5](../sector-runtime-h5-scale-foundations-2026-11-27.md), delivery metrics recorder | Sem instrumentação no WorldThread/Tracy nem cobertura completa de pipeline |
@@ -400,6 +400,8 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | H5 fundações VAL/MOD + CPU-05 | Métricas, cenários, gates, perfis, equivalência, plataformas, governador; 27 testes. H5 25%; H1 5%; programa 4,1→7,7% | 7,7% |
 | 27/11/2026 | Integração H5 | Merge `--no-ff` H5 `a2ec01f0` (probe 27/27 @ `254cc22e` + PS1 fix) em INT; tip `33628d9b`; Build #86 + CI #19 SUCCESS; H5 25%; programa 21,9%→25,5% | 25,5% |
 | 27/11/2026 | CI Sector Runtime | Merge PR#3 (`ci-sector-runtime.yml`) → tip `8155297f`; CI Integration #20 + CI Sector Runtime #2 SUCCESS; Build #86 @ `33628d9b` permanece instalador; tip YAML ≠ tip material (`build.yml` não disparado); sem smoke até base local; % inalterado | 25,5% |
+| 27/11/2026 | GPU-03 And/Or/Mul | Família densa asset-free ampliada (CPU+GL opt-in); 16/16 WorldGenerationComputeTest; H4 permanece 25% | 25,5% |
+| 27/11/2026 | Integração H4 GPU-03 | Merge `--no-ff` H4 `7754b2ca` em INT; tip material → Build autorizado; programa 25,5% | 25,5% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.
