@@ -2317,6 +2317,19 @@ List<WorldGenerationComputeTicket> WorldGenerationComputeService::listFailedOpen
   return out;
 }
 
+List<WorldGenerationComputeTicket> WorldGenerationComputeService::listCancelledOpenTickets() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  List<WorldGenerationComputeTicket> out;
+  for (auto const& pair : m_entries) {
+    if (pair.second.state != EntryState::Cancelled)
+      continue;
+    WorldGenerationComputeTicket ticket;
+    ticket.id = pair.first;
+    out.append(ticket);
+  }
+  return out;
+}
+
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::listOpenKernels() const {
   std::lock_guard<std::mutex> lock(m_mutex);
   List<WorldGenerationComputeKernel> out;

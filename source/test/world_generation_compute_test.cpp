@@ -1543,6 +1543,30 @@ TEST(WorldGenerationComputeTest, AnyFailedOpenTicketsTracksFailedPresence) {
 }
 
 
+TEST(WorldGenerationComputeTest, ListCancelledOpenTicketsReturnsCancelledIdsOnly) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  EXPECT_TRUE(service.listCancelledOpenTickets().empty());
+  auto a = service.submit(
+      makeIdentity(1500, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u);
+  auto b = service.submit(
+      makeIdentity(1501, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{2u}, 0u);
+  auto c = service.submit(
+      makeIdentity(1502, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{3u}, 0u);
+  ASSERT_TRUE((bool)a);
+  ASSERT_TRUE((bool)b);
+  ASSERT_TRUE((bool)c);
+  EXPECT_EQ(2u, service.cancelOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  auto cancelled = service.listCancelledOpenTickets();
+  ASSERT_EQ(2u, cancelled.size());
+  EXPECT_TRUE(cancelled[0] == *a || cancelled[0] == *b);
+  EXPECT_TRUE(cancelled[1] == *a || cancelled[1] == *b);
+  EXPECT_NE(cancelled[0].id, cancelled[1].id);
+  EXPECT_EQ(1u, service.inFlightByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+  EXPECT_EQ(2u, service.discardCancelledOpenTickets());
+  EXPECT_TRUE(service.listCancelledOpenTickets().empty());
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32HalfSumMaxMinExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();
