@@ -1545,6 +1545,19 @@ TEST(WorldGenerationComputeTest, AnyFailedOpenTicketsTracksFailedPresence) {
 
 
 
+TEST(WorldGenerationComputeTest, AnyCancelledOpenTicketsTracksCancelledPresence) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  EXPECT_FALSE(service.anyCancelledOpenTickets());
+  auto a = service.submit(
+      makeIdentity(1530, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u);
+  ASSERT_TRUE((bool)a);
+  EXPECT_EQ(1u, service.cancelOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_TRUE(service.anyCancelledOpenTickets());
+  EXPECT_EQ(1u, service.discardCancelledOpenTickets());
+  EXPECT_FALSE(service.anyCancelledOpenTickets());
+}
+
 TEST(WorldGenerationComputeTest, CountCancelledOpenTicketsTracksCancelledTicketCount) {
   WorldGenerationComputeService service;
   service.setDeferredCpuCompletion(true);

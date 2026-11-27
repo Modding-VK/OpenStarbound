@@ -479,6 +479,8 @@ public:
   bool anyReadyOpenTickets() const;
   // True while any Failed open ticket exists (asset-free observation).
   bool anyFailedOpenTickets() const;
+  // True while any Cancelled open ticket exists (asset-free observation).
+  bool anyCancelledOpenTickets() const;
   // True while any Pending open ticket exists (asset-free observation).
   bool anyPendingOpenTickets() const;
   // True while any Pending open ticket exists (asset-free observation).
