@@ -298,6 +298,10 @@ public:
   // GPU-02: complete many deferred Pending tickets; each bool is independent.
   List<bool> completeBatch(List<WorldGenerationComputeTicket> tickets);
 
+  // GPU-02: complete Pending tickets whose identity.kernel matches (owner-thread).
+  // Leaves Ready/Failed/Cancelled entries open until poll; returns how many completed.
+  size_t completeOpenTicketsByKernel(WorldGenerationComputeKernel kernel);
+
   WorldGenerationComputePollStatus poll(WorldGenerationComputeTicket ticket,
       WorldGenerationComputeResult* out = nullptr);
 

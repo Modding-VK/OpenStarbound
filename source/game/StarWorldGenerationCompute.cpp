@@ -1049,6 +1049,24 @@ List<bool> WorldGenerationComputeService::completeBatch(List<WorldGenerationComp
   return out;
 }
 
+size_t WorldGenerationComputeService::completeOpenTicketsByKernel(
+    WorldGenerationComputeKernel kernel) {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return 0;
+  size_t completed = 0;
+  for (auto& pair : m_entries) {
+    Entry& entry = pair.second;
+    if (entry.identity.kernel != kernel || entry.state != EntryState::Pending)
+      continue;
+    completeEntry(entry);
+    if (entry.state == EntryState::Ready || entry.state == EntryState::Cancelled
+        || entry.state == EntryState::Failed)
+      ++completed;
+  }
+  return completed;
+}
+
 WorldGenerationComputePollStatus WorldGenerationComputeService::pollLocked(
     WorldGenerationComputeTicket ticket, WorldGenerationComputeResult* out) {
   if (m_rejectedDuplicates.count(ticket.id))
