@@ -487,9 +487,9 @@ TEST(WorldGenerationComputeTest, SupportedKernelsCatalogListsDenseFamily) {
   EXPECT_FALSE(WorldGenerationComputeService::isKernelSupported(
       WorldGenerationComputeKernel::DenseUint32Xor, 99u));
   auto kernels = WorldGenerationComputeService::supportedKernels();
-  ASSERT_EQ(85u, kernels.size());
+  ASSERT_EQ(88u, kernels.size());
   EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32Xor, kernels[0]);
-  EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32ExpandLow16ToOdd, kernels[kernels.size() - 1]);
+  EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32DeinterleaveHalves, kernels[kernels.size() - 1]);
   EXPECT_TRUE(WorldGenerationComputeService::supportedKernels(2u).empty());
 }
 
@@ -509,12 +509,53 @@ TEST(WorldGenerationComputeTest, CompareShadowBatchRunsIndependentKernels) {
     items.append(item);
   }
   auto reports = service.compareShadowBatch(input, std::move(items));
-  ASSERT_EQ(85u, reports.size());
+  ASSERT_EQ(88u, reports.size());
   for (auto const& report : reports) {
     EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal, report.verdict)
         << (int)report.identity.kernel;
     EXPECT_FALSE(report.reproducer.valid);
   }
+}
+
+TEST(WorldGenerationComputeTest, DenseUint32ExpandEvenInterleaveHalvesExactCpuAndShadow) {
+  WorldGenerationComputeService service;
+  auto input = edgeCorpus();
+  EXPECT_EQ(0xaau,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32ExpandLow16ToEven, 1u, List<uint32_t>{0x0fu},
+          0u)[0]);
+  EXPECT_EQ(0x6u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32InterleaveHalves, 1u,
+          List<uint32_t>{0x00010002u}, 0u)[0]);
+  EXPECT_EQ(0x00010002u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32DeinterleaveHalves, 1u, List<uint32_t>{0x6u},
+          0u)[0]);
+  auto roundTrip = WorldGenerationComputeService::runKernel(
+      WorldGenerationComputeKernel::DenseUint32DeinterleaveHalves, 1u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32InterleaveHalves, 1u,
+          List<uint32_t>{0x12345678u}, 0u),
+      0u);
+  ASSERT_EQ(1u, roundTrip.size());
+  EXPECT_EQ(0x12345678u, roundTrip[0]);
+
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(650, WorldGenerationComputeKernel::DenseUint32ExpandLow16ToEven), input, 0u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(651, WorldGenerationComputeKernel::DenseUint32InterleaveHalves), input, 0u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(652, WorldGenerationComputeKernel::DenseUint32DeinterleaveHalves), input, 0u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
+          .verdict);
 }
 
 TEST(WorldGenerationComputeTest, DenseUint32CompressExpandOddBitsExactCpuAndShadow) {
@@ -1672,7 +1713,7 @@ TEST(WorldGenerationComputeTest, DenseUint32OrNotAvgIsPow2ExactCpuAndShadow) {
 }
 
 TEST(WorldGenerationComputeTest, FingerprintCapabilitiesAndSupportedKernelCount) {
-  EXPECT_EQ(85u, WorldGenerationComputeService::supportedKernelCount());
+  EXPECT_EQ(88u, WorldGenerationComputeService::supportedKernelCount());
   EXPECT_EQ(0u, WorldGenerationComputeService::supportedKernelCount(2u));
   EXPECT_EQ(WorldGenerationComputeService::supportedKernels().size(),
       WorldGenerationComputeService::supportedKernelCount());

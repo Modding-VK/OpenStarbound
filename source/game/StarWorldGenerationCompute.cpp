@@ -129,7 +129,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32SwapAdjacentBits
       || kernel == WorldGenerationComputeKernel::DenseUint32CompressOddBits
       || kernel == WorldGenerationComputeKernel::DenseUint32CompressEvenBits
-      || kernel == WorldGenerationComputeKernel::DenseUint32ExpandLow16ToOdd;
+      || kernel == WorldGenerationComputeKernel::DenseUint32ExpandLow16ToOdd
+      || kernel == WorldGenerationComputeKernel::DenseUint32ExpandLow16ToEven
+      || kernel == WorldGenerationComputeKernel::DenseUint32InterleaveHalves
+      || kernel == WorldGenerationComputeKernel::DenseUint32DeinterleaveHalves;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -222,7 +225,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32SwapAdjacentBits,
       WorldGenerationComputeKernel::DenseUint32CompressOddBits,
       WorldGenerationComputeKernel::DenseUint32CompressEvenBits,
-      WorldGenerationComputeKernel::DenseUint32ExpandLow16ToOdd};
+      WorldGenerationComputeKernel::DenseUint32ExpandLow16ToOdd,
+      WorldGenerationComputeKernel::DenseUint32ExpandLow16ToEven,
+      WorldGenerationComputeKernel::DenseUint32InterleaveHalves,
+      WorldGenerationComputeKernel::DenseUint32DeinterleaveHalves};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -232,7 +238,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 85u;
+  return 88u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -339,6 +345,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32CompressOddBits: return "DenseUint32CompressOddBits";
     case WorldGenerationComputeKernel::DenseUint32CompressEvenBits: return "DenseUint32CompressEvenBits";
     case WorldGenerationComputeKernel::DenseUint32ExpandLow16ToOdd: return "DenseUint32ExpandLow16ToOdd";
+    case WorldGenerationComputeKernel::DenseUint32ExpandLow16ToEven: return "DenseUint32ExpandLow16ToEven";
+    case WorldGenerationComputeKernel::DenseUint32InterleaveHalves: return "DenseUint32InterleaveHalves";
+    case WorldGenerationComputeKernel::DenseUint32DeinterleaveHalves: return "DenseUint32DeinterleaveHalves";
   }
   return nullptr;
 }
@@ -884,6 +893,43 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
       x = (x | (x << 2)) & 0x33333333u;
       x = (x | (x << 1)) & 0x55555555u;
       out.append(x);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32ExpandLow16ToEven) {
+    for (uint32_t value : input) {
+      uint32_t x = value & 0xffffu;
+      x = (x | (x << 8)) & 0x00ff00ffu;
+      x = (x | (x << 4)) & 0x0f0f0f0fu;
+      x = (x | (x << 2)) & 0x33333333u;
+      x = (x | (x << 1)) & 0x55555555u;
+      out.append(x << 1);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32InterleaveHalves) {
+    for (uint32_t value : input) {
+      auto expandOdd = [](uint32_t x) {
+        x &= 0xffffu;
+        x = (x | (x << 8)) & 0x00ff00ffu;
+        x = (x | (x << 4)) & 0x0f0f0f0fu;
+        x = (x | (x << 2)) & 0x33333333u;
+        x = (x | (x << 1)) & 0x55555555u;
+        return x;
+      };
+      uint32_t lo = expandOdd(value);
+      uint32_t hi = expandOdd(value >> 16);
+      out.append((hi << 1) | lo);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32DeinterleaveHalves) {
+    for (uint32_t value : input) {
+      auto compressOdd = [](uint32_t x) {
+        x &= 0x55555555u;
+        x = (x | (x >> 1)) & 0x33333333u;
+        x = (x | (x >> 2)) & 0x0f0f0f0fu;
+        x = (x | (x >> 4)) & 0x00ff00ffu;
+        x = (x | (x >> 8)) & 0x0000ffffu;
+        return x;
+      };
+      uint32_t lo = compressOdd(value);
+      uint32_t hi = compressOdd(value >> 1);
+      out.append((hi << 16) | lo);
     }
   }
   return out;
