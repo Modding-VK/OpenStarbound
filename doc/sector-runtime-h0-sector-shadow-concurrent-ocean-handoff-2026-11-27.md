@@ -19,4 +19,6 @@ ASan/UBSan: 1×5; **107/107** RealBlockInfo.
 
 ## Próximo passo
 
-Gates H0 restantes (Island/noise handoffs concorrentes). Não disparar Actions.
+Island handoffs em
+[concurrent island handoff](sector-runtime-h0-sector-shadow-concurrent-island-handoff-2026-11-27.md).
+Segue noise concurrent handoffs. Não disparar Actions.

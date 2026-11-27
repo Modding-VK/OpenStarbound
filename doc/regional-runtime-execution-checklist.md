@@ -39,9 +39,9 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa: H0 (`cursor/h0-foundations-9f77`). O relatório atual é
-[Concurrent ocean handoff](sector-runtime-h0-sector-shadow-concurrent-ocean-handoff-2026-11-27.md),
+[Concurrent Island handoff](sector-runtime-h0-sector-shadow-concurrent-island-handoff-2026-11-27.md),
 com antecedentes em
-[Concurrent ocean](sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md),
+[Concurrent ocean handoff](sector-runtime-h0-sector-shadow-concurrent-ocean-handoff-2026-11-27.md),
 [Sombra por setor](sector-runtime-h0-sector-shadow-2026-11-26.md) e
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
