@@ -193,6 +193,7 @@ SET (star_game_HEADERS
     StarWorldGenerationStructureBatchStaging.hpp
     StarWorldGenerationPublicationPass.hpp
     StarWorldGenerationShadowDb.hpp
+    StarWorldGenerationShadowCheckpoint.hpp
     StarWorldGenerationBlockInfo.hpp
     StarWorldGenerationCustomTerrain.hpp
     StarWorldGenerationBlockInfoStaticInputs.hpp

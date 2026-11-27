@@ -53,6 +53,13 @@ autorizada, sem leitura obsoleta aceita nem deadlock entre serviço e dona.
 
 ## IO-03 — Checkpoint e recuperação
 
+Primeiro recorte em `cursor/h3-kernels-publication-9f77`:
+`WorldGenerationShadowCheckpointHarness` exige unidade lógica completa,
+journal de intenção selada, recovery idempotente ou rejeição de parcial, e
+bloqueia `stepEpoch` incompatível — tudo sobre o harness IO-02, sem
+`.world`/SQLite. Ver
+[relatório](../sector-runtime-h3-shadow-checkpoint-2026-11-27.md).
+
 Salvar apenas estado confirmado de uma fronteira consistente. Tiles,
 entidades, índices únicos, metadata e estado Lua exigem definição de alcance
 transacional. Sync periódico não pode confirmar metade de uma estrutura ou

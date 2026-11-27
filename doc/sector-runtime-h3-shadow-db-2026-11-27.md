@@ -23,10 +23,11 @@ NoAssets `WorldGenerationShadowDbTest.*`: **7/7**.
 
 ## Limitações
 
-Sem disco, sem workers reais, sem `m_db` vivo. IO-03 checkpoint/recovery e
-IO-04 unload continuam abertos.
+Sem disco, sem workers reais, sem `m_db` vivo. IO-03 primeiro recorte em
+[shadow checkpoint](sector-runtime-h3-shadow-checkpoint-2026-11-27.md);
+IO-04 unload continua aberto.
 
 ## Próximo
 
-IO-03 checkpoint/recovery em sombra, ou amarração do frontier blob ao
+IO-04 unload/drain em sombra, ou amarração do frontier blob ao
 PublicationPass confirmado.

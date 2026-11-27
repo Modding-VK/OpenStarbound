@@ -475,7 +475,10 @@ Propósito: reduzir trabalho serial após o desbloqueio do pipeline.
   WorldThread vivo pendente.
 - [x] IO-02 (primeiro recorte): harness de banco/transações em sombra
   ([relatório](../sector-runtime-h3-shadow-db-2026-11-27.md)); sem `.world`.
-- [ ] IO-03/04: checkpoint/recovery e unload coerentes com novos produtos.
+- [x] IO-03 (primeiro recorte): checkpoint/recovery coerente em sombra
+  ([relatório](../sector-runtime-h3-shadow-checkpoint-2026-11-27.md));
+  sem `.world`.
+- [ ] IO-04: unload/drain coerente com novos produtos (ainda sombra).
 - [ ] IO-05: pacote confirmado e medição até aplicação no cliente.
 
 Saída: custo serial menor por setor/estrutura, com save, scripts e rede
