@@ -104,6 +104,13 @@ SET_TESTS_PROPERTIES(core_tests PROPERTIES
 ADD_EXECUTABLE(world_generation_contract_tests
   $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base>
   ../game/StarWorldRegionPartition.cpp
+  ../game/StarWorldRegionOwner.cpp
+  ../game/StarWorldRegionBorder.cpp
+  ../game/StarWorldRegionRuntime.cpp
+  ../game/StarWorldRegionLocalState.cpp
+  ../game/StarWorldRegionCheckpoint.cpp
+  ../game/StarWorldRegionAuthority.cpp
+  ../game/StarWorldRegionThreadStub.cpp
   ../game/StarWorldGenerationDependency.cpp
   ../game/StarWorldGenerationExecutiveShadow.cpp
   ../game/StarWorldGenerationExecutivePriority.cpp
@@ -132,6 +139,13 @@ ADD_EXECUTABLE(world_generation_contract_tests
   gtest/gtest-all.cc
   core_tests_main.cpp
   world_region_partition_test.cpp
+  world_region_owner_test.cpp
+  world_region_border_test.cpp
+  world_region_runtime_test.cpp
+  world_region_local_state_test.cpp
+  world_region_checkpoint_test.cpp
+  world_region_authority_test.cpp
+  world_region_thread_stub_test.cpp
   world_generation_dependency_test.cpp
   world_generation_executive_shadow_test.cpp
   world_generation_executive_priority_test.cpp
@@ -202,6 +216,13 @@ ENDIF()
 # not consume the entire Actions job timeout.
 FOREACH(world_region_test_suite
     WorldRegionPartitionTest
+    WorldRegionOwnerTest
+    WorldRegionBorderTest
+    WorldRegionRuntimeTest
+    WorldRegionLocalStateTest
+    WorldRegionCheckpointTest
+    WorldRegionAuthorityTest
+    WorldRegionThreadStubTest
     WorldGenerationDependencyTest
     WorldGenerationExecutiveShadowTest
     WorldGenerationExecutivePriorityTest

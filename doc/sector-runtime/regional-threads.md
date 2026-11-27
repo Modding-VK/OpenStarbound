@@ -18,9 +18,28 @@ alinhadas a essa decisão na documentação; a formulação antiga fica no Git.
 ## Estado real
 
 `WorldRegionPartition` define a geometria. O coordenador observa metadados e
-revalida turnos em sombra. Os previews de lifecycle/mailbox não executam Lua,
-simulação ou instalação autoritativa em paralelo. A WorldThread central ainda
-é a dona do mundo no runtime atual.
+revalida turnos em sombra. Em 27/11/2026,
+[`WorldRegionOwnerRegistry`](../sector-runtime-r1-region-owner-identity-2026-11-27.md)
+acrescenta identidade e lifecycle de dona (admit/release/drain) sem thread OS
+nem publicação autoritativa. Em seguida,
+[`WorldRegionBorderLedger`](../sector-runtime-r1-border-runtime-2026-11-27.md) e
+[`WorldRegionRuntimeCoordinator`](../sector-runtime-r1-border-runtime-2026-11-27.md)
+cobrem o primeiro recorte de bordas confirmadas (REG-02) e coordenação central
+sem publicação de simulação (WT-05).
+[`WorldRegionLocalStateLedger`](../sector-runtime-r1-local-checkpoint-2026-11-27.md)
+e
+[`WorldRegionCheckpointBarrier`](../sector-runtime-r1-local-checkpoint-2026-11-27.md)
+registram inventário de autoridade local e a barreira de passo comum (IO-03).
+Em seguida,
+[`WorldRegionBorderOutline`](../sector-runtime-r1-border-outline-epoch-2026-11-27.md)
+e `retireAll` cobrem contorno geométrico/parcial e aposentadoria simulada de
+epoch, ainda sem thread OS.
+[`WorldRegionAuthoritativeOwnerLedger`](../sector-runtime-r1-authoritative-owner-2026-11-27.md)
+promove donas Active a autoridade exclusiva de escrita por identidade-valor.
+[`WorldRegionOwnerThreadStubLedger`](../sector-runtime-r1-thread-stub-shadow-2026-11-27.md)
+rastreia lifecycle de thread em sombra (sem pthread). Os previews de
+lifecycle/mailbox não executam Lua, simulação ou instalação no WorldServer
+vivo. A WorldThread central ainda é a dona do mundo no runtime atual.
 
 ## REG-01 — Lifecycle e identidade da dona
 

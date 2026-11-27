@@ -1,7 +1,7 @@
 # Progressão do projeto — percentuais e ordem das tarefas
 
 Atualizado em **27/11/2026**. Branch de integração:
-`cursor/integration-sector-runtime-7342` (H0+H1+H2+H3; não `main`).
+`cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+R1; não `main`).
 Última H0: MOD-01 EffectBoundary profundo; VAL-02 BiomeItem completo (25%).
 Última H1: DAG-03 TTL/carga/herança/eta/trace (50% sombra).
 Última H2: cache/prefetch/batch/IO (RAM-02..IO-01); PreparedSector canônico = H1.
@@ -12,6 +12,7 @@ Atualizado em **27/11/2026**. Branch de integração:
 · [Relatório H1](../sector-runtime-h1-executive-interest-priority-2026-11-27.md)
 · [Relatório H2](../sector-runtime-h2-resident-prefetch-batch-io-2026-11-27.md)
 · [Relatório H3](../sector-runtime-h3-shadow-packet-2026-11-27.md)
+· [Relatório R1](../sector-runtime-r1-thread-stub-shadow-2026-11-27.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -23,15 +24,19 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 
 | Indicador | Estado |
 | --- | --- |
-| Frente ativa | Integração — H0+H1+H2+H3; próximo H4 conforme ready-for-integration |
+| Frente ativa | Integração — H0+H1+H2+H3+R1; próximo R2/H4 conforme ready |
 | Progresso de maturidade de H0 | **25,0%** — 6 marcos verificados de 24 |
 | Progresso de maturidade de H1 | **27,5%** — 11 marcos verificados de 40 |
 | Progresso de maturidade de H2 | **25,0%** — 6 marcos verificados de 24 |
 | Progresso de maturidade de H3 | **25,0%** — 10 marcos verificados de 40 |
-| Progresso de maturidade do programa | **16,8%** — 33 marcos verificados de 196 |
-| Contratos com avanço registrado | **32 de 49**; todos ainda parciais |
+| Progresso de maturidade de R1 | **25,0%** — 3 marcos verificados de 12 |
+| Progresso de maturidade do programa | **18,4%** — 36 marcos verificados de 196 |
+| Contratos com avanço registrado | **35 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | H0: EffectBoundary/Composite/CandidateSequence; H1: DAG-03 + sombra; H2: cache/prefetch/batch/IO; H3: 10 contratos sombra NoAssets; PreparedSector = API H1; sem Actions |
+| Última evidência de testes | H0–H3 + R1 harness/owner/stub sombra; PreparedSector = API H1; sem Actions |
+| Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
+
+**Os 18,4% não significam que o jogo esteja só 18,4% pronto.** O runtime anterior
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 16,8% não significam que o jogo esteja só 16,8% pronto.** O runtime anterior
@@ -63,8 +68,8 @@ Fórmulas:
 - **Contrato:** número de marcos consecutivos verificados × 25%.
 - **Fase de entrada:** soma das notas dos contratos nela cadastrados ÷ número
   desses contratos.
-- **Programa:** soma das notas dos 49 contratos ÷ 49. Hoje: 825 ÷ 49 = 16,8%
-  arredondado; equivalentemente, 33 ÷ (49 × 4) × 100.
+- **Programa:** soma das notas dos 49 contratos ÷ 49. Hoje: 900 ÷ 49 = 18,4%
+  arredondado; equivalentemente, 36 ÷ (49 × 4) × 100.
 - **Aceitação integral:** contratos em 100% ÷ 49. Hoje: 0%.
 
 São percentuais de **maturidade comprovada**, não de horas, esforço, linhas de
@@ -88,9 +93,9 @@ obriga concluir todo trabalho transversal para iniciar um protótipo em sombra.
 | 4 | H3 — kernels adicionais, estruturas e publicação | 10 | 10 / 40 | 25,0% | CPU-04..IO-05 sombra; equivalência viva/publish pendente |
 | 5 | H4 — backend GPU e comparação em sombra | 4 | 0 / 16 | 0% | Protótipo pode acompanhar H1/H2; publicação depende do kernel CPU equivalente |
 | 6 | H5 — seleção de hardware e escala | 7 | 0 / 28 | 0% | Produtos/backends validados e custo completo de entrega medido |
-| 7 | R1 — donos regionais e coordenadora | 3 | 0 / 12 | 0% | Auditoria de autoridade/efeitos e checkpoint; não basta aprovar GPU |
+| 7 | R1 — donos regionais e coordenadora | 3 | 3 / 12 | 25,0% | REG-01/02 + WT-05 harness/owner/stub sombra; donas OS reais pendentes |
 | 8 | R2 — operações e transferências entre regiões | 3 | 0 / 12 | 0% | Lifecycle/estado de R1, recovery e matriz de multiplayer |
-| — | **Total** | **49** | **33 / 196** | **16,8%** | Não equivale a ganho de desempenho ou autorização de release |
+| — | **Total** | **49** | **36 / 196** | **18,4%** | Não equivale a ganho de desempenho ou autorização de release |
 
 Essa é uma ordem de prioridade/dependência, não uma proibição de frentes
 paralelas autorizadas pelo roadmap. Setores comuns permanecem prioritários.
@@ -198,9 +203,9 @@ auditoria de todas as implementações antigas para conceder crédito retroativo
 | 41 | H5 | [MOD-02](compatibility.md) | Equivalência e versionamento | 0% | Comparar estado, comandos e identidades sem normalização indevida |
 | 42 | H5 | [MOD-03](compatibility.md) | Perfis de execução e fallback | 0% | Adoção/migração com fronteiras seguras |
 | 43 | H5 | [MOD-04](compatibility.md) | Subsistemas e plataformas | 0% | Matriz compatível de geração, scripts, save, rede e hardware |
-| 44 | R1 | [REG-01](regional-threads.md) | Lifecycle e identidade da dona | 0% | Donos regionais autoritativos, não apenas preview observacional |
-| 45 | R1 | [REG-02](regional-threads.md) | Estado local e visões de borda | 0% | Ownership local, snapshots de borda e passo comum |
-| 46 | R1 | [WT-05](worldthread.md) | Coordenadora do runtime regional | 0% | WorldThread coordenando donos, não publicando tudo centralmente |
+| 44 | R1 | [REG-01](regional-threads.md) | Lifecycle e identidade da dona | 25% | + stub sombra de thread; sem pthread real / WorldStorage |
+| 45 | R1 | [REG-02](regional-threads.md) | Estado local e visões de borda | 25% | + contorno parcial/ForeignCell; sem estado vivo integrado |
+| 46 | R1 | [WT-05](worldthread.md) | Coordenadora do runtime regional | 25% | + perimeter skeleton; sem WorldServerThread |
 | 47 | R2 | [REG-03](regional-threads.md) | Tempo e operações entre regiões | 0% | Intenções multirregião e ordem autoritativa |
 | 48 | R2 | [REG-04](regional-threads.md) | Transferência de entidades | 0% | Handoff sem dupla autoridade; não é externalização de NPCs |
 | 49 | R2 | [REG-05](regional-threads.md) | Falha, checkpoint e custo de escala | 0% | Recuperação e ganho regional real; avaliar passos independentes só depois |
@@ -241,6 +246,12 @@ auditoria de todas as implementações antigas para conceder crédito retroativo
 | IO-03 | [Shadow checkpoint](../sector-runtime-h3-shadow-checkpoint-2026-11-27.md) | Sem disco/donas reais; recovery vivo pendente |
 | IO-04 | [Shadow unload](../sector-runtime-h3-shadow-unload-2026-11-27.md) | Sem GPU/donas reais; unload vivo pendente |
 | IO-05 | [Shadow packet](../sector-runtime-h3-shadow-packet-2026-11-27.md) | Sem rede/cliente vivos; compressão/workers pendentes |
+| REG-01 | [AuthoritativeOwner](../sector-runtime-r1-authoritative-owner-2026-11-27.md) + [ThreadStub-shadow](../sector-runtime-r1-thread-stub-shadow-2026-11-27.md) | Sem pthread real / WorldStorage vivo; stub ≠ dona por endereço |
+| REG-02 | [Bordas/outline](../sector-runtime-r1-border-outline-epoch-2026-11-27.md) + inventário | Sem cópia de estado vivo do mundo nem equivalência integrada |
+| WT-05 | [RuntimeCoordinator](../sector-runtime-r1-border-runtime-2026-11-27.md) | Sem integração WorldServerThread nem thread dedicada por região |
+
+R1 REG-01/02/WT-05 em 25% harness/owner/stub sombra; donas autoritativas OS reais pendentes.
+PreparedSector na integração segue a API H1.
 
 CPU-01 e os demais contratos H1 (exceto DAG-03) permanecem em 25% sombra.
 DAG-03 alcançou 50% com TTL/carga/herança/eta/trace locais; 75% continua
@@ -386,6 +397,13 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | H3 IO-04 shadow unload | Unload/drain/keepAlive/handoff bloqueado; 6 NoAssets. IO-04 0→25%; H3 22,5%; programa 8,2% | 8,2% |
 | 27/11/2026 | H3 IO-05 shadow packet | Pacotes confirmados + marcos + clocks; 6 NoAssets. IO-05 0→25%; H3 25%; programa 8,7% | 8,7% |
 | 27/11/2026 | Integração H3 | Merge `--no-ff` H3 `b3b7deee` em `cursor/integration-sector-runtime-7342`; H3 25%; programa 11,7%→16,8% | 16,8% |
+| 27/11/2026 | REG-01 identidade | `WorldRegionOwnerRegistry` admit/drain; 6 testes. REG-01 0→25%; programa 3,6%→4,1% | 4,1% |
+| 27/11/2026 | REG-02/WT-05 harness | Bordas + RuntimeCoordinator; 15 testes. REG-02/WT-05 0→25%; programa 4,1%→5,1% | 5,1% |
+| 27/11/2026 | Local+IO-03 | Inventário de kinds + barreira de checkpoint; 22 testes. IO-03 0→25%; programa 5,1%→5,6% | 5,6% |
+| 27/11/2026 | R1 outline/epoch | Contorno parcial + ForeignCell + retireAll; 26 testes. Maturidade R1 permanece 25% | 5,6% |
+| 27/11/2026 | R1 authoritative | `WorldRegionAuthoritativeOwner`; 30 testes. API sem `-harness` para R2; % R1 permanece 25% | 5,6% |
+| 27/11/2026 | R1 thread stub | Stub sombra Running/Join; 34 testes. % R1 permanece 25% | 5,6% |
+| 27/11/2026 | Integração R1 | Merge `--no-ff` R1 `f90055ff` em `cursor/integration-sector-runtime-7342`; R1 25%; programa 16,8%→18,4% | 18,4% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

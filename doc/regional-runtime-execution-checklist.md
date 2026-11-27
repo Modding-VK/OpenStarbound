@@ -1,7 +1,7 @@
 # Checklist operacional do runtime regional
 
-**Branch:** `Experimental`  
-**Estado:** fundações em andamento; nenhuma escrita paralela no mundo está autorizada ainda.
+**Branch:** `cursor/r1-regional-owners-9f77` (R1); H0 segue em `Experimental`  
+**Estado:** REG-01 identidade/lifecycle em harness; nenhuma escrita paralela no mundo está autorizada ainda.
 
 Este documento consolida as entregas distribuídas entre os planos de geração,
 regiões, microdungeons, persistência, objetos e diagnóstico.

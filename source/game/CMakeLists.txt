@@ -225,6 +225,13 @@ SET (star_game_HEADERS
     StarWorldGenerationTasks.hpp
     StarWorldRegionPartition.hpp
     StarWorldRegionCoordinator.hpp
+    StarWorldRegionOwner.hpp
+    StarWorldRegionBorder.hpp
+    StarWorldRegionRuntime.hpp
+    StarWorldRegionLocalState.hpp
+    StarWorldRegionCheckpoint.hpp
+    StarWorldRegionAuthority.hpp
+    StarWorldRegionThreadStub.hpp
     StarWorldImpl.hpp
     StarWorldLayout.hpp
     StarWorldParameters.hpp
@@ -526,6 +533,13 @@ SET (star_game_SOURCES
     StarWorldGenerationTasks.cpp
     StarWorldRegionPartition.cpp
     StarWorldRegionCoordinator.cpp
+    StarWorldRegionOwner.cpp
+    StarWorldRegionBorder.cpp
+    StarWorldRegionRuntime.cpp
+    StarWorldRegionLocalState.cpp
+    StarWorldRegionCheckpoint.cpp
+    StarWorldRegionAuthority.cpp
+    StarWorldRegionThreadStub.cpp
     StarWorldLayout.cpp
     StarWorldParameters.cpp
     StarWorldPerformance.cpp
