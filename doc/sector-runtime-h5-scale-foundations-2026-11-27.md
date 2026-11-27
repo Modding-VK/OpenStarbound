@@ -37,6 +37,7 @@ Linux Clang continua adiado; GPU compute opcional com fallback CPU.
 
 ## Próximo passo
 
-Esgotados os recortes H5 isoláveis sem H1/H4. Seguir com instrumentação real
-no WorldThread/VAL-01, ou backend GPU em sombra (H4) alimentando o seletor.
-Não disparar Actions.
+H4 GPU shadow real (probe RTX PASS @ `c7f6e605`). Probe Windows dos 27
+contratos H5: [checklist RTX](sector-runtime-h5-windows-rtx-probe-checklist-2026-11-27.md)
+(+ `scripts/windows/run-h5-contract-probe.ps1`). Após PASS do validador,
+alimentar seletor/governador com capabilities reais. Sem merge INT; sem Actions.
