@@ -161,6 +161,17 @@ struct WorldGenerationComputeShadowReport {
   WorldGenerationComputeShadowReproducer reproducer;
 };
 
+// GPU-04: aggregate counts over many shadow reports (asset-free harness).
+struct WorldGenerationComputeShadowSummary {
+  size_t total = 0;
+  size_t equal = 0;
+  size_t diverged = 0;
+  size_t primaryFailed = 0;
+  size_t shadowUnavailable = 0;
+  size_t cancelled = 0;
+  size_t totalDivergenceCount = 0;
+};
+
 // GPU-02 → RAM-01: staging / pool / estimated VRAM observation (no assets).
 struct WorldGenerationComputeStagingSnapshot {
   uint64_t stagingBytes = 0;
@@ -307,6 +318,8 @@ public:
   static char const* kernelName(WorldGenerationComputeKernel kernel) noexcept;
   // Inverse of kernelName; empty when the token is unknown (asset-free).
   static Maybe<WorldGenerationComputeKernel> parseKernelName(char const* name) noexcept;
+  static char const* backendName(WorldGenerationComputeBackend backend) noexcept;
+  static Maybe<WorldGenerationComputeBackend> parseBackendName(char const* name) noexcept;
 
   struct ShadowBatchItem {
     WorldGenerationComputeInputIdentity identity;
@@ -318,6 +331,10 @@ public:
       List<ShadowBatchItem> items,
       WorldGenerationComputeBackend primary = WorldGenerationComputeBackend::CpuReference,
       WorldGenerationComputeBackend shadow = WorldGenerationComputeBackend::CpuReference);
+
+  // GPU-04: tally verdicts / divergence counts across a batch of reports.
+  static WorldGenerationComputeShadowSummary summarizeShadowReports(
+      List<WorldGenerationComputeShadowReport> const& reports) noexcept;
 
 private:
   enum class EntryState : uint8_t { Pending, Ready, Failed, Cancelled };

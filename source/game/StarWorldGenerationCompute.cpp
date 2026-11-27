@@ -142,6 +142,26 @@ Maybe<WorldGenerationComputeKernel> WorldGenerationComputeService::parseKernelNa
   return {};
 }
 
+char const* WorldGenerationComputeService::backendName(
+    WorldGenerationComputeBackend backend) noexcept {
+  switch (backend) {
+    case WorldGenerationComputeBackend::CpuReference: return "CpuReference";
+    case WorldGenerationComputeBackend::GpuOpenGlCompute: return "GpuOpenGlCompute";
+  }
+  return nullptr;
+}
+
+Maybe<WorldGenerationComputeBackend> WorldGenerationComputeService::parseBackendName(
+    char const* name) noexcept {
+  if (!name)
+    return {};
+  if (std::strcmp(name, "CpuReference") == 0)
+    return WorldGenerationComputeBackend::CpuReference;
+  if (std::strcmp(name, "GpuOpenGlCompute") == 0)
+    return WorldGenerationComputeBackend::GpuOpenGlCompute;
+  return {};
+}
+
 namespace {
 
 uint32_t denseClz(uint32_t value) noexcept {
@@ -911,6 +931,25 @@ List<WorldGenerationComputeShadowReport> WorldGenerationComputeService::compareS
   for (auto const& item : items)
     reports.append(compareShadow(item.identity, input, item.parameter, primary, shadow));
   return reports;
+}
+
+WorldGenerationComputeShadowSummary WorldGenerationComputeService::summarizeShadowReports(
+    List<WorldGenerationComputeShadowReport> const& reports) noexcept {
+  WorldGenerationComputeShadowSummary summary;
+  summary.total = reports.size();
+  for (auto const& report : reports) {
+    summary.totalDivergenceCount += report.divergenceCount;
+    switch (report.verdict) {
+      case WorldGenerationComputeShadowVerdict::Equal: ++summary.equal; break;
+      case WorldGenerationComputeShadowVerdict::Diverged: ++summary.diverged; break;
+      case WorldGenerationComputeShadowVerdict::PrimaryFailed: ++summary.primaryFailed; break;
+      case WorldGenerationComputeShadowVerdict::ShadowUnavailable:
+        ++summary.shadowUnavailable;
+        break;
+      case WorldGenerationComputeShadowVerdict::Cancelled: ++summary.cancelled; break;
+    }
+  }
+  return summary;
 }
 
 WorldGenerationComputeShadowReport WorldGenerationComputeService::compareShadowBuffers(

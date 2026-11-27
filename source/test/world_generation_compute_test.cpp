@@ -517,6 +517,55 @@ TEST(WorldGenerationComputeTest, CompareShadowBatchRunsIndependentKernels) {
   }
 }
 
+TEST(WorldGenerationComputeTest, BackendNameAndSummarizeShadowReports) {
+  EXPECT_STREQ("CpuReference",
+      WorldGenerationComputeService::backendName(WorldGenerationComputeBackend::CpuReference));
+  EXPECT_STREQ("GpuOpenGlCompute",
+      WorldGenerationComputeService::backendName(WorldGenerationComputeBackend::GpuOpenGlCompute));
+  auto cpu = WorldGenerationComputeService::parseBackendName("CpuReference");
+  ASSERT_TRUE(cpu.isValid());
+  EXPECT_EQ(WorldGenerationComputeBackend::CpuReference, *cpu);
+  auto gpu = WorldGenerationComputeService::parseBackendName("GpuOpenGlCompute");
+  ASSERT_TRUE(gpu.isValid());
+  EXPECT_EQ(WorldGenerationComputeBackend::GpuOpenGlCompute, *gpu);
+  EXPECT_FALSE(WorldGenerationComputeService::parseBackendName("nope").isValid());
+  EXPECT_FALSE(WorldGenerationComputeService::parseBackendName(nullptr).isValid());
+
+  WorldGenerationComputeService service;
+  auto input = edgeCorpus();
+  List<WorldGenerationComputeService::ShadowBatchItem> items;
+  WorldGenerationComputeService::ShadowBatchItem ok;
+  ok.identity = makeIdentity(260, WorldGenerationComputeKernel::DenseUint32Xor);
+  ok.parameter = 1u;
+  items.append(ok);
+  WorldGenerationComputeService::ShadowBatchItem alsoOk;
+  alsoOk.identity = makeIdentity(261, WorldGenerationComputeKernel::DenseUint32Add);
+  alsoOk.parameter = 1u;
+  items.append(alsoOk);
+  auto reports = service.compareShadowBatch(input, items);
+  auto summary = WorldGenerationComputeService::summarizeShadowReports(reports);
+  EXPECT_EQ(2u, summary.total);
+  EXPECT_EQ(2u, summary.equal);
+  EXPECT_EQ(0u, summary.diverged);
+  EXPECT_EQ(0u, summary.totalDivergenceCount);
+
+  WorldGenerationComputeShadowReport diverged;
+  diverged.verdict = WorldGenerationComputeShadowVerdict::Diverged;
+  diverged.divergenceCount = 3;
+  WorldGenerationComputeShadowReport unavailable;
+  unavailable.verdict = WorldGenerationComputeShadowVerdict::ShadowUnavailable;
+  List<WorldGenerationComputeShadowReport> mixed;
+  mixed.append(diverged);
+  mixed.append(unavailable);
+  mixed.append(reports[0]);
+  summary = WorldGenerationComputeService::summarizeShadowReports(mixed);
+  EXPECT_EQ(3u, summary.total);
+  EXPECT_EQ(1u, summary.equal);
+  EXPECT_EQ(1u, summary.diverged);
+  EXPECT_EQ(1u, summary.shadowUnavailable);
+  EXPECT_EQ(3u, summary.totalDivergenceCount);
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32LtLeuAbsDiffExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();
