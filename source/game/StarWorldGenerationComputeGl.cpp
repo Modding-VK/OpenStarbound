@@ -106,6 +106,9 @@ GLuint g_byteSumProgram = 0;
 GLuint g_sext8Program = 0;
 GLuint g_sext16Program = 0;
 GLuint g_extractByteProgram = 0;
+GLuint g_bitSetProgram = 0;
+GLuint g_bitClearProgram = 0;
+GLuint g_bitToggleProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -793,6 +796,51 @@ void main() {
 }
 )GLSL";
 
+char const* BitSetShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint mask = 1u << (uParameter & 31u);
+  values[i] = values[i] | mask;
+}
+)GLSL";
+
+char const* BitClearShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint mask = 1u << (uParameter & 31u);
+  values[i] = values[i] & ~mask;
+}
+)GLSL";
+
+char const* BitToggleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint mask = 1u << (uParameter & 31u);
+  values[i] = values[i] ^ mask;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -1025,6 +1073,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_extractByteProgram);
     g_extractByteProgram = 0;
   }
+  if (g_bitSetProgram) {
+    glDeleteProgram(g_bitSetProgram);
+    g_bitSetProgram = 0;
+  }
+  if (g_bitClearProgram) {
+    glDeleteProgram(g_bitClearProgram);
+    g_bitClearProgram = 0;
+  }
+  if (g_bitToggleProgram) {
+    glDeleteProgram(g_bitToggleProgram);
+    g_bitToggleProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -1157,7 +1217,10 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_byteSumProgram, ByteSumShader, "DenseUint32ByteSum")
       || !requireProgram(g_sext8Program, Sext8Shader, "DenseUint32Sext8")
       || !requireProgram(g_sext16Program, Sext16Shader, "DenseUint32Sext16")
-      || !requireProgram(g_extractByteProgram, ExtractByteShader, "DenseUint32ExtractByte"))
+      || !requireProgram(g_extractByteProgram, ExtractByteShader, "DenseUint32ExtractByte")
+      || !requireProgram(g_bitSetProgram, BitSetShader, "DenseUint32BitSet")
+      || !requireProgram(g_bitClearProgram, BitClearShader, "DenseUint32BitClear")
+      || !requireProgram(g_bitToggleProgram, BitToggleShader, "DenseUint32BitToggle"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -1314,6 +1377,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_sext16Program;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32ExtractByte)
     program = g_extractByteProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32BitSet)
+    program = g_bitSetProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32BitClear)
+    program = g_bitClearProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32BitToggle)
+    program = g_bitToggleProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
