@@ -1245,6 +1245,35 @@ TEST(WorldGenerationComputeTest, CancelledOpenTicketsByKernelCountsRevokedMatche
   EXPECT_EQ(1u, service.inFlightByKernel(WorldGenerationComputeKernel::DenseUint32Add));
 }
 
+TEST(WorldGenerationComputeTest, ListCancelledOpenTicketsByKernelReturnsCancelledIdsOnly) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  auto xorA = service.submit(
+      makeIdentity(640, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u);
+  auto xorB = service.submit(
+      makeIdentity(641, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{2u}, 0u);
+  auto add = service.submit(
+      makeIdentity(642, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{3u}, 0u);
+  ASSERT_TRUE((bool)xorA);
+  ASSERT_TRUE((bool)xorB);
+  ASSERT_TRUE((bool)add);
+
+  EXPECT_TRUE(
+      service.listCancelledOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor)
+          .empty());
+  EXPECT_EQ(2u, service.cancelOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  auto cancelledXor =
+      service.listCancelledOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor);
+  ASSERT_EQ(2u, cancelledXor.size());
+  EXPECT_TRUE(cancelledXor[0] == *xorA || cancelledXor[0] == *xorB);
+  EXPECT_TRUE(cancelledXor[1] == *xorA || cancelledXor[1] == *xorB);
+  EXPECT_NE(cancelledXor[0].id, cancelledXor[1].id);
+  EXPECT_TRUE(
+      service.listCancelledOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add)
+          .empty());
+  EXPECT_EQ(1u, service.inFlightByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+}
+
 TEST(WorldGenerationComputeTest, ReadyOpenTicketsByKernelCountsCompletedMatches) {
   WorldGenerationComputeService service;
   service.setDeferredCpuCompletion(true);
