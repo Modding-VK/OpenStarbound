@@ -18,5 +18,6 @@ ASan/UBSan: 1×5; **132/132** RealBlockInfo.
 
 ## Próximo passo
 
-Matriz geográfica 2×2 de sombra coberta. Segue VAL-02 além de BaseTiles /
-MOD-01 / VAL-01. Não disparar Actions.
+Fechado pelo
+[capstone 2×2 + ledger apertado](sector-runtime-h0-sector-shadow-four-sector-tight-ledger-2026-11-27.md).
+Não disparar Actions.
