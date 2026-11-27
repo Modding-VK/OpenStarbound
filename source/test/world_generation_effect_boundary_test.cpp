@@ -9,7 +9,7 @@ using namespace Star;
 
 TEST(WorldGenerationEffectBoundaryTest, CatalogSatisfiesH0Invariants) {
   EXPECT_TRUE(worldGenerationEffectBoundaryCatalogValid());
-  EXPECT_GE(worldGenerationEffectBoundaryCount(), 30u);
+  EXPECT_GE(worldGenerationEffectBoundaryCount(), 45u);
 }
 
 TEST(WorldGenerationEffectBoundaryTest, IdsAreUniqueAndFindable) {
@@ -66,6 +66,7 @@ TEST(WorldGenerationEffectBoundaryTest, AuditedUninitializedDefaultsRemainClassi
 
 TEST(WorldGenerationEffectBoundaryTest, AuthoritativeCallbacksStayOnOwnerThread) {
   size_t callbacks = 0;
+  size_t liveMutators = 0;
   for (size_t i = 0; i != worldGenerationEffectBoundaryCount(); ++i) {
     auto const* entry = worldGenerationEffectBoundaryAt(i);
     ASSERT_TRUE(entry);
@@ -73,9 +74,12 @@ TEST(WorldGenerationEffectBoundaryTest, AuthoritativeCallbacksStayOnOwnerThread)
       continue;
     ++callbacks;
     EXPECT_TRUE(entry->requiresOwnerThread) << entry->id;
-    EXPECT_FALSE(entry->mutatesLiveWorld) << entry->id; // H0: no parallel live publish
+    // Owner-thread live mutation is allowed; workers must not claim it.
+    if (entry->mutatesLiveWorld)
+      ++liveMutators;
   }
   EXPECT_GE(callbacks, 2u);
+  EXPECT_GE(liveMutators, 1u);
 }
 
 TEST(WorldGenerationEffectBoundaryTest, NoMultiRegionEffectInH0Catalog) {
@@ -88,12 +92,25 @@ TEST(WorldGenerationEffectBoundaryTest, NoMultiRegionEffectInH0Catalog) {
 
 TEST(WorldGenerationEffectBoundaryTest, ExpandedSurfacesHaveCoverage) {
   char const* surfaces[] = {"BaseTiles", "SectorShadow", "Memory", "Distribution", "Planning", "Json",
-      "Payload", "Lookup", "Tasks", "SelectorContext", "WorldRegion", "Perlin", "VAL-02"};
+      "Payload", "Lookup", "Tasks", "SelectorContext", "WorldRegion", "Perlin", "VAL-02", "VAL-01",
+      "Terrestrial", "RNG", "MicroDungeon"};
   for (auto surface : surfaces) {
     EXPECT_GE(worldGenerationEffectBoundaryCountForSurface(surface), 1u) << surface;
   }
   EXPECT_EQ(0u, worldGenerationEffectBoundaryCountForSurface(nullptr));
   EXPECT_EQ(0u, worldGenerationEffectBoundaryCountForSurface("MissingSurface"));
+}
+
+TEST(WorldGenerationEffectBoundaryTest, StreamingPassIsNotRealBenchmark) {
+  auto pass = worldGenerationEffectBoundaryFind("streaming-pass-harness");
+  ASSERT_TRUE(pass);
+  EXPECT_EQ(pass->kind, WorldGenerationEffectKind::PreparedDependency);
+  EXPECT_FALSE(pass->mutatesLiveWorld);
+  auto apply = worldGenerationEffectBoundaryFind("microdungeon-plan-apply");
+  ASSERT_TRUE(apply);
+  EXPECT_EQ(apply->kind, WorldGenerationEffectKind::AuthoritativeCallback);
+  EXPECT_TRUE(apply->mutatesLiveWorld);
+  EXPECT_TRUE(apply->requiresOwnerThread);
 }
 
 TEST(WorldGenerationEffectBoundaryTest, MemoryAndLookupRefuseWithoutLiveMutation) {
