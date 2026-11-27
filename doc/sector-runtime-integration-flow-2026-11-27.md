@@ -17,7 +17,7 @@ e **head** = a branch da frente. Links de compare (abrir PR no GitHub):
 | H0 | `cursor/h0-foundations-9f77` | [compare](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/h0-foundations-9f77?expand=1) |
 | H1 | `cursor/h1-graph-cpu-9f77` | [compare](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/h1-graph-cpu-9f77?expand=1) |
 | H2 | `cursor/h2-products-prefetch-9f77` | [compare](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/h2-products-prefetch-9f77?expand=1) |
-| H3 | `cursor/h3-kernels-publication-9f77` | sem commits além da base (ainda) |
+| H3 | `cursor/h3-kernels-publication-9f77` | [compare](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/h3-kernels-publication-9f77?expand=1) |
 | H4 | `cursor/h4-gpu-shadow-9f77` | [compare](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/h4-gpu-shadow-9f77?expand=1) |
 | H5 | `cursor/h5-hardware-scale-9f77` | [compare](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/h5-hardware-scale-9f77?expand=1) |
 | R1 | `cursor/r1-regional-owners-9f77` | [compare](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/r1-regional-owners-9f77?expand=1) |
@@ -169,22 +169,36 @@ Compares (base = integração):
 - [R1](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/r1-regional-owners-9f77?expand=1)
 - [R2](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/r2-regional-ops-9f77?expand=1)
 
-## Próximo passo do coordenador
+## Merges já na integração (até tip `a0823338`)
 
-Reabrir este relatório a cada push das frentes; quando os PRs existirem no
-GitHub, comentar o veredito em cada PR e só então mergear na integração na
-ordem acima. Antes do merge H1/H2/H5, decidir ownership único de
-`PreparedSector` e `ResourceGovernor`.
+- H0 base `d6a6419a` → `d87516d0`; H0-delta `7b1bbbbc` → `4e2e0bdd`; H0 VAL-02 completo `54f69cd2` → `a0823338`
+- H1 `7ed91dec` → `b43fc767` (PreparedSector/ResourceGovernor canônicos = H1)
+- H2 `b9572592` → `55c38c27` (PreparedSector = H1; H2-only cache/prefetch/batch)
+- Experimental `e55c008f`; INT ahead 35, behind 0. PRs base=integração: **nenhum**
 
-## Plano de merge H0 (27/11/2026 ~01:41 UTC) — **FEITO**
+## Revisão sync 27/11/2026 ~02:00 UTC
 
-- Merge `--no-ff` H0 `d6a6419a` → integração **`d87516d0`** (autorizado pelo Project)
-- Só `cursor/integration-sector-runtime-7342`; não `main`
+Bases: Exp `e55c008f` · INT `a0823338`. Frentes **não** editadas. Sem Actions / sem `main`.
+Política: Project define caminhos; Integrador mergeia tips `ready-for-integration`
+(H0-delta/H3 quando marcar; ordem H4→R1→R2).
 
-## Plano de merge H1 (27/11/2026 ~01:43 UTC) — **FEITO**
+| Frente | Tip origin | vs Exp | vs INT | Conflitos (merge-tree) | phase (store) | Nota |
+| --- | --- | ---: | ---: | ---: | --- | --- |
+| H0 | `8206aa7d` | 20 | **5** | 4 — checklist, progress, CMake×2 | standby | MOD-01 EffectBoundary (+5 vs `54f69cd2`); **não** ready-for-integration |
+| H1 | `7ed91dec` | 7 | 0 | 0 (ancestral) | standby | Já integrado |
+| H2 | `b9572592` | 2 | 0 | 0 (ancestral) | standby | Já integrado |
+| H3 | `4d84944e` | 8 | **8** | 11 — docs H3 + CMake×2 | active | CPU-04..WT-04 sombra; aguardar ready |
+| H4 | `80825c7c` | 2 | 2 | 9 — README/docs/CMake | standby | Próximo na ordem quando ready |
+| H5 | `cfd1aa5e` | 3 | 3 | 16 — docs/CMake + **ResourceGovernor** add/add | blocked(h4) | Hold; unificar governor = H1 |
+| R1 | origin `94acf8eb` | 3 | 3 | 8 — README/docs/CMake | standby | Store head `bfd2c23a` **local não pushed** (token inválido) |
+| R2 | `dd9e3b58` | 3 | 3 | 9 — README/docs/CMake | ready-for-integration | Fila após H4→R1 |
 
-- Merge `--no-ff` H1 `7ed91dec` → tip integração **`b43fc767`**
-- Conflitos resolvidos (unificado H0+H1): `README.md`,
-  `doc/regional-runtime-execution-checklist.md`, `doc/sector-runtime/progress.md`
-- CMake auto-merge limpo; PreparedSector/ResourceGovernor de H1 canônicos na integração
-- Store: `internal/h1-merge-plan-2026-11-27.md`
+### Vereditos deste ciclo
+
+- **Sem merge agora:** nenhum tip novo em `ready-for-integration` na ordem aplicável.
+- H0 delta MOD-01 (`8206aa7d`): candidata quando marcar ready; conflitos só docs/CMake.
+- H3: trabalho novo relevante (+8); merge quando `ready-for-integration`.
+- H4→R1→R2: H4/R1 standby; R2 ready mas fora de ordem. R1 tip efetiva na origem = `94acf8eb` até push de `bfd2c23a`.
+- H5: hold (ResourceGovernor vs H1).
+
+Compares: [H0](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/h0-foundations-9f77?expand=1) · [H3](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/h3-kernels-publication-9f77?expand=1) · [H4](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/h4-gpu-shadow-9f77?expand=1) · [R1](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/r1-regional-owners-9f77?expand=1) · [R2](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/r2-regional-ops-9f77?expand=1)
