@@ -1574,6 +1574,23 @@ TEST(WorldGenerationComputeTest, AnyFailedOpenTicketsTracksFailedPresence) {
 
 
 
+
+TEST(WorldGenerationComputeTest, RejectedDuplicatesCountAliasesCountRejectedDuplicates) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  EXPECT_EQ(0u, service.rejectedDuplicatesCount());
+  auto ticket = service.submit(makeIdentity(1950), List<uint32_t>{2u}, 1u);
+  ASSERT_TRUE((bool)ticket);
+  EXPECT_EQ(1u, service.failContext());
+  WorldGenerationComputeResult result;
+  EXPECT_EQ(WorldGenerationComputePollStatus::Ready, service.poll(*ticket, &result));
+  EXPECT_EQ(1u, service.rejectedDuplicatesCount());
+  EXPECT_EQ(service.countRejectedDuplicates(), service.rejectedDuplicatesCount());
+  EXPECT_EQ(service.rejectedDuplicateCount(), service.rejectedDuplicatesCount());
+  EXPECT_EQ(1u, service.clearRejectedDuplicates());
+  EXPECT_EQ(0u, service.rejectedDuplicatesCount());
+}
+
 TEST(WorldGenerationComputeTest, HasRejectedDuplicatesAliasesAnyRejectedDuplicates) {
   WorldGenerationComputeService service;
   service.setDeferredCpuCompletion(true);
