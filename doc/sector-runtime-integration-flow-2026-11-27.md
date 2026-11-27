@@ -120,8 +120,58 @@ Conflito documental (`progress.md`/checklist/roadmap) permanece o principal risc
 de merge. Nenhuma frente editada por este coordenador; sem Actions; sem merge
 em `main`.
 
+## Revisão 27/11/2026 01:33 UTC (agente de integração)
+
+Bases: Experimental `e55c008f` · integração `ef4f2d45` (+2 docs de fluxo vs Exp).
+PRs com base na integração: **ainda nenhum** (403).
+
+### Ahead vs Experimental / integração
+
+| Frente | vs Exp | vs Int | Risco |
+| --- | ---: | ---: | --- |
+| H0 | 6 | 6 | Docs + harness RealBlockInfo (só H0 no `.cpp`) |
+| H1 | 5 | 5 | Docs + CMake; **colide código** com H2/H5 |
+| H2 | 2 | 2 | Docs + CMake; **PreparedSector** vs H1 |
+| H3 | 0 | 0 | Vazia |
+| H4 | 2 | 2 | Docs + CMake; compute isolado |
+| H5 | 3 | 3 | Docs + CMake; **ResourceGovernor** vs H1 |
+| R1 | 3 | 3 | Docs + CMake; region.* isolado vs R2 código |
+| R2 | 3 | 3 | Docs + CMake; após R1 |
+
+### Sobreposições (path tocado por ≥2 frentes)
+
+**7 frentes:** `README.md`, `doc/regional-runtime-execution-checklist.md`,
+`doc/sector-runtime/progress.md`  
+**6:** `roadmap.md`, `source/game/CMakeLists.txt`, `source/test/CMakeLists.txt`  
+**Código crítico:**
+- `StarWorldGenerationPreparedSector.hpp` (+ teste) — **H1 ∩ H2**
+- `StarWorldGenerationResourceGovernor.hpp` (+ teste) — **H1 ∩ H5**
+
+Demais overlaps: `cpu-and-stages.md` (H1/H2/H5), `gpu-compute.md` (H4/H5),
+`regional-threads.md` (R1/R2), `worldthread.md` (H1/H2).
+
+### Vereditos / ordem
+
+1. **H0** — merge primeiro (rebase na integração; reconciliar só docs).  
+2. **H1** — depois; ao integrar, **escolher/unificar** PreparedSector e ResourceGovernor.  
+3. **H2** — só após H1; resolver fork de PreparedSector.  
+4. **H4** — protótipo OK após H0/H1 (CMake/docs).  
+5. **R1 → R2** — após H0(/H1); código regional sem colisão entre si além de docs/CMake.  
+6. **H5** — por último; unificar ResourceGovernor com H1.  
+7. **H3** — aguardar commits.
+
+Compares (base = integração):
+- [H0](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/h0-foundations-9f77?expand=1)
+- [H1](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/h1-graph-cpu-9f77?expand=1)
+- [H2](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/h2-products-prefetch-9f77?expand=1)
+- [H4](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/h4-gpu-shadow-9f77?expand=1)
+- [H5](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/h5-hardware-scale-9f77?expand=1)
+- [R1](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/r1-regional-owners-9f77?expand=1)
+- [R2](https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/r2-regional-ops-9f77?expand=1)
+
 ## Próximo passo do coordenador
 
 Reabrir este relatório a cada push das frentes; quando os PRs existirem no
 GitHub, comentar o veredito em cada PR e só então mergear na integração na
-ordem acima.
+ordem acima. Antes do merge H1/H2/H5, decidir ownership único de
+`PreparedSector` e `ResourceGovernor`.
