@@ -569,6 +569,8 @@ public:
   size_t rejectedDuplicateCount() const;
   // True while any rejected-duplicate ticket id is tracked (asset-free).
   bool anyRejectedDuplicates() const;
+  // Count alias of rejectedDuplicateCount (asset-free observation naming).
+  size_t countRejectedDuplicates() const;
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 
