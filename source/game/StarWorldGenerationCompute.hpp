@@ -132,7 +132,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32ExpandLowNibbles = 106, // expand low 16 packed nibbles into low half of each byte
   DenseUint32ExpandHighNibbles = 107, // expand low 16 packed nibbles into high half of each byte
   DenseUint32ReplaceNibble = 108, // replace nibbles==(parameter&0xf) with (parameter>>8)&0xf
-  DenseUint32MaskNibbles = 109 // keep nibbles whose bit in (parameter&0xff) is set; clear others
+  DenseUint32MaskNibbles = 109, // keep nibbles whose bit in (parameter&0xff) is set; clear others
+  DenseUint32AllNibblesEqual = 110, // 0xffffffff if all eight nibbles equal, else 0
+  DenseUint32NibbleRange = 111, // max(nibbles) - min(nibbles); parameter ignored
+  DenseUint32BroadcastNibbleAt = 112 // broadcast nibble (parameter & 7) across all nibbles
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
