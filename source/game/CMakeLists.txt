@@ -178,6 +178,13 @@ SET (star_game_HEADERS
     StarWorldGenerationMemoryEnvelope.hpp
     StarWorldGenerationMemoryPressure.hpp
     StarWorldGenerationHardwareSelection.hpp
+    StarWorldGenerationDeliveryMetrics.hpp
+    StarWorldGenerationExecutionProfile.hpp
+    StarWorldGenerationScenarioMatrix.hpp
+    StarWorldGenerationAdoptionGates.hpp
+    StarWorldGenerationEquivalenceVersion.hpp
+    StarWorldGenerationPlatformMatrix.hpp
+    StarWorldGenerationResourceGovernor.hpp
     StarWorldGenerationMemoryRetry.hpp
     StarWorldGenerationBaseTileLiquid.hpp
     StarWorldGenerationBaseTileInput.hpp

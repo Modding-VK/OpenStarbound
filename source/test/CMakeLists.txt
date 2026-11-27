@@ -136,6 +136,13 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_memory_retry_test.cpp
   world_generation_memory_capacity_test.cpp
   world_generation_hardware_selection_test.cpp
+  world_generation_delivery_metrics_test.cpp
+  world_generation_execution_profile_test.cpp
+  world_generation_scenario_matrix_test.cpp
+  world_generation_adoption_gates_test.cpp
+  world_generation_equivalence_version_test.cpp
+  world_generation_platform_matrix_test.cpp
+  world_generation_resource_governor_test.cpp
   world_generation_base_tile_liquid_test.cpp
   world_generation_base_tiles_test.cpp
   world_generation_block_info_test.cpp
@@ -182,6 +189,13 @@ FOREACH(world_region_test_suite
     WorldGenerationMemoryRetryTest
     WorldGenerationMemoryCapacityTest
     WorldGenerationHardwareSelectionTest
+    WorldGenerationDeliveryMetricsTest
+    WorldGenerationExecutionProfileTest
+    WorldGenerationScenarioMatrixTest
+    WorldGenerationAdoptionGatesTest
+    WorldGenerationEquivalenceVersionTest
+    WorldGenerationPlatformMatrixTest
+    WorldGenerationResourceGovernorTest
     WorldGenerationBaseTileLiquidTest
     WorldGenerationBaseTilesTest
     WorldGenerationBlockInfoTest

@@ -2,12 +2,12 @@
 
 Atualizado em **27/11/2026**. Branch ativa desta frente: `cursor/h5-hardware-scale-9f77`
 (H0 continua em `Experimental`).
-Base inspecionada H5: `e55c008f` + seletor de hardware;
-última implementação H5: seleção Cpu/Gpu por custo de entrega com fallback CPU
-(ver relatório H5).
+Base inspecionada H5: `720f51e5` + fundações VAL/MOD/CPU;
+última implementação H5: métricas, matriz, gates, perfis, equivalência,
+plataformas e governador (ver relatório de fundações).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico H5](../sector-runtime-h5-hardware-selection-2026-11-27.md)
+· [Último relatório técnico H5](../sector-runtime-h5-scale-foundations-2026-11-27.md)
 · [Último relatório H0](../sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
 · [Backlog geral](../performance-backlog.md)
 
@@ -22,14 +22,15 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | --- | --- |
 | Frente ativa (esta branch) | H5 — seleção de hardware e escala |
 | Progresso de maturidade de H0 | **25,0%** — 6 marcos verificados de 24 |
-| Progresso de maturidade de H5 | **3,6%** — 1 marco verificado de 28 |
-| Progresso de maturidade do programa | **4,1%** — 8 marcos verificados de 196 |
-| Contratos com avanço registrado | **8 de 49**; todos ainda parciais |
+| Progresso de maturidade de H1 | **5,0%** — 2 marcos verificados de 40 |
+| Progresso de maturidade de H5 | **25,0%** — 7 marcos verificados de 28 |
+| Progresso de maturidade do programa | **7,7%** — 15 marcos verificados de 196 |
+| Contratos com avanço registrado | **15 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | GPU-05 selector 7/7 contract tests; H0 ainda 791 padrão +106 RealBlockInfo |
+| Última evidência de testes | 27/27 H5 contract suites; H0 ainda 791 padrão +106 RealBlockInfo |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
-**Os 4,1% não significam que o jogo esteja só 4,1% pronto.** O runtime anterior
+**Os 7,7% não significam que o jogo esteja só 7,7% pronto.** O runtime anterior
 já possui workers, schedulers, IO/decode e previews. O denominador aqui são os
 49 contratos completos do rework, incluindo GPU e simulação regional futura.
 Recortes de RAM-01 podem estar implementados/testados e o contrato abrangente
@@ -58,8 +59,8 @@ Fórmulas:
 - **Contrato:** número de marcos consecutivos verificados × 25%.
 - **Fase de entrada:** soma das notas dos contratos nela cadastrados ÷ número
   desses contratos.
-- **Programa:** soma das notas dos 49 contratos ÷ 49. Hoje: 200 ÷ 49 = 4,1%
-  arredondado; equivalentemente, 8 ÷ (49 × 4) × 100.
+- **Programa:** soma das notas dos 49 contratos ÷ 49. Hoje: 375 ÷ 49 = 7,7%
+  arredondado; equivalentemente, 15 ÷ (49 × 4) × 100.
 - **Aceitação integral:** contratos em 100% ÷ 49. Hoje: 0%.
 
 São percentuais de **maturidade comprovada**, não de horas, esforço, linhas de
@@ -78,14 +79,14 @@ obriga concluir todo trabalho transversal para iniciar um protótipo em sombra.
 | Ordem | Fase de entrada | Contratos | Marcos verificados / total | Progresso | Condição de avanço |
 | ---: | --- | ---: | ---: | ---: | --- |
 | 1 | H0 — fundações e validação | 6 | 6 / 24 | 25,0% | Invariantes, limites explicitados, comparador e baseline reproduzível para o escopo que será ampliado |
-| 2 | H1 — grafo executivo, CPU e entrega | 10 | 1 / 40 | 2,5% | Primeiro recorte proprietário de CPU-01 em apoio a H0; grafo/executor ainda pendentes |
+| 2 | H1 — grafo executivo, CPU e entrega | 10 | 2 / 40 | 5,0% | CPU-01 + primeiro governador CPU-05; grafo/executor ainda pendentes |
 | 3 | H2 — produtos residentes e prefetch | 6 | 0 / 24 | 0% | Identidade/versionamento de H1 e orçamento de RAM |
 | 4 | H3 — kernels adicionais, estruturas e publicação | 10 | 0 / 40 | 0% | Contrato por kernel e publicação validável; TMX não bloqueia setor comum |
 | 5 | H4 — backend GPU e comparação em sombra | 4 | 0 / 16 | 0% | Protótipo pode acompanhar H1/H2; publicação depende do kernel CPU equivalente |
-| 6 | H5 — seleção de hardware e escala | 7 | 1 / 28 | 3,6% | Primeiro seletor por custo com fallback CPU; backends GPU e ganho medido pendentes |
+| 6 | H5 — seleção de hardware e escala | 7 | 7 / 28 | 25,0% | Sete contratos em 25%; backends GPU, campanhas reais e adoção pendentes |
 | 7 | R1 — donos regionais e coordenadora | 3 | 0 / 12 | 0% | Auditoria de autoridade/efeitos e checkpoint; não basta aprovar GPU |
 | 8 | R2 — operações e transferências entre regiões | 3 | 0 / 12 | 0% | Lifecycle/estado de R1, recovery e matriz de multiplayer |
-| — | **Total** | **49** | **8 / 196** | **4,1%** | Não equivale a ganho de desempenho ou autorização de release |
+| — | **Total** | **49** | **15 / 196** | **7,7%** | Não equivale a ganho de desempenho ou autorização de release |
 
 Essa é uma ordem de prioridade/dependência, não uma proibição de frentes
 paralelas autorizadas pelo roadmap. Setores comuns permanecem prioritários.
@@ -142,7 +143,7 @@ concorrente.
 
 ## Catálogo ordenado das 49 tarefas
 
-As oito notas de 25% usam as evidências indicadas após o catálogo. Demais 0%
+As quinze notas de 25% usam as evidências indicadas após o catálogo. Demais 0%
 significam **sem marco do novo contrato reconhecido nesta leitura do roadmap**,
 não ausência de código relacionado no baseline. Não foi feita nova auditoria
 de todas as implementações antigas para conceder crédito retroativo.
@@ -164,7 +165,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 13 | H1 | [CPU-03](cpu-and-stages.md) | Executor processual e granularidade | 0% | Capacidade global e tarefas com fronteira de publicação preservada |
 | 14 | H1 | [WT-01](worldthread.md) | Serviço de conclusões e drenagem | 0% | Drenar trabalho elegível sem esperar rodadas artificiais |
 | 15 | H1 | [WT-02](worldthread.md) | Orçamento produtivo e resposta do jogo | 0% | Usar o orçamento em progresso útil, com motivos de saída explícitos |
-| 16 | H1 | [CPU-05](cpu-and-stages.md) | Governador de recursos e perfis | 0% | Primeira política por fila executável/custo; política completa em H5 |
+| 16 | H1 | [CPU-05](cpu-and-stages.md) | Governador de recursos e perfis | 25% | Advice local grow/drain/backend; sem resize ao vivo de pools |
 | 17 | H2 | [RAM-02](memory-and-prefetch.md) | Camadas de cache e invalidação | 0% | Caches por produto/revisão, não substitutas de setor salvo |
 | 18 | H2 | [RAM-03](memory-and-prefetch.md) | Política de retenção | 0% | Benefício, pressão, histerese e justiça entre mundos |
 | 19 | H2 | [RAM-04](memory-and-prefetch.md) | Prefetch previsto e dependências | 0% | Antecipar rota e auxiliares com prioridade controlada |
@@ -186,12 +187,12 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 35 | H4 | [GPU-03](gpu-compute.md) | Kernels e equivalência | 0% | Primeiro kernel exato e lotes com ganho de custo completo |
 | 36 | H4 | [GPU-04](gpu-compute.md) | Comparação em sombra | 0% | Corpus de precisão/bordas/drivers antes da publicação |
 | 37 | H5 | [GPU-05](gpu-compute.md) | Seleção heterogênea e render | 25% | Seletor por custo completo + fallback CPU; backend GPU/ganho medido pendentes |
-| 38 | H5 | [VAL-03](validation-and-telemetry.md) | Métricas e marcos de entrega | 0% | Cobertura integral do novo pipeline e CPU/RAM/VRAM |
-| 39 | H5 | [VAL-04](validation-and-telemetry.md) | Matriz de cenários | 0% | Escala, mundos, memória, GPU/fallback e multiplayer |
-| 40 | H5 | [VAL-05](validation-and-telemetry.md) | Gates de adoção e relatório | 0% | Aplicar os gates ao novo pipeline completo; política de relatórios já existe |
-| 41 | H5 | [MOD-02](compatibility.md) | Equivalência e versionamento | 0% | Comparar estado, comandos e identidades sem normalização indevida |
-| 42 | H5 | [MOD-03](compatibility.md) | Perfis de execução e fallback | 0% | Adoção/migração com fronteiras seguras |
-| 43 | H5 | [MOD-04](compatibility.md) | Subsistemas e plataformas | 0% | Matriz compatível de geração, scripts, save, rede e hardware |
+| 38 | H5 | [VAL-03](validation-and-telemetry.md) | Métricas e marcos de entrega | 25% | Recorder dos marcos; sem bus de telemetria nem Tracy |
+| 39 | H5 | [VAL-04](validation-and-telemetry.md) | Matriz de cenários | 25% | Cenários tipados; campanhas reais/streaming pendentes |
+| 40 | H5 | [VAL-05](validation-and-telemetry.md) | Gates de adoção e relatório | 25% | Checklist avalia evidência; adoção permanece fechada no parcial |
+| 41 | H5 | [MOD-02](compatibility.md) | Equivalência e versionamento | 25% | Épocas/máscaras; sem comparador de mundo completo |
+| 42 | H5 | [MOD-03](compatibility.md) | Perfis de execução e fallback | 25% | Migração explícita dos modes existentes; regional exige checkpoint |
+| 43 | H5 | [MOD-04](compatibility.md) | Subsistemas e plataformas | 25% | Matriz de suporte; Clang adiado; GPU opcional |
 | 44 | R1 | [REG-01](regional-threads.md) | Lifecycle e identidade da dona | 0% | Donos regionais autoritativos, não apenas preview observacional |
 | 45 | R1 | [REG-02](regional-threads.md) | Estado local e visões de borda | 0% | Ownership local, snapshots de borda e passo comum |
 | 46 | R1 | [WT-05](worldthread.md) | Coordenadora do runtime regional | 0% | WorldThread coordenando donos, não publicando tudo centralmente |
@@ -211,6 +212,13 @@ de todas as implementações antigas para conceder crédito retroativo.
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
 | GPU-05 | [hardware selection](../sector-runtime-h5-hardware-selection-2026-11-27.md), `StarWorldGenerationHardwareSelection.hpp`, 7 testes de contrato | Sem backend GPU, sem custos observados de runtime, sem ganho ponta a ponta nem publicação |
+| VAL-03 | [fundações H5](../sector-runtime-h5-scale-foundations-2026-11-27.md), delivery metrics recorder | Sem instrumentação no WorldThread/Tracy nem cobertura completa de pipeline |
+| VAL-04 | mesma entrega, scenario matrix tipada | Sem campanhas executadas nem A/B de streaming |
+| VAL-05 | mesma entrega, adoption gates | Adoção permanece falsa sob evidência parcial; sem gate de pipeline completo |
+| MOD-02 | mesma entrega, equivalence version/mask | Sem comparador de saves/multiplayer/conteúdo completo |
+| MOD-03 | mesma entrega, execution profile binding | Sem ativação regional nem migração de config persistida |
+| MOD-04 | mesma entrega, platform/subsystem matrix | Sem builds por plataforma nem matriz CI |
+| CPU-05 | mesma entrega, resource governor advice | Sem resize ao vivo de WorkerPool nem orçamento processual ligado |
 
 CPU-01 recebe o primeiro marco porque agora existe cálculo com dados próprios
 que independe da origem/Root após captura, não só callbacks/catálogos ou contagem
@@ -308,6 +316,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 26/11/2026 | Noise/adjacent stale | TemplateRevision bump sob noise e setor {1,0}; 105 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 26/11/2026 | Concurrent ocean | Duas sombras oceano no ledger; 106 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 27/11/2026 | H5 GPU-05 seletor | `WorldGenerationHardwareSelector` por custo completo + fallback CPU; 7 testes. GPU-05 0→25%; H5 0→3,6%; programa 3,6→4,1% | 4,1% |
+| 27/11/2026 | H5 fundações VAL/MOD + CPU-05 | Métricas, cenários, gates, perfis, equivalência, plataformas, governador; 27 testes. H5 25%; H1 5%; programa 4,1→7,7% | 7,7% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

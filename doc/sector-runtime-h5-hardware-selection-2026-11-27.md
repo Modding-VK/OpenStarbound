@@ -32,5 +32,6 @@ perfis conceituais H5.
 
 ## Próximo passo
 
-Instrumentar custos observados (VAL-03) e ligar o seletor a um backend GPU de
-sombra (H4) sem publicar. Não disparar Actions.
+Fundações VAL/MOD/CPU-05 em
+[scale foundations](sector-runtime-h5-scale-foundations-2026-11-27.md).
+Recortes H5 isoláveis esgotados; falta H1/H4 reais. Não disparar Actions.

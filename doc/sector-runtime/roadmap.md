@@ -487,9 +487,14 @@ folga de forma sustentada. Depende de H1/H2 e H4 para backends autoritativos.
 - [~] GPU-05: roteamento por custo de transporte/execução e prazo
   (primeiro recorte: seletor puro com fallback CPU;
   [relatório](../sector-runtime-h5-hardware-selection-2026-11-27.md)).
-- [ ] CPU-05: política completa de CPU/RAM/VRAM, perfis e limites manuais.
-- [ ] VAL-03/04/05: métricas de recursos e campanhas de escala equivalentes.
-- [ ] MOD-02/03/04: adoção, fallback e migração de configuração documentados.
+- [~] CPU-05: primeira política local de grow/drain/backend
+  ([fundações](../sector-runtime-h5-scale-foundations-2026-11-27.md));
+  política completa e resize ao vivo pendentes.
+- [~] VAL-03/04/05: recorder, matriz e gates em 25%; campanhas/adoção reais
+  pendentes ([fundações](../sector-runtime-h5-scale-foundations-2026-11-27.md)).
+- [~] MOD-02/03/04: equivalência/perfis/plataformas em 25%; migração persistida
+  e builds por plataforma pendentes
+  ([fundações](../sector-runtime-h5-scale-foundations-2026-11-27.md)).
 
 Saída: ganho de entrega ponta a ponta, resposta do jogo dentro dos alvos e
 CPU completa em hardware sem compute. Nenhuma meta fixa de uso de hardware

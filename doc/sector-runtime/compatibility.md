@@ -253,7 +253,19 @@ normalização exata do comparador; não mascarar divergência de conteúdo como
 ruído. Alteração de matemática GPU ou seed que mude mundo exige decisão de
 versão de geração separada, fora do perfil equivalente.
 
+## MOD-02 — Equivalência e versionamento (recorte H5)
+
+Primeiro recorte (27/11/2026):
+[`compareWorldGenerationEquivalence`](../source/game/StarWorldGenerationEquivalenceVersion.hpp)
+exige épocas compatíveis e rejeita normalização silenciosa;
+[fundações H5](../sector-runtime-h5-scale-foundations-2026-11-27.md).
+
 ## MOD-03 — Perfis de execução e fallback
+
+Primeiro recorte (27/11/2026):
+[`bindWorldGenerationExecutionProfile`](../source/game/StarWorldGenerationExecutionProfile.hpp)
+mapeia `legacy`/`adaptive`/`aggressive`/`dynamic` sem renomeá-los;
+[fundações H5](../sector-runtime-h5-scale-foundations-2026-11-27.md).
 
 | Perfil conceitual | Uso |
 | --- | --- |
@@ -273,6 +285,11 @@ modo requer fronteira de checkpoint/reload. Fallback de um kernel numérico
 antes do commit é diferente de migrar um mundo regional parcialmente ativo.
 
 ## MOD-04 — Integração de subsistemas e plataformas
+
+Primeiro recorte (27/11/2026):
+[`worldGenerationPlatformSupport`](../source/game/StarWorldGenerationPlatformMatrix.hpp)
+marca Clang como adiado e GPU compute como opcional com fallback CPU;
+[fundações H5](../sector-runtime-h5-scale-foundations-2026-11-27.md).
 
 Transferência de entidades, fios, líquidos, clima, quests e scripts globais
 tem protocolos próprios. Handoff de NPCs existentes não retoma o plano

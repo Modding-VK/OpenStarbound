@@ -38,8 +38,9 @@ histórico, sem outra fila de prioridades. O
 [painel de progressão](sector-runtime/progress.md) consolida percentuais por
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
-Frente ativa nesta branch H5: seleção de hardware. O relatório atual é
-[H5 hardware selection](sector-runtime-h5-hardware-selection-2026-11-27.md).
+Frente ativa nesta branch H5: seleção de hardware/escala. O relatório atual é
+[H5 scale foundations](sector-runtime-h5-scale-foundations-2026-11-27.md)
+(antecedente [hardware selection](sector-runtime-h5-hardware-selection-2026-11-27.md)).
 H0 permanece em `Experimental` com
 [Concurrent ocean](sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
 e [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).

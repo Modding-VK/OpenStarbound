@@ -186,6 +186,12 @@ específica. Esta extração não declara resolvido o custo dos líquidos em ger
 
 ## CPU-05 — Governador de recursos e perfis
 
+Primeiro recorte (27/11/2026, `cursor/h5-hardware-scale-9f77`):
+[`adviseWorldGenerationResources`](../source/game/StarWorldGenerationResourceGovernor.hpp)
+produz advice local (hold/grow/drain/backend) a partir de perfil + seleção de
+hardware; ver [fundações H5](../sector-runtime-h5-scale-foundations-2026-11-27.md).
+Ainda não redimensiona WorkerPool nem governa tickets ao vivo.
+
 Observar demanda executável, custo por classe, ocupação das pools, resultados
 retidos, tempo de publicação e resposta do render/simulação. Crescer
 concorrência e antecipação enquanto isso melhorar entrega; estacionar/drainar
