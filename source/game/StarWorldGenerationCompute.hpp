@@ -343,6 +343,13 @@ public:
       WorldGenerationComputeBackend primary = WorldGenerationComputeBackend::CpuReference,
       WorldGenerationComputeBackend shadow = WorldGenerationComputeBackend::GpuOpenGlCompute);
 
+  // GPU-04: compareShadow with identity.kernel filled from a stable ASCII name.
+  // Unknown names yield PrimaryFailed without dispatch.
+  WorldGenerationComputeShadowReport compareShadowNamed(char const* kernelName,
+      WorldGenerationComputeInputIdentity identity, List<uint32_t> const& input, uint32_t parameter,
+      WorldGenerationComputeBackend primary = WorldGenerationComputeBackend::CpuReference,
+      WorldGenerationComputeBackend shadow = WorldGenerationComputeBackend::CpuReference);
+
   // Compare already-materialized buffers (asset-free harness / unit path).
   static WorldGenerationComputeShadowReport compareShadowBuffers(
       WorldGenerationComputeInputIdentity identity, List<uint32_t> const& input,

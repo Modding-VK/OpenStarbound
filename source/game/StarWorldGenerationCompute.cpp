@@ -1598,4 +1598,23 @@ WorldGenerationComputeShadowReport WorldGenerationComputeService::compareShadow(
       shadow);
 }
 
+WorldGenerationComputeShadowReport WorldGenerationComputeService::compareShadowNamed(
+    char const* kernelName, WorldGenerationComputeInputIdentity identity,
+    List<uint32_t> const& input, uint32_t parameter, WorldGenerationComputeBackend primary,
+    WorldGenerationComputeBackend shadow) {
+  auto kernel = parseKernelName(kernelName);
+  if (!kernel) {
+    WorldGenerationComputeShadowReport report;
+    report.identity = identity;
+    report.parameter = parameter;
+    report.primaryBackend = primary;
+    report.shadowBackend = shadow;
+    report.comparedValues = input.size();
+    report.verdict = WorldGenerationComputeShadowVerdict::PrimaryFailed;
+    return report;
+  }
+  identity.kernel = *kernel;
+  return compareShadow(std::move(identity), input, parameter, primary, shadow);
+}
+
 }

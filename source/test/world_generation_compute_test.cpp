@@ -847,6 +847,30 @@ TEST(WorldGenerationComputeTest, DenseUint32HasZeroByteNextPow2MaskLowExactCpuAn
           .verdict);
 }
 
+TEST(WorldGenerationComputeTest, CompareShadowNamedResolvesKernelAndRejectsUnknown) {
+  WorldGenerationComputeService service;
+  auto input = edgeCorpus();
+  WorldGenerationComputeInputIdentity id;
+  id.worldEpoch = 7;
+  id.sequence = 480;
+  id.kernelVersion = 1;
+  id.kernel = WorldGenerationComputeKernel::DenseUint32Add;
+
+  auto ok = service.compareShadowNamed("DenseUint32Xor", id, input, 0x11u,
+      WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal, ok.verdict);
+  EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32Xor, ok.identity.kernel);
+
+  auto bad = service.compareShadowNamed("nope", id, input, 0u,
+      WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::PrimaryFailed, bad.verdict);
+  EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32Add, bad.identity.kernel);
+
+  auto nullName = service.compareShadowNamed(nullptr, id, input, 0u,
+      WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::PrimaryFailed, nullName.verdict);
+}
+
 TEST(WorldGenerationComputeTest, FingerprintShadowSummaryIsStableAndSensitive) {
   WorldGenerationComputeShadowSummary a;
   a.total = 4;
