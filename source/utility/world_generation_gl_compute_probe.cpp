@@ -303,6 +303,12 @@ int main() {
       "DenseUint32HalfGt");
   rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfNe, 0u,
       "DenseUint32HalfNe");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfLeu, 0u,
+      "DenseUint32HalfLeu");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfGeu, 0u,
+      "DenseUint32HalfGeu");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfAvg, 0u,
+      "DenseUint32HalfAvg");
 
   auto ticket = service.submit(makeIdentity(99, WorldGenerationComputeKernel::DenseUint32Xor),
       edgeCorpus(), 0x55aa55aau, WorldGenerationComputeBackend::GpuOpenGlCompute);
