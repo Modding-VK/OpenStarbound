@@ -499,10 +499,10 @@ do kernel CPU e do resultado versionado.
   countReadyOpenTickets + anyReadyOpenTickets + discardReadyOpenTickets +
   discardFailedOpenTickets + discardCancelledOpenTickets +
   discardTerminalOpenTickets + discardPendingOpenTickets +
-  anyPendingOpenTickets + listFailedOpenTickets (primeiro recorte 25%;
-  integração WorldThread pendente).
+  anyPendingOpenTickets + listFailedOpenTickets + countFailedOpenTickets
+  (primeiro recorte 25%; integração WorldThread pendente).
 - [x] GPU-03: kernels densos DenseUint32* incl.
-  HalfBroadcastNibbleAt/HalfReplaceNibble/HalfReverseNibbles + submitBatch
+  HalfWidenNibbles/HalfDupNibbles/HalfFoldAdjacentNibbles + submitBatch
   (primeiro recorte 25%; terreno/bioma/ganho pendentes).
 - [x] GPU-04: compareShadow/compareShadowBatch/compareShadowNamed +
   commit/RngStream + fingerprintIdentity + summarizeShadowReports +
