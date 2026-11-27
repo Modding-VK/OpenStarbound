@@ -288,7 +288,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfOutsideNibble
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfPopcountNibble
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfParityNibble
-      || kernel == WorldGenerationComputeKernel::DenseUint32HalfReverseBitsNibble;
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfReverseBitsNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfIsolateLsbNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfClearLsbNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfSmearLsbNibble;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -540,7 +543,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32HalfOutsideNibble,
       WorldGenerationComputeKernel::DenseUint32HalfPopcountNibble,
       WorldGenerationComputeKernel::DenseUint32HalfParityNibble,
-      WorldGenerationComputeKernel::DenseUint32HalfReverseBitsNibble};
+      WorldGenerationComputeKernel::DenseUint32HalfReverseBitsNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfIsolateLsbNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfClearLsbNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfSmearLsbNibble};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -550,7 +556,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 244u;
+  return 247u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -816,6 +822,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32HalfPopcountNibble: return "DenseUint32HalfPopcountNibble";
     case WorldGenerationComputeKernel::DenseUint32HalfParityNibble: return "DenseUint32HalfParityNibble";
     case WorldGenerationComputeKernel::DenseUint32HalfReverseBitsNibble: return "DenseUint32HalfReverseBitsNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfIsolateLsbNibble: return "DenseUint32HalfIsolateLsbNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfClearLsbNibble: return "DenseUint32HalfClearLsbNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfSmearLsbNibble: return "DenseUint32HalfSmearLsbNibble";
   }
   return nullptr;
 }
@@ -2673,6 +2682,39 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
         uint32_t n = (lo >> (i * 4u)) & 0xfu;
         uint32_t rev = ((n & 1u) << 3) | ((n & 2u) << 1) | ((n & 4u) >> 1) | ((n & 8u) >> 3);
         result |= rev << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfIsolateLsbNibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t n = (lo >> (i * 4u)) & 0xfu;
+        n = n & ((~n + 1u) & 0xfu);
+        result |= n << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfClearLsbNibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t n = (lo >> (i * 4u)) & 0xfu;
+        n = n & ((n - 1u) & 0xfu);
+        result |= n << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSmearLsbNibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t n = (lo >> (i * 4u)) & 0xfu;
+        n = (n | ((n - 1u) & 0xfu)) & 0xfu;
+        result |= n << (i * 4u);
       }
       out.append(result);
     }
