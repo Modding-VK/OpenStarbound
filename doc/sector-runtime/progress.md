@@ -1,12 +1,12 @@
 # Progressão do projeto — percentuais e ordem das tarefas
 
 Atualizado em **26/11/2026**. Branch: `Experimental`.
-Base inspecionada: `48e39709`;
-última implementação de runtime: contexto composto seletores/static
-inputs/identidade BaseTiles (ver relatório de composição).
+Base inspecionada: `5e2e2297`;
+última implementação de runtime: sombra por setor com BaseTiles privados
+admitidos a partir do composto (ver relatório de sombra).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h0-composite-terrestrial-basetiles-2026-11-26.md)
+· [Último relatório técnico](../sector-runtime-h0-sector-shadow-2026-11-26.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -23,7 +23,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **3,6%** — 7 marcos verificados de 196 |
 | Contratos com avanço registrado | **7 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | 777 padrão +62 RealBlockInfo (composto vs região e vs BaseTiles terrestre); ASan/UBSan; sombra por setor pendente |
+| Última evidência de testes | 782 padrão +63 RealBlockInfo (sombra por setor + composto vs BaseTiles); ASan/UBSan; oceano/setor adjacente e noises privados pendentes |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,6% não significam que o jogo esteja só 3,6% pronto.** O runtime anterior
@@ -106,13 +106,15 @@ autoritativa. GPU é opcional, com fallback CPU completo.
    [`WorldGenerationRegionSelectorContext`](../sector-runtime-h0-selector-context-2026-11-26.md)
    e em seguida
    [`WorldGenerationCompositeContext`](../sector-runtime-h0-composite-context-2026-11-26.md)
-   compõem seletores admitidos, static inputs e identidade BaseTiles no mesmo
-   ledger; auditoria de defaults registrada, não corrigida. Próximo: comparar
-   materialização privada ao builder/região reais (Root opt-in) com fixtures
-   representativas; revalidar antes de sombra por setor. Não repetir o mesmo
-   recorte de Root, não adotar fita por tile, não mudar cópias/RNG nem
-   normalizar defaults auditados sem decisão de compatibilidade. Depois demanda
-   real, mailbox/DAG, provider, promoção/fairness e pressão externa. A
+   e
+   [`WorldGenerationSectorShadow`](../sector-runtime-h0-sector-shadow-2026-11-26.md)
+   compõem seletores/static inputs/identidade BaseTiles e admitem array privado
+   por setor com revalidação e descarte sem publicação; auditoria de defaults
+   registrada, não corrigida. Próximo: estender sombra a oceano/setor adjacente
+   e noises/caches privados alinhados ao composto. Não repetir o mesmo recorte
+   de Root, não adotar fita por tile, não mudar cópias/RNG nem normalizar
+   defaults auditados sem decisão de compatibilidade. Depois demanda real,
+   mailbox/DAG, provider, promoção/fairness e pressão externa. A
    [cobertura de memória](../sector-runtime-memory-envelope.md) não é heap completo;
    não ampliar filas/defaults por teste controlado.
 2. **VAL-02, próxima entrega e apoio à primeira:** ampliar o comparador para
@@ -267,6 +269,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 26/11/2026 | Contexto composto | Seletores+static inputs+identidade BaseTiles no mesmo ledger; 777 padrão, 5 novos, 10 repetições, ASan/UBSan. Comparação Root/builder e sombra pendentes. Sem novo marco completo; CPU-01/H0/RAM-01 em 25% | 3,6% |
 | 26/11/2026 | Composto vs região Root | Parâmetros e amostras get() do composto = buildRegion real; 61 RealBlockInfo, 5 repetições, ASan/UBSan. Terrestre/BaseTiles/sombra pendentes. Sem novo marco completo | 3,6% |
 | 26/11/2026 | Composto vs BaseTiles terrestre | staticInputs do composto = blockInfo/BaseTiles 32×32 terrestres; 62 RealBlockInfo, 5 repetições. Sombra pendente. Sem novo marco completo | 3,6% |
+| 26/11/2026 | Sombra por setor | Admissão BaseTiles privados do composto, matches/descarte sem publicação; 782 padrão (5 novos), 63 RealBlockInfo, ASan/UBSan. Oceano/setor adjacente e noises pendentes. Sem novo marco completo | 3,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

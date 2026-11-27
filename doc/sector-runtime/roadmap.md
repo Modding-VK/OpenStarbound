@@ -384,9 +384,11 @@ preserva o RNG legado; defaults `baseHeight`/`biomeTransition`/`horizonClouds`/
 
 O [contexto composto](../sector-runtime-h0-composite-context-2026-11-26.md)
 liga seletores admitidos, static inputs e identidade BaseTiles no mesmo ledger.
+A [sombra por setor](../sector-runtime-h0-sector-shadow-2026-11-26.md) admite o
+array BaseTiles privado, revalida no dono e descarta sem publicação.
 
-Próximo trabalho executável: comparar materialização privada do composto ao
-builder/região reais com fixtures Root opt-in antes de sombra por setor. Não
+Próximo trabalho executável: estender a sombra a oceano/setor adjacente e
+noises/caches privados alinhados ao composto, ainda sem publicação. Não
 confundir a LRU validada com CacheSelector. Manter caches exclusivos; o
 lifecycle de Root mínimo já foi testado, não repetir o mesmo recorte. Não
 antecipar consultas, assumir resolver arbitrário puro ou alterar cópias/RNG.

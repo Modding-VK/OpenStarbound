@@ -218,6 +218,7 @@ private:
   friend struct WorldGenerationCustomTerrainTestAccess;
   friend struct WorldGenerationBlockInfoStaticInputsTestAccess;
   friend struct WorldGenerationCompositeContextTestAccess;
+  friend struct WorldGenerationSectorShadowTestAccess;
   friend struct WorldGenerationRealBlockInfoTestAccess;
   struct LookupFixtureTag {};
   explicit WorldTemplate(LookupFixtureTag);

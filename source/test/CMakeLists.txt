@@ -147,6 +147,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_selector_snapshot_test.cpp
   world_generation_selector_context_test.cpp
   world_generation_composite_context_test.cpp
+  world_generation_sector_shadow_test.cpp
   world_generation_estimate_test.cpp
   world_generation_worker_cache_test.cpp
   world_generation_buffer_test.cpp
