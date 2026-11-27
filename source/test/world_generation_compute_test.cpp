@@ -517,6 +517,31 @@ TEST(WorldGenerationComputeTest, CompareShadowBatchRunsIndependentKernels) {
   }
 }
 
+TEST(WorldGenerationComputeTest, FingerprintCapabilitiesAndSupportedKernelCount) {
+  EXPECT_EQ(31u, WorldGenerationComputeService::supportedKernelCount());
+  EXPECT_EQ(0u, WorldGenerationComputeService::supportedKernelCount(2u));
+  EXPECT_EQ(WorldGenerationComputeService::supportedKernels().size(),
+      WorldGenerationComputeService::supportedKernelCount());
+
+  WorldGenerationComputeCapabilities a;
+  a.cpuReference = true;
+  a.gpuOpenGlCompute = false;
+  a.maxWorkGroupInvocations = 64;
+  a.maxInFlight = 8;
+  a.maxImmutableBufferBytes = 16ull * 1024ull * 1024ull;
+  a.maxStagingBytes = 32ull * 1024ull * 1024ull;
+  WorldGenerationComputeCapabilities b = a;
+  EXPECT_EQ(WorldGenerationComputeService::fingerprintCapabilities(a),
+      WorldGenerationComputeService::fingerprintCapabilities(b));
+  b.gpuOpenGlCompute = true;
+  EXPECT_NE(WorldGenerationComputeService::fingerprintCapabilities(a),
+      WorldGenerationComputeService::fingerprintCapabilities(b));
+  b = a;
+  b.maxInFlight = 16;
+  EXPECT_NE(WorldGenerationComputeService::fingerprintCapabilities(a),
+      WorldGenerationComputeService::fingerprintCapabilities(b));
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32AndNotSatAddSatSubExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();

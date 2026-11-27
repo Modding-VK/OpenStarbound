@@ -120,6 +120,13 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
   return out;
 }
 
+size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersion) noexcept {
+  if (kernelVersion != 1u)
+    return 0;
+  // Keep in sync with the catalog array in supportedKernels().
+  return 31u;
+}
+
 char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKernel kernel) noexcept {
   switch (kernel) {
     case WorldGenerationComputeKernel::DenseUint32Xor: return "DenseUint32Xor";
@@ -930,6 +937,22 @@ uint64_t WorldGenerationComputeService::fingerprintIdentity(
   mix(identity.sequence);
   mix(identity.kernelVersion);
   mix((uint64_t)identity.kernel);
+  return hash;
+}
+
+uint64_t WorldGenerationComputeService::fingerprintCapabilities(
+    WorldGenerationComputeCapabilities const& capabilities) noexcept {
+  uint64_t hash = 14695981039346656037ull;
+  auto mix = [&](uint64_t lane) {
+    hash ^= lane;
+    hash *= 1099511628211ull;
+  };
+  mix(capabilities.cpuReference ? 1ull : 0ull);
+  mix(capabilities.gpuOpenGlCompute ? 1ull : 0ull);
+  mix(capabilities.maxWorkGroupInvocations);
+  mix(capabilities.maxInFlight);
+  mix(capabilities.maxImmutableBufferBytes);
+  mix(capabilities.maxStagingBytes);
   return hash;
 }
 
