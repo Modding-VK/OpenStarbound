@@ -6,7 +6,7 @@ Base inspecionada: `5e2e2297`;
 admitidos a partir do composto (ver relatório de sombra).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h0-sector-shadow-task-handoff-2026-11-26.md)
+· [Último relatório técnico](../sector-runtime-h0-sector-shadow-concurrent-handoff-2026-11-26.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -23,7 +23,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **3,6%** — 7 marcos verificados de 196 |
 | Contratos com avanço registrado | **7 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | 787 padrão +70 RealBlockInfo (handoff de task com sombra); ASan/UBSan; contexto profundo restante pendente |
+| Última evidência de testes | 788 padrão +70 RealBlockInfo (handoffs concorrentes); ASan/UBSan; contexto profundo/assets pendente |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,6% não significam que o jogo esteja só 3,6% pronto.** O runtime anterior
@@ -276,6 +276,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 26/11/2026 | IslandSurface+pressão | Island sob composto/sombra + ledger apertado; 784 padrão, 68 RealBlockInfo. Stale de template pendente. Sem novo marco completo | 3,6% |
 | 26/11/2026 | Sombra template stale | matches falha após bump de generationRevision; payload até discard; 785 padrão, 69 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 26/11/2026 | Handoff task+sombra | WorkerPool + Tasks Stale/Cancelled sem publicação; 787 padrão, 70 RealBlockInfo. Sem novo marco completo | 3,6% |
+| 26/11/2026 | Handoffs concorrentes | Duas tasks/sombras no mesmo ledger; 788 padrão. Sem novo marco completo | 3,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

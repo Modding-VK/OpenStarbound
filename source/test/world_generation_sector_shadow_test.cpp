@@ -129,6 +129,70 @@ TEST(WorldGenerationSectorShadowTest, TryAdmitFromCompositeReusesBaseTilesIdenti
   EXPECT_EQ(before.resources, ledger.snapshot().resources);
 }
 
+TEST(WorldGenerationSectorShadowTest, ConcurrentTaskHandoffsRetireIndependentlyWithoutPublishing) {
+  WorldGenerationMemoryLedger ledger;
+  WorldGenerationTasks tasks(1, WorldRegionPartition(WorldGeometry(Vec2U{64, 64})), 2,
+      WorldGenerationSectorShadow::retainedBytes() * 2);
+  auto originTask = tasks.reserve({0, 0}, WorldGenerationTaskStage::BaseTiles,
+      WorldGenerationSectorShadow::retainedBytes());
+  auto adjacentTask = tasks.reserve({1, 0}, WorldGenerationTaskStage::BaseTiles,
+      WorldGenerationSectorShadow::retainedBytes());
+  ASSERT_TRUE(originTask);
+  ASSERT_TRUE(adjacentTask);
+
+  auto makeIdentity = [](WorldGenerationTaskIdentity const& task, RectI region) {
+    WorldGenerationBaseTilesIdentity identity;
+    identity.task = task;
+    identity.tileRevision = 1;
+    identity.templateRevision = 9;
+    identity.worldSize = {64, 64};
+    identity.tileRegion = region;
+    return identity;
+  };
+  auto originIdentity = makeIdentity(originTask->identity,
+      RectI(0, 0, int(WorldSectorSize), int(WorldSectorSize)));
+  auto adjacentIdentity = makeIdentity(adjacentTask->identity,
+      RectI(int(WorldSectorSize), 0, int(WorldSectorSize) * 2, int(WorldSectorSize)));
+
+  auto originAdmitted = WorldGenerationSectorShadow::tryAdmit(ledger, originIdentity);
+  auto adjacentAdmitted = WorldGenerationSectorShadow::tryAdmit(ledger, adjacentIdentity);
+  ASSERT_TRUE(originAdmitted.has_value());
+  ASSERT_TRUE(adjacentAdmitted.has_value());
+  auto originShadow = std::make_shared<WorldGenerationSectorShadow>(std::move(*originAdmitted));
+  auto adjacentShadow = std::make_shared<WorldGenerationSectorShadow>(std::move(*adjacentAdmitted));
+  originShadow->tiles()(0, 0).foreground = MaterialId(61);
+  adjacentShadow->tiles()(0, 0).foreground = MaterialId(62);
+
+  WorkerPool pool("Concurrent sector shadow handoffs", 2);
+  auto originPromise = pool.addProducer<std::shared_ptr<WorldGenerationSectorShadow>>(
+      [originTask, originShadow] {
+        EXPECT_TRUE(originTask->start());
+        EXPECT_TRUE(originTask->ready());
+        return originShadow;
+      });
+  auto adjacentPromise = pool.addProducer<std::shared_ptr<WorldGenerationSectorShadow>>(
+      [adjacentTask, adjacentShadow] {
+        EXPECT_TRUE(adjacentTask->start());
+        EXPECT_TRUE(adjacentTask->ready());
+        return adjacentShadow;
+      });
+  auto const& originResult = originPromise.get();
+  auto const& adjacentResult = adjacentPromise.get();
+  EXPECT_TRUE(originResult->matches(originIdentity));
+  EXPECT_TRUE(adjacentResult->matches(adjacentIdentity));
+  EXPECT_EQ(MaterialId(61), originResult->tiles()(0, 0).foreground);
+  EXPECT_EQ(MaterialId(62), adjacentResult->tiles()(0, 0).foreground);
+  EXPECT_TRUE(tasks.retire(originTask, WorldGenerationTaskOutcome::Cancelled));
+  EXPECT_TRUE(originResult->active());
+  EXPECT_TRUE(adjacentResult->active());
+  originResult->discard();
+  EXPECT_TRUE(adjacentResult->active());
+  EXPECT_TRUE(tasks.retire(adjacentTask, WorldGenerationTaskOutcome::Stale));
+  adjacentResult->discard();
+  pool.finish();
+  EXPECT_EQ(0u, ledger.snapshot().resources);
+}
+
 TEST(WorldGenerationSectorShadowTest, TaskHandoffRetiresStaleWithoutPublishingShadowPayload) {
   WorldGenerationMemoryLedger ledger;
   WorldGenerationTasks tasks(1, WorldRegionPartition(WorldGeometry(Vec2U{64, 64})), 1,

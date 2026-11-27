@@ -24,5 +24,6 @@ ASan/UBSan: **787/787** contrato (10 sombras × 10); Root 1×5; **70/70** RealBl
 
 ## Próximo passo
 
-Contexto profundo restante de CPU-01 ou gates H0 antes de H1/mailbox. Não
-disparar Actions.
+Concorrência de handoff em
+[handoffs concorrentes](sector-runtime-h0-sector-shadow-concurrent-handoff-2026-11-26.md).
+Segue contexto profundo/assets. Não disparar Actions.
