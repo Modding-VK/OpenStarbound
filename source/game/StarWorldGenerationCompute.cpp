@@ -889,6 +889,16 @@ Maybe<WorldGenerationComputeTicket> WorldGenerationComputeService::submit(
   return submitLocked(std::move(identity), std::move(input), parameter, backend);
 }
 
+Maybe<WorldGenerationComputeTicket> WorldGenerationComputeService::submitNamed(char const* kernelName,
+    WorldGenerationComputeInputIdentity identity, List<uint32_t> input, uint32_t parameter,
+    WorldGenerationComputeBackend backend) {
+  auto kernel = parseKernelName(kernelName);
+  if (!kernel)
+    return {};
+  identity.kernel = *kernel;
+  return submit(std::move(identity), std::move(input), parameter, backend);
+}
+
 Maybe<List<WorldGenerationComputeTicket>> WorldGenerationComputeService::submitBatch(
     List<WorldGenerationComputeBatchItem> items, WorldGenerationComputeBackend backend) {
   std::lock_guard<std::mutex> lock(m_mutex);

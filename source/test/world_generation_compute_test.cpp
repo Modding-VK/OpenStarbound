@@ -677,6 +677,30 @@ TEST(WorldGenerationComputeTest, DenseUint32HasZeroByteNextPow2MaskLowExactCpuAn
           .verdict);
 }
 
+TEST(WorldGenerationComputeTest, SubmitNamedResolvesKernelAndRejectsUnknown) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  WorldGenerationComputeInputIdentity id;
+  id.worldEpoch = 7;
+  id.sequence = 420;
+  id.kernelVersion = 1;
+  id.kernel = WorldGenerationComputeKernel::DenseUint32Add; // overwritten by name
+
+  auto ticket = service.submitNamed("DenseUint32Xor", id, List<uint32_t>{0x10u}, 0x01u);
+  ASSERT_TRUE((bool)ticket);
+  EXPECT_EQ(1u, service.countOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(0u, service.countOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+
+  WorldGenerationComputeResult result;
+  EXPECT_TRUE(service.complete(*ticket));
+  EXPECT_EQ(WorldGenerationComputePollStatus::Ready, service.poll(*ticket, &result));
+  ASSERT_EQ(1u, result.values.size());
+  EXPECT_EQ(0x11u, result.values[0]);
+
+  EXPECT_FALSE((bool)service.submitNamed("nope", id, List<uint32_t>{1u}, 0u));
+  EXPECT_FALSE((bool)service.submitNamed(nullptr, id, List<uint32_t>{1u}, 0u));
+}
+
 TEST(WorldGenerationComputeTest, DrainOpenTicketsByKernelIsSelective) {
   WorldGenerationComputeService service;
   service.setDeferredCpuCompletion(true);

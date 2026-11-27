@@ -274,6 +274,12 @@ public:
       List<uint32_t> input, uint32_t parameter,
       WorldGenerationComputeBackend backend = WorldGenerationComputeBackend::CpuReference);
 
+  // GPU-01: submit using a stable ASCII kernel name; fills identity.kernel.
+  // Empty when the name is unknown or submit refuses the work.
+  Maybe<WorldGenerationComputeTicket> submitNamed(char const* kernelName,
+      WorldGenerationComputeInputIdentity identity, List<uint32_t> input, uint32_t parameter,
+      WorldGenerationComputeBackend backend = WorldGenerationComputeBackend::CpuReference);
+
   // One ticket per item; fails entirely (no partial admit) if capacity is short.
   Maybe<List<WorldGenerationComputeTicket>> submitBatch(List<WorldGenerationComputeBatchItem> items,
       WorldGenerationComputeBackend backend = WorldGenerationComputeBackend::CpuReference);
