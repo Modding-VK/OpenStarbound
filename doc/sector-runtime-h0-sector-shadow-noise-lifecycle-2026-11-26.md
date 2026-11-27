@@ -21,5 +21,6 @@ ASan/UBSan: 1×5; **89/89** RealBlockInfo.
 
 ## Próximo passo
 
-Gates H0 restantes (adjacente/handoffs compostos, assets sob variantes). Não
-disparar Actions.
+Adjacente em
+[adjacent handoff](sector-runtime-h0-sector-shadow-adjacent-handoff-2026-11-26.md).
+Segue abandon/fail adjacente e assets. Não disparar Actions.
