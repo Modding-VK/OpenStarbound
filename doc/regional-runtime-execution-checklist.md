@@ -267,8 +267,10 @@ executivo e o planejador menor são propostas, ainda não implementadas.
   ([ReplaceBiome](sector-runtime-h3-replace-biome-plan-2026-11-27.md)).
 - [x] H3 decode Json TMX sombra (MD-02 adicional; sem elevação a 50%)
   ([TMX decode](sector-runtime-h3-tmx-static-decode-2026-11-27.md)).
-- [ ] H3 além do primeiro recorte: decode TMX comprimido/Assets; equivalência
-  viva / publish autoritativo só com `apis_ready` live-publish.
+- [x] H3 codec TMX gzip/zlib/zstd sombra (MD-02 adicional; sem elevação a 50%)
+  ([TMX codec](sector-runtime-h3-tmx-static-codec-2026-11-27.md)).
+- [ ] H3 além do primeiro recorte: decode TMX via Assets; equivalência viva /
+  publish autoritativo só com `apis_ready` live-publish.
 - [ ] H4/H5: GPU compute opcional, comparação CPU/GPU em sombra, seleção por
   custo e orçamento de VRAM/latência; manter execução CPU independente.
 

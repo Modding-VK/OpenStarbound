@@ -2,10 +2,10 @@
 
 Atualizado em **27/11/2026**. Branch de implementação H3:
 `cursor/h3-kernels-publication-9f77` (base Experimental `e55c008f`).
-Último recorte H3: decode Json TMX sombra MD-02 (sem elevação a 50%).
+Último recorte H3: codec TMX gzip/zlib/zstd sombra MD-02 (sem elevação a 50%).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico H3](../sector-runtime-h3-tmx-static-decode-2026-11-27.md)
+· [Último relatório técnico H3](../sector-runtime-h3-tmx-static-codec-2026-11-27.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -23,7 +23,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **8,7%** — 17 marcos verificados de 196 |
 | Contratos com avanço registrado | **17 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | H3: CPU-04 + MD-02 decode Json + MD/WT/IO + integração sombra NoAssets; H0 inalterado nesta branch |
+| Última evidência de testes | H3: CPU-04 + MD-02 decode/codec + MD/WT/IO + integração sombra NoAssets; H0 inalterado nesta branch |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 8,7% não significam que o jogo esteja só 8,7% pronto.** O runtime anterior
@@ -169,7 +169,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 21 | H2 | [WT-03](worldthread.md) | Entrada síncrona em lote | 0% | Admissão consistente da região inteira |
 | 22 | H2 | [IO-01](io-persistence-network.md) | Pipeline único de leitura e promoção | 0% | Promover tiles decodificados sem refazer leitura/decode |
 | 23 | H3 | [CPU-04](cpu-and-stages.md) | Extração por etapa | 25% | CaveLiquid + Finalize + Flora + ReplaceBiome sombra; equivalência viva pendente |
-| 24 | H3 | [MD-02](microdungeons-and-tmx.md) | Formato intermediário estático TMX | 25% | Produto + decode Json sombra; compressão/Assets/vivo pendentes |
+| 24 | H3 | [MD-02](microdungeons-and-tmx.md) | Formato intermediário estático TMX | 25% | Produto + decode/codec sombra; Assets/vivo pendentes |
 | 25 | H3 | [MD-03](microdungeons-and-tmx.md) | Ligação e RNG autoritativos | 25% | Plano de escolhas ordenadas sombra; stream RNG vivo e efeitos pendentes |
 | 26 | H3 | [MD-04](microdungeons-and-tmx.md) | Comandos, footprint e reserva | 25% | Comandos+footprint+reservas sombra; writer vivo e MD-05 pendentes |
 | 27 | H3 | [MD-05](microdungeons-and-tmx.md) | Aplicação mais barata e retomada | 25% | Batches+staging invisível sombra; writer vivo/WT-04 pendentes |
@@ -208,7 +208,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
 | CPU-04 | [CaveLiquid](../sector-runtime-h3-cave-liquid-plan-2026-11-27.md) + [Finalize](../sector-runtime-h3-finalize-normalize-2026-11-27.md) + [Flora/spawn](../sector-runtime-h3-flora-spawn-plan-2026-11-27.md) + [ReplaceBiome](../sector-runtime-h3-replace-biome-plan-2026-11-27.md) | Sem equivalência viva/collision autoritativa nem publicação |
-| MD-02 | [TMX static](../sector-runtime-h3-tmx-static-product-2026-11-27.md) + [decode](../sector-runtime-h3-tmx-static-decode-2026-11-27.md) | Sem compressão/Assets/cache reload nem equivalência viva |
+| MD-02 | [TMX static](../sector-runtime-h3-tmx-static-product-2026-11-27.md) + [decode](../sector-runtime-h3-tmx-static-decode-2026-11-27.md) + [codec](../sector-runtime-h3-tmx-static-codec-2026-11-27.md) | Sem Assets/cache reload nem equivalência viva |
 | MD-03 | [TMX binding plan](../sector-runtime-h3-tmx-binding-plan-2026-11-27.md) | Sem Random vivo, sem spawn/facade |
 | MD-04 | [Structure command plan](../sector-runtime-h3-structure-command-plan-2026-11-27.md) | Sem facade viva; cobertura truncada não autoriza commit |
 | MD-05 | [Structure batch staging](../sector-runtime-h3-structure-batch-staging-2026-11-27.md) | Sem publish vivo; equivalência de notificações pendente |
@@ -331,6 +331,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | H3 CPU-04 flora/spawn | Grass-mod + spawn intents sombra; 6 NoAssets. Sem novo marco % (CPU-04 25%) | 8,7% |
 | 27/11/2026 | H3 CPU-04 replaceBiome | Placeholders→materiais/hues sombra; 6 NoAssets. Sem novo marco % (CPU-04 25%) | 8,7% |
 | 27/11/2026 | H3 MD-02 TMX Json decode | Decode Json controlado→produto estático; 6 NoAssets. Sem novo marco % (MD-02 25%) | 8,7% |
+| 27/11/2026 | H3 MD-02 TMX codec | gzip/zlib/zstd base64 + flip strip; 9 NoAssets. Sem novo marco % (MD-02 25%) | 8,7% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

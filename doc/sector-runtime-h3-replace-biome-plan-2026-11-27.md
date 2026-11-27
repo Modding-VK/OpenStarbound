@@ -30,6 +30,5 @@ collision autoritativa e publish. Não concede 50%.
 
 ## Próximo
 
-Decode TMX comprimido/Assets, ou equivalência viva só com
-`apis_ready` live-publish. Decode Json controlado já em
-[TMX decode](sector-runtime-h3-tmx-static-decode-2026-11-27.md).
+Decode TMX via Assets, ou equivalência viva só com live-publish.
+Codec gzip/zlib/zstd já em [TMX codec](sector-runtime-h3-tmx-static-codec-2026-11-27.md).

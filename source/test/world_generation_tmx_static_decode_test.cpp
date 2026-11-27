@@ -1,10 +1,45 @@
+#include "StarCompression.hpp"
+#include "StarEncode.hpp"
 #include "StarWorldGenerationTmxStaticDecode.hpp"
+#include "StarZSTDCompression.hpp"
+
+#include <cstring>
+#include <zlib.h>
 
 #include "gtest/gtest.h"
 
 using namespace Star;
 
 namespace {
+ByteArray packGidsLittleEndian(List<uint32_t> const& gids) {
+  ByteArray out;
+  for (uint32_t gid : gids)
+    out.append((char const*)&gid, sizeof(gid));
+  return out;
+}
+
+ByteArray gzipCompress(ByteArray const& in) {
+  z_stream stream;
+  std::memset(&stream, 0, sizeof(stream));
+  if (deflateInit2(&stream, Z_DEFAULT_COMPRESSION, Z_DEFLATED, 16 + MAX_WBITS, 8, Z_DEFAULT_STRATEGY) != Z_OK)
+    return {};
+  stream.next_in = (Bytef*)in.ptr();
+  stream.avail_in = (uInt)in.size();
+  ByteArray out;
+  char buffer[256];
+  int result = Z_OK;
+  while (result == Z_OK) {
+    stream.next_out = (Bytef*)buffer;
+    stream.avail_out = sizeof(buffer);
+    result = deflate(&stream, Z_FINISH);
+    out.append(buffer, sizeof(buffer) - stream.avail_out);
+  }
+  deflateEnd(&stream);
+  if (result != Z_STREAM_END)
+    return {};
+  return out;
+}
+
 Json makeMapJson() {
   return JsonObject{
       {"tilewidth", 8},
@@ -45,6 +80,17 @@ Json makeMapJson() {
                           JsonObject{{"name", "connector"}, {"value", true}},
                           JsonObject{{"name", "direction"}, {"value", "up"}}}}}}}}}}};
 }
+
+Json makeCompressedFrontMap(String const& compression, String const& dataB64) {
+  auto map = makeMapJson().toObject();
+  auto layers = map.get("layers").toArray();
+  auto layer = layers[0].toObject();
+  layer.set("compression", compression);
+  layer.set("data", dataB64);
+  layers[0] = layer;
+  map.set("layers", layers);
+  return map;
+}
 }
 
 TEST(WorldGenerationTmxStaticDecodeTest, DecodesLayersObjectsAndConnectorsFromJson) {
@@ -79,15 +125,46 @@ TEST(WorldGenerationTmxStaticDecodeTest, IgnoresTilesetsWithoutRoot) {
   EXPECT_TRUE(product->active());
 }
 
-TEST(WorldGenerationTmxStaticDecodeTest, RejectsCompressedTileLayer) {
-  auto map = makeMapJson().toObject();
-  auto layers = map.get("layers").toArray();
-  auto layer = layers[0].toObject();
-  layer.set("compression", "zlib");
-  layer.set("data", "AAAA");
-  layers[0] = layer;
-  map.set("layers", layers);
+TEST(WorldGenerationTmxStaticDecodeTest, DecodesZlibBase64TileLayer) {
+  auto raw = packGidsLittleEndian({1u, 2u, 3u, 4u});
+  auto map = makeCompressedFrontMap("zlib", base64Encode(compressData(raw)));
+  WorldGenerationTmxStaticDecodeRequest request;
+  request.assetKey = "dungeons/shadow/map.json";
+  request.assetGeneration = 1;
+  request.mapJson = map;
+  auto product = tryDecodeWorldGenerationTmxStaticProduct(std::move(request));
+  ASSERT_TRUE(product.has_value());
+  EXPECT_EQ((List<uint32_t>{1u, 2u, 3u, 4u}), product->layers()[0].gids);
+}
 
+TEST(WorldGenerationTmxStaticDecodeTest, DecodesGzipBase64TileLayer) {
+  auto raw = packGidsLittleEndian({1u, 2u, 3u, 4u});
+  auto gzipped = gzipCompress(raw);
+  ASSERT_FALSE(gzipped.empty());
+  auto map = makeCompressedFrontMap("gzip", base64Encode(gzipped));
+  WorldGenerationTmxStaticDecodeRequest request;
+  request.assetKey = "dungeons/shadow/map.json";
+  request.assetGeneration = 1;
+  request.mapJson = map;
+  auto product = tryDecodeWorldGenerationTmxStaticProduct(std::move(request));
+  ASSERT_TRUE(product.has_value());
+  EXPECT_EQ((List<uint32_t>{1u, 2u, 3u, 4u}), product->layers()[0].gids);
+}
+
+TEST(WorldGenerationTmxStaticDecodeTest, DecodesZstdAndStripsFlipBits) {
+  auto raw = packGidsLittleEndian({0xe0000001u, 2u, 3u, 4u});
+  auto map = makeCompressedFrontMap("zstd", base64Encode(ZstdCompression::compress(raw)));
+  WorldGenerationTmxStaticDecodeRequest request;
+  request.assetKey = "dungeons/shadow/map.json";
+  request.assetGeneration = 1;
+  request.mapJson = map;
+  auto product = tryDecodeWorldGenerationTmxStaticProduct(std::move(request));
+  ASSERT_TRUE(product.has_value());
+  EXPECT_EQ((List<uint32_t>{1u, 2u, 3u, 4u}), product->layers()[0].gids);
+}
+
+TEST(WorldGenerationTmxStaticDecodeTest, RejectsCorruptCompressedPayload) {
+  auto map = makeCompressedFrontMap("zlib", String("AAAA"));
   WorldGenerationTmxStaticDecodeRequest request;
   request.assetKey = "dungeons/shadow/map.json";
   request.assetGeneration = 1;

@@ -461,11 +461,12 @@ Propósito: reduzir trabalho serial após o desbloqueio do pipeline.
   [Flora/spawn](../sector-runtime-h3-flora-spawn-plan-2026-11-27.md),
   [ReplaceBiome](../sector-runtime-h3-replace-biome-plan-2026-11-27.md));
   equivalência viva / collision pendentes (permanece 25%).
-- [x] MD-02 (recortes sombra): produto TMX estático + decode Json controlado
+- [x] MD-02 (recortes sombra): produto TMX + decode Json + codec gzip/zlib/zstd
   em `cursor/h3-kernels-publication-9f77`
   ([produto](../sector-runtime-h3-tmx-static-product-2026-11-27.md),
-  [decode](../sector-runtime-h3-tmx-static-decode-2026-11-27.md));
-  compressão/Assets/vivo pendentes (permanece 25%).
+  [decode](../sector-runtime-h3-tmx-static-decode-2026-11-27.md),
+  [codec](../sector-runtime-h3-tmx-static-codec-2026-11-27.md));
+  Assets/vivo pendentes (permanece 25%).
 - [x] MD-03 (primeiro recorte): plano de ligação/escolhas em sombra
   ([relatório](../sector-runtime-h3-tmx-binding-plan-2026-11-27.md)); stream
   RNG vivo e efeitos pendentes.
@@ -492,8 +493,8 @@ Propósito: reduzir trabalho serial após o desbloqueio do pipeline.
   IO-05 packet
   ([relatório](../sector-runtime-h3-shadow-integration-2026-11-27.md));
   sem publish vivo; não eleva contratos a 50%.
-- [ ] Além do primeiro recorte: decode TMX comprimido/Assets; equivalência
-  viva / publish autoritativo só com `apis_ready` live-publish.
+- [ ] Além do primeiro recorte: decode TMX via Assets; equivalência viva /
+  publish autoritativo só com `apis_ready` live-publish.
 
 Saída: custo serial menor por setor/estrutura, com save, scripts e rede
 equivalentes. Cada kernel pode avançar separadamente; uma dungeon composta

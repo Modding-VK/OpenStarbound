@@ -1,23 +1,31 @@
 #pragma once
 
+#include "StarByteArray.hpp"
+#include "StarCompression.hpp"
+#include "StarEncode.hpp"
 #include "StarGameTypes.hpp"
 #include "StarJson.hpp"
 #include "StarWorldGenerationTmxStaticProduct.hpp"
+#include "StarZSTDCompression.hpp"
 
 #include <algorithm>
+#include <cstring>
 #include <optional>
 #include <utility>
 
 namespace Star {
 
 // MD-02 decode slice: CPU-only Json TMX → static blueprint/product. Accepts
-// controlled in-memory Json (tilelayer array data + objectgroups). Does not
-// load tilesets via Root/Assets and does not materialize brushes.
+// controlled in-memory Json (tilelayer array/base64±gzip/zlib/zstd + objectgroups).
+// Does not load tilesets via Root/Assets and does not materialize brushes.
 struct WorldGenerationTmxStaticDecodeRequest {
   String assetKey;
   uint64_t assetGeneration = 0;
   Json mapJson;
 };
+
+// Tiled GID flip bits (horizontal/vertical/diagonal) — strip like live TMXMap.
+uint32_t constexpr WorldGenerationTmxGidFlipMask = 0xe0000000u;
 
 inline JsonObject worldGenerationTmxNormalizeProperties(Json const& properties) {
   JsonObject out;
@@ -32,16 +40,32 @@ inline JsonObject worldGenerationTmxNormalizeProperties(Json const& properties) 
   return out;
 }
 
+inline Maybe<ByteArray> worldGenerationTmxDecodeCompressedLayerBytes(Json const& layer) {
+  if (!layer.contains("data") || layer.get("data").type() != Json::Type::String)
+    return {};
+  ByteArray base64Data = base64Decode(layer.getString("data"));
+  String compression = layer.contains("compression") ? layer.getString("compression") : String();
+  try {
+    if (compression.empty())
+      return base64Data;
+    if (compression == "gzip")
+      return uncompressDataGzip(base64Data);
+    if (compression == "zlib")
+      return uncompressData(base64Data);
+    if (compression == "zstd")
+      return ZstdCompression::decompress(base64Data);
+  } catch (...) {
+    return {};
+  }
+  return {};
+}
+
 inline Maybe<WorldGenerationTmxStaticLayer> worldGenerationTmxDecodeTileLayer(Json const& layer) {
   if (layer.getString("type", "") != "tilelayer")
     return {};
-  if (layer.contains("compression"))
-    return {}; // compressed payloads need Assets/codec path — out of this slice
   unsigned width = (unsigned)layer.getUInt("width");
   unsigned height = (unsigned)layer.getUInt("height");
-  if (width == 0 || height == 0)
-    return {};
-  if (!layer.contains("data") || layer.get("data").type() != Json::Type::Array)
+  if (width == 0 || height == 0 || !layer.contains("data"))
     return {};
 
   WorldGenerationTmxStaticLayer out;
@@ -53,8 +77,31 @@ inline Maybe<WorldGenerationTmxStaticLayer> worldGenerationTmxDecodeTileLayer(Js
   out.width = width;
   out.height = height;
   out.gids.reserve(width * height);
-  for (Json const& cell : layer.getArray("data"))
-    out.gids.append((uint32_t)cell.toUInt());
+
+  Json const& data = layer.get("data");
+  if (data.type() == Json::Type::Array) {
+    if (layer.contains("compression") && !layer.getString("compression").empty())
+      return {};
+    for (Json const& cell : data.toArray())
+      out.gids.append((uint32_t)cell.toUInt() & ~WorldGenerationTmxGidFlipMask);
+  } else if (data.type() == Json::Type::String) {
+    auto bytes = worldGenerationTmxDecodeCompressedLayerBytes(layer);
+    if (!bytes)
+      return {};
+    size_t need = (size_t)width * (size_t)height * 4;
+    if (bytes->size() < need || (bytes->size() % 4) != 0)
+      return {};
+    char const* ptr = bytes->ptr();
+    size_t count = (size_t)width * (size_t)height;
+    for (size_t i = 0; i < count; ++i) {
+      uint32_t gid = 0;
+      memcpy(&gid, ptr + i * 4, sizeof(gid));
+      out.gids.append(gid & ~WorldGenerationTmxGidFlipMask);
+    }
+  } else {
+    return {};
+  }
+
   if (!out.valid())
     return {};
   return out;
