@@ -762,3 +762,8 @@ integração: **nenhum**.
 ## Revisão 2026-11-27T22:31Z
 - Sync: H4 ahead absorvido `8e48af1c` (136/136). H5 ahead=1 `24bdb5e6` (só anotar). Desktop bootstrap: não apareceu.
 - Build `46075958751` @ `a4a84b28` intacto; 1 Build tip final após terminal; sem spam.
+
+## Revisão 2026-11-27T22:31Z (front-review)
+- INT tip `d8ce2438` (H4 `8e48af1c` 136/136). Ahead: H0–H4/R1/R2/H3=0; H5=`24bdb5e6` ahead=1 (scale metrics bridge — só anotar, sem ready).
+- Build `46075958751` in_progress @ `a4a84b28` intacto; 1 Build tip final após terminal; sem spam/dispatch nesta revisão.
+- Sem PRs abertos na base INT. Desktop bootstrap: ausente. Sem merge main; sem editar frentes.
