@@ -2735,6 +2735,16 @@ size_t WorldGenerationComputeService::countCancelledOpenTickets() const {
   return count;
 }
 
+size_t WorldGenerationComputeService::countTerminalOpenTickets() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  size_t count = 0;
+  for (auto const& pair : m_entries) {
+    if (pair.second.state != EntryState::Pending)
+      ++count;
+  }
+  return count;
+}
+
 bool WorldGenerationComputeService::anyReadyOpenTickets() const {
   std::lock_guard<std::mutex> lock(m_mutex);
   for (auto const& pair : m_entries) {

@@ -1547,6 +1547,27 @@ TEST(WorldGenerationComputeTest, AnyFailedOpenTicketsTracksFailedPresence) {
 
 
 
+TEST(WorldGenerationComputeTest, CountTerminalOpenTicketsTracksNonPendingCount) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  EXPECT_EQ(0u, service.countTerminalOpenTickets());
+  auto ready = service.submit(
+      makeIdentity(1570, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u);
+  auto cancel = service.submit(
+      makeIdentity(1571, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{2u}, 0u);
+  auto pending = service.submit(
+      makeIdentity(1572, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{3u}, 0u);
+  ASSERT_TRUE((bool)ready);
+  ASSERT_TRUE((bool)cancel);
+  ASSERT_TRUE((bool)pending);
+  EXPECT_TRUE(service.complete(*ready));
+  EXPECT_TRUE(service.cancel(*cancel));
+  EXPECT_EQ(2u, service.countTerminalOpenTickets());
+  EXPECT_EQ(1u, service.inFlightByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+  EXPECT_EQ(2u, service.discardTerminalOpenTickets());
+  EXPECT_EQ(0u, service.countTerminalOpenTickets());
+}
+
 TEST(WorldGenerationComputeTest, ListTerminalOpenTicketsReturnsNonPendingIds) {
   WorldGenerationComputeService service;
   service.setDeferredCpuCompletion(true);
