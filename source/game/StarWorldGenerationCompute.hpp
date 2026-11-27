@@ -78,7 +78,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32RolBytes = 52, // rotate left by 8 * (parameter & 3) bits
   DenseUint32RorBytes = 53, // rotate right by 8 * (parameter & 3) bits
   DenseUint32SignMask = 54, // (int32)value < 0 ? 0xffffffff : 0; parameter ignored
-  DenseUint32IsZero = 55 // value == 0 ? 0xffffffff : 0; parameter ignored
+  DenseUint32IsZero = 55, // value == 0 ? 0xffffffff : 0; parameter ignored
+  DenseUint32IsNonzero = 56, // value != 0 ? 0xffffffff : 0; parameter ignored
+  DenseUint32MaskHigh = 57, // value & high-bit mask; parameter = bit count clamped to [0,32]
+  DenseUint32SatMul = 58 // saturating multiply (clamp product to 0xffffffff)
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -361,6 +364,10 @@ public:
   // GPU-02: stable fingerprint of a staging/pool observation snapshot (asset-free).
   static uint64_t fingerprintStagingSnapshot(
       WorldGenerationComputeStagingSnapshot const& snapshot) noexcept;
+
+  // GPU-04: stable fingerprint of a shadow-batch summary (asset-free harness).
+  static uint64_t fingerprintShadowSummary(
+      WorldGenerationComputeShadowSummary const& summary) noexcept;
 
   // GPU-04 approved RNG: deterministic uint32 draws; advances counter by 1.
   static uint32_t drawRng(WorldGenerationComputeRngStream& stream) noexcept;
