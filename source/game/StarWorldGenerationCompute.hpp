@@ -457,6 +457,8 @@ public:
   size_t countPendingOpenTickets() const;
   // Count of Ready open tickets (asset-free observation; not distinct kernels).
   size_t countReadyOpenTickets() const;
+  // Count of Failed open tickets (asset-free observation; not distinct kernels).
+  size_t countFailedOpenTickets() const;
   // True while any Ready open ticket exists (asset-free observation).
   bool anyReadyOpenTickets() const;
   // True while any Pending open ticket exists (asset-free observation).

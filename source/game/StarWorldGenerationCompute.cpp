@@ -2413,6 +2413,16 @@ size_t WorldGenerationComputeService::countReadyOpenTickets() const {
   return count;
 }
 
+size_t WorldGenerationComputeService::countFailedOpenTickets() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  size_t count = 0;
+  for (auto const& pair : m_entries) {
+    if (pair.second.state == EntryState::Failed)
+      ++count;
+  }
+  return count;
+}
+
 bool WorldGenerationComputeService::anyReadyOpenTickets() const {
   std::lock_guard<std::mutex> lock(m_mutex);
   for (auto const& pair : m_entries) {
