@@ -163,6 +163,9 @@ GLuint g_rorNibblesProgram = 0;
 GLuint g_hasZeroNibbleProgram = 0;
 GLuint g_sextNibbleProgram = 0;
 GLuint g_countZeroNibblesProgram = 0;
+GLuint g_packLowNibblesProgram = 0;
+GLuint g_packHighNibblesProgram = 0;
+GLuint g_expandLowNibblesProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -1799,6 +1802,54 @@ void main() {
 }
 )GLSL";
 
+char const* PackLowNibblesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  values[i] = (v & 0xfu) | (((v >> 8) & 0xfu) << 4) | (((v >> 16) & 0xfu) << 8)
+      | (((v >> 24) & 0xfu) << 12);
+}
+)GLSL";
+
+char const* PackHighNibblesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  values[i] = ((v >> 4) & 0xfu) | (((v >> 12) & 0xfu) << 4) | (((v >> 20) & 0xfu) << 8)
+      | (((v >> 28) & 0xfu) << 12);
+}
+)GLSL";
+
+char const* ExpandLowNibblesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint p = values[i] & 0xffffu;
+  values[i] = (p & 0xfu) | (((p >> 4) & 0xfu) << 8) | (((p >> 8) & 0xfu) << 16)
+      | (((p >> 12) & 0xfu) << 24);
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -2259,6 +2310,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_countZeroNibblesProgram);
     g_countZeroNibblesProgram = 0;
   }
+  if (g_packLowNibblesProgram) {
+    glDeleteProgram(g_packLowNibblesProgram);
+    g_packLowNibblesProgram = 0;
+  }
+  if (g_packHighNibblesProgram) {
+    glDeleteProgram(g_packHighNibblesProgram);
+    g_packHighNibblesProgram = 0;
+  }
+  if (g_expandLowNibblesProgram) {
+    glDeleteProgram(g_expandLowNibblesProgram);
+    g_expandLowNibblesProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -2459,7 +2522,12 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_hasZeroNibbleProgram, HasZeroNibbleShader, "DenseUint32HasZeroNibble")
       || !requireProgram(g_sextNibbleProgram, SextNibbleShader, "DenseUint32SextNibble")
       || !requireProgram(g_countZeroNibblesProgram, CountZeroNibblesShader,
-            "DenseUint32CountZeroNibbles"))
+            "DenseUint32CountZeroNibbles")
+      || !requireProgram(g_packLowNibblesProgram, PackLowNibblesShader, "DenseUint32PackLowNibbles")
+      || !requireProgram(g_packHighNibblesProgram, PackHighNibblesShader,
+            "DenseUint32PackHighNibbles")
+      || !requireProgram(g_expandLowNibblesProgram, ExpandLowNibblesShader,
+            "DenseUint32ExpandLowNibbles"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -2730,6 +2798,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_sextNibbleProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32CountZeroNibbles)
     program = g_countZeroNibblesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32PackLowNibbles)
+    program = g_packLowNibblesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32PackHighNibbles)
+    program = g_packHighNibblesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32ExpandLowNibbles)
+    program = g_expandLowNibblesProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
