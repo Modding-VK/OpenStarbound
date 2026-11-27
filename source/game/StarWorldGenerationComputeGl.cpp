@@ -65,6 +65,9 @@ GLuint g_addProgram = 0;
 GLuint g_andProgram = 0;
 GLuint g_orProgram = 0;
 GLuint g_mulProgram = 0;
+GLuint g_minProgram = 0;
+GLuint g_maxProgram = 0;
+GLuint g_subProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -142,6 +145,48 @@ void main() {
 }
 )GLSL";
 
+char const* MinShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = min(values[i], uParameter);
+}
+)GLSL";
+
+char const* MaxShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = max(values[i], uParameter);
+}
+)GLSL";
+
+char const* SubShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = values[i] - uParameter;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -209,6 +254,18 @@ void destroyContextUnlocked() {
   if (g_mulProgram) {
     glDeleteProgram(g_mulProgram);
     g_mulProgram = 0;
+  }
+  if (g_minProgram) {
+    glDeleteProgram(g_minProgram);
+    g_minProgram = 0;
+  }
+  if (g_maxProgram) {
+    glDeleteProgram(g_maxProgram);
+    g_maxProgram = 0;
+  }
+  if (g_subProgram) {
+    glDeleteProgram(g_subProgram);
+    g_subProgram = 0;
   }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
@@ -301,7 +358,10 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_addProgram, AddShader, "DenseUint32Add")
       || !requireProgram(g_andProgram, AndShader, "DenseUint32And")
       || !requireProgram(g_orProgram, OrShader, "DenseUint32Or")
-      || !requireProgram(g_mulProgram, MulShader, "DenseUint32Mul"))
+      || !requireProgram(g_mulProgram, MulShader, "DenseUint32Mul")
+      || !requireProgram(g_minProgram, MinShader, "DenseUint32Min")
+      || !requireProgram(g_maxProgram, MaxShader, "DenseUint32Max")
+      || !requireProgram(g_subProgram, SubShader, "DenseUint32Sub"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -376,6 +436,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_orProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32Mul)
     program = g_mulProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Min)
+    program = g_minProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Max)
+    program = g_maxProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Sub)
+    program = g_subProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
