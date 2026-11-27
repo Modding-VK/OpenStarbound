@@ -37,7 +37,7 @@ For the current state and the next work, start here:
 - [Progress, evidence and next steps](doc/sector-runtime/progress.md)
 - [Operational checklist and current report](doc/regional-runtime-execution-checklist.md)
 - [Latest H0 report: concurrent ocean sector shadows](doc/sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
-- [Latest H4 report: GPU-01 compute interface](doc/sector-runtime-h4-gpu01-compute-interface-2026-11-27.md)
+- [Latest H4 report: GPU-02/03/04 CPU-first queue, batches, shadow](doc/sector-runtime-h4-gpu02-03-04-2026-11-27.md)
 - [Performance backlog](doc/performance-backlog.md)
 
 <details>

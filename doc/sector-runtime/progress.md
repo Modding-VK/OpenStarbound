@@ -3,11 +3,11 @@
 Atualizado em **27/11/2026**. Branch: `cursor/h4-gpu-shadow-9f77`
 (frente H4; H0 continua em `Experimental`).
 Base inspecionada: `e55c008f`;
-última implementação de runtime nesta frente: GPU-01 compute interface + CPU
-reference (`DenseUint32Xor`).
+última implementação de runtime nesta frente: GPU-01…04 CPU-first
+(fila/lotes/sombra; sem GL compute).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico H4](../sector-runtime-h4-gpu01-compute-interface-2026-11-27.md)
+· [Último relatório técnico H4](../sector-runtime-h4-gpu02-03-04-2026-11-27.md)
 · [Último relatório H0](../sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
 · [Backlog geral](../performance-backlog.md)
 
@@ -22,14 +22,14 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | --- | --- |
 | Frente ativa | H4 nesta branch (`cursor/h4-gpu-shadow-9f77`); H0 permanece em `Experimental` |
 | Progresso de maturidade de H0 | **25,0%** — 6 marcos verificados de 24 |
-| Progresso de maturidade de H4 | **6,3%** — 1 marco verificado de 16 |
-| Progresso de maturidade do programa | **4,1%** — 8 marcos verificados de 196 |
-| Contratos com avanço registrado | **8 de 49**; todos ainda parciais |
+| Progresso de maturidade de H4 | **25,0%** — 4 marcos verificados de 16 |
+| Progresso de maturidade do programa | **5,6%** — 11 marcos verificados de 196 |
+| Contratos com avanço registrado | **11 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | GPU-01: 6/6 WorldGenerationComputeTest; H0: 791 padrão +106 RealBlockInfo |
+| Última evidência de testes | GPU-01…04: 14/14 WorldGenerationComputeTest; H0: 791 padrão +106 RealBlockInfo |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
-**Os 4,1% não significam que o jogo esteja só 4,1% pronto.** O runtime anterior
+**Os 5,6% não significam que o jogo esteja só 5,6% pronto.** O runtime anterior
 já possui workers, schedulers, IO/decode e previews. O denominador aqui são os
 49 contratos completos do rework, incluindo GPU e simulação regional futura.
 Recortes de RAM-01 podem estar implementados/testados e o contrato abrangente
@@ -58,8 +58,8 @@ Fórmulas:
 - **Contrato:** número de marcos consecutivos verificados × 25%.
 - **Fase de entrada:** soma das notas dos contratos nela cadastrados ÷ número
   desses contratos.
-- **Programa:** soma das notas dos 49 contratos ÷ 49. Hoje: 200 ÷ 49 = 4,1%
-  arredondado; equivalentemente, 8 ÷ (49 × 4) × 100.
+- **Programa:** soma das notas dos 49 contratos ÷ 49. Hoje: 275 ÷ 49 = 5,6%
+  arredondado; equivalentemente, 11 ÷ (49 × 4) × 100.
 - **Aceitação integral:** contratos em 100% ÷ 49. Hoje: 0%.
 
 São percentuais de **maturidade comprovada**, não de horas, esforço, linhas de
@@ -81,11 +81,11 @@ obriga concluir todo trabalho transversal para iniciar um protótipo em sombra.
 | 2 | H1 — grafo executivo, CPU e entrega | 10 | 1 / 40 | 2,5% | Primeiro recorte proprietário de CPU-01 em apoio a H0; grafo/executor ainda pendentes |
 | 3 | H2 — produtos residentes e prefetch | 6 | 0 / 24 | 0% | Identidade/versionamento de H1 e orçamento de RAM |
 | 4 | H3 — kernels adicionais, estruturas e publicação | 10 | 0 / 40 | 0% | Contrato por kernel e publicação validável; TMX não bloqueia setor comum |
-| 5 | H4 — backend GPU e comparação em sombra | 4 | 1 / 16 | 6,3% | GPU-01 interface+CPU reference; GPU-02/03/04 e probe GL pendentes |
+| 5 | H4 — backend GPU e comparação em sombra | 4 | 4 / 16 | 25,0% | GPU-01…04 a 25% CPU-first; GL real/ganho/publicação pendentes |
 | 6 | H5 — seleção de hardware e escala | 7 | 0 / 28 | 0% | Produtos/backends validados e custo completo de entrega medido |
 | 7 | R1 — donos regionais e coordenadora | 3 | 0 / 12 | 0% | Auditoria de autoridade/efeitos e checkpoint; não basta aprovar GPU |
 | 8 | R2 — operações e transferências entre regiões | 3 | 0 / 12 | 0% | Lifecycle/estado de R1, recovery e matriz de multiplayer |
-| — | **Total** | **49** | **8 / 196** | **4,1%** | Não equivale a ganho de desempenho ou autorização de release |
+| — | **Total** | **49** | **11 / 196** | **5,6%** | Não equivale a ganho de desempenho ou autorização de release |
 
 Essa é uma ordem de prioridade/dependência, não uma proibição de frentes
 paralelas autorizadas pelo roadmap. Setores comuns permanecem prioritários.
@@ -142,7 +142,7 @@ concorrente.
 
 ## Catálogo ordenado das 49 tarefas
 
-As oito notas de 25% usam as evidências indicadas após o catálogo. Demais 0%
+As onze notas de 25% usam as evidências indicadas após o catálogo. Demais 0%
 significam **sem marco do novo contrato reconhecido nesta leitura do roadmap**,
 não ausência de código relacionado no baseline. Não foi feita nova auditoria
 de todas as implementações antigas para conceder crédito retroativo.
@@ -181,10 +181,10 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 30 | H3 | [IO-03](io-persistence-network.md) | Checkpoint e recuperação | 0% | Estado confirmado/recuperável; continua em R1 |
 | 31 | H3 | [IO-04](io-persistence-network.md) | Unload, drain e retorno ao legado | 0% | Encerrar sem liberar buffers/produtores ainda ativos |
 | 32 | H3 | [IO-05](io-persistence-network.md) | Pacotes e aplicação no cliente | 0% | Medir entrega até o cliente, não apenas commit |
-| 33 | H4 | [GPU-01](gpu-compute.md) | Interface e capacidades CPU/GPU | 25% | Serviço submit/poll/cancel + CPU reference; probe GL e GPU-02+ pendentes |
-| 34 | H4 | [GPU-02](gpu-compute.md) | Contexto e buffers em voo | 0% | Thread de contexto, fences, lifetime e recuperação |
-| 35 | H4 | [GPU-03](gpu-compute.md) | Kernels e equivalência | 0% | Primeiro kernel exato e lotes com ganho de custo completo |
-| 36 | H4 | [GPU-04](gpu-compute.md) | Comparação em sombra | 0% | Corpus de precisão/bordas/drivers antes da publicação |
+| 33 | H4 | [GPU-01](gpu-compute.md) | Interface e capacidades CPU/GPU | 25% | Serviço submit/poll/cancel + CPU reference; probe GL pendente |
+| 34 | H4 | [GPU-02](gpu-compute.md) | Contexto e buffers em voo | 25% | Fila/pool/pump/failContext CPU; thread GL real pendente |
+| 35 | H4 | [GPU-03](gpu-compute.md) | Kernels e equivalência | 25% | DenseUint32Xor/Add + batch; terreno/ganho pendentes |
+| 36 | H4 | [GPU-04](gpu-compute.md) | Comparação em sombra | 25% | compareShadow + corpus; GPU/driver reais pendentes |
 | 37 | H5 | [GPU-05](gpu-compute.md) | Seleção heterogênea e render | 0% | Escolher backend pelo custo de entrega, incluindo transporte |
 | 38 | H5 | [VAL-03](validation-and-telemetry.md) | Métricas e marcos de entrega | 0% | Cobertura integral do novo pipeline e CPU/RAM/VRAM |
 | 39 | H5 | [VAL-04](validation-and-telemetry.md) | Matriz de cenários | 0% | Escala, mundos, memória, GPU/fallback e multiplayer |
@@ -210,14 +210,16 @@ de todas as implementações antigas para conceder crédito retroativo.
 | MOD-01 | [Leitores imutáveis](../sector-runtime-h0-distribution-bundles-2026-11-09.md), [proteção da seleção](../sector-runtime-h0-planning-storage-2026-11-09.md) e [lifecycle/scope 2](../sector-runtime-h0-lookup-source-generations-2026-11-09.md) | Metadata não é sincronização/commit nem auditoria de toda mutação; fronteira biomeTransition e integração abertas |
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
-| GPU-01 | [interface+CPU reference](../sector-runtime-h4-gpu01-compute-interface-2026-11-27.md), branch `cursor/h4-gpu-shadow-9f77` | Sem probe GL real, GPU-02/03/04, sombra CPU↔GPU ou ganho medido |
+| GPU-01 | [interface+CPU reference](../sector-runtime-h4-gpu01-compute-interface-2026-11-27.md) | Sem probe GL real |
+| GPU-02 | [fila/voo/recuperação](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) | Sem thread/contexto GL de driver |
+| GPU-03 | [lotes + DenseUint32*](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) | Sem kernels de terreno/bioma nem ganho medido |
+| GPU-04 | [compareShadow](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) | Sem GPU real nem campanha multi-driver |
 
 CPU-01 recebe o primeiro marco porque agora existe cálculo com dados próprios
 que independe da origem/Root após captura, não só callbacks/catálogos ou contagem
 de testes. Não recebe 50%; não ativa jobs, orçamento ou nova fase de executor.
-GPU-01 recebe o primeiro marco pela superfície submit/poll/cancel com backend
-CPU independente da GUI; não recebe 50% sem capacidades GL detectadas e kernels
-em sombra.
+GPU-01…04 recebem o primeiro marco no caminho CPU-first; nenhum recebe 50% sem
+probe GL, publicação versionada e equivalência em hardware.
 
 Os números de testes e seus limites provêm dos relatórios das respectivas etapas,
 no cenário NoAssets, não de streaming integrado. A criação original do painel
@@ -311,6 +313,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 26/11/2026 | Noise/adjacent stale | TemplateRevision bump sob noise e setor {1,0}; 105 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 26/11/2026 | Concurrent ocean | Duas sombras oceano no ledger; 106 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 27/11/2026 | GPU-01 interface | `WorldGenerationComputeService` + CPU `DenseUint32Xor`; 6 testes. GPU-01 0→25%; H4 6,3% | 4,1% |
+| 27/11/2026 | GPU-02/03/04 CPU-first | Fila/batch/sombra; 14 testes. GPU-02/03/04 0→25%; H4 25% | 5,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

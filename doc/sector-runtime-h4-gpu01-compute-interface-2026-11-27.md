@@ -35,5 +35,6 @@ CPU↔GPU (GPU-04), sem claim de ganho. GPU submit recusado até probe real.
 
 ## Próximo passo
 
-GPU-02 (fila/contexto) ou probe OpenGL compute opt-in fora da build normal.
-Não publicar divergências. Não disparar Actions.
+Entregue em
+[GPU-02/03/04](sector-runtime-h4-gpu02-03-04-2026-11-27.md).
+Probe GL opt-in permanece fora da build normal. Não disparar Actions.
