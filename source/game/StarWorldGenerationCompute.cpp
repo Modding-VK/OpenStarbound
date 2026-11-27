@@ -1330,6 +1330,27 @@ size_t WorldGenerationComputeService::discardReadyOpenTicketsByKernel(
   return discarded;
 }
 
+size_t WorldGenerationComputeService::discardFailedOpenTicketsByKernel(
+    WorldGenerationComputeKernel kernel) {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return 0;
+  List<WorldGenerationComputeTicket> tickets;
+  for (auto const& pair : m_entries) {
+    if (pair.second.state != EntryState::Failed || pair.second.identity.kernel != kernel)
+      continue;
+    WorldGenerationComputeTicket ticket;
+    ticket.id = pair.first;
+    tickets.append(ticket);
+  }
+  size_t discarded = 0;
+  for (auto ticket : tickets) {
+    pollLocked(ticket, nullptr);
+    ++discarded;
+  }
+  return discarded;
+}
+
 size_t WorldGenerationComputeService::inFlight() const {
   std::lock_guard<std::mutex> lock(m_mutex);
   size_t count = 0;

@@ -703,6 +703,47 @@ TEST(WorldGenerationComputeTest, DenseUint32PackExpandLowHighNibblesExactCpuAndS
           .verdict);
 }
 
+TEST(WorldGenerationComputeTest, DiscardFailedOpenTicketsByKernelIsSelective) {
+  WorldGenerationComputeCapabilities caps = WorldGenerationComputeService::probeCapabilities();
+  caps.gpuOpenGlCompute = true;
+  WorldGenerationComputeService service(caps);
+  service.setDeferredCpuCompletion(true);
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(780, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(781, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{2u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(782, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{3u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute));
+
+  EXPECT_EQ(0u,
+      service.discardFailedOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(2u, service.completeOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+#ifndef STAR_ENABLE_WORLDGEN_GL_COMPUTE
+  EXPECT_EQ(2u, service.failedOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(2u,
+      service.discardFailedOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(0u, service.failedOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(0u, service.countOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(1u, service.inFlightByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+  EXPECT_EQ(0u,
+      service.discardFailedOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+#else
+  size_t failedXor = service.failedOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor);
+  size_t readyXor = service.readyOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor);
+  EXPECT_EQ(2u, failedXor + readyXor);
+  size_t discardedFailed =
+      service.discardFailedOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor);
+  size_t discardedReady =
+      service.discardReadyOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor);
+  EXPECT_EQ(2u, discardedFailed + discardedReady);
+  EXPECT_EQ(0u, service.countOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(1u, service.inFlightByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+#endif
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32NibbleSumMaxMinExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();
