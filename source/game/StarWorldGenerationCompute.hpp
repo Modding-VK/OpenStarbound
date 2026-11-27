@@ -228,7 +228,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32HalfMaskNibbles = 202, // keep low16 nibbles whose bit in (parameter&0xf) is set
   DenseUint32HalfBroadcastNibbleAt = 203, // broadcast nibble (parameter & 3) across low16
   DenseUint32HalfReplaceNibble = 204, // replace low16 nibbles==(parameter&0xf) with (parameter>>8)&0xf
-  DenseUint32HalfReverseNibbles = 205 // reverse four nibbles of low16; parameter ignored
+  DenseUint32HalfReverseNibbles = 205, // reverse four nibbles of low16; parameter ignored
+  DenseUint32HalfWidenNibbles = 206, // each low16 nibble becomes a byte (little-endian); parameter ignored
+  DenseUint32HalfDupNibbles = 207, // duplicate each low16 nibble into a byte; parameter ignored
+  DenseUint32HalfFoldAdjacentNibbles = 208 // XOR nibble pairs 0^1 and 2^3 into low byte
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {

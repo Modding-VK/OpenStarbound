@@ -265,6 +265,9 @@ GLuint g_halfMaskNibblesProgram = 0;
 GLuint g_halfBroadcastNibbleAtProgram = 0;
 GLuint g_halfReplaceNibbleProgram = 0;
 GLuint g_halfReverseNibblesProgram = 0;
+GLuint g_halfWidenNibblesProgram = 0;
+GLuint g_halfDupNibblesProgram = 0;
+GLuint g_halfFoldAdjacentNibblesProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -3646,6 +3649,62 @@ void main() {
 }
 )GLSL";
 
+char const* HalfWidenNibblesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n)
+    result |= ((lo >> (n * 4u)) & 0xfu) << (n * 8u);
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfDupNibblesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint nib = (lo >> (n * 4u)) & 0xfu;
+    result |= nib << (n * 8u);
+    result |= nib << (n * 8u + 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfFoldAdjacentNibblesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  uint a = (lo & 0xfu) ^ ((lo >> 4) & 0xfu);
+  uint b = ((lo >> 8) & 0xfu) ^ ((lo >> 12) & 0xfu);
+  values[i] = a | (b << 4);
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -4514,6 +4573,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfReverseNibblesProgram);
     g_halfReverseNibblesProgram = 0;
   }
+  if (g_halfWidenNibblesProgram) {
+    glDeleteProgram(g_halfWidenNibblesProgram);
+    g_halfWidenNibblesProgram = 0;
+  }
+  if (g_halfDupNibblesProgram) {
+    glDeleteProgram(g_halfDupNibblesProgram);
+    g_halfDupNibblesProgram = 0;
+  }
+  if (g_halfFoldAdjacentNibblesProgram) {
+    glDeleteProgram(g_halfFoldAdjacentNibblesProgram);
+    g_halfFoldAdjacentNibblesProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -4840,7 +4911,12 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfReplaceNibbleProgram, HalfReplaceNibbleShader,
             "DenseUint32HalfReplaceNibble")
       || !requireProgram(g_halfReverseNibblesProgram, HalfReverseNibblesShader,
-            "DenseUint32HalfReverseNibbles"))
+            "DenseUint32HalfReverseNibbles")
+      || !requireProgram(g_halfWidenNibblesProgram, HalfWidenNibblesShader,
+            "DenseUint32HalfWidenNibbles")
+      || !requireProgram(g_halfDupNibblesProgram, HalfDupNibblesShader, "DenseUint32HalfDupNibbles")
+      || !requireProgram(g_halfFoldAdjacentNibblesProgram, HalfFoldAdjacentNibblesShader,
+            "DenseUint32HalfFoldAdjacentNibbles"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -5315,6 +5391,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfReplaceNibbleProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfReverseNibbles)
     program = g_halfReverseNibblesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfWidenNibbles)
+    program = g_halfWidenNibblesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfDupNibbles)
+    program = g_halfDupNibblesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfFoldAdjacentNibbles)
+    program = g_halfFoldAdjacentNibblesProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
