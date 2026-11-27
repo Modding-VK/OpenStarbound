@@ -127,6 +127,9 @@ GLuint g_byteMinProgram = 0;
 GLuint g_dupLow16Program = 0;
 GLuint g_dupHigh16Program = 0;
 GLuint g_reverseBitsInBytesProgram = 0;
+GLuint g_isolateLsbProgram = 0;
+GLuint g_isolateMsbProgram = 0;
+GLuint g_lsbMaskProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -1143,6 +1146,51 @@ void main() {
 }
 )GLSL";
 
+char const* IsolateLsbShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  values[i] = v & uint(-int(v));
+}
+)GLSL";
+
+char const* IsolateMsbShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  values[i] = v == 0u ? 0u : (1u << uint(findMSB(v)));
+}
+)GLSL";
+
+char const* LsbMaskShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  values[i] = v ^ (v - 1u);
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -1459,6 +1507,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_reverseBitsInBytesProgram);
     g_reverseBitsInBytesProgram = 0;
   }
+  if (g_isolateLsbProgram) {
+    glDeleteProgram(g_isolateLsbProgram);
+    g_isolateLsbProgram = 0;
+  }
+  if (g_isolateMsbProgram) {
+    glDeleteProgram(g_isolateMsbProgram);
+    g_isolateMsbProgram = 0;
+  }
+  if (g_lsbMaskProgram) {
+    glDeleteProgram(g_lsbMaskProgram);
+    g_lsbMaskProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -1613,7 +1673,10 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_dupLow16Program, DupLow16Shader, "DenseUint32DupLow16")
       || !requireProgram(g_dupHigh16Program, DupHigh16Shader, "DenseUint32DupHigh16")
       || !requireProgram(g_reverseBitsInBytesProgram, ReverseBitsInBytesShader,
-            "DenseUint32ReverseBitsInBytes"))
+            "DenseUint32ReverseBitsInBytes")
+      || !requireProgram(g_isolateLsbProgram, IsolateLsbShader, "DenseUint32IsolateLsb")
+      || !requireProgram(g_isolateMsbProgram, IsolateMsbShader, "DenseUint32IsolateMsb")
+      || !requireProgram(g_lsbMaskProgram, LsbMaskShader, "DenseUint32LsbMask"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -1812,6 +1875,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_dupHigh16Program;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32ReverseBitsInBytes)
     program = g_reverseBitsInBytesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32IsolateLsb)
+    program = g_isolateLsbProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32IsolateMsb)
+    program = g_isolateMsbProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32LsbMask)
+    program = g_lsbMaskProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
