@@ -702,3 +702,8 @@ integração: **nenhum**.
 - Merge H4 `ca61eb1f` (HalfLcm/HalfCoprime/HalfAlignUp + listCancelledOpenKernels; 114/114).
 - Build `46067036173` @ `2d4b047f` intacto; 1 Build tip final após terminal; sem spam.
 - Conflito só `progress.md`; reconciliado.
+
+## Revisão 2026-11-27T21:10Z
+- Merge H4 `66536948` (HalfAlignDown/HalfRotl/HalfRotr + countCancelledOpenKernels; 116/116).
+- Build `46067036173` @ `2d4b047f` intacto; 1 Build tip final após terminal; sem spam.
+- Conflito só `progress.md`; reconciliado.
