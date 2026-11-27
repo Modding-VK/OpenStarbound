@@ -207,7 +207,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32HalfExpandLow8ToEven = 181, // expand low 8 bits into even positions of low16
   DenseUint32HalfInterleaveBytes = 182, // Morton-merge high/low bytes of low16; parameter ignored
   DenseUint32HalfDeinterleaveBytes = 183, // split odd/even of low16 into low/high bytes
-  DenseUint32HalfSwapBytes = 184 // swap bytes of low16; parameter ignored
+  DenseUint32HalfSwapBytes = 184, // swap bytes of low16; parameter ignored
+  DenseUint32HalfNibbleXor = 185, // XOR of four nibbles of low16; parameter ignored
+  DenseUint32HalfNibbleOr = 186, // OR of four nibbles of low16; parameter ignored
+  DenseUint32HalfNibbleAnd = 187 // AND of four nibbles of low16; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
