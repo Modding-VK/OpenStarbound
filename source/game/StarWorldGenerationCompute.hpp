@@ -452,6 +452,10 @@ public:
   // Does not complete Pending; leaves Ready/Failed/Pending untouched.
   size_t discardCancelledOpenTicketsByKernel(WorldGenerationComputeKernel kernel);
 
+  // GPU-02: cancel+poll Pending tickets whose identity.kernel matches (owner-thread).
+  // Leaves Ready/Failed/Cancelled untouched.
+  size_t discardPendingOpenTicketsByKernel(WorldGenerationComputeKernel kernel);
+
   // GPU-02: poll+discard Ready/Failed/Cancelled tickets for one kernel (owner-thread).
   // Does not complete Pending.
   size_t discardTerminalOpenTicketsByKernel(WorldGenerationComputeKernel kernel);

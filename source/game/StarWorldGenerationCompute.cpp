@@ -2129,6 +2129,31 @@ size_t WorldGenerationComputeService::discardCancelledOpenTicketsByKernel(
   return discarded;
 }
 
+size_t WorldGenerationComputeService::discardPendingOpenTicketsByKernel(
+    WorldGenerationComputeKernel kernel) {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return 0;
+  List<WorldGenerationComputeTicket> tickets;
+  for (auto& pair : m_entries) {
+    Entry& entry = pair.second;
+    if (entry.state != EntryState::Pending || entry.identity.kernel != kernel)
+      continue;
+    entry.publicationRevoked = true;
+    entry.state = EntryState::Cancelled;
+    entry.output.clear();
+    WorldGenerationComputeTicket ticket;
+    ticket.id = pair.first;
+    tickets.append(ticket);
+  }
+  size_t discarded = 0;
+  for (auto ticket : tickets) {
+    pollLocked(ticket, nullptr);
+    ++discarded;
+  }
+  return discarded;
+}
+
 size_t WorldGenerationComputeService::discardTerminalOpenTicketsByKernel(
     WorldGenerationComputeKernel kernel) {
   std::lock_guard<std::mutex> lock(m_mutex);
