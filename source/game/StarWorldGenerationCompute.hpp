@@ -36,7 +36,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32Shr = 10, // logical value >> (parameter & 31)
   DenseUint32Rotl = 11, // rotate left by (parameter & 31)
   DenseUint32Rotr = 12, // rotate right by (parameter & 31)
-  DenseUint32Not = 13 // bitwise complement (~value); parameter ignored
+  DenseUint32Not = 13, // bitwise complement (~value); parameter ignored
+  DenseUint32Clz = 14, // count leading zeros; 32 for zero; parameter ignored
+  DenseUint32Ctz = 15, // count trailing zeros; 32 for zero; parameter ignored
+  DenseUint32Popcount = 16 // population count; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {

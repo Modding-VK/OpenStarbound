@@ -56,7 +56,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32Shr
       || kernel == WorldGenerationComputeKernel::DenseUint32Rotl
       || kernel == WorldGenerationComputeKernel::DenseUint32Rotr
-      || kernel == WorldGenerationComputeKernel::DenseUint32Not;
+      || kernel == WorldGenerationComputeKernel::DenseUint32Not
+      || kernel == WorldGenerationComputeKernel::DenseUint32Clz
+      || kernel == WorldGenerationComputeKernel::DenseUint32Ctz
+      || kernel == WorldGenerationComputeKernel::DenseUint32Popcount;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -77,10 +80,76 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32Shr,
       WorldGenerationComputeKernel::DenseUint32Rotl,
       WorldGenerationComputeKernel::DenseUint32Rotr,
-      WorldGenerationComputeKernel::DenseUint32Not};
+      WorldGenerationComputeKernel::DenseUint32Not,
+      WorldGenerationComputeKernel::DenseUint32Clz,
+      WorldGenerationComputeKernel::DenseUint32Ctz,
+      WorldGenerationComputeKernel::DenseUint32Popcount};
   for (auto kernel : all)
     out.append(kernel);
   return out;
+}
+
+namespace {
+
+uint32_t denseClz(uint32_t value) noexcept {
+  if (value == 0u)
+    return 32u;
+  uint32_t n = 0u;
+  if (value <= 0x0000ffffu) {
+    n += 16u;
+    value <<= 16u;
+  }
+  if (value <= 0x00ffffffu) {
+    n += 8u;
+    value <<= 8u;
+  }
+  if (value <= 0x0fffffffu) {
+    n += 4u;
+    value <<= 4u;
+  }
+  if (value <= 0x3fffffffu) {
+    n += 2u;
+    value <<= 2u;
+  }
+  if (value <= 0x7fffffffu)
+    n += 1u;
+  return n;
+}
+
+uint32_t denseCtz(uint32_t value) noexcept {
+  if (value == 0u)
+    return 32u;
+  uint32_t n = 0u;
+  if ((value & 0x0000ffffu) == 0u) {
+    n += 16u;
+    value >>= 16u;
+  }
+  if ((value & 0x000000ffu) == 0u) {
+    n += 8u;
+    value >>= 8u;
+  }
+  if ((value & 0x0000000fu) == 0u) {
+    n += 4u;
+    value >>= 4u;
+  }
+  if ((value & 0x00000003u) == 0u) {
+    n += 2u;
+    value >>= 2u;
+  }
+  if ((value & 0x00000001u) == 0u)
+    n += 1u;
+  return n;
+}
+
+uint32_t densePopcount(uint32_t value) noexcept {
+  value = value - ((value >> 1u) & 0x55555555u);
+  value = (value & 0x33333333u) + ((value >> 2u) & 0x33333333u);
+  value = (value + (value >> 4u)) & 0x0f0f0f0fu;
+  value = value + (value >> 8u);
+  value = value + (value >> 16u);
+  return value & 0x3fu;
+}
+
 }
 
 uint64_t WorldGenerationComputeService::bufferBytes(List<uint32_t> const& values) noexcept {
@@ -136,6 +205,15 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
   } else if (kernel == WorldGenerationComputeKernel::DenseUint32Not) {
     for (uint32_t value : input)
       out.append(~value);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Clz) {
+    for (uint32_t value : input)
+      out.append(denseClz(value));
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Ctz) {
+    for (uint32_t value : input)
+      out.append(denseCtz(value));
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Popcount) {
+    for (uint32_t value : input)
+      out.append(densePopcount(value));
   }
   return out;
 }
