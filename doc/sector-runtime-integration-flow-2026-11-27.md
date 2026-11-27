@@ -750,3 +750,7 @@ integração: **nenhum**.
 ## Revisão 2026-11-27T22:24Z
 - Merge H4 `8b1b9591` (HalfMaskHigh/HalfBitTest/HalfIsolateLsb + anyPendingOpenTicketsByKernel; 130/130).
 - Build `46075958751` @ `a4a84b28` intacto; 1 Build tip final após terminal; sem spam.
+
+## Revisão 2026-11-27T22:26Z
+- Merge H4 `a4792b8f` (HalfIsolateMsb/HalfClearLsb/HalfLsbMask + discardPendingOpenTicketsByKernel; 132/132).
+- Build `46075958751` @ `a4a84b28` intacto; 1 Build tip final após terminal; sem spam.
