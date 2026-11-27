@@ -39,7 +39,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32Not = 13, // bitwise complement (~value); parameter ignored
   DenseUint32Clz = 14, // count leading zeros; 32 for zero; parameter ignored
   DenseUint32Ctz = 15, // count trailing zeros; 32 for zero; parameter ignored
-  DenseUint32Popcount = 16 // population count; parameter ignored
+  DenseUint32Popcount = 16, // population count; parameter ignored
+  DenseUint32Eq = 17, // value == parameter ? 0xffffffff : 0
+  DenseUint32Ne = 18, // value != parameter ? 0xffffffff : 0
+  DenseUint32BitReverse = 19 // bitfield reverse; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -188,6 +191,9 @@ public:
   size_t stagingBytes() const;
   size_t pooledBuffers() const;
 
+  // GPU-02 observation (any thread under mutex): open ticket ids snapshot.
+  List<WorldGenerationComputeTicket> listOpenTickets() const;
+
   // GPU-02 accounting for RAM-01 consumers (asset-free observation only).
   WorldGenerationComputeStagingSnapshot stagingSnapshot() const;
   void resetPeakStagingBytes() noexcept;
@@ -262,6 +268,9 @@ public:
 
   // Stable fingerprint of an immutable input buffer (asset-free; no mod payload).
   static uint64_t fingerprintInput(List<uint32_t> const& input) noexcept;
+
+  // GPU-04: stable fingerprint of an input identity (asset-free; no mod payload).
+  static uint64_t fingerprintIdentity(WorldGenerationComputeInputIdentity const& identity) noexcept;
 
   // GPU-04 approved RNG: deterministic uint32 draws; advances counter by 1.
   static uint32_t drawRng(WorldGenerationComputeRngStream& stream) noexcept;

@@ -533,12 +533,12 @@ do kernel CPU e do resultado versionado.
   (primeiro recorte 25%: serviço + supportedKernels/kernelName + probe GL
   opt-in).
 - [x] GPU-02: fila/buffers em voo/pump/failContext + stagingSnapshot +
-  adoptOwnerThread + cancel/poll/completeBatch (primeiro recorte 25%;
-  integração WorldThread pendente).
-- [x] GPU-03: kernels densos DenseUint32* incl. Clz/Ctz/Popcount +
+  adoptOwnerThread + cancel/poll/completeBatch + listOpenTickets
+  (primeiro recorte 25%; integração WorldThread pendente).
+- [x] GPU-03: kernels densos DenseUint32* incl. Eq/Ne/BitReverse +
   submitBatch (primeiro recorte 25%; terreno/bioma/ganho pendentes).
-- [x] GPU-04: compareShadow/compareShadowBatch + commit/RngStream
-  (primeiro recorte 25%; multi-driver pendente).
+- [x] GPU-04: compareShadow/compareShadowBatch + commit/RngStream +
+  fingerprintIdentity (primeiro recorte 25%; multi-driver pendente).
 
 Saída: equivalência e custo completo demonstrados, sem publicar divergências.
 A existência de shaders/uso de GPU no gráfico não conclui esta entrega.

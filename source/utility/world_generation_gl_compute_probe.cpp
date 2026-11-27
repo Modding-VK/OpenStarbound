@@ -90,6 +90,10 @@ int main() {
   rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32Ctz, 0u, "DenseUint32Ctz");
   rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32Popcount, 0u,
       "DenseUint32Popcount");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32Eq, 0u, "DenseUint32Eq");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32Ne, 1u, "DenseUint32Ne");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32BitReverse, 0u,
+      "DenseUint32BitReverse");
 
   auto ticket = service.submit(makeIdentity(99, WorldGenerationComputeKernel::DenseUint32Xor),
       edgeCorpus(), 0x55aa55aau, WorldGenerationComputeBackend::GpuOpenGlCompute);
