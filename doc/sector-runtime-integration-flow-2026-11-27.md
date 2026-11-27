@@ -827,3 +827,12 @@ integração: **nenhum**.
 - Merge H5 `f1bddd2b` (Desktop 49/49 evidence fingerprint).
 - H5 em standby depois deste tip.
 - Build `46079365811` intacto; 1 Build tip final após terminal; sem spam.
+
+## Front review 2026-11-27T23:04Z
+- INT tip: `7d8d0101` (H5 `f1bddd2b` 49/49 + H4 lote `828a45d2`; H5 standby).
+- Ahead vs INT: h0–h3/h5/r1/r2 = 0; **H4 ahead=3** tip `929e0147` (HalfBroadcastNibbleAt/Replace/Reverse + listFailedOpenTickets).
+- H4 janela ~4 min desde `dbc19fa6` — **hold** (<15 min; sem tip-a-tip).
+- H3: sem commits novos.
+- PRs abertos base INT: nenhum.
+- Build `46079365811` @ `46a2da76` in_progress (intacto); 1 Build tip final após terminal.
+- Sem merge main; sem Actions dispatch neste review.
