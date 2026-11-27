@@ -160,6 +160,12 @@ latência; uma janela excessiva pode apenas produzir resultados stale.
 
 ## CPU-04 — Extração por etapa
 
+Primeiro recorte em `cursor/h3-kernels-publication-9f77`:
+`WorldGenerationCaveLiquidPlan` produz seeds + delta ordenado de pressão
+sobre amostras privadas, com `tryConsume` só após revalidação e sem
+publicação. Ver [relatório](../sector-runtime-h3-cave-liquid-plan-2026-11-27.md).
+Finalize puro e equivalência com `generateCaveLiquid` vivo continuam abertos.
+
 **BaseTiles:** preservar materiais preexistentes e regras de oceanos/bioma.
 O cálculo já é privado; reduzir cópias e publicação/invalidação de colisão
 sem sobrescrever alterações reais feitas após o snapshot.

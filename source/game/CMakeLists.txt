@@ -185,6 +185,7 @@ SET (star_game_HEADERS
     StarWorldGenerationLookupSources.hpp
     StarWorldGenerationLookupResolver.hpp
     StarWorldGenerationBaseTiles.hpp
+    StarWorldGenerationCaveLiquidPlan.hpp
     StarWorldGenerationBlockInfo.hpp
     StarWorldGenerationCustomTerrain.hpp
     StarWorldGenerationBlockInfoStaticInputs.hpp

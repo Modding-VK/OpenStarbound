@@ -454,7 +454,10 @@ de crescimento persistente após mudança de rota ou fechamento do mundo.
 
 Propósito: reduzir trabalho serial após o desbloqueio do pipeline.
 
-- [ ] CPU-04: extrair parte pura de CaveLiquid e Finalize por contrato.
+- [x] CPU-04 (primeiro recorte): CaveLiquid plan/delta em sombra em
+  `cursor/h3-kernels-publication-9f77`
+  ([relatório](../sector-runtime-h3-cave-liquid-plan-2026-11-27.md)); Finalize
+  e equivalência viva pendentes.
 - [ ] MD-02/03: formato estático TMX separado da ligação que consome RNG.
 - [ ] MD-04: mapa completo de efeitos, footprints e comandos de estruturas.
 - [ ] MD-05 e WT-04: aplicação em batches e staging quando necessário.
