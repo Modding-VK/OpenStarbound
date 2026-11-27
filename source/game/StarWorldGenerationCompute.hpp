@@ -337,6 +337,10 @@ public:
   // GPU-02: drain only open tickets whose identity.kernel matches (owner-thread).
   size_t drainOpenTicketsByKernel(WorldGenerationComputeKernel kernel);
 
+  // GPU-02: poll+discard Ready tickets whose identity.kernel matches (owner-thread).
+  // Does not complete Pending; leaves Failed/Cancelled/Pending untouched.
+  size_t discardReadyOpenTicketsByKernel(WorldGenerationComputeKernel kernel);
+
 
   // GPU-02 accounting for RAM-01 consumers (asset-free observation only).
   WorldGenerationComputeStagingSnapshot stagingSnapshot() const;
