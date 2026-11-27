@@ -28,9 +28,9 @@ permanecem em 25%; programa 3,6%.
 
 ## Próximo passo
 
-Comparar materialização privada do composto ao builder/região reais com
-fixtures representativas (Root opt-in), sem adotar jobs. Não normalizar
-defaults auditados. Não disparar Actions.
+Feito na etapa seguinte: comparação Root com `buildRegion` em
+[composite-root-compare](sector-runtime-h0-composite-root-compare-2026-11-26.md).
+Continuar com builder terrestre / BaseTiles e sombra.
 
 ## Fontes locais de 26/11/2026 UTC
 

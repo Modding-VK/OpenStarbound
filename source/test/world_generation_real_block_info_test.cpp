@@ -3,6 +3,7 @@
 #include "StarWorldTemplateTypes.hpp"
 #include "StarWorldGenerationBlockInfo.hpp"
 #include "StarWorldGenerationSelectorSnapshot.hpp"
+#include "StarWorldGenerationCompositeContext.hpp"
 #include "StarWorldParameters.hpp"
 #include "StarWorldGenerationBaseTiles.hpp"
 #include "StarWorldGenerationBaseTileInput.hpp"
@@ -1232,4 +1233,60 @@ TEST_F(WorldGenerationRealBlockInfoTest, RegionSnapshotsBuildPrivateRealSelector
     return result;
   });
   for (auto& worker : workers) EXPECT_EQ(samples, worker.get());
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, CompositeContextMatchesRealRegionParametersAndPrivateSelectors) {
+  writeRegionAssets();
+  auto r = root();
+  auto world = planet();
+  world->addCustomTerrainRegion(PolyF(RectF::withSize({0, 10}, {10, 10})));
+  auto revision = world->generationRevision();
+
+  WorldGenerationSelectorContextIdentity selectors;
+  selectors.worldEpoch = 1;
+  selectors.sequence = 1;
+  selectors.templateRevision = revision;
+  selectors.worldWidth = 64;
+  selectors.baseHeight = 16;
+  selectors.regionSeed = 42;
+
+  WorldGenerationBaseTilesIdentity baseTiles;
+  baseTiles.task = {1, 1, {0, 0}, {0, 0}, WorldGenerationTaskStage::BaseTiles};
+  baseTiles.tileRevision = 1;
+  baseTiles.templateRevision = revision;
+  baseTiles.worldSize = {64, 64};
+  baseTiles.tileRegion = RectI(0, 0, int(WorldSectorSize), int(WorldSectorSize));
+
+  Random::init(918);
+  auto context = WorldGenerationCompositeContext::tryCapture(ledger, selectors, baseTiles, *world);
+  ASSERT_TRUE(context.has_value());
+  EXPECT_EQ(bits(0.75f), bits(context->configFloat("biomeTransitionThreshold", 0)));
+  EXPECT_EQ(1u, context->staticInputs().customTerrainRegionCount());
+
+  WorldLayout layout;
+  Access::withRootMaintenanceLocked(*r, [&] {
+    Random::init(918);
+    auto region = Access::buildRealRegion(layout, 42);
+    auto terrain = layout.getTerrainSelector(region.terrainSelectorIndex);
+    auto foreground = layout.getTerrainSelector(region.foregroundCaveSelectorIndex);
+    auto background = layout.getTerrainSelector(region.backgroundCaveSelectorIndex);
+    EXPECT_EQ(context->terrain().toJson(), terrain->parameters.toJson());
+    EXPECT_EQ(context->foregroundCave().toJson(), foreground->parameters.toJson());
+    EXPECT_EQ(context->backgroundCave().toJson(), background->parameters.toJson());
+
+    auto database = Root::singleton().terrainDatabase();
+    auto privateTerrain = database->createNamedSelector("fixture-flat", context->terrain());
+    auto privateForeground = database->createNamedSelector("fixture-cave", context->foregroundCave());
+    auto privateBackground = database->createNamedSelector("fixture-cave", context->backgroundCave());
+    for (int x = -8; x != 72; x += 4) for (int y = 0; y != 32; y += 4) {
+      EXPECT_EQ(bits(terrain->get(x, y)), bits(privateTerrain->get(x, y))) << x << ',' << y;
+      EXPECT_EQ(bits(foreground->get(x, y)), bits(privateForeground->get(x, y))) << x << ',' << y;
+      EXPECT_EQ(bits(background->get(x, y)), bits(privateBackground->get(x, y))) << x << ',' << y;
+    }
+  });
+
+  world.reset();
+  EXPECT_TRUE(context->matches(selectors, baseTiles));
+  EXPECT_EQ(bits(0.75f), bits(context->configFloat("biomeTransitionThreshold", 0)));
+  EXPECT_GT(context->customTerrainWeighting(5, 15).second, 0);
 }

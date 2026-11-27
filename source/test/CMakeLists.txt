@@ -262,6 +262,8 @@ IF(STAR_BUILD_ROOT_LIFECYCLE_TESTS)
     ../game/StarWorldGenerationMemoryEnvelope.cpp
     ../game/StarWorldGenerationMemoryEstimate.cpp
     ../game/StarWorldGenerationBaseTiles.cpp
+    ../game/StarWorldGenerationTasks.cpp
+    ../game/StarWorldRegionPartition.cpp
     ../game/StarWorldTiles.cpp
     ../game/StarLiquidTypes.cpp
     ../game/StarDatabaseMaintenance.cpp

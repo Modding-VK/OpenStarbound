@@ -6,7 +6,7 @@ Base inspecionada: `48e39709`;
 inputs/identidade BaseTiles (ver relatório de composição).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h0-composite-context-2026-11-26.md)
+· [Último relatório técnico](../sector-runtime-h0-composite-root-compare-2026-11-26.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -23,7 +23,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **3,6%** — 7 marcos verificados de 196 |
 | Contratos com avanço registrado | **7 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | 777 casos padrão (5 novos de composição), ASan/UBSan; seletores+static inputs+identidade BaseTiles no mesmo ledger; comparação Root/builder real pendente |
+| Última evidência de testes | 777 padrão +61 RealBlockInfo opt-in (1 novo composto vs região); ASan/UBSan; comparação terrestre/BaseTiles e sombra pendentes |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,6% não significam que o jogo esteja só 3,6% pronto.** O runtime anterior
@@ -265,6 +265,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 10/11/2026 | Referência terrestre em validação | Builder terrestre comparado ao corpo pré-snapshot em três seeds e falha: layout, tiles e próximo RNG; 764 padrão +73 opcionais, ASan/UBSan. Contexto profundo/admissão, assets/mods representativos e streaming pendentes | 3,6% |
 | 26/11/2026 | Contexto de seletores | Identidade por admissão + reserva POD antes do RNG legado; 772 padrão, 8 novos, 10 repetições, ASan/UBSan. Auditoria de defaults registrada; composição com static inputs/BaseTiles e sombra pendentes. Sem novo marco completo; CPU-01/H0/RAM-01 em 25% | 3,6% |
 | 26/11/2026 | Contexto composto | Seletores+static inputs+identidade BaseTiles no mesmo ledger; 777 padrão, 5 novos, 10 repetições, ASan/UBSan. Comparação Root/builder e sombra pendentes. Sem novo marco completo; CPU-01/H0/RAM-01 em 25% | 3,6% |
+| 26/11/2026 | Composto vs região Root | Parâmetros e amostras get() do composto = buildRegion real; 61 RealBlockInfo, 5 repetições, ASan/UBSan. Terrestre/BaseTiles/sombra pendentes. Sem novo marco completo | 3,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.
