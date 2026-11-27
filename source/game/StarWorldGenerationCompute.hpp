@@ -279,7 +279,10 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfKeepEvenBitsNibble = 253, // each low16 nibble & 0xa; parameter ignored
   DenseUint32HalfSwapAdjacentBitsNibble = 254, // swap bit pairs in each low16 nibble; parameter ignored
   DenseUint32HalfGrayEncodeNibble = 255, // nibble ^ (nibble >> 1) for each low16 nibble; parameter ignored
-  DenseUint32HalfGrayDecodeNibble = 256 // binary from Gray code of each low16 nibble; parameter ignored
+  DenseUint32HalfGrayDecodeNibble = 256, // binary from Gray code of each low16 nibble; parameter ignored
+  DenseUint32HalfClzNibble = 257, // leading zero count of each low16 nibble in 4-bit width; 4 if 0
+  DenseUint32HalfCtzNibble = 258, // trailing zero count of each low16 nibble; 4 if 0
+  DenseUint32HalfCloNibble = 259 // leading one count of each low16 nibble in 4-bit width; 4 if 0xf
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
