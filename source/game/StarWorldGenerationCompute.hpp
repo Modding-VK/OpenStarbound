@@ -246,7 +246,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32HalfClampNibble = 220, // clamp each low16 nibble to [(parameter&0xf), ((parameter>>8)&0xf)]
   DenseUint32HalfAndNibble = 221, // AND each low16 nibble with (parameter & 0xf)
   DenseUint32HalfOrNibble = 222, // OR each low16 nibble with (parameter & 0xf)
-  DenseUint32HalfXorNibble = 223 // XOR each low16 nibble with (parameter & 0xf)
+  DenseUint32HalfXorNibble = 223, // XOR each low16 nibble with (parameter & 0xf)
+  DenseUint32HalfShlNibble = 224, // shift each low16 nibble left by (parameter & 3) (wrap 4-bit)
+  DenseUint32HalfShrNibble = 225, // shift each low16 nibble right by (parameter & 3)
+  DenseUint32HalfRolNibble = 226 // rotate each low16 nibble left by (parameter & 3)
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
