@@ -186,10 +186,45 @@ TEST(WorldGenerationCandidateSequenceTest, MicroDungeonAndTreasurePayloadCompare
   EXPECT_EQ(treasureDiff.differentFields, static_cast<uint32_t>(ItemField::Payload));
 
   auto grass = BiomeItem{GrassVariant{}};
-  auto grassSupported = compareWorldGenerationBiomeItems(grass, grass);
-  EXPECT_FALSE(grassSupported.equal());
-  EXPECT_EQ(grassSupported.differentFields, static_cast<uint32_t>(ItemField::UnsupportedPayload));
+  EXPECT_TRUE(compareWorldGenerationBiomeItems(grass, grass).equal());
   EXPECT_TRUE(compareWorldGenerationBiomeItems(grass, grass, WorldGenerationBiomeItemComparisonMode::KindOnly).equal());
+
+  auto pool = BiomeItem{ObjectPool{}};
+  auto poolSupported = compareWorldGenerationBiomeItems(pool, pool);
+  EXPECT_FALSE(poolSupported.equal());
+  EXPECT_EQ(poolSupported.differentFields, static_cast<uint32_t>(ItemField::UnsupportedPayload));
+}
+
+TEST(WorldGenerationCandidateSequenceTest, GrassBushTreePayloadCompareExcludingTileDamage) {
+  GrassVariant grassA;
+  grassA.name = "tuft";
+  grassA.directory = "/grass/";
+  grassA.images = StringList{"a.png", "b.png"};
+  grassA.hueShift = 0.25f;
+  grassA.ceiling = true;
+  GrassVariant grassB = grassA;
+  EXPECT_TRUE(compareWorldGenerationBiomeItems(BiomeItem{grassA}, BiomeItem{grassB}).equal());
+  grassB.hueShift = 0.5f;
+  auto grassDiff = compareWorldGenerationBiomeItems(BiomeItem{grassA}, BiomeItem{grassB});
+  EXPECT_EQ(grassDiff.differentFields, static_cast<uint32_t>(WorldGenerationBiomeItemField::Payload));
+
+  BushVariant bushA;
+  bushA.bushName = "scrub";
+  bushA.modName = "flower";
+  bushA.shapes = {{"base.png", StringList{"m1.png"}}};
+  BushVariant bushB = bushA;
+  EXPECT_TRUE(compareWorldGenerationBiomeItems(BiomeItem{bushA}, BiomeItem{bushB}).equal());
+  bushB.shapes[0].mods = StringList{"m2.png"};
+  EXPECT_FALSE(compareWorldGenerationBiomeItems(BiomeItem{bushA}, BiomeItem{bushB}).equal());
+
+  TreeVariant stem;
+  stem.stemName = "oak";
+  stem.foliageName = "leaves";
+  TreePair trees{stem, stem};
+  TreePair treesDiff = trees;
+  treesDiff.second.foliageName = "other";
+  EXPECT_TRUE(compareWorldGenerationBiomeItems(BiomeItem{trees}, BiomeItem{trees}).equal());
+  EXPECT_FALSE(compareWorldGenerationBiomeItems(BiomeItem{trees}, BiomeItem{treesDiff}).equal());
 }
 
 TEST(WorldGenerationCandidateSequenceTest, PlacementPayloadSequenceDetectsNameSetDiff) {

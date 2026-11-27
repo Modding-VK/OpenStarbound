@@ -25,5 +25,6 @@ Artefato:
 
 ## Próximo passo
 
-Payload Grass/Bush/Tree/ObjectPool, ou MOD-01/VAL-01 H0 — sem sair desta
-frente. Não disparar Actions.
+Fechado parcialmente pelo
+[payload Grass/Bush/Tree](sector-runtime-h0-candidate-plant-payload-2026-11-27.md).
+Não disparar Actions.

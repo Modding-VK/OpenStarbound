@@ -96,6 +96,40 @@ bool validBiomeItemMode(WorldGenerationBiomeItemComparisonMode mode) {
   return mode == WorldGenerationBiomeItemComparisonMode::KindOnly
       || mode == WorldGenerationBiomeItemComparisonMode::SupportedPayload;
 }
+
+// TileDamageParameters excluded: contract target does not link PlantDatabase
+// toJson path; document in the H0 report.
+bool sameGrass(GrassVariant const& a, GrassVariant const& b) {
+  return a.name == b.name && a.directory == b.directory && a.images == b.images
+      && sameFloat(a.hueShift, b.hueShift) && a.descriptions == b.descriptions
+      && a.ceiling == b.ceiling && a.ephemeral == b.ephemeral;
+}
+
+bool sameBushShape(BushVariant::BushShape const& a, BushVariant::BushShape const& b) {
+  return a.image == b.image && a.mods == b.mods;
+}
+
+bool sameBush(BushVariant const& a, BushVariant const& b) {
+  if (a.bushName != b.bushName || a.modName != b.modName || a.directory != b.directory
+      || a.shapes.size() != b.shapes.size() || !sameFloat(a.baseHueShift, b.baseHueShift)
+      || !sameFloat(a.modHueShift, b.modHueShift) || a.descriptions != b.descriptions
+      || a.ceiling != b.ceiling || a.ephemeral != b.ephemeral)
+    return false;
+  for (size_t i = 0; i != a.shapes.size(); ++i) {
+    if (!sameBushShape(a.shapes[i], b.shapes[i]))
+      return false;
+  }
+  return true;
+}
+
+bool sameTree(TreeVariant const& a, TreeVariant const& b) {
+  return a.stemName == b.stemName && a.foliageName == b.foliageName
+      && a.stemDirectory == b.stemDirectory && a.stemSettings == b.stemSettings
+      && sameFloat(a.stemHueShift, b.stemHueShift) && a.foliageDirectory == b.foliageDirectory
+      && a.foliageSettings == b.foliageSettings && sameFloat(a.foliageHueShift, b.foliageHueShift)
+      && a.descriptions == b.descriptions && a.ceiling == b.ceiling && a.ephemeral == b.ephemeral
+      && a.stemDropConfig == b.stemDropConfig && a.foliageDropConfig == b.foliageDropConfig;
+}
 }
 
 WorldGenerationBiomeItemComparison compareWorldGenerationBiomeItems(BiomeItem const& a, BiomeItem const& b,
@@ -123,8 +157,26 @@ WorldGenerationBiomeItemComparison compareWorldGenerationBiomeItems(BiomeItem co
       result.differentFields |= static_cast<uint32_t>(WorldGenerationBiomeItemField::Payload);
     return result;
   }
+  if (auto aGrass = a.ptr<GrassVariant>()) {
+    auto bGrass = b.ptr<GrassVariant>();
+    if (!bGrass || !sameGrass(*aGrass, *bGrass))
+      result.differentFields |= static_cast<uint32_t>(WorldGenerationBiomeItemField::Payload);
+    return result;
+  }
+  if (auto aBush = a.ptr<BushVariant>()) {
+    auto bBush = b.ptr<BushVariant>();
+    if (!bBush || !sameBush(*aBush, *bBush))
+      result.differentFields |= static_cast<uint32_t>(WorldGenerationBiomeItemField::Payload);
+    return result;
+  }
+  if (auto aTree = a.ptr<TreePair>()) {
+    auto bTree = b.ptr<TreePair>();
+    if (!bTree || !sameTree(aTree->first, bTree->first) || !sameTree(aTree->second, bTree->second))
+      result.differentFields |= static_cast<uint32_t>(WorldGenerationBiomeItemField::Payload);
+    return result;
+  }
 
-  // Grass/Bush/Tree/ObjectPool: kind matches, payload deferred.
+  // ObjectPool (and any future kind): kind matches, payload deferred.
   result.differentFields |= static_cast<uint32_t>(WorldGenerationBiomeItemField::UnsupportedPayload);
   return result;
 }
