@@ -36,7 +36,7 @@ For the current state and the next work, start here:
 - [Roadmap and acceptance criteria](doc/sector-runtime/roadmap.md)
 - [Progress, evidence and next steps](doc/sector-runtime/progress.md)
 - [Operational checklist and current report](doc/regional-runtime-execution-checklist.md)
-- [Latest H0 report: concurrent sector shadows](doc/sector-runtime-h0-sector-shadow-concurrent-2026-11-26.md)
+- [Latest H0 report: IslandSurface shadow and admission pressure](doc/sector-runtime-h0-sector-shadow-island-pressure-2026-11-26.md)
 - [Performance backlog](doc/performance-backlog.md)
 
 <details>

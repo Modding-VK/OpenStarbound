@@ -23,5 +23,6 @@ ASan/UBSan: 6 sombras × 10; **783/783** contrato; Root 1×5; **67/67** RealBloc
 
 ## Próximo passo
 
-IslandSurface/colunas privadas sob composto+sombra, ou pressão de admissão com
-duas reservas. Não disparar Actions.
+Feito em
+[IslandSurface+pressão](sector-runtime-h0-sector-shadow-island-pressure-2026-11-26.md).
+Segue stale de template sob sombra. Não disparar Actions.

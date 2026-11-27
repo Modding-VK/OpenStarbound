@@ -127,6 +127,26 @@ TEST(WorldGenerationSectorShadowTest, TryAdmitFromCompositeReusesBaseTilesIdenti
   EXPECT_EQ(before.resources, ledger.snapshot().resources);
 }
 
+TEST(WorldGenerationSectorShadowTest, TightLedgerAdmitsOneShadowAndRefusesTheSecond) {
+  WorldGenerationMemoryLedger ledger(WorldGenerationSectorShadow::retainedBytes());
+  auto origin = baseTilesIdentity(1, {64, 64});
+  auto adjacent = origin;
+  adjacent.task.sequence = 2;
+  adjacent.task.sector = {1, 0};
+  adjacent.tileRegion = RectI(int(WorldSectorSize), 0, int(WorldSectorSize) * 2, int(WorldSectorSize));
+
+  auto first = WorldGenerationSectorShadow::tryAdmit(ledger, origin);
+  ASSERT_TRUE(first.has_value());
+  EXPECT_FALSE(WorldGenerationSectorShadow::tryAdmit(ledger, adjacent).has_value());
+  EXPECT_EQ(1u, ledger.snapshot().resources);
+  first->discard();
+  auto resumed = WorldGenerationSectorShadow::tryAdmit(ledger, adjacent);
+  ASSERT_TRUE(resumed.has_value());
+  EXPECT_TRUE(resumed->matches(adjacent));
+  resumed->discard();
+  EXPECT_EQ(0u, ledger.snapshot().resources);
+}
+
 TEST(WorldGenerationSectorShadowTest, ConcurrentSectorShadowsReleaseIndependently) {
   WorldGenerationMemoryLedger ledger;
   auto origin = baseTilesIdentity(1, {64, 64});

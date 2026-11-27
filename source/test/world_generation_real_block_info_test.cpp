@@ -124,6 +124,18 @@ struct WorldGenerationRealBlockInfoTestAccess {
     }
     return out;
   }
+  static Json islandConfig() {
+    return JsonObject{{"islandElevation", 3}, {"islandTaperPoint", 0.5},
+      {"islandHeight", noiseConfig(2, 4)}, {"islandDepth", noiseConfig(2, 4)},
+      {"islandDecision", noiseConfig(0.5, 0.5)}};
+  }
+  static WorldLayoutPtr island(TerrainDatabase const& database) {
+    auto out = layout(true, true);
+    auto config = islandConfig();
+    out->m_terrainSelectors[0] = database.createSelectorType("islandSurface", config, parameters());
+    out->m_terrainSelectors[5] = database.createSelectorType("islandSurface", config, parameters(2348, 40));
+    return out;
+  }
   static void emptyBlend(WorldLayout& layout) { layout.m_blendNoise = PerlinF(); }
   // Independent inherited reference from f22cf9c9; only receiver access is adapted.
   static WorldLayout legacyTerrestrialLayout(TerrestrialWorldParameters const& terrestrialParameters, uint64_t seed) {
@@ -951,6 +963,81 @@ TEST_F(WorldGenerationRealBlockInfoTest, IslandColumnCachesArePrivateAndMatchUnc
   }
   EXPECT_EQ(2u, first->columnCache.currentSize()); EXPECT_EQ(2u, second->columnCache.currentSize());
   first->columnCache.clear(); EXPECT_EQ(2u, second->columnCache.currentSize());
+}
+
+TEST_F(WorldGenerationRealBlockInfoTest, SectorShadowIslandSurfaceColumnsStayPrivateThroughComposite) {
+  auto r = root();
+  auto database = r->terrainDatabase();
+  auto liveLayout = Access::island(*database);
+  auto privateLayout = Access::island(*database);
+  auto unusedLayout = Access::island(*database);
+  auto world = planet(liveLayout);
+  auto revision = world->generationRevision();
+
+  WorldGenerationSelectorContextIdentity selectors;
+  selectors.worldEpoch = 1;
+  selectors.sequence = 1;
+  selectors.templateRevision = revision;
+  selectors.worldWidth = 64;
+  selectors.baseHeight = 16;
+  selectors.regionSeed = 42;
+
+  WorldGenerationBaseTilesIdentity baseTiles;
+  baseTiles.task = {1, 1, {0, 0}, {0, 0}, WorldGenerationTaskStage::BaseTiles};
+  baseTiles.tileRevision = 1;
+  baseTiles.templateRevision = revision;
+  baseTiles.worldSize = {64, 64};
+  baseTiles.tileRegion = RectI(0, 0, int(WorldSectorSize), int(WorldSectorSize));
+
+  Random::init(918);
+  auto context = WorldGenerationCompositeContext::tryCapture(ledger, selectors, baseTiles, *world);
+  ASSERT_TRUE(context.has_value());
+  auto beforeShadow = ledger.snapshot();
+  auto shadow = WorldGenerationSectorShadow::tryAdmit(ledger, *context);
+  ASSERT_TRUE(shadow.has_value());
+
+  RealSource candidate{context->staticInputs(), privateLayout};
+  auto materials = Root::singleton().materialDatabase();
+  WorldGenerationLookupResolver resolver{*world, *materials};
+  auto expected = std::make_unique<ServerTileSectorArray::Array>();
+  size_t solid = 0, empty = 0;
+  for (int x = 0; x != 32; ++x) for (int y = 0; y != 32; ++y) {
+    auto normal = world->blockInfo(x, y), captured = candidate.sample(x, y);
+    EXPECT_EQ(fields(normal), fields(captured)) << x << ',' << y;
+    initialize((*expected)(x, y));
+    initialize(shadow->tiles()(x, y));
+    applyWorldGenerationBaseTile((*expected)(x, y), tileInput(normal, y), resolver);
+    applyWorldGenerationBaseTile(shadow->tiles()(x, y), tileInput(captured, y), resolver);
+    if (shadow->tiles()(x, y).foreground == EmptyMaterialId)
+      ++empty;
+    else
+      ++solid;
+  }
+  auto comparison = compareWorldGenerationBaseTiles(*expected, shadow->tiles(), context->baseTilesIdentity());
+  EXPECT_TRUE(comparison.equal());
+  EXPECT_EQ(1024u, comparison.comparedTiles);
+  EXPECT_GT(solid, 0u);
+  EXPECT_GT(empty, 0u);
+
+  auto privateIsland = std::dynamic_pointer_cast<IslandSurfaceSelector const>(
+      privateLayout->getTerrainSelector(1));
+  auto unusedIsland = std::dynamic_pointer_cast<IslandSurfaceSelector const>(
+      unusedLayout->getTerrainSelector(1));
+  ASSERT_TRUE(privateIsland);
+  ASSERT_TRUE(unusedIsland);
+  EXPECT_NE(privateIsland.get(), unusedIsland.get());
+  privateIsland->columnCache.setMaxSize(2);
+  unusedIsland->columnCache.setMaxSize(2);
+  for (int x = 0; x != 32; ++x)
+    privateIsland->get(x, 12);
+  EXPECT_GT(privateIsland->columnCache.currentSize(), 0u);
+  EXPECT_EQ(0u, unusedIsland->columnCache.currentSize());
+  privateIsland->columnCache.clear();
+  EXPECT_EQ(0u, unusedIsland->columnCache.currentSize());
+
+  EXPECT_TRUE(shadow->matches(context->baseTilesIdentity()));
+  shadow->discard();
+  EXPECT_EQ(beforeShadow.resources, ledger.snapshot().resources);
 }
 
 TEST_F(WorldGenerationRealBlockInfoTest, ThreePrivateNoiseTreesSampleAfterRootAndTemplateDestruction) {
