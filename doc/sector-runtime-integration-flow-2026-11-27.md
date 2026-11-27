@@ -845,3 +845,10 @@ integração: **nenhum**.
 - Merge H4 tip `5e2e848b` (186/186; inclui `68f8cb3a`+; janela ≥15 min desde `9df5c3e7`).
 - Build `46081346603` SUCCESS @ `edec53e1` → 1 Build tip final; sem spam.
 - H5 standby; frentes restantes ahead=0 pós-merge H4 (salvo novos).
+
+## Front review 2026-11-27T23:32Z
+- INT tip: `9aca17c8` (H4 lote `5e2e848b` 186/186; H5 standby).
+- Ahead: h0–h3/h5/r1/r2=0; **H4 ahead=3** tip `a132e680` (HalfLsbMask/KeepOdd/Even + countOpenTickets).
+- H4 janela ~0 min desde `9aca17c8` — **hold** (<15 min).
+- H3: sem commits novos. PRs base INT: nenhum.
+- Build `46083012409` @ `9aca17c8` in_progress. Sem Actions neste review; sem merge main.
