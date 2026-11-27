@@ -1345,6 +1345,36 @@ TEST(WorldGenerationComputeTest, DiscardReadyOpenTicketsDrainsAllReady) {
 }
 
 
+TEST(WorldGenerationComputeTest, DiscardFailedOpenTicketsDrainsAllFailed) {
+  WorldGenerationComputeCapabilities caps = WorldGenerationComputeService::probeCapabilities();
+  caps.gpuOpenGlCompute = true;
+  WorldGenerationComputeService service(caps);
+  service.setDeferredCpuCompletion(true);
+  EXPECT_EQ(0u, service.discardFailedOpenTickets());
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(1340, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(1341, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{2u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(1342, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{3u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute));
+  EXPECT_EQ(0u, service.discardFailedOpenTickets());
+  EXPECT_EQ(2u, service.completeOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(1u, service.completeOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+#ifndef STAR_ENABLE_WORLDGEN_GL_COMPUTE
+  EXPECT_EQ(3u, service.discardFailedOpenTickets());
+  EXPECT_EQ(0u, service.openTickets());
+  EXPECT_EQ(0u, service.discardFailedOpenTickets());
+#else
+  size_t discardedFailed = service.discardFailedOpenTickets();
+  size_t discardedReady = service.discardReadyOpenTickets();
+  EXPECT_EQ(3u, discardedFailed + discardedReady);
+  EXPECT_EQ(0u, service.openTickets());
+#endif
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32HalfSumMaxMinExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();
