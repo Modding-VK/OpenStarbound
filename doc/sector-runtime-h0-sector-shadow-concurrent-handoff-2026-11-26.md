@@ -19,5 +19,6 @@ ASan/UBSan: 1 caso × 10; **788/788** contrato.
 
 ## Próximo passo
 
-Contexto profundo/assets de CPU-01, ou Root com handoffs concorrentes
-terrestres. Não disparar Actions.
+Root em
+[handoffs concorrentes Root](sector-runtime-h0-sector-shadow-concurrent-handoff-root-2026-11-26.md).
+Segue contexto profundo/assets. Não disparar Actions.
