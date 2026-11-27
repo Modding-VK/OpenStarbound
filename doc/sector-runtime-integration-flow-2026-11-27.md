@@ -836,3 +836,7 @@ integração: **nenhum**.
 - PRs abertos base INT: nenhum.
 - Build `46079365811` @ `46a2da76` in_progress (intacto); 1 Build tip final após terminal.
 - Sem merge main; sem Actions dispatch neste review.
+
+## Revisão 2026-11-27T23:15Z — lote H4 ≥15min
+- Merge H4 tip `81a04ab6` (168/168; agrupa 7 tips desde `929e0147`).
+- Build `46081346603` @ `edec53e1` intacto; 1 Build tip final após terminal; sem spam.

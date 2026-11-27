@@ -225,7 +225,28 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32HalfInsertNibble = 199, // replace nibble (parameter & 3) of low16 with (parameter >> 8) & 0xf
   DenseUint32HalfAllNibblesEqual = 200, // 0xffffffff if four low16 nibbles equal, else 0
   DenseUint32HalfNibbleRange = 201, // max(nibbles)-min(nibbles) of low16; parameter ignored
-  DenseUint32HalfMaskNibbles = 202 // keep low16 nibbles whose bit in (parameter&0xf) is set
+  DenseUint32HalfMaskNibbles = 202, // keep low16 nibbles whose bit in (parameter&0xf) is set
+  DenseUint32HalfBroadcastNibbleAt = 203, // broadcast nibble (parameter & 3) across low16
+  DenseUint32HalfReplaceNibble = 204, // replace low16 nibbles==(parameter&0xf) with (parameter>>8)&0xf
+  DenseUint32HalfReverseNibbles = 205, // reverse four nibbles of low16; parameter ignored
+  DenseUint32HalfWidenNibbles = 206, // each low16 nibble becomes a byte (little-endian); parameter ignored
+  DenseUint32HalfDupNibbles = 207, // duplicate each low16 nibble into a byte; parameter ignored
+  DenseUint32HalfFoldAdjacentNibbles = 208, // XOR nibble pairs 0^1 and 2^3 into low byte
+  DenseUint32HalfCountNonzeroNibbles = 209, // count nonzero nibbles in low16 (0..4)
+  DenseUint32HalfAddNibble = 210, // add (parameter & 0xf) to each low16 nibble (wrap 4-bit)
+  DenseUint32HalfSatAddNibble = 211, // add (parameter & 0xf) to each low16 nibble (saturate to 0xf)
+  DenseUint32HalfSubNibble = 212, // subtract (parameter & 0xf) from each low16 nibble (wrap 4-bit)
+  DenseUint32HalfSatSubNibble = 213, // subtract (parameter & 0xf) from each low16 nibble (floor 0)
+  DenseUint32HalfMulNibble = 214, // multiply each low16 nibble by (parameter & 0xf) (wrap 4-bit)
+  DenseUint32HalfSatMulNibble = 215, // multiply each low16 nibble by (parameter & 0xf) (saturate to 0xf)
+  DenseUint32HalfDivNibble = 216, // divide each low16 nibble by (parameter & 0xf); 0 if divisor==0
+  DenseUint32HalfModNibble = 217, // each low16 nibble % (parameter & 0xf); 0 if divisor==0
+  DenseUint32HalfMinNibble = 218, // min(each low16 nibble, parameter & 0xf)
+  DenseUint32HalfMaxNibble = 219, // max(each low16 nibble, parameter & 0xf)
+  DenseUint32HalfClampNibble = 220, // clamp each low16 nibble to [(parameter&0xf), ((parameter>>8)&0xf)]
+  DenseUint32HalfAndNibble = 221, // AND each low16 nibble with (parameter & 0xf)
+  DenseUint32HalfOrNibble = 222, // OR each low16 nibble with (parameter & 0xf)
+  DenseUint32HalfXorNibble = 223 // XOR each low16 nibble with (parameter & 0xf)
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -417,6 +438,12 @@ public:
   List<WorldGenerationComputeTicket> listPendingOpenTickets() const;
   // Ready open ticket ids snapshot (asset-free observation).
   List<WorldGenerationComputeTicket> listReadyOpenTickets() const;
+  // Failed open ticket ids snapshot (asset-free observation).
+  List<WorldGenerationComputeTicket> listFailedOpenTickets() const;
+  // Cancelled open ticket ids snapshot (asset-free observation).
+  List<WorldGenerationComputeTicket> listCancelledOpenTickets() const;
+  // Terminal (Ready/Failed/Cancelled) open ticket ids snapshot (asset-free).
+  List<WorldGenerationComputeTicket> listTerminalOpenTickets() const;
   // Distinct identity.kernel values among currently open tickets (asset-free).
   List<WorldGenerationComputeKernel> listOpenKernels() const;
   // Count of distinct identity.kernel values among open tickets (asset-free).
@@ -449,8 +476,16 @@ public:
   size_t countPendingOpenTickets() const;
   // Count of Ready open tickets (asset-free observation; not distinct kernels).
   size_t countReadyOpenTickets() const;
+  // Count of Failed open tickets (asset-free observation; not distinct kernels).
+  size_t countFailedOpenTickets() const;
+  // Count of Cancelled open tickets (asset-free observation; not distinct kernels).
+  size_t countCancelledOpenTickets() const;
   // True while any Ready open ticket exists (asset-free observation).
   bool anyReadyOpenTickets() const;
+  // True while any Failed open ticket exists (asset-free observation).
+  bool anyFailedOpenTickets() const;
+  // True while any Cancelled open ticket exists (asset-free observation).
+  bool anyCancelledOpenTickets() const;
   // True while any Pending open ticket exists (asset-free observation).
   bool anyPendingOpenTickets() const;
   // True while any Pending open ticket exists (asset-free observation).

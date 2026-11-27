@@ -459,6 +459,48 @@ int main() {
       "DenseUint32HalfNibbleRange");
   rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfMaskNibbles, 0x5u,
       "DenseUint32HalfMaskNibbles");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfBroadcastNibbleAt, 1u,
+      "DenseUint32HalfBroadcastNibbleAt");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfReplaceNibble, 0x0a06u,
+      "DenseUint32HalfReplaceNibble");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfReverseNibbles, 0u,
+      "DenseUint32HalfReverseNibbles");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfWidenNibbles, 0u,
+      "DenseUint32HalfWidenNibbles");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfDupNibbles, 0u,
+      "DenseUint32HalfDupNibbles");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfFoldAdjacentNibbles, 0u,
+      "DenseUint32HalfFoldAdjacentNibbles");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfCountNonzeroNibbles, 0u,
+      "DenseUint32HalfCountNonzeroNibbles");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfAddNibble, 1u,
+      "DenseUint32HalfAddNibble");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfSatAddNibble, 9u,
+      "DenseUint32HalfSatAddNibble");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfSubNibble, 1u,
+      "DenseUint32HalfSubNibble");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfSatSubNibble, 9u,
+      "DenseUint32HalfSatSubNibble");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfMulNibble, 2u,
+      "DenseUint32HalfMulNibble");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfSatMulNibble, 2u,
+      "DenseUint32HalfSatMulNibble");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfDivNibble, 2u,
+      "DenseUint32HalfDivNibble");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfModNibble, 3u,
+      "DenseUint32HalfModNibble");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfMinNibble, 6u,
+      "DenseUint32HalfMinNibble");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfMaxNibble, 6u,
+      "DenseUint32HalfMaxNibble");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfClampNibble, 0x0603u,
+      "DenseUint32HalfClampNibble");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfAndNibble, 5u,
+      "DenseUint32HalfAndNibble");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfOrNibble, 5u,
+      "DenseUint32HalfOrNibble");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfXorNibble, 5u,
+      "DenseUint32HalfXorNibble");
 
   auto ticket = service.submit(makeIdentity(99, WorldGenerationComputeKernel::DenseUint32Xor),
       edgeCorpus(), 0x55aa55aau, WorldGenerationComputeBackend::GpuOpenGlCompute);

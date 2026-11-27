@@ -262,6 +262,27 @@ GLuint g_halfInsertNibbleProgram = 0;
 GLuint g_halfAllNibblesEqualProgram = 0;
 GLuint g_halfNibbleRangeProgram = 0;
 GLuint g_halfMaskNibblesProgram = 0;
+GLuint g_halfBroadcastNibbleAtProgram = 0;
+GLuint g_halfReplaceNibbleProgram = 0;
+GLuint g_halfReverseNibblesProgram = 0;
+GLuint g_halfWidenNibblesProgram = 0;
+GLuint g_halfDupNibblesProgram = 0;
+GLuint g_halfFoldAdjacentNibblesProgram = 0;
+GLuint g_halfCountNonzeroNibblesProgram = 0;
+GLuint g_halfAddNibbleProgram = 0;
+GLuint g_halfSatAddNibbleProgram = 0;
+GLuint g_halfSubNibbleProgram = 0;
+GLuint g_halfSatSubNibbleProgram = 0;
+GLuint g_halfMulNibbleProgram = 0;
+GLuint g_halfSatMulNibbleProgram = 0;
+GLuint g_halfDivNibbleProgram = 0;
+GLuint g_halfModNibbleProgram = 0;
+GLuint g_halfMinNibbleProgram = 0;
+GLuint g_halfMaxNibbleProgram = 0;
+GLuint g_halfClampNibbleProgram = 0;
+GLuint g_halfAndNibbleProgram = 0;
+GLuint g_halfOrNibbleProgram = 0;
+GLuint g_halfXorNibbleProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -3586,6 +3607,454 @@ void main() {
 }
 )GLSL";
 
+char const* HalfBroadcastNibbleAtShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint shift = (uParameter & 3u) * 4u;
+  uint n = ((values[i] & 0xffffu) >> shift) & 0xfu;
+  values[i] = (n * 0x1111u) & 0xffffu;
+}
+)GLSL";
+
+char const* HalfReplaceNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint from = uParameter & 0xfu;
+  uint to = (uParameter >> 8) & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint shift = n * 4u;
+    uint nib = (lo >> shift) & 0xfu;
+    result |= (nib == from ? to : nib) << shift;
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfReverseNibblesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n)
+    result |= ((lo >> (n * 4u)) & 0xfu) << ((3u - n) * 4u);
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfWidenNibblesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n)
+    result |= ((lo >> (n * 4u)) & 0xfu) << (n * 8u);
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfDupNibblesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint nib = (lo >> (n * 4u)) & 0xfu;
+    result |= nib << (n * 8u);
+    result |= nib << (n * 8u + 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfFoldAdjacentNibblesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  uint a = (lo & 0xfu) ^ ((lo >> 4) & 0xfu);
+  uint b = ((lo >> 8) & 0xfu) ^ ((lo >> 12) & 0xfu);
+  values[i] = a | (b << 4);
+}
+)GLSL";
+
+char const* HalfCountNonzeroNibblesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  uint count = 0u;
+  for (uint shift = 0u; shift < 16u; shift += 4u) {
+    if (((lo >> shift) & 0xfu) != 0u)
+      ++count;
+  }
+  values[i] = count;
+}
+)GLSL";
+
+char const* HalfAddNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint add = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint nib = (((lo >> (n * 4u)) & 0xfu) + add) & 0xfu;
+    result |= nib << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfSatAddNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint add = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint nib = ((lo >> (n * 4u)) & 0xfu) + add;
+    if (nib > 0xfu)
+      nib = 0xfu;
+    result |= nib << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfSubNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint sub = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint nib = (((lo >> (n * 4u)) & 0xfu) - sub) & 0xfu;
+    result |= nib << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfSatSubNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint sub = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint nib = (lo >> (n * 4u)) & 0xfu;
+    nib = (nib > sub) ? (nib - sub) : 0u;
+    result |= nib << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfMulNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint mul = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint nib = (((lo >> (n * 4u)) & 0xfu) * mul) & 0xfu;
+    result |= nib << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfSatMulNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint mul = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint nib = ((lo >> (n * 4u)) & 0xfu) * mul;
+    if (nib > 0xfu)
+      nib = 0xfu;
+    result |= nib << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfDivNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint div = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint nib = (lo >> (n * 4u)) & 0xfu;
+    nib = (div == 0u) ? 0u : (nib / div);
+    result |= nib << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfModNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint modv = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint nib = (lo >> (n * 4u)) & 0xfu;
+    nib = (modv == 0u) ? 0u : (nib % modv);
+    result |= nib << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfMinNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint bound = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint nib = (lo >> (n * 4u)) & 0xfu;
+    if (nib > bound)
+      nib = bound;
+    result |= nib << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfMaxNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint bound = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint nib = (lo >> (n * 4u)) & 0xfu;
+    if (nib < bound)
+      nib = bound;
+    result |= nib << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfClampNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint loBound = uParameter & 0xfu;
+  uint hiBound = (uParameter >> 8u) & 0xfu;
+  if (loBound > hiBound) {
+    uint tmp = loBound;
+    loBound = hiBound;
+    hiBound = tmp;
+  }
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint nib = (lo >> (n * 4u)) & 0xfu;
+    if (nib < loBound)
+      nib = loBound;
+    if (nib > hiBound)
+      nib = hiBound;
+    result |= nib << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfAndNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint mask = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint nib = ((lo >> (n * 4u)) & 0xfu) & mask;
+    result |= nib << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfOrNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint mask = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint nib = ((lo >> (n * 4u)) & 0xfu) | mask;
+    result |= nib << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfXorNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint mask = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint nib = ((lo >> (n * 4u)) & 0xfu) ^ mask;
+    result |= nib << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -4442,6 +4911,90 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfMaskNibblesProgram);
     g_halfMaskNibblesProgram = 0;
   }
+  if (g_halfBroadcastNibbleAtProgram) {
+    glDeleteProgram(g_halfBroadcastNibbleAtProgram);
+    g_halfBroadcastNibbleAtProgram = 0;
+  }
+  if (g_halfReplaceNibbleProgram) {
+    glDeleteProgram(g_halfReplaceNibbleProgram);
+    g_halfReplaceNibbleProgram = 0;
+  }
+  if (g_halfReverseNibblesProgram) {
+    glDeleteProgram(g_halfReverseNibblesProgram);
+    g_halfReverseNibblesProgram = 0;
+  }
+  if (g_halfWidenNibblesProgram) {
+    glDeleteProgram(g_halfWidenNibblesProgram);
+    g_halfWidenNibblesProgram = 0;
+  }
+  if (g_halfDupNibblesProgram) {
+    glDeleteProgram(g_halfDupNibblesProgram);
+    g_halfDupNibblesProgram = 0;
+  }
+  if (g_halfFoldAdjacentNibblesProgram) {
+    glDeleteProgram(g_halfFoldAdjacentNibblesProgram);
+    g_halfFoldAdjacentNibblesProgram = 0;
+  }
+  if (g_halfCountNonzeroNibblesProgram) {
+    glDeleteProgram(g_halfCountNonzeroNibblesProgram);
+    g_halfCountNonzeroNibblesProgram = 0;
+  }
+  if (g_halfAddNibbleProgram) {
+    glDeleteProgram(g_halfAddNibbleProgram);
+    g_halfAddNibbleProgram = 0;
+  }
+  if (g_halfSatAddNibbleProgram) {
+    glDeleteProgram(g_halfSatAddNibbleProgram);
+    g_halfSatAddNibbleProgram = 0;
+  }
+  if (g_halfSubNibbleProgram) {
+    glDeleteProgram(g_halfSubNibbleProgram);
+    g_halfSubNibbleProgram = 0;
+  }
+  if (g_halfSatSubNibbleProgram) {
+    glDeleteProgram(g_halfSatSubNibbleProgram);
+    g_halfSatSubNibbleProgram = 0;
+  }
+  if (g_halfMulNibbleProgram) {
+    glDeleteProgram(g_halfMulNibbleProgram);
+    g_halfMulNibbleProgram = 0;
+  }
+  if (g_halfSatMulNibbleProgram) {
+    glDeleteProgram(g_halfSatMulNibbleProgram);
+    g_halfSatMulNibbleProgram = 0;
+  }
+  if (g_halfDivNibbleProgram) {
+    glDeleteProgram(g_halfDivNibbleProgram);
+    g_halfDivNibbleProgram = 0;
+  }
+  if (g_halfModNibbleProgram) {
+    glDeleteProgram(g_halfModNibbleProgram);
+    g_halfModNibbleProgram = 0;
+  }
+  if (g_halfMinNibbleProgram) {
+    glDeleteProgram(g_halfMinNibbleProgram);
+    g_halfMinNibbleProgram = 0;
+  }
+  if (g_halfMaxNibbleProgram) {
+    glDeleteProgram(g_halfMaxNibbleProgram);
+    g_halfMaxNibbleProgram = 0;
+  }
+  if (g_halfClampNibbleProgram) {
+    glDeleteProgram(g_halfClampNibbleProgram);
+    g_halfClampNibbleProgram = 0;
+  }
+  if (g_halfAndNibbleProgram) {
+    glDeleteProgram(g_halfAndNibbleProgram);
+    g_halfAndNibbleProgram = 0;
+  }
+  if (g_halfOrNibbleProgram) {
+    glDeleteProgram(g_halfOrNibbleProgram);
+    g_halfOrNibbleProgram = 0;
+  }
+  if (g_halfXorNibbleProgram) {
+    glDeleteProgram(g_halfXorNibbleProgram);
+    g_halfXorNibbleProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -4762,7 +5315,38 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfNibbleRangeProgram, HalfNibbleRangeShader,
             "DenseUint32HalfNibbleRange")
       || !requireProgram(g_halfMaskNibblesProgram, HalfMaskNibblesShader,
-            "DenseUint32HalfMaskNibbles"))
+            "DenseUint32HalfMaskNibbles")
+      || !requireProgram(g_halfBroadcastNibbleAtProgram, HalfBroadcastNibbleAtShader,
+            "DenseUint32HalfBroadcastNibbleAt")
+      || !requireProgram(g_halfReplaceNibbleProgram, HalfReplaceNibbleShader,
+            "DenseUint32HalfReplaceNibble")
+      || !requireProgram(g_halfReverseNibblesProgram, HalfReverseNibblesShader,
+            "DenseUint32HalfReverseNibbles")
+      || !requireProgram(g_halfWidenNibblesProgram, HalfWidenNibblesShader,
+            "DenseUint32HalfWidenNibbles")
+      || !requireProgram(g_halfDupNibblesProgram, HalfDupNibblesShader, "DenseUint32HalfDupNibbles")
+      || !requireProgram(g_halfFoldAdjacentNibblesProgram, HalfFoldAdjacentNibblesShader,
+            "DenseUint32HalfFoldAdjacentNibbles")
+      || !requireProgram(g_halfCountNonzeroNibblesProgram, HalfCountNonzeroNibblesShader,
+            "DenseUint32HalfCountNonzeroNibbles")
+      || !requireProgram(g_halfAddNibbleProgram, HalfAddNibbleShader, "DenseUint32HalfAddNibble")
+      || !requireProgram(g_halfSatAddNibbleProgram, HalfSatAddNibbleShader,
+            "DenseUint32HalfSatAddNibble")
+      || !requireProgram(g_halfSubNibbleProgram, HalfSubNibbleShader, "DenseUint32HalfSubNibble")
+      || !requireProgram(g_halfSatSubNibbleProgram, HalfSatSubNibbleShader,
+            "DenseUint32HalfSatSubNibble")
+      || !requireProgram(g_halfMulNibbleProgram, HalfMulNibbleShader, "DenseUint32HalfMulNibble")
+      || !requireProgram(g_halfSatMulNibbleProgram, HalfSatMulNibbleShader,
+            "DenseUint32HalfSatMulNibble")
+      || !requireProgram(g_halfDivNibbleProgram, HalfDivNibbleShader, "DenseUint32HalfDivNibble")
+      || !requireProgram(g_halfModNibbleProgram, HalfModNibbleShader, "DenseUint32HalfModNibble")
+      || !requireProgram(g_halfMinNibbleProgram, HalfMinNibbleShader, "DenseUint32HalfMinNibble")
+      || !requireProgram(g_halfMaxNibbleProgram, HalfMaxNibbleShader, "DenseUint32HalfMaxNibble")
+      || !requireProgram(g_halfClampNibbleProgram, HalfClampNibbleShader,
+            "DenseUint32HalfClampNibble")
+      || !requireProgram(g_halfAndNibbleProgram, HalfAndNibbleShader, "DenseUint32HalfAndNibble")
+      || !requireProgram(g_halfOrNibbleProgram, HalfOrNibbleShader, "DenseUint32HalfOrNibble")
+      || !requireProgram(g_halfXorNibbleProgram, HalfXorNibbleShader, "DenseUint32HalfXorNibble"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -5231,6 +5815,48 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfNibbleRangeProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfMaskNibbles)
     program = g_halfMaskNibblesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfBroadcastNibbleAt)
+    program = g_halfBroadcastNibbleAtProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfReplaceNibble)
+    program = g_halfReplaceNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfReverseNibbles)
+    program = g_halfReverseNibblesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfWidenNibbles)
+    program = g_halfWidenNibblesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfDupNibbles)
+    program = g_halfDupNibblesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfFoldAdjacentNibbles)
+    program = g_halfFoldAdjacentNibblesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfCountNonzeroNibbles)
+    program = g_halfCountNonzeroNibblesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfAddNibble)
+    program = g_halfAddNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSatAddNibble)
+    program = g_halfSatAddNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSubNibble)
+    program = g_halfSubNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSatSubNibble)
+    program = g_halfSatSubNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfMulNibble)
+    program = g_halfMulNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSatMulNibble)
+    program = g_halfSatMulNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfDivNibble)
+    program = g_halfDivNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfModNibble)
+    program = g_halfModNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfMinNibble)
+    program = g_halfMinNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfMaxNibble)
+    program = g_halfMaxNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfClampNibble)
+    program = g_halfClampNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfAndNibble)
+    program = g_halfAndNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfOrNibble)
+    program = g_halfOrNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfXorNibble)
+    program = g_halfXorNibbleProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
