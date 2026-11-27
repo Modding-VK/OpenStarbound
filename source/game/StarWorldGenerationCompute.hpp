@@ -195,7 +195,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32HalfLsbMask = 169, // low16 ^ (low16 - 1) in 16-bit width; parameter ignored
   DenseUint32HalfGrayEncode = 170, // low16 ^ (low16 >> 1); parameter ignored
   DenseUint32HalfGrayDecode = 171, // binary from reflected Gray code of low16; parameter ignored
-  DenseUint32HalfSmearLsb = 172 // low16 | (low16 - 1) in 16-bit width; parameter ignored
+  DenseUint32HalfSmearLsb = 172, // low16 | (low16 - 1) in 16-bit width; parameter ignored
+  DenseUint32HalfClearMsb = 173, // clear highest set bit of low16; 0 stays 0; parameter ignored
+  DenseUint32HalfSmearMsb = 174, // fill ones downward from highest set bit of low16; 0 stays 0
+  DenseUint32HalfKeepOddBits = 175 // low16 & 0x5555; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
