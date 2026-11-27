@@ -70,7 +70,12 @@ cd dist
 .\world_generation_contract_tests.exe --gtest_filter=WorldGenerationComputeTest.*
 ```
 
-Build **normal** (flag OFF) deve continuar com `gpuOpenGlCompute=false` e 15 testes de compute sem claim GL.
+Esperado **15/15** também com `STAR_ENABLE_WORLDGEN_GL_COMPUTE=ON` após o ajuste
+que força `gpuOpenGlCompute=false` nos casos “sem capability”, e exercita submit/
+sombra GPU quando o probe real claima compute.
+
+Build **normal** (flag OFF) deve continuar com `gpuOpenGlCompute=false` e 15/15
+sem claim GL.
 
 ## O que reportar ao Project / H4
 

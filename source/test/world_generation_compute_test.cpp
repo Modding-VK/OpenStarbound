@@ -86,11 +86,28 @@ TEST(WorldGenerationComputeTest, CancelRevokesPublicationBeforePoll) {
 }
 
 TEST(WorldGenerationComputeTest, GpuSubmitRefusedWithoutCapability) {
-  WorldGenerationComputeService service;
+  // Contract: GPU submit is refused when the capability bit is false, even if
+  // this process could probe GL in an opt-in build.
+  WorldGenerationComputeCapabilities caps = WorldGenerationComputeService::probeCapabilities();
+  caps.gpuOpenGlCompute = false;
+  WorldGenerationComputeService service(caps);
   auto ticket = service.submit(makeIdentity(3), sampleInput(), 1u,
       WorldGenerationComputeBackend::GpuOpenGlCompute);
   EXPECT_FALSE(ticket);
   EXPECT_EQ(0u, service.openTickets());
+
+#ifdef STAR_ENABLE_WORLDGEN_GL_COMPUTE
+  auto probed = WorldGenerationComputeService::probeCapabilities();
+  if (probed.gpuOpenGlCompute) {
+    WorldGenerationComputeService gpuService(probed);
+    auto gpuTicket = gpuService.submit(makeIdentity(31), sampleInput(), 1u,
+        WorldGenerationComputeBackend::GpuOpenGlCompute);
+    ASSERT_TRUE(gpuTicket);
+    WorldGenerationComputeResult result;
+    EXPECT_EQ(WorldGenerationComputePollStatus::Ready, gpuService.poll(*gpuTicket, &result));
+    EXPECT_EQ(WorldGenerationComputeBackend::GpuOpenGlCompute, result.backend);
+  }
+#endif
 }
 
 TEST(WorldGenerationComputeTest, OversizedBufferAndUnknownKernelAreRefused) {
@@ -239,12 +256,27 @@ TEST(WorldGenerationComputeTest, ShadowCompareCpuEqualsCpuOnEdgeCorpus) {
 }
 
 TEST(WorldGenerationComputeTest, ShadowCompareGpuUnavailableWithoutProbe) {
-  WorldGenerationComputeService service;
+  // Without the capability bit, shadow GPU must stay ShadowUnavailable.
+  WorldGenerationComputeCapabilities caps = WorldGenerationComputeService::probeCapabilities();
+  caps.gpuOpenGlCompute = false;
+  WorldGenerationComputeService service(caps);
   auto report = service.compareShadow(makeIdentity(62), edgeCorpus(), 1u,
       WorldGenerationComputeBackend::CpuReference,
       WorldGenerationComputeBackend::GpuOpenGlCompute);
   EXPECT_EQ(WorldGenerationComputeShadowVerdict::ShadowUnavailable, report.verdict);
   EXPECT_EQ(0u, report.divergenceCount);
+
+#ifdef STAR_ENABLE_WORLDGEN_GL_COMPUTE
+  auto probed = WorldGenerationComputeService::probeCapabilities();
+  if (probed.gpuOpenGlCompute) {
+    WorldGenerationComputeService gpuService(probed);
+    auto equalReport = gpuService.compareShadow(makeIdentity(64), edgeCorpus(), 0x11u,
+        WorldGenerationComputeBackend::CpuReference,
+        WorldGenerationComputeBackend::GpuOpenGlCompute);
+    EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal, equalReport.verdict);
+    EXPECT_EQ(0u, equalReport.divergenceCount);
+  }
+#endif
 }
 
 TEST(WorldGenerationComputeTest, KernelHelperMatchesServiceOutput) {
