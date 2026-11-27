@@ -19,4 +19,6 @@ ASan/UBSan: 1×5; **108/108** RealBlockInfo.
 
 ## Próximo passo
 
-Noise concurrent handoffs e demais gates H0. Não disparar Actions.
+Noise handoffs em
+[concurrent noise handoff](sector-runtime-h0-sector-shadow-concurrent-noise-handoff-2026-11-27.md).
+Segue gates H0 restantes. Não disparar Actions.
