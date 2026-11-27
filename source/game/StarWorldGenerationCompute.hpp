@@ -285,7 +285,10 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfCloNibble = 259, // leading one count of each low16 nibble in 4-bit width; 4 if 0xf
   DenseUint32HalfCtoNibble = 260, // trailing one count of each low16 nibble; 4 if 0xf
   DenseUint32HalfBitLengthNibble = 261, // floor(log2(n))+1 per low16 nibble; 0 if n==0
-  DenseUint32HalfIsPowerOfTwoNibble = 262 // 1 in nibble if power-of-two (incl. 1); else 0; parameter ignored
+  DenseUint32HalfIsPowerOfTwoNibble = 262, // 1 in nibble if power-of-two (incl. 1); else 0; parameter ignored
+  DenseUint32HalfNextPow2Nibble = 263, // next power-of-two per low16 nibble (0->0; >8 clamps to 0xf)
+  DenseUint32HalfPrevPow2Nibble = 264, // largest power-of-two <= nibble (0->0)
+  DenseUint32HalfBroadcastLsbNibble = 265 // fill each low16 nibble with its LSB (0 or 0xf)
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {

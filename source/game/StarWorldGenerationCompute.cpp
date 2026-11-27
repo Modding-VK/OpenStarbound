@@ -306,7 +306,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfCloNibble
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfCtoNibble
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfBitLengthNibble
-      || kernel == WorldGenerationComputeKernel::DenseUint32HalfIsPowerOfTwoNibble;
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfIsPowerOfTwoNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfNextPow2Nibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfPrevPow2Nibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfBroadcastLsbNibble;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -576,7 +579,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32HalfCloNibble,
       WorldGenerationComputeKernel::DenseUint32HalfCtoNibble,
       WorldGenerationComputeKernel::DenseUint32HalfBitLengthNibble,
-      WorldGenerationComputeKernel::DenseUint32HalfIsPowerOfTwoNibble};
+      WorldGenerationComputeKernel::DenseUint32HalfIsPowerOfTwoNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfNextPow2Nibble,
+      WorldGenerationComputeKernel::DenseUint32HalfPrevPow2Nibble,
+      WorldGenerationComputeKernel::DenseUint32HalfBroadcastLsbNibble};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -586,7 +592,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 262u;
+  return 265u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -870,6 +876,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32HalfCtoNibble: return "DenseUint32HalfCtoNibble";
     case WorldGenerationComputeKernel::DenseUint32HalfBitLengthNibble: return "DenseUint32HalfBitLengthNibble";
     case WorldGenerationComputeKernel::DenseUint32HalfIsPowerOfTwoNibble: return "DenseUint32HalfIsPowerOfTwoNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfNextPow2Nibble: return "DenseUint32HalfNextPow2Nibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfPrevPow2Nibble: return "DenseUint32HalfPrevPow2Nibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfBroadcastLsbNibble: return "DenseUint32HalfBroadcastLsbNibble";
   }
   return nullptr;
 }
@@ -2979,6 +2988,57 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
         uint32_t n = (lo >> (i * 4u)) & 0xfu;
         uint32_t flag = (n != 0u && (n & (n - 1u)) == 0u) ? 1u : 0u;
         result |= flag << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfNextPow2Nibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t n = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = 0;
+        if (n != 0u) {
+          if ((n & (n - 1u)) == 0u)
+            outN = n;
+          else {
+            uint32_t v = n - 1u;
+            v |= v >> 1;
+            v |= v >> 2;
+            outN = (v + 1u) & 0xfu;
+            if (outN == 0u)
+              outN = 0xfu;
+          }
+        }
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfPrevPow2Nibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t n = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = 0;
+        if (n != 0u) {
+          uint32_t bit = 8u;
+          while ((n & bit) == 0u)
+            bit >>= 1;
+          outN = bit;
+        }
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfBroadcastLsbNibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t n = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = (n & 1u) ? 0xfu : 0u;
+        result |= outN << (i * 4u);
       }
       out.append(result);
     }
