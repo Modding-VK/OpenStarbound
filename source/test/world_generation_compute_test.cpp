@@ -1339,6 +1339,31 @@ TEST(WorldGenerationComputeTest, FailedOpenTicketsByKernelCountsDispatchFailures
 #endif
 }
 
+TEST(WorldGenerationComputeTest, AnyFailedOpenTicketsByKernelTracksFailedPresence) {
+  WorldGenerationComputeCapabilities caps = WorldGenerationComputeService::probeCapabilities();
+  caps.gpuOpenGlCompute = true;
+  WorldGenerationComputeService service(caps);
+  service.setDeferredCpuCompletion(true);
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(720, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(721, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{2u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute));
+  EXPECT_FALSE(service.anyFailedOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(1u, service.completeOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+#ifndef STAR_ENABLE_WORLDGEN_GL_COMPUTE
+  EXPECT_TRUE(service.anyFailedOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_FALSE(service.anyFailedOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+  EXPECT_TRUE(service.anyInFlightByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+#else
+  bool failedXor = service.anyFailedOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor);
+  bool readyXor = service.anyReadyOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor);
+  EXPECT_TRUE(failedXor || readyXor);
+  EXPECT_TRUE(service.anyInFlightByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+#endif
+}
+
 TEST(WorldGenerationComputeTest, ListFailedOpenTicketsByKernelReturnsFailedIdsOnly) {
   WorldGenerationComputeCapabilities caps = WorldGenerationComputeService::probeCapabilities();
   caps.gpuOpenGlCompute = true;
