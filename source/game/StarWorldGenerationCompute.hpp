@@ -126,7 +126,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32RorNibbles = 100, // rotate right by (parameter & 7) nibbles
   DenseUint32HasZeroNibble = 101, // 0xffffffff if any nibble is 0, else 0; parameter ignored
   DenseUint32SextNibble = 102, // sign-extend nibble (parameter & 7) to 32 bits
-  DenseUint32CountZeroNibbles = 103 // count of zero nibbles (0..8); parameter ignored
+  DenseUint32CountZeroNibbles = 103, // count of zero nibbles (0..8); parameter ignored
+  DenseUint32PackLowNibbles = 104, // pack low nibble of each byte into low 16 bits
+  DenseUint32PackHighNibbles = 105, // pack high nibble of each byte into low 16 bits
+  DenseUint32ExpandLowNibbles = 106 // expand low 16 packed nibbles into low half of each byte
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
