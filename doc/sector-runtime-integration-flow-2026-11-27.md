@@ -727,3 +727,9 @@ integração: **nenhum**.
 - Merge H4 `1a7570cd` (HalfSignMask/HalfIsZero/HalfIsNonzero + anyPendingOpenKernels; 124/124).
 - Build `46067036173` @ `2d4b047f` SUCCESS; 1 Build tip final autorizado após este merge.
 - Conflito só `progress.md`; reconciliado.
+
+## Revisão 2026-11-27T21:30Z (FREEZE)
+- INT tip `41aa2c64` (H4 `1a7570cd` 124/124 absorvido). Ahead h0–h5/r1/r2 = 0; H3 `3bdf1927` ahead=0.
+- FREEZE user: STOP merges H4 e novos Build; sem próximas frentes até liberar pós in-game.
+- Build em voo único: `46069374906` @ tip (acompanhar; sem spam). Build `460670` SUCCESS (ThreadStub PASS).
+- Sem PRs abertos com base na INT nesta checagem. Sem merge; sem dispatch.
