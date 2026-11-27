@@ -2982,6 +2982,11 @@ bool WorldGenerationComputeService::anyOpenTickets() const {
   return !m_entries.empty();
 }
 
+size_t WorldGenerationComputeService::countOpenTickets() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  return m_entries.size();
+}
+
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::listReadyOpenKernels() const {
   std::lock_guard<std::mutex> lock(m_mutex);
   List<WorldGenerationComputeKernel> out;
