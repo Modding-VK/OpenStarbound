@@ -2,10 +2,10 @@
 
 Atualizado em **27/11/2026**. Branch de implementação H3:
 `cursor/h3-kernels-publication-9f77` (base Experimental `e55c008f`).
-Último recorte H3: batches/staging invisível de estrutura (MD-05).
+Último recorte H3: passagem de publicação com orçamento em sombra (WT-04).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico H3](../sector-runtime-h3-structure-batch-staging-2026-11-27.md)
+· [Último relatório técnico H3](../sector-runtime-h3-publication-pass-2026-11-27.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -19,14 +19,14 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | --- | --- |
 | Frente ativa | H3 — kernels/publicação (branch `cursor/h3-kernels-publication-9f77`); H0 permanece em Experimental |
 | Progresso de maturidade de H0 | **25,0%** — 6 marcos verificados de 24 |
-| Progresso de maturidade de H3 | **12,5%** — 5 marcos verificados de 40 |
-| Progresso de maturidade do programa | **6,1%** — 12 marcos verificados de 196 |
-| Contratos com avanço registrado | **12 de 49**; todos ainda parciais |
+| Progresso de maturidade de H3 | **15,0%** — 6 marcos verificados de 40 |
+| Progresso de maturidade do programa | **6,6%** — 13 marcos verificados de 196 |
+| Contratos com avanço registrado | **13 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | H3: CPU-04 + MD-02..05 NoAssets; H0 inalterado nesta branch |
+| Última evidência de testes | H3: CPU-04 + MD-02..05 + WT-04 NoAssets; H0 inalterado nesta branch |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
-**Os 6,1% não significam que o jogo esteja só 6,1% pronto.** O runtime anterior
+**Os 6,6% não significam que o jogo esteja só 6,6% pronto.** O runtime anterior
 já possui workers, schedulers, IO/decode e previews. O denominador aqui são os
 49 contratos completos do rework, incluindo GPU e simulação regional futura.
 Recortes de RAM-01/CPU-04 podem estar implementados/testados e o contrato
@@ -55,8 +55,8 @@ Fórmulas:
 - **Contrato:** número de marcos consecutivos verificados × 25%.
 - **Fase de entrada:** soma das notas dos contratos nela cadastrados ÷ número
   desses contratos.
-- **Programa:** soma das notas dos 49 contratos ÷ 49. Hoje: 300 ÷ 49 = 6,1%
-  arredondado; equivalentemente, 12 ÷ (49 × 4) × 100.
+- **Programa:** soma das notas dos 49 contratos ÷ 49. Hoje: 325 ÷ 49 = 6,6%
+  arredondado; equivalentemente, 13 ÷ (49 × 4) × 100.
 - **Aceitação integral:** contratos em 100% ÷ 49. Hoje: 0%.
 
 São percentuais de **maturidade comprovada**, não de horas, esforço, linhas de
@@ -77,12 +77,12 @@ obriga concluir todo trabalho transversal para iniciar um protótipo em sombra.
 | 1 | H0 — fundações e validação | 6 | 6 / 24 | 25,0% | Invariantes, limites explicitados, comparador e baseline reproduzível para o escopo que será ampliado |
 | 2 | H1 — grafo executivo, CPU e entrega | 10 | 1 / 40 | 2,5% | Primeiro recorte proprietário de CPU-01 em apoio a H0; grafo/executor ainda pendentes |
 | 3 | H2 — produtos residentes e prefetch | 6 | 0 / 24 | 0% | Identidade/versionamento de H1 e orçamento de RAM |
-| 4 | H3 — kernels adicionais, estruturas e publicação | 10 | 5 / 40 | 12,5% | CPU-04 + MD-02..05 sombra; WT-04/IO pendentes |
+| 4 | H3 — kernels adicionais, estruturas e publicação | 10 | 6 / 40 | 15,0% | CPU-04 + MD-02..05 + WT-04 sombra; IO pendentes |
 | 5 | H4 — backend GPU e comparação em sombra | 4 | 0 / 16 | 0% | Protótipo pode acompanhar H1/H2; publicação depende do kernel CPU equivalente |
 | 6 | H5 — seleção de hardware e escala | 7 | 0 / 28 | 0% | Produtos/backends validados e custo completo de entrega medido |
 | 7 | R1 — donos regionais e coordenadora | 3 | 0 / 12 | 0% | Auditoria de autoridade/efeitos e checkpoint; não basta aprovar GPU |
 | 8 | R2 — operações e transferências entre regiões | 3 | 0 / 12 | 0% | Lifecycle/estado de R1, recovery e matriz de multiplayer |
-| — | **Total** | **49** | **12 / 196** | **6,1%** | Não equivale a ganho de desempenho ou autorização de release |
+| — | **Total** | **49** | **13 / 196** | **6,6%** | Não equivale a ganho de desempenho ou autorização de release |
 
 Essa é uma ordem de prioridade/dependência, não uma proibição de frentes
 paralelas autorizadas pelo roadmap. Setores comuns permanecem prioritários.
@@ -139,7 +139,7 @@ concorrente.
 
 ## Catálogo ordenado das 49 tarefas
 
-As doze notas de 25% usam as evidências indicadas após o catálogo. Demais 0%
+As treze notas de 25% usam as evidências indicadas após o catálogo. Demais 0%
 significam **sem marco do novo contrato reconhecido nesta leitura do roadmap**,
 não ausência de código relacionado no baseline. Não foi feita nova auditoria
 de todas as implementações antigas para conceder crédito retroativo.
@@ -173,7 +173,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 25 | H3 | [MD-03](microdungeons-and-tmx.md) | Ligação e RNG autoritativos | 25% | Plano de escolhas ordenadas sombra; stream RNG vivo e efeitos pendentes |
 | 26 | H3 | [MD-04](microdungeons-and-tmx.md) | Comandos, footprint e reserva | 25% | Comandos+footprint+reservas sombra; writer vivo e MD-05 pendentes |
 | 27 | H3 | [MD-05](microdungeons-and-tmx.md) | Aplicação mais barata e retomada | 25% | Batches+staging invisível sombra; writer vivo/WT-04 pendentes |
-| 28 | H3 | [WT-04](worldthread.md) | Publicação mais barata | 0% | Reduzir custo serial depois de validar os efeitos |
+| 28 | H3 | [WT-04](worldthread.md) | Publicação mais barata | 25% | Passagem orçada + dirty diferido sombra; WorldThread vivo pendente |
 | 29 | H3 | [IO-02](io-persistence-network.md) | Serviço de banco e transações | 0% | Persistência consistente com os novos produtos |
 | 30 | H3 | [IO-03](io-persistence-network.md) | Checkpoint e recuperação | 0% | Estado confirmado/recuperável; continua em R1 |
 | 31 | H3 | [IO-04](io-persistence-network.md) | Unload, drain e retorno ao legado | 0% | Encerrar sem liberar buffers/produtores ainda ativos |
@@ -212,6 +212,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | MD-03 | [TMX binding plan](../sector-runtime-h3-tmx-binding-plan-2026-11-27.md) | Sem Random vivo, sem spawn/facade |
 | MD-04 | [Structure command plan](../sector-runtime-h3-structure-command-plan-2026-11-27.md) | Sem facade viva; cobertura truncada não autoriza commit |
 | MD-05 | [Structure batch staging](../sector-runtime-h3-structure-batch-staging-2026-11-27.md) | Sem publish vivo; equivalência de notificações pendente |
+| WT-04 | [Publication pass](../sector-runtime-h3-publication-pass-2026-11-27.md) | Sem WorldThread/IO vivo; fronteira confirmada só no staging |
 
 CPU-01 recebe o primeiro marco porque agora existe cálculo com dados próprios
 que independe da origem/Root após captura, não só callbacks/catálogos ou contagem
@@ -317,6 +318,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | H3 MD-03 TMX binding | Escolhas ordenadas sem facade; 5 NoAssets. MD-03 0→25%; H3 7,5%; programa 5,1% | 5,1% |
 | 27/11/2026 | H3 MD-04 structure commands | Footprint/comandos/reservas sombra; 6 NoAssets. MD-04 0→25%; H3 10%; programa 5,6% | 5,6% |
 | 27/11/2026 | H3 MD-05 batch staging | Batches ordenados + staging invisível/resume; 6 NoAssets. MD-05 0→25%; H3 12,5%; programa 6,1% | 6,1% |
+| 27/11/2026 | H3 WT-04 publication pass | Orçamento de passagem + dirty diferido sombra; 5 NoAssets. WT-04 0→25%; H3 15%; programa 6,6% | 6,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

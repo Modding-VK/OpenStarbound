@@ -246,16 +246,17 @@ executivo e o planejador menor são propostas, ainda não implementadas.
   preparação CPU/limites processuais; verificar entrega e ordem dos efeitos.
 - [ ] H2: produtos `PreparedSector`, caches versionadas e prefetch por rota,
   com orçamento de RAM e contabilização de memória compartilhada.
-- [x] H3 (CPU-04 + MD-02..05 sombra): CaveLiquid/Finalize + TMX + comandos/batches
+- [x] H3 (CPU-04 + MD-02..05 + WT-04 sombra): kernels/estruturas/passagem orçada
   em `cursor/h3-kernels-publication-9f77`
   ([CaveLiquid](sector-runtime-h3-cave-liquid-plan-2026-11-27.md),
   [Finalize](sector-runtime-h3-finalize-normalize-2026-11-27.md),
   [TMX static](sector-runtime-h3-tmx-static-product-2026-11-27.md),
   [TMX binding](sector-runtime-h3-tmx-binding-plan-2026-11-27.md),
   [Structure commands](sector-runtime-h3-structure-command-plan-2026-11-27.md),
-  [Batch staging](sector-runtime-h3-structure-batch-staging-2026-11-27.md)).
-- [ ] H3 restante: WT-04 staging sombra, IO-02..05; publicação autoritativa
-  só com `apis_ready` live-publish.
+  [Batch staging](sector-runtime-h3-structure-batch-staging-2026-11-27.md),
+  [Publication pass](sector-runtime-h3-publication-pass-2026-11-27.md)).
+- [ ] H3 restante: IO-02..05 sombra; publicação autoritativa só com
+  `apis_ready` live-publish.
 - [ ] H4/H5: GPU compute opcional, comparação CPU/GPU em sombra, seleção por
   custo e orçamento de VRAM/latência; manter execução CPU independente.
 

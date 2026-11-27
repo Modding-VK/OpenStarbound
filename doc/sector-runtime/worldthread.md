@@ -73,6 +73,12 @@ de startup fica separado do streaming contínuo.
 
 ## WT-04 — Publicação mais barata
 
+Primeiro recorte em `cursor/h3-kernels-publication-9f77`:
+`WorldGenerationPublicationPass` avança staging invisível sob orçamento de
+passagem, confirma dirty diferido só na fronteira lógica e descarta stale
+sem publish vivo. Ver
+[relatório](../sector-runtime-h3-publication-pass-2026-11-27.md).
+
 Receber deltas tipados e operações preparadas. Agrupar invalidação de colisão,
 marcações dirty e notificações somente quando a equivalência observável for
 demonstrada. A ordem de objetos, entidades, promises e callbacks permanece
