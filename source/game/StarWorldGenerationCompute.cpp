@@ -2,6 +2,7 @@
 #include "StarWorldGenerationComputeGl.hpp"
 
 #include <algorithm>
+#include <cstring>
 
 namespace Star {
 
@@ -56,7 +57,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32Shr
       || kernel == WorldGenerationComputeKernel::DenseUint32Rotl
       || kernel == WorldGenerationComputeKernel::DenseUint32Rotr
-      || kernel == WorldGenerationComputeKernel::DenseUint32Not;
+      || kernel == WorldGenerationComputeKernel::DenseUint32Not
+      || kernel == WorldGenerationComputeKernel::DenseUint32Clz
+      || kernel == WorldGenerationComputeKernel::DenseUint32Ctz
+      || kernel == WorldGenerationComputeKernel::DenseUint32Popcount;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -77,10 +81,110 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32Shr,
       WorldGenerationComputeKernel::DenseUint32Rotl,
       WorldGenerationComputeKernel::DenseUint32Rotr,
-      WorldGenerationComputeKernel::DenseUint32Not};
+      WorldGenerationComputeKernel::DenseUint32Not,
+      WorldGenerationComputeKernel::DenseUint32Clz,
+      WorldGenerationComputeKernel::DenseUint32Ctz,
+      WorldGenerationComputeKernel::DenseUint32Popcount};
   for (auto kernel : all)
     out.append(kernel);
   return out;
+}
+
+char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKernel kernel) noexcept {
+  switch (kernel) {
+    case WorldGenerationComputeKernel::DenseUint32Xor: return "DenseUint32Xor";
+    case WorldGenerationComputeKernel::DenseUint32Add: return "DenseUint32Add";
+    case WorldGenerationComputeKernel::DenseUint32And: return "DenseUint32And";
+    case WorldGenerationComputeKernel::DenseUint32Or: return "DenseUint32Or";
+    case WorldGenerationComputeKernel::DenseUint32Mul: return "DenseUint32Mul";
+    case WorldGenerationComputeKernel::DenseUint32Min: return "DenseUint32Min";
+    case WorldGenerationComputeKernel::DenseUint32Max: return "DenseUint32Max";
+    case WorldGenerationComputeKernel::DenseUint32Sub: return "DenseUint32Sub";
+    case WorldGenerationComputeKernel::DenseUint32Shl: return "DenseUint32Shl";
+    case WorldGenerationComputeKernel::DenseUint32Shr: return "DenseUint32Shr";
+    case WorldGenerationComputeKernel::DenseUint32Rotl: return "DenseUint32Rotl";
+    case WorldGenerationComputeKernel::DenseUint32Rotr: return "DenseUint32Rotr";
+    case WorldGenerationComputeKernel::DenseUint32Not: return "DenseUint32Not";
+    case WorldGenerationComputeKernel::DenseUint32Clz: return "DenseUint32Clz";
+    case WorldGenerationComputeKernel::DenseUint32Ctz: return "DenseUint32Ctz";
+    case WorldGenerationComputeKernel::DenseUint32Popcount: return "DenseUint32Popcount";
+  }
+  return nullptr;
+}
+
+Maybe<WorldGenerationComputeKernel> WorldGenerationComputeService::parseKernelName(
+    char const* name) noexcept {
+  if (!name)
+    return {};
+  for (auto kernel : supportedKernels()) {
+    char const* label = kernelName(kernel);
+    if (label && std::strcmp(label, name) == 0)
+      return kernel;
+  }
+  return {};
+}
+
+namespace {
+
+uint32_t denseClz(uint32_t value) noexcept {
+  if (value == 0u)
+    return 32u;
+  uint32_t n = 0u;
+  if (value <= 0x0000ffffu) {
+    n += 16u;
+    value <<= 16u;
+  }
+  if (value <= 0x00ffffffu) {
+    n += 8u;
+    value <<= 8u;
+  }
+  if (value <= 0x0fffffffu) {
+    n += 4u;
+    value <<= 4u;
+  }
+  if (value <= 0x3fffffffu) {
+    n += 2u;
+    value <<= 2u;
+  }
+  if (value <= 0x7fffffffu)
+    n += 1u;
+  return n;
+}
+
+uint32_t denseCtz(uint32_t value) noexcept {
+  if (value == 0u)
+    return 32u;
+  uint32_t n = 0u;
+  if ((value & 0x0000ffffu) == 0u) {
+    n += 16u;
+    value >>= 16u;
+  }
+  if ((value & 0x000000ffu) == 0u) {
+    n += 8u;
+    value >>= 8u;
+  }
+  if ((value & 0x0000000fu) == 0u) {
+    n += 4u;
+    value >>= 4u;
+  }
+  if ((value & 0x00000003u) == 0u) {
+    n += 2u;
+    value >>= 2u;
+  }
+  if ((value & 0x00000001u) == 0u)
+    n += 1u;
+  return n;
+}
+
+uint32_t densePopcount(uint32_t value) noexcept {
+  value = value - ((value >> 1u) & 0x55555555u);
+  value = (value & 0x33333333u) + ((value >> 2u) & 0x33333333u);
+  value = (value + (value >> 4u)) & 0x0f0f0f0fu;
+  value = value + (value >> 8u);
+  value = value + (value >> 16u);
+  return value & 0x3fu;
+}
+
 }
 
 uint64_t WorldGenerationComputeService::bufferBytes(List<uint32_t> const& values) noexcept {
@@ -136,6 +240,15 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
   } else if (kernel == WorldGenerationComputeKernel::DenseUint32Not) {
     for (uint32_t value : input)
       out.append(~value);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Clz) {
+    for (uint32_t value : input)
+      out.append(denseClz(value));
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Ctz) {
+    for (uint32_t value : input)
+      out.append(denseCtz(value));
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Popcount) {
+    for (uint32_t value : input)
+      out.append(densePopcount(value));
   }
   return out;
 }
@@ -418,6 +531,28 @@ bool WorldGenerationComputeService::complete(WorldGenerationComputeTicket ticket
   completeEntry(it->second);
   return it->second.state == EntryState::Ready || it->second.state == EntryState::Cancelled
       || it->second.state == EntryState::Failed;
+}
+
+List<bool> WorldGenerationComputeService::completeBatch(List<WorldGenerationComputeTicket> tickets) {
+  List<bool> out;
+  out.reserve(tickets.size());
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked()) {
+    for (size_t i = 0; i < tickets.size(); ++i)
+      out.append(false);
+    return out;
+  }
+  for (auto ticket : tickets) {
+    auto it = m_entries.find(ticket.id);
+    if (it == m_entries.end() || it->second.state != EntryState::Pending) {
+      out.append(false);
+      continue;
+    }
+    completeEntry(it->second);
+    out.append(it->second.state == EntryState::Ready || it->second.state == EntryState::Cancelled
+        || it->second.state == EntryState::Failed);
+  }
+  return out;
 }
 
 WorldGenerationComputePollStatus WorldGenerationComputeService::pollLocked(

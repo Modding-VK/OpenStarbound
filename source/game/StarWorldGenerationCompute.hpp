@@ -36,7 +36,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32Shr = 10, // logical value >> (parameter & 31)
   DenseUint32Rotl = 11, // rotate left by (parameter & 31)
   DenseUint32Rotr = 12, // rotate right by (parameter & 31)
-  DenseUint32Not = 13 // bitwise complement (~value); parameter ignored
+  DenseUint32Not = 13, // bitwise complement (~value); parameter ignored
+  DenseUint32Clz = 14, // count leading zeros; 32 for zero; parameter ignored
+  DenseUint32Ctz = 15, // count trailing zeros; 32 for zero; parameter ignored
+  DenseUint32Popcount = 16 // population count; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -214,6 +217,9 @@ public:
 
   bool complete(WorldGenerationComputeTicket ticket);
 
+  // GPU-02: complete many deferred Pending tickets; each bool is independent.
+  List<bool> completeBatch(List<WorldGenerationComputeTicket> tickets);
+
   WorldGenerationComputePollStatus poll(WorldGenerationComputeTicket ticket,
       WorldGenerationComputeResult* out = nullptr);
 
@@ -285,6 +291,10 @@ public:
   static bool isKernelSupported(WorldGenerationComputeKernel kernel,
       uint32_t kernelVersion = 1u) noexcept;
   static List<WorldGenerationComputeKernel> supportedKernels(uint32_t kernelVersion = 1u);
+  // Stable ASCII name for catalogs/logs; nullptr if the enum is unknown.
+  static char const* kernelName(WorldGenerationComputeKernel kernel) noexcept;
+  // Inverse of kernelName; empty when the token is unknown (asset-free).
+  static Maybe<WorldGenerationComputeKernel> parseKernelName(char const* name) noexcept;
 
   struct ShadowBatchItem {
     WorldGenerationComputeInputIdentity identity;
