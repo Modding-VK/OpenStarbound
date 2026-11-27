@@ -38,12 +38,13 @@ histórico, sem outra fila de prioridades. O
 [painel de progressão](sector-runtime/progress.md) consolida percentuais por
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
-Frente ativa: H0. O relatório atual é
-[Concurrent ocean](sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md),
+Frente desta branch (`cursor/r2-regional-ops-9f77`): R2 / REG-03. O relatório
+atual é
+[cross-op sombra](sector-runtime-r2-cross-op-shadow-2026-11-27.md),
 com antecedentes em
-[Noise/adjacent stale](sector-runtime-h0-sector-shadow-noise-adjacent-stale-2026-11-26.md),
-[Sombra por setor](sector-runtime-h0-sector-shadow-2026-11-26.md) e
-[contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
+[threads regionais](sector-runtime/regional-threads.md) e
+[coordenador em sombra](sector-runtime/regional-threads.md#estado-real).
+H0 permanece na `Experimental` / forks H0.
 O primeiro recorte de DAG-01 está implementado/testado sem assets; a aceitação
 integrada permanece pendente. DAG-04 tem o recorte de continuação/avanço
 corrigido opt-in e VAL-01/02 têm harness sintético inicial, com 26 testes H0

@@ -56,6 +56,12 @@ confirmada na fronteira do passo. Cada thread executa no máximo um turno
 local aplicável, produzindo intenções remotas versionadas. Conclusão mais
 rápida não decide a ordem de conflito.
 
+Primeiro recorte em sombra (`WorldRegionCrossOpShadow`, branch
+`cursor/r2-regional-ops-9f77`): intenções versionadas, reserva exclusiva do
+footprint em ordem lexicográfica, Conflict sem hold parcial e
+commit/rejeição/timeout. Não concede dona autoritativa nem remove a barreira
+de passo. Ver [relatório](../sector-runtime-r2-cross-op-shadow-2026-11-27.md).
+
 Operações multirregião reservam footprint completo numa ordem estável, sem
 Lua segurando locks de outros donos e sem espera circular entre threads.
 Definir commit/rejeição, timeout e recuperação. Fios, líquidos e roteadores
