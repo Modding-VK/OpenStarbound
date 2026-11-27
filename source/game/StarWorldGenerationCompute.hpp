@@ -102,7 +102,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32ByteXor = 76, // XOR of the four bytes as uint32; parameter ignored
   DenseUint32SmearMsb = 77, // fill ones downward from highest set bit; 0 stays 0
   DenseUint32ByteOr = 78, // OR of the four bytes as uint32; parameter ignored
-  DenseUint32ByteAnd = 79 // AND of the four bytes as uint32; parameter ignored
+  DenseUint32ByteAnd = 79, // AND of the four bytes as uint32; parameter ignored
+  DenseUint32KeepOddBits = 80, // value & 0x55555555; parameter ignored
+  DenseUint32KeepEvenBits = 81, // value & 0xaaaaaaaa; parameter ignored
+  DenseUint32SwapAdjacentBits = 82 // swap bit pairs 0\leftrightarrow1, 2\leftrightarrow3, …; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -280,6 +283,9 @@ public:
       WorldGenerationComputeKernel kernel) const;
   // Ready open tickets whose identity.kernel matches (asset-free observation).
   List<WorldGenerationComputeTicket> listReadyOpenTicketsByKernel(
+      WorldGenerationComputeKernel kernel) const;
+  // Failed open tickets whose identity.kernel matches (asset-free observation).
+  List<WorldGenerationComputeTicket> listFailedOpenTicketsByKernel(
       WorldGenerationComputeKernel kernel) const;
   size_t countOpenTicketsByKernel(WorldGenerationComputeKernel kernel) const;
   // True while the ticket id is still present in the open-entry table.
