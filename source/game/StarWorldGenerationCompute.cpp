@@ -279,7 +279,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfIsZeroNibble
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfIsNonzeroNibble
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfEqNibble
-      || kernel == WorldGenerationComputeKernel::DenseUint32HalfNeNibble;
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfNeNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfLtNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfLeNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfGtNibble;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -522,7 +525,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32HalfIsZeroNibble,
       WorldGenerationComputeKernel::DenseUint32HalfIsNonzeroNibble,
       WorldGenerationComputeKernel::DenseUint32HalfEqNibble,
-      WorldGenerationComputeKernel::DenseUint32HalfNeNibble};
+      WorldGenerationComputeKernel::DenseUint32HalfNeNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfLtNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfLeNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfGtNibble};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -532,7 +538,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 235u;
+  return 238u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -789,6 +795,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32HalfIsNonzeroNibble: return "DenseUint32HalfIsNonzeroNibble";
     case WorldGenerationComputeKernel::DenseUint32HalfEqNibble: return "DenseUint32HalfEqNibble";
     case WorldGenerationComputeKernel::DenseUint32HalfNeNibble: return "DenseUint32HalfNeNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfLtNibble: return "DenseUint32HalfLtNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfLeNibble: return "DenseUint32HalfLeNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfGtNibble: return "DenseUint32HalfGtNibble";
   }
   return nullptr;
 }
@@ -2520,6 +2529,42 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
       for (uint32_t i = 0; i < 4; ++i) {
         uint32_t n = (lo >> (i * 4u)) & 0xfu;
         n = (n != target) ? 0xfu : 0u;
+        result |= n << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfLtNibble) {
+    uint32_t target = parameter & 0xfu;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t n = (lo >> (i * 4u)) & 0xfu;
+        n = (n < target) ? 0xfu : 0u;
+        result |= n << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfLeNibble) {
+    uint32_t target = parameter & 0xfu;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t n = (lo >> (i * 4u)) & 0xfu;
+        n = (n <= target) ? 0xfu : 0u;
+        result |= n << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfGtNibble) {
+    uint32_t target = parameter & 0xfu;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t n = (lo >> (i * 4u)) & 0xfu;
+        n = (n > target) ? 0xfu : 0u;
         result |= n << (i * 4u);
       }
       out.append(result);

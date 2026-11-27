@@ -258,7 +258,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32HalfIsZeroNibble = 232, // 0xf if nibble==0 else 0; parameter ignored
   DenseUint32HalfIsNonzeroNibble = 233, // 0xf if nibble!=0 else 0; parameter ignored
   DenseUint32HalfEqNibble = 234, // 0xf if nibble==(parameter&0xf) else 0
-  DenseUint32HalfNeNibble = 235 // 0xf if nibble!=(parameter&0xf) else 0
+  DenseUint32HalfNeNibble = 235, // 0xf if nibble!=(parameter&0xf) else 0
+  DenseUint32HalfLtNibble = 236, // 0xf if nibble < (parameter&0xf) else 0
+  DenseUint32HalfLeNibble = 237, // 0xf if nibble <= (parameter&0xf) else 0
+  DenseUint32HalfGtNibble = 238 // 0xf if nibble > (parameter&0xf) else 0
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
