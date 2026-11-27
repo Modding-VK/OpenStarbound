@@ -621,6 +621,12 @@ int main() {
       "DenseUint32HalfOddFillNibble");
   rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfEvenFillNibble, 0u,
       "DenseUint32HalfEvenFillNibble");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfLtFillNibble, 0x6u,
+      "DenseUint32HalfLtFillNibble");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfLeFillNibble, 0x6u,
+      "DenseUint32HalfLeFillNibble");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfGtFillNibble, 0x6u,
+      "DenseUint32HalfGtFillNibble");
 
   auto ticket = service.submit(makeIdentity(99, WorldGenerationComputeKernel::DenseUint32Xor),
       edgeCorpus(), 0x55aa55aau, WorldGenerationComputeBackend::GpuOpenGlCompute);
