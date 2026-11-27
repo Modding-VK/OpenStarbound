@@ -6,7 +6,7 @@ Base inspecionada: `5e2e2297`;
 admitidos a partir do composto (ver relatório de sombra).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico R1](../sector-runtime-r1-border-runtime-2026-11-27.md)
+· [Último relatório técnico R1](../sector-runtime-r1-local-checkpoint-2026-11-27.md)
 · [Último relatório H0](../sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
 · [Backlog geral](../performance-backlog.md)
 
@@ -22,10 +22,10 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Frente ativa | R1 nesta branch — REG-01 identidade/lifecycle; H0 continua em `Experimental` |
 | Progresso de maturidade de H0 | **25,0%** — 6 marcos verificados de 24 |
 | Progresso de maturidade de R1 | **25,0%** — 3 marcos verificados de 12 |
-| Progresso de maturidade do programa | **5,1%** — 10 marcos verificados de 196 |
-| Contratos com avanço registrado | **10 de 49**; todos ainda parciais |
+| Progresso de maturidade do programa | **5,6%** — 11 marcos verificados de 196 |
+| Contratos com avanço registrado | **11 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | R1 regional 15/15 (owner/border/runtime); REG-02 e WT-05 0→25% |
+| Última evidência de testes | R1 regional 22 testes (owner/border/runtime/local/checkpoint); IO-03 0→25% |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,6% não significam que o jogo esteja só 3,6% pronto.** O runtime anterior
@@ -57,8 +57,8 @@ Fórmulas:
 - **Contrato:** número de marcos consecutivos verificados × 25%.
 - **Fase de entrada:** soma das notas dos contratos nela cadastrados ÷ número
   desses contratos.
-- **Programa:** soma das notas dos 49 contratos ÷ 49. Hoje: 250 ÷ 49 = 5,1%
-  arredondado; equivalentemente, 10 ÷ (49 × 4) × 100.
+- **Programa:** soma das notas dos 49 contratos ÷ 49. Hoje: 275 ÷ 49 = 5,6%
+  arredondado; equivalentemente, 11 ÷ (49 × 4) × 100.
 - **Aceitação integral:** contratos em 100% ÷ 49. Hoje: 0%.
 
 São percentuais de **maturidade comprovada**, não de horas, esforço, linhas de
@@ -79,12 +79,12 @@ obriga concluir todo trabalho transversal para iniciar um protótipo em sombra.
 | 1 | H0 — fundações e validação | 6 | 6 / 24 | 25,0% | Invariantes, limites explicitados, comparador e baseline reproduzível para o escopo que será ampliado |
 | 2 | H1 — grafo executivo, CPU e entrega | 10 | 1 / 40 | 2,5% | Primeiro recorte proprietário de CPU-01 em apoio a H0; grafo/executor ainda pendentes |
 | 3 | H2 — produtos residentes e prefetch | 6 | 0 / 24 | 0% | Identidade/versionamento de H1 e orçamento de RAM |
-| 4 | H3 — kernels adicionais, estruturas e publicação | 10 | 0 / 40 | 0% | Contrato por kernel e publicação validável; TMX não bloqueia setor comum |
+| 4 | H3 — kernels adicionais, estruturas e publicação | 10 | 1 / 40 | 2,5% | IO-03 barreira regional; demais kernels/publicação pendentes |
 | 5 | H4 — backend GPU e comparação em sombra | 4 | 0 / 16 | 0% | Protótipo pode acompanhar H1/H2; publicação depende do kernel CPU equivalente |
 | 6 | H5 — seleção de hardware e escala | 7 | 0 / 28 | 0% | Produtos/backends validados e custo completo de entrega medido |
 | 7 | R1 — donos regionais e coordenadora | 3 | 3 / 12 | 25,0% | REG-01/02/WT-05 primeiros harnesses; autoridade/simulação/thread OS pendentes |
 | 8 | R2 — operações e transferências entre regiões | 3 | 0 / 12 | 0% | Lifecycle/estado de R1, recovery e matriz de multiplayer |
-| — | **Total** | **49** | **10 / 196** | **5,1%** | Não equivale a ganho de desempenho ou autorização de release |
+| — | **Total** | **49** | **11 / 196** | **5,6%** | Não equivale a ganho de desempenho ou autorização de release |
 
 Essa é uma ordem de prioridade/dependência, não uma proibição de frentes
 paralelas autorizadas pelo roadmap. Setores comuns permanecem prioritários.
@@ -177,7 +177,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 27 | H3 | [MD-05](microdungeons-and-tmx.md) | Aplicação mais barata e retomada | 0% | Batches ou staging sem estado parcial observável |
 | 28 | H3 | [WT-04](worldthread.md) | Publicação mais barata | 0% | Reduzir custo serial depois de validar os efeitos |
 | 29 | H3 | [IO-02](io-persistence-network.md) | Serviço de banco e transações | 0% | Persistência consistente com os novos produtos |
-| 30 | H3 | [IO-03](io-persistence-network.md) | Checkpoint e recuperação | 0% | Estado confirmado/recuperável; continua em R1 |
+| 30 | H3 | [IO-03](io-persistence-network.md) | Checkpoint e recuperação | 25% | Barreira de passo regional; persistência .world/journal ainda pendentes |
 | 31 | H3 | [IO-04](io-persistence-network.md) | Unload, drain e retorno ao legado | 0% | Encerrar sem liberar buffers/produtores ainda ativos |
 | 32 | H3 | [IO-05](io-persistence-network.md) | Pacotes e aplicação no cliente | 0% | Medir entrega até o cliente, não apenas commit |
 | 33 | H4 | [GPU-01](gpu-compute.md) | Interface e capacidades CPU/GPU | 0% | Backend opcional com build CPU independente |
@@ -192,7 +192,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 42 | H5 | [MOD-03](compatibility.md) | Perfis de execução e fallback | 0% | Adoção/migração com fronteiras seguras |
 | 43 | H5 | [MOD-04](compatibility.md) | Subsistemas e plataformas | 0% | Matriz compatível de geração, scripts, save, rede e hardware |
 | 44 | R1 | [REG-01](regional-threads.md) | Lifecycle e identidade da dona | 25% | Identidade/admit/drain/pendingWork; sem thread OS nem WorldStorage |
-| 45 | R1 | [REG-02](regional-threads.md) | Estado local e visões de borda | 25% | Snapshot de borda imutável; inventário local completo ainda pendente |
+| 45 | R1 | [REG-02](regional-threads.md) | Estado local e visões de borda | 25% | Borda + inventário de kinds; cópia de estado vivo e passo completo pendentes |
 | 46 | R1 | [WT-05](worldthread.md) | Coordenadora do runtime regional | 25% | RuntimeCoordinator roteia interesse/bordas; sem publicação central de simulação |
 | 47 | R2 | [REG-03](regional-threads.md) | Tempo e operações entre regiões | 0% | Intenções multirregião e ordem autoritativa |
 | 48 | R2 | [REG-04](regional-threads.md) | Transferência de entidades | 0% | Handoff sem dupla autoridade; não é externalização de NPCs |
@@ -210,8 +210,9 @@ de todas as implementações antigas para conceder crédito retroativo.
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
 | REG-01 | [Identidade/lifecycle](../sector-runtime-r1-region-owner-identity-2026-11-27.md) + pendingWork | Sem thread dedicada, carga real WorldStorage ou autoridade de simulação |
-| REG-02 | [Bordas](../sector-runtime-r1-border-runtime-2026-11-27.md) | Inventário local completo (tiles/líquidos/entidades/Lua) e passo comum ainda abertos |
-| WT-05 | [RuntimeCoordinator](../sector-runtime-r1-border-runtime-2026-11-27.md) | Sem integração WorldServerThread, checkpoint/transferências nem thread dedicada por região |
+| REG-02 | [Bordas](../sector-runtime-r1-border-runtime-2026-11-27.md) + [inventário](../sector-runtime-r1-local-checkpoint-2026-11-27.md) | Sem cópia de estado vivo do mundo nem equivalência de borda integrada |
+| WT-05 | [RuntimeCoordinator](../sector-runtime-r1-border-runtime-2026-11-27.md) | Sem integração WorldServerThread nem thread dedicada por região |
+| IO-03 | [Checkpoint barrier](../sector-runtime-r1-local-checkpoint-2026-11-27.md) | Sem journal/.world, crash/restart ou sync periódico de storage |
 
 CPU-01 recebe o primeiro marco porque agora existe cálculo com dados próprios
 que independe da origem/Root após captura, não só callbacks/catálogos ou contagem
@@ -310,6 +311,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 26/11/2026 | Concurrent ocean | Duas sombras oceano no ledger; 106 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 27/11/2026 | REG-01 identidade | `WorldRegionOwnerRegistry` admit/drain; 6 testes. REG-01 0→25%; programa 3,6%→4,1% | 4,1% |
 | 27/11/2026 | REG-02/WT-05 harness | Bordas + RuntimeCoordinator; 15 testes. REG-02/WT-05 0→25%; programa 4,1%→5,1% | 5,1% |
+| 27/11/2026 | Local+IO-03 | Inventário de kinds + barreira de checkpoint; 22 testes. IO-03 0→25%; programa 5,1%→5,6% | 5,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

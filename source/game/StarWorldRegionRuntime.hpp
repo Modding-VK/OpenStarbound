@@ -1,6 +1,8 @@
 #pragma once
 
 #include "StarWorldRegionBorder.hpp"
+#include "StarWorldRegionCheckpoint.hpp"
+#include "StarWorldRegionLocalState.hpp"
 #include "StarWorldRegionOwner.hpp"
 
 namespace Star {
@@ -34,6 +36,12 @@ public:
   Maybe<WorldRegionBorderSnapshot> border(Vec2U const& region) const;
   Maybe<WorldRegionOwnerIdentity> activeOwner(Vec2U const& region) const;
 
+  WorldRegionLocalDeclareResult declareLocalKinds(Vec2U const& region, uint8_t kinds);
+  Maybe<WorldRegionLocalInventorySnapshot> localInventory(Vec2U const& region) const;
+  WorldRegionCheckpointNoteResult confirmCheckpoint(Vec2U const& region, uint64_t step);
+  WorldRegionCheckpointAdvanceResult advanceCheckpoint(uint64_t targetStep);
+  uint64_t committedCheckpoint() const;
+
   uint64_t advanceClock();
   uint64_t clock() const;
   size_t ownerCount() const;
@@ -42,6 +50,8 @@ public:
 private:
   WorldRegionOwnerRegistry m_owners;
   WorldRegionBorderLedger m_borders;
+  WorldRegionLocalStateLedger m_localState;
+  WorldRegionCheckpointBarrier m_checkpoints;
   uint64_t m_clock = 0;
 };
 

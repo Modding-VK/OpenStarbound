@@ -6,7 +6,8 @@ namespace Star {
 
 WorldRegionRuntimeCoordinator::WorldRegionRuntimeCoordinator(uint64_t worldEpoch, WorldRegionPartition partition,
     bool creationAllowed)
-  : m_owners(worldEpoch, std::move(partition), creationAllowed), m_borders(m_owners) {}
+  : m_owners(worldEpoch, std::move(partition), creationAllowed), m_borders(m_owners), m_localState(m_owners),
+    m_checkpoints(m_owners) {}
 
 WorldRegionRuntimeInterestResult WorldRegionRuntimeCoordinator::noteInterest(Vec2U const& sector,
     WorldRegionMemberLevel level) {
@@ -57,6 +58,32 @@ Maybe<WorldRegionOwnerIdentity> WorldRegionRuntimeCoordinator::activeOwner(Vec2U
   if (m_owners.phase(region) != WorldRegionOwnerPhase::Active)
     return {};
   return m_owners.identity(region);
+}
+
+WorldRegionLocalDeclareResult WorldRegionRuntimeCoordinator::declareLocalKinds(Vec2U const& region, uint8_t kinds) {
+  auto owner = activeOwner(region);
+  if (!owner)
+    return WorldRegionLocalDeclareResult::RegionAbsent;
+  return m_localState.declareKinds(*owner, kinds);
+}
+
+Maybe<WorldRegionLocalInventorySnapshot> WorldRegionRuntimeCoordinator::localInventory(Vec2U const& region) const {
+  return m_localState.snapshot(region);
+}
+
+WorldRegionCheckpointNoteResult WorldRegionRuntimeCoordinator::confirmCheckpoint(Vec2U const& region, uint64_t step) {
+  auto owner = activeOwner(region);
+  if (!owner)
+    return WorldRegionCheckpointNoteResult::RegionAbsent;
+  return m_checkpoints.noteConfirmed(*owner, step);
+}
+
+WorldRegionCheckpointAdvanceResult WorldRegionRuntimeCoordinator::advanceCheckpoint(uint64_t targetStep) {
+  return m_checkpoints.tryAdvance(targetStep);
+}
+
+uint64_t WorldRegionRuntimeCoordinator::committedCheckpoint() const {
+  return m_checkpoints.committedStep();
 }
 
 uint64_t WorldRegionRuntimeCoordinator::advanceClock() {

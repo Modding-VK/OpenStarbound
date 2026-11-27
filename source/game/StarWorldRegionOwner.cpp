@@ -87,6 +87,15 @@ List<WorldRegionOwnerMember> WorldRegionOwnerRegistry::members(Vec2U const& regi
   return out;
 }
 
+List<Vec2U> WorldRegionOwnerRegistry::activeRegions() const {
+  List<Vec2U> out;
+  for (auto const& entry : m_owners.pairs()) {
+    if (entry.second.phase == WorldRegionOwnerPhase::Active)
+      out.append(entry.first);
+  }
+  return out;
+}
+
 bool WorldRegionOwnerRegistry::addPendingWork(Vec2U const& region, uint64_t units) {
   if (units == 0)
     return false;

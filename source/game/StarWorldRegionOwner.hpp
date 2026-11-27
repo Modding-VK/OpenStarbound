@@ -79,6 +79,7 @@ public:
   Maybe<WorldRegionOwnerIdentity> identityForSector(Vec2U const& sector) const;
   Maybe<WorldRegionMemberLevel> memberLevel(Vec2U const& sector) const;
   List<WorldRegionOwnerMember> members(Vec2U const& region) const;
+  List<Vec2U> activeRegions() const;
   WorldRegionOwnerPhase phase(Vec2U const& region) const;
   size_t memberCount(Vec2U const& region) const;
   size_t ownerCount() const;

@@ -25,9 +25,14 @@ nem publicação autoritativa. Em seguida,
 [`WorldRegionBorderLedger`](../sector-runtime-r1-border-runtime-2026-11-27.md) e
 [`WorldRegionRuntimeCoordinator`](../sector-runtime-r1-border-runtime-2026-11-27.md)
 cobrem o primeiro recorte de bordas confirmadas (REG-02) e coordenação central
-sem publicação de simulação (WT-05). Os previews de lifecycle/mailbox não
-executam Lua, simulação ou instalação autoritativa em paralelo. A WorldThread
-central ainda é a dona do mundo no runtime atual.
+sem publicação de simulação (WT-05).
+[`WorldRegionLocalStateLedger`](../sector-runtime-r1-local-checkpoint-2026-11-27.md)
+e
+[`WorldRegionCheckpointBarrier`](../sector-runtime-r1-local-checkpoint-2026-11-27.md)
+registram inventário de autoridade local e a barreira de passo comum (IO-03).
+Os previews de lifecycle/mailbox não executam Lua, simulação ou instalação
+autoritativa em paralelo. A WorldThread central ainda é a dona do mundo no
+runtime atual.
 
 ## REG-01 — Lifecycle e identidade da dona
 

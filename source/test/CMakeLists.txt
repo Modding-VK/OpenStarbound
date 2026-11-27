@@ -107,6 +107,8 @@ ADD_EXECUTABLE(world_generation_contract_tests
   ../game/StarWorldRegionOwner.cpp
   ../game/StarWorldRegionBorder.cpp
   ../game/StarWorldRegionRuntime.cpp
+  ../game/StarWorldRegionLocalState.cpp
+  ../game/StarWorldRegionCheckpoint.cpp
   ../game/StarWorldGenerationDependency.cpp
   ../game/StarWorldGenerationTasks.cpp
   ../game/StarWorldGenerationMemory.cpp
@@ -130,6 +132,8 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_region_owner_test.cpp
   world_region_border_test.cpp
   world_region_runtime_test.cpp
+  world_region_local_state_test.cpp
+  world_region_checkpoint_test.cpp
   world_generation_dependency_test.cpp
   world_generation_pass_test.cpp
   StarWorldGenerationPassHarness.hpp
@@ -179,6 +183,8 @@ FOREACH(world_region_test_suite
     WorldRegionOwnerTest
     WorldRegionBorderTest
     WorldRegionRuntimeTest
+    WorldRegionLocalStateTest
+    WorldRegionCheckpointTest
     WorldGenerationDependencyTest
     WorldGenerationPassTest
     WorldGenerationPlacementQueueTest

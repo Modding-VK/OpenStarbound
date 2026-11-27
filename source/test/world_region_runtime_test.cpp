@@ -62,3 +62,19 @@ TEST(WorldRegionRuntimeTest, CreationFailureKeepsLegacyCentralOwnershipPath) {
   EXPECT_EQ(0u, runtime.ownerCount());
   EXPECT_FALSE(runtime.activeOwner({0, 0}));
 }
+
+TEST(WorldRegionRuntimeTest, CoordinatorExposesLocalInventoryAndSharedCheckpoint) {
+  WorldRegionRuntimeCoordinator runtime(21, partition());
+  ASSERT_EQ(runtime.noteInterest({0, 0}, WorldRegionMemberLevel::Tiles), WorldRegionRuntimeInterestResult::Noted);
+  ASSERT_EQ(runtime.noteInterest({2, 0}, WorldRegionMemberLevel::Tiles), WorldRegionRuntimeInterestResult::Noted);
+  auto kinds = worldRegionLocalKindMask(WorldRegionLocalKind::Tiles)
+      | worldRegionLocalKindMask(WorldRegionLocalKind::Collision);
+  EXPECT_EQ(runtime.declareLocalKinds({0, 0}, kinds), WorldRegionLocalDeclareResult::Declared);
+  EXPECT_EQ(runtime.declareLocalKinds({1, 0}, kinds), WorldRegionLocalDeclareResult::Declared);
+  ASSERT_TRUE(runtime.localInventory({0, 0}));
+  EXPECT_EQ(runtime.confirmCheckpoint({0, 0}, 1), WorldRegionCheckpointNoteResult::Noted);
+  EXPECT_EQ(runtime.advanceCheckpoint(1), WorldRegionCheckpointAdvanceResult::WaitingOnOwners);
+  EXPECT_EQ(runtime.confirmCheckpoint({1, 0}, 1), WorldRegionCheckpointNoteResult::Noted);
+  EXPECT_EQ(runtime.advanceCheckpoint(1), WorldRegionCheckpointAdvanceResult::Advanced);
+  EXPECT_EQ(1u, runtime.committedCheckpoint());
+}
