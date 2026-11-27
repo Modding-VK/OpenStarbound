@@ -243,6 +243,11 @@ Cada leitor usa grafo privado; const não autoriza compartilhar os demais caches
 
 ## MOD-02 — Equivalência e versionamento
 
+Primeiro recorte (27/11/2026):
+[`compareWorldGenerationEquivalence`](../source/game/StarWorldGenerationEquivalenceVersion.hpp)
+exige épocas compatíveis e rejeita normalização silenciosa;
+[fundações H5](../sector-runtime-h5-scale-foundations-2026-11-27.md).
+
 Definir inputs que produzem um output: seed, template/layout, geração de
 assets, distribuição, versão do algoritmo, ordem de comandos e estado vivo
 relevante. Uma cache é válida apenas sob essa identidade.
@@ -252,13 +257,6 @@ promises e metadata. Para entidades/IDs com diferenças permitidas, documentar
 normalização exata do comparador; não mascarar divergência de conteúdo como
 ruído. Alteração de matemática GPU ou seed que mude mundo exige decisão de
 versão de geração separada, fora do perfil equivalente.
-
-## MOD-02 — Equivalência e versionamento (recorte H5)
-
-Primeiro recorte (27/11/2026):
-[`compareWorldGenerationEquivalence`](../source/game/StarWorldGenerationEquivalenceVersion.hpp)
-exige épocas compatíveis e rejeita normalização silenciosa;
-[fundações H5](../sector-runtime-h5-scale-foundations-2026-11-27.md).
 
 ## MOD-03 — Perfis de execução e fallback
 
