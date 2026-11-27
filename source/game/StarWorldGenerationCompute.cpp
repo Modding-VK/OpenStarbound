@@ -2814,6 +2814,15 @@ bool WorldGenerationComputeService::anyCancelledOpenTickets() const {
   return false;
 }
 
+bool WorldGenerationComputeService::anyTerminalOpenTickets() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  for (auto const& pair : m_entries) {
+    if (pair.second.state != EntryState::Pending)
+      return true;
+  }
+  return false;
+}
+
 bool WorldGenerationComputeService::anyPendingOpenTickets() const {
   std::lock_guard<std::mutex> lock(m_mutex);
   for (auto const& pair : m_entries) {
