@@ -35,7 +35,8 @@ enum class WorldRegionLocalDeclareResult {
   RegionAbsent,
   RegionDraining,
   OwnerMismatch,
-  EmptyKinds
+  EmptyKinds,
+  NotAuthoritative
 };
 
 // First REG-02 local-state harness: exclusive kind inventory per active owner.

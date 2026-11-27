@@ -6,7 +6,7 @@ Base inspecionada: `5e2e2297`;
 admitidos a partir do composto (ver relatório de sombra).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico R1](../sector-runtime-r1-border-outline-epoch-2026-11-27.md)
+· [Último relatório técnico R1](../sector-runtime-r1-authoritative-owner-2026-11-27.md)
 · [Último relatório H0](../sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
 · [Backlog geral](../performance-backlog.md)
 
@@ -25,7 +25,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **5,6%** — 11 marcos verificados de 196 |
 | Contratos com avanço registrado | **11 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | R1 regional 26 testes (outline/ForeignCell/retireAll); maturidade R1 permanece 25% |
+| Última evidência de testes | R1 regional 30 testes (+Authority); dona autoritativa lógica; maturidade R1 permanece 25% |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,6% não significam que o jogo esteja só 3,6% pronto.** O runtime anterior
@@ -191,7 +191,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 41 | H5 | [MOD-02](compatibility.md) | Equivalência e versionamento | 0% | Comparar estado, comandos e identidades sem normalização indevida |
 | 42 | H5 | [MOD-03](compatibility.md) | Perfis de execução e fallback | 0% | Adoção/migração com fronteiras seguras |
 | 43 | H5 | [MOD-04](compatibility.md) | Subsistemas e plataformas | 0% | Matriz compatível de geração, scripts, save, rede e hardware |
-| 44 | R1 | [REG-01](regional-threads.md) | Lifecycle e identidade da dona | 25% | + retireAll (epoch simulada); sem thread OS nem WorldStorage |
+| 44 | R1 | [REG-01](regional-threads.md) | Lifecycle e identidade da dona | 25% | + autoridade exclusiva lógica; sem thread OS nem WorldStorage |
 | 45 | R1 | [REG-02](regional-threads.md) | Estado local e visões de borda | 25% | + contorno parcial/ForeignCell; sem estado vivo integrado |
 | 46 | R1 | [WT-05](worldthread.md) | Coordenadora do runtime regional | 25% | + perimeter skeleton; sem WorldServerThread |
 | 47 | R2 | [REG-03](regional-threads.md) | Tempo e operações entre regiões | 0% | Intenções multirregião e ordem autoritativa |
@@ -209,7 +209,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | MOD-01 | [Leitores imutáveis](../sector-runtime-h0-distribution-bundles-2026-11-09.md), [proteção da seleção](../sector-runtime-h0-planning-storage-2026-11-09.md) e [lifecycle/scope 2](../sector-runtime-h0-lookup-source-generations-2026-11-09.md) | Metadata não é sincronização/commit nem auditoria de toda mutação; fronteira biomeTransition e integração abertas |
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
-| REG-01 | [Identidade](../sector-runtime-r1-region-owner-identity-2026-11-27.md) + [retireAll](../sector-runtime-r1-border-outline-epoch-2026-11-27.md) | Sem thread dedicada, carga real WorldStorage ou autoridade de simulação |
+| REG-01 | [Identidade](../sector-runtime-r1-region-owner-identity-2026-11-27.md) + [AuthoritativeOwner](../sector-runtime-r1-authoritative-owner-2026-11-27.md) | Sem thread dedicada / WorldStorage vivo; autoridade lógica disponível a R2 |
 | REG-02 | [Bordas/outline](../sector-runtime-r1-border-outline-epoch-2026-11-27.md) + inventário | Sem cópia de estado vivo do mundo nem equivalência integrada |
 | WT-05 | [RuntimeCoordinator](../sector-runtime-r1-border-runtime-2026-11-27.md) | Sem integração WorldServerThread nem thread dedicada por região |
 | IO-03 | [Checkpoint barrier](../sector-runtime-r1-local-checkpoint-2026-11-27.md) | Sem journal/.world, crash/restart ou sync periódico de storage |
@@ -313,6 +313,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | REG-02/WT-05 harness | Bordas + RuntimeCoordinator; 15 testes. REG-02/WT-05 0→25%; programa 4,1%→5,1% | 5,1% |
 | 27/11/2026 | Local+IO-03 | Inventário de kinds + barreira de checkpoint; 22 testes. IO-03 0→25%; programa 5,1%→5,6% | 5,6% |
 | 27/11/2026 | R1 outline/epoch | Contorno parcial + ForeignCell + retireAll; 26 testes. Maturidade R1 permanece 25% | 5,6% |
+| 27/11/2026 | R1 authoritative | `WorldRegionAuthoritativeOwner`; 30 testes. API sem `-harness` para R2; % R1 permanece 25% | 5,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

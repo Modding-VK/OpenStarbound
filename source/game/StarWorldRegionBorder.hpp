@@ -28,7 +28,8 @@ enum class WorldRegionBorderCaptureResult {
   RegionDraining,
   EmptyCells,
   OwnerMismatch,
-  ForeignCell
+  ForeignCell,
+  NotAuthoritative
 };
 
 // REG-02 residual harness: perimeter tile positions from WorldGeometry bounds,

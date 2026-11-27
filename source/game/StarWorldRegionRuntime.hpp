@@ -1,5 +1,6 @@
 #pragma once
 
+#include "StarWorldRegionAuthority.hpp"
 #include "StarWorldRegionBorder.hpp"
 #include "StarWorldRegionCheckpoint.hpp"
 #include "StarWorldRegionLocalState.hpp"
@@ -15,10 +16,9 @@ enum class WorldRegionRuntimeInterestResult {
   UnknownRegion
 };
 
-// WT-05 first harness: the central coordinator routes interest to region
-// owners and exposes confirmed identities/borders. It does not publish tiles,
-// entities, Lua, or network effects, and it does not run region simulations
-// on a shared worker pool.
+// WT-05 coordinator: routes interest to region owners, can promote exclusive
+// authoritative write ownership (value identity only), and exposes confirmed
+// borders/checkpoints. Does not start OS threads or publish live simulation.
 class WorldRegionRuntimeCoordinator {
 public:
   WorldRegionRuntimeCoordinator(uint64_t worldEpoch, WorldRegionPartition partition, bool creationAllowed = true);
@@ -32,28 +32,40 @@ public:
   bool addPendingWork(Vec2U const& region, uint64_t units = 1);
   bool clearPendingWork(Vec2U const& region, uint64_t units = 1);
 
+  WorldRegionAuthorityPromoteResult promoteAuthoritative(Vec2U const& region);
+  WorldRegionAuthorityDemoteResult demoteAuthoritative(Vec2U const& region);
+  bool isAuthoritative(Vec2U const& region) const;
+  Maybe<WorldRegionOwnerIdentity> authoritativeOwner(Vec2U const& region) const;
+  WorldRegionAuthorityGrade authorityGrade(Vec2U const& region) const;
+
   WorldRegionBorderCaptureResult publishBorder(Vec2U const& region, List<WorldRegionBorderCell> cells);
+  WorldRegionBorderCaptureResult publishAuthoritativeBorder(Vec2U const& region, List<WorldRegionBorderCell> cells);
   WorldRegionBorderCaptureResult publishPerimeterSkeleton(Vec2U const& region);
   Maybe<WorldRegionBorderSnapshot> border(Vec2U const& region) const;
   Maybe<WorldRegionOwnerIdentity> activeOwner(Vec2U const& region) const;
   size_t retireAllOwners();
 
   WorldRegionLocalDeclareResult declareLocalKinds(Vec2U const& region, uint8_t kinds);
+  WorldRegionLocalDeclareResult declareAuthoritativeLocalKinds(Vec2U const& region, uint8_t kinds);
   Maybe<WorldRegionLocalInventorySnapshot> localInventory(Vec2U const& region) const;
   WorldRegionCheckpointNoteResult confirmCheckpoint(Vec2U const& region, uint64_t step);
+  WorldRegionCheckpointNoteResult confirmAuthoritativeCheckpoint(Vec2U const& region, uint64_t step);
   WorldRegionCheckpointAdvanceResult advanceCheckpoint(uint64_t targetStep);
   uint64_t committedCheckpoint() const;
 
   uint64_t advanceClock();
   uint64_t clock() const;
   size_t ownerCount() const;
+  size_t authoritativeOwnerCount() const;
   WorldRegionOwnerRegistry const& owners() const;
+  WorldRegionAuthoritativeOwnerLedger const& authority() const;
 
 private:
   WorldRegionOwnerRegistry m_owners;
   WorldRegionBorderLedger m_borders;
   WorldRegionLocalStateLedger m_localState;
   WorldRegionCheckpointBarrier m_checkpoints;
+  WorldRegionAuthoritativeOwnerLedger m_authority;
   uint64_t m_clock = 0;
 };
 

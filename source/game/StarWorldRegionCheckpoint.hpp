@@ -20,7 +20,8 @@ enum class WorldRegionCheckpointNoteResult {
   RegionAbsent,
   RegionDraining,
   OwnerMismatch,
-  StepRegression
+  StepRegression,
+  NotAuthoritative
 };
 
 enum class WorldRegionCheckpointAdvanceResult {

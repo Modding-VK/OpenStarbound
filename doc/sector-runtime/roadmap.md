@@ -507,8 +507,11 @@ propriedade e efeitos; não é liberada por um kernel GPU aprovado.
 - [x] R1: harness residual outline/ForeignCell/retireAll
   ([relatório](../sector-runtime-r1-border-outline-epoch-2026-11-27.md));
   maturidade permanece 25%.
-- [ ] R1: REG-01/02 restantes + MOD-01 — lifecycle autoritativo com
-  WorldStorage, estado vivo e equivalência integrada.
+- [x] R1: dona autoritativa lógica (`WorldRegionAuthoritativeOwner`)
+  ([relatório](../sector-runtime-r1-authoritative-owner-2026-11-27.md));
+  sem thread OS; maturidade permanece 25%.
+- [ ] R1: REG-01/02 restantes + MOD-01 — thread OS / WorldStorage,
+  estado vivo e equivalência integrada.
 - [ ] R1: WT-05 restante — integração WorldServerThread / legado.
 - [ ] R1/H3: IO-03 restante — journal/.world e recuperação pós-falha.
 - [ ] R2: REG-03/04/05 — intenções multirregião, handoff, falhas e custo real.

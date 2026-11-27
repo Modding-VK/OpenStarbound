@@ -33,9 +33,12 @@ registram inventário de autoridade local e a barreira de passo comum (IO-03).
 Em seguida,
 [`WorldRegionBorderOutline`](../sector-runtime-r1-border-outline-epoch-2026-11-27.md)
 e `retireAll` cobrem contorno geométrico/parcial e aposentadoria simulada de
-epoch, ainda sem thread OS. Os previews de lifecycle/mailbox não executam Lua,
-simulação ou instalação autoritativa em paralelo. A WorldThread central ainda
-é a dona do mundo no runtime atual.
+epoch, ainda sem thread OS.
+[`WorldRegionAuthoritativeOwnerLedger`](../sector-runtime-r1-authoritative-owner-2026-11-27.md)
+promove donas Active a autoridade exclusiva de escrita por identidade-valor
+(sem thread OS). Os previews de lifecycle/mailbox não executam Lua, simulação
+ou instalação no WorldServer vivo. A WorldThread central ainda é a dona do
+mundo no runtime atual.
 
 ## REG-01 — Lifecycle e identidade da dona
 
