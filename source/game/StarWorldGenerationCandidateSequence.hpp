@@ -54,8 +54,8 @@ enum class WorldGenerationBiomeItemField : uint32_t {
 
 enum class WorldGenerationBiomeItemComparisonMode {
   KindOnly,
-  // MicroDungeonNames, TreasureBoxSet, Grass/Bush/TreePair contents.
-  // ObjectPool and TileDamageParameters remain UnsupportedPayload.
+  // All BiomeItem kinds except TileDamageParameters on plant variants.
+  // ObjectPool compares weight/name/Json entries in order.
   SupportedPayload
 };
 

@@ -130,6 +130,26 @@ bool sameTree(TreeVariant const& a, TreeVariant const& b) {
       && a.descriptions == b.descriptions && a.ceiling == b.ceiling && a.ephemeral == b.ephemeral
       && a.stemDropConfig == b.stemDropConfig && a.foliageDropConfig == b.foliageDropConfig;
 }
+
+bool sameDouble(double const& a, double const& b) {
+  return std::memcmp(&a, &b, sizeof(double)) == 0;
+}
+
+bool sameObjectPool(ObjectPool const& a, ObjectPool const& b) {
+  auto const& left = a.items();
+  auto const& right = b.items();
+  if (left.size() != right.size())
+    return false;
+  for (size_t i = 0; i != left.size(); ++i) {
+    if (!sameDouble(left[i].first, right[i].first))
+      return false;
+    if (left[i].second.first != right[i].second.first)
+      return false;
+    if (left[i].second.second != right[i].second.second)
+      return false;
+  }
+  return true;
+}
 }
 
 WorldGenerationBiomeItemComparison compareWorldGenerationBiomeItems(BiomeItem const& a, BiomeItem const& b,
@@ -175,8 +195,13 @@ WorldGenerationBiomeItemComparison compareWorldGenerationBiomeItems(BiomeItem co
       result.differentFields |= static_cast<uint32_t>(WorldGenerationBiomeItemField::Payload);
     return result;
   }
+  if (auto aPool = a.ptr<ObjectPool>()) {
+    auto bPool = b.ptr<ObjectPool>();
+    if (!bPool || !sameObjectPool(*aPool, *bPool))
+      result.differentFields |= static_cast<uint32_t>(WorldGenerationBiomeItemField::Payload);
+    return result;
+  }
 
-  // ObjectPool (and any future kind): kind matches, payload deferred.
   result.differentFields |= static_cast<uint32_t>(WorldGenerationBiomeItemField::UnsupportedPayload);
   return result;
 }

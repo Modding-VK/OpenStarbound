@@ -189,10 +189,12 @@ TEST(WorldGenerationCandidateSequenceTest, MicroDungeonAndTreasurePayloadCompare
   EXPECT_TRUE(compareWorldGenerationBiomeItems(grass, grass).equal());
   EXPECT_TRUE(compareWorldGenerationBiomeItems(grass, grass, WorldGenerationBiomeItemComparisonMode::KindOnly).equal());
 
-  auto pool = BiomeItem{ObjectPool{}};
-  auto poolSupported = compareWorldGenerationBiomeItems(pool, pool);
-  EXPECT_FALSE(poolSupported.equal());
-  EXPECT_EQ(poolSupported.differentFields, static_cast<uint32_t>(ItemField::UnsupportedPayload));
+  ObjectPool poolA;
+  poolA.add(1.0, make_pair(String("obj"), JsonObject{{"a", 1}}));
+  ObjectPool poolB = poolA;
+  EXPECT_TRUE(compareWorldGenerationBiomeItems(BiomeItem{poolA}, BiomeItem{poolB}).equal());
+  poolB.add(2.0, make_pair(String("other"), Json()));
+  EXPECT_FALSE(compareWorldGenerationBiomeItems(BiomeItem{poolA}, BiomeItem{poolB}).equal());
 }
 
 TEST(WorldGenerationCandidateSequenceTest, GrassBushTreePayloadCompareExcludingTileDamage) {
