@@ -1553,6 +1553,29 @@ TEST(WorldGenerationComputeTest, AnyFailedOpenTicketsTracksFailedPresence) {
 
 
 
+TEST(WorldGenerationComputeTest, CountTerminalOpenTicketsByKernelTracksNonPendingMatches) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  auto xorA = service.submit(
+      makeIdentity(1690, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u);
+  auto xorB = service.submit(
+      makeIdentity(1691, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{2u}, 0u);
+  auto add = service.submit(
+      makeIdentity(1692, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{3u}, 0u);
+  ASSERT_TRUE((bool)xorA);
+  ASSERT_TRUE((bool)xorB);
+  ASSERT_TRUE((bool)add);
+  EXPECT_EQ(0u,
+      service.countTerminalOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_TRUE(service.complete(*xorA));
+  EXPECT_TRUE(service.cancel(*xorB));
+  EXPECT_EQ(2u,
+      service.countTerminalOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(0u,
+      service.countTerminalOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+  EXPECT_EQ(1u, service.inFlightByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+}
+
 TEST(WorldGenerationComputeTest, ListTerminalOpenTicketsByKernelReturnsNonPendingMatches) {
   WorldGenerationComputeService service;
   service.setDeferredCpuCompletion(true);

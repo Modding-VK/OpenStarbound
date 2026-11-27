@@ -3188,6 +3188,18 @@ List<WorldGenerationComputeTicket> WorldGenerationComputeService::listTerminalOp
   return out;
 }
 
+size_t WorldGenerationComputeService::countTerminalOpenTicketsByKernel(
+    WorldGenerationComputeKernel kernel) const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  size_t count = 0;
+  for (auto const& pair : m_entries) {
+    if (pair.second.state == EntryState::Pending || pair.second.identity.kernel != kernel)
+      continue;
+    ++count;
+  }
+  return count;
+}
+
 List<WorldGenerationComputeTicket> WorldGenerationComputeService::listPendingOpenTicketsByKernel(
     WorldGenerationComputeKernel kernel) const {
   std::lock_guard<std::mutex> lock(m_mutex);

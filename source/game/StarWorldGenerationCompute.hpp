@@ -536,6 +536,8 @@ public:
   // Terminal open tickets whose identity.kernel matches (asset-free observation).
   List<WorldGenerationComputeTicket> listTerminalOpenTicketsByKernel(
       WorldGenerationComputeKernel kernel) const;
+  // Count of terminal open tickets whose identity.kernel matches (asset-free).
+  size_t countTerminalOpenTicketsByKernel(WorldGenerationComputeKernel kernel) const;
   // Pending open tickets whose identity.kernel matches (asset-free observation).
   List<WorldGenerationComputeTicket> listPendingOpenTicketsByKernel(
       WorldGenerationComputeKernel kernel) const;
