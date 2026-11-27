@@ -81,7 +81,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32IsZero = 55, // value == 0 ? 0xffffffff : 0; parameter ignored
   DenseUint32IsNonzero = 56, // value != 0 ? 0xffffffff : 0; parameter ignored
   DenseUint32MaskHigh = 57, // value & high-bit mask; parameter = bit count clamped to [0,32]
-  DenseUint32SatMul = 58 // saturating multiply (clamp product to 0xffffffff)
+  DenseUint32SatMul = 58, // saturating multiply (clamp product to 0xffffffff)
+  DenseUint32SwapHalves = 59, // swap high/low 16-bit halves; parameter ignored
+  DenseUint32Clo = 60, // count leading ones; parameter ignored
+  DenseUint32Cto = 61 // count trailing ones; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
