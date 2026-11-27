@@ -459,7 +459,10 @@ Propósito: reduzir trabalho serial após o desbloqueio do pipeline.
   ([CaveLiquid](../sector-runtime-h3-cave-liquid-plan-2026-11-27.md),
   [Finalize](../sector-runtime-h3-finalize-normalize-2026-11-27.md)); flora e
   equivalência viva pendentes.
-- [ ] MD-02/03: formato estático TMX separado da ligação que consome RNG.
+- [x] MD-02 (primeiro recorte): produto TMX estático em sombra em
+  `cursor/h3-kernels-publication-9f77`
+  ([relatório](../sector-runtime-h3-tmx-static-product-2026-11-27.md)).
+- [ ] MD-03: ligação/RNG autoritativos sobre o produto estático.
 - [ ] MD-04: mapa completo de efeitos, footprints e comandos de estruturas.
 - [ ] MD-05 e WT-04: aplicação em batches e staging quando necessário.
 - [ ] IO-02/03/04: banco, checkpoint e unload coerentes com novos produtos.
