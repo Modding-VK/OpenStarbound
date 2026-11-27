@@ -72,7 +72,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32Xnor
       || kernel == WorldGenerationComputeKernel::DenseUint32Nand
       || kernel == WorldGenerationComputeKernel::DenseUint32Nor
-      || kernel == WorldGenerationComputeKernel::DenseUint32MulHi;
+      || kernel == WorldGenerationComputeKernel::DenseUint32MulHi
+      || kernel == WorldGenerationComputeKernel::DenseUint32AndNot
+      || kernel == WorldGenerationComputeKernel::DenseUint32SatAdd
+      || kernel == WorldGenerationComputeKernel::DenseUint32SatSub;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -108,7 +111,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32Xnor,
       WorldGenerationComputeKernel::DenseUint32Nand,
       WorldGenerationComputeKernel::DenseUint32Nor,
-      WorldGenerationComputeKernel::DenseUint32MulHi};
+      WorldGenerationComputeKernel::DenseUint32MulHi,
+      WorldGenerationComputeKernel::DenseUint32AndNot,
+      WorldGenerationComputeKernel::DenseUint32SatAdd,
+      WorldGenerationComputeKernel::DenseUint32SatSub};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -144,6 +150,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32Nand: return "DenseUint32Nand";
     case WorldGenerationComputeKernel::DenseUint32Nor: return "DenseUint32Nor";
     case WorldGenerationComputeKernel::DenseUint32MulHi: return "DenseUint32MulHi";
+    case WorldGenerationComputeKernel::DenseUint32AndNot: return "DenseUint32AndNot";
+    case WorldGenerationComputeKernel::DenseUint32SatAdd: return "DenseUint32SatAdd";
+    case WorldGenerationComputeKernel::DenseUint32SatSub: return "DenseUint32SatSub";
   }
   return nullptr;
 }
@@ -387,6 +396,17 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
   } else if (kernel == WorldGenerationComputeKernel::DenseUint32MulHi) {
     for (uint32_t value : input)
       out.append((uint32_t)(((uint64_t)value * (uint64_t)parameter) >> 32));
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32AndNot) {
+    for (uint32_t value : input)
+      out.append(value & ~parameter);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32SatAdd) {
+    for (uint32_t value : input) {
+      uint64_t sum = (uint64_t)value + (uint64_t)parameter;
+      out.append(sum > 0xffffffffull ? 0xffffffffu : (uint32_t)sum);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32SatSub) {
+    for (uint32_t value : input)
+      out.append(value > parameter ? value - parameter : 0u);
   }
   return out;
 }
