@@ -19,5 +19,7 @@ ASan/UBSan: 1×5; **81/81** RealBlockInfo.
 
 ## Próximo passo
 
-Gates H0 restantes (abandon/fail oceano, Island/noise lifecycle). Não disparar
-Actions.
+Oceano abandon/fail em
+[ocean abandon](sector-runtime-h0-sector-shadow-ocean-abandon-2026-11-26.md) e
+[ocean failure](sector-runtime-h0-sector-shadow-ocean-failure-2026-11-26.md).
+Segue Island/noise lifecycle. Não disparar Actions.
