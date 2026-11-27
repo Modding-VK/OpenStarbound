@@ -911,6 +911,17 @@ size_t WorldGenerationComputeService::inFlightByKernel(WorldGenerationComputeKer
   return count;
 }
 
+size_t WorldGenerationComputeService::readyOpenTicketsByKernel(
+    WorldGenerationComputeKernel kernel) const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  size_t count = 0;
+  for (auto const& entry : m_entries) {
+    if (entry.second.state == EntryState::Ready && entry.second.identity.kernel == kernel)
+      ++count;
+  }
+  return count;
+}
+
 size_t WorldGenerationComputeService::stagingBytes() const {
   std::lock_guard<std::mutex> lock(m_mutex);
   return (size_t)m_stagingBytes;

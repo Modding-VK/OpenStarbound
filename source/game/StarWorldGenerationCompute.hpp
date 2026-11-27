@@ -250,6 +250,8 @@ public:
   size_t inFlight() const;
   // Pending tickets whose identity.kernel matches (asset-free observation).
   size_t inFlightByKernel(WorldGenerationComputeKernel kernel) const;
+  // Ready open tickets whose identity.kernel matches (asset-free observation).
+  size_t readyOpenTicketsByKernel(WorldGenerationComputeKernel kernel) const;
   size_t stagingBytes() const;
   size_t pooledBuffers() const;
 
