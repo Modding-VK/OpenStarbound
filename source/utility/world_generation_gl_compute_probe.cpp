@@ -393,6 +393,12 @@ int main() {
       "DenseUint32HalfClearLsb");
   rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfLsbMask, 0u,
       "DenseUint32HalfLsbMask");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfGrayEncode, 0u,
+      "DenseUint32HalfGrayEncode");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfGrayDecode, 0u,
+      "DenseUint32HalfGrayDecode");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfSmearLsb, 0u,
+      "DenseUint32HalfSmearLsb");
 
   auto ticket = service.submit(makeIdentity(99, WorldGenerationComputeKernel::DenseUint32Xor),
       edgeCorpus(), 0x55aa55aau, WorldGenerationComputeBackend::GpuOpenGlCompute);
