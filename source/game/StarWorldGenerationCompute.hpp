@@ -84,7 +84,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32SatMul = 58, // saturating multiply (clamp product to 0xffffffff)
   DenseUint32SwapHalves = 59, // swap high/low 16-bit halves; parameter ignored
   DenseUint32Clo = 60, // count leading ones; parameter ignored
-  DenseUint32Cto = 61 // count trailing ones; parameter ignored
+  DenseUint32Cto = 61, // count trailing ones; parameter ignored
+  DenseUint32ReverseNibbles = 62, // reverse 4-bit nibbles; parameter ignored
+  DenseUint32ByteMax = 63, // max of four bytes as uint32; parameter ignored
+  DenseUint32ByteMin = 64 // min of four bytes as uint32; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -242,6 +245,8 @@ public:
   WorldGenerationComputeCapabilities const& capabilities() const noexcept { return m_capabilities; }
   size_t openTickets() const;
   size_t inFlight() const;
+  // Pending tickets whose identity.kernel matches (asset-free observation).
+  size_t inFlightByKernel(WorldGenerationComputeKernel kernel) const;
   size_t stagingBytes() const;
   size_t pooledBuffers() const;
 

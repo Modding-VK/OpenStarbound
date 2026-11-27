@@ -121,6 +121,9 @@ GLuint g_satMulProgram = 0;
 GLuint g_swapHalvesProgram = 0;
 GLuint g_cloProgram = 0;
 GLuint g_ctoProgram = 0;
+GLuint g_reverseNibblesProgram = 0;
+GLuint g_byteMaxProgram = 0;
+GLuint g_byteMinProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -1032,6 +1035,63 @@ void main() {
 }
 )GLSL";
 
+char const* ReverseNibblesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint value = values[i];
+  uint v = ((value & 0x000000ffu) << 24) | ((value & 0x0000ff00u) << 8)
+      | ((value & 0x00ff0000u) >> 8) | ((value & 0xff000000u) >> 24);
+  values[i] = ((v & 0x0f0f0f0fu) << 4) | ((v & 0xf0f0f0f0u) >> 4);
+}
+)GLSL";
+
+char const* ByteMaxShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  uint b0 = v & 0xffu;
+  uint b1 = (v >> 8) & 0xffu;
+  uint b2 = (v >> 16) & 0xffu;
+  uint b3 = (v >> 24) & 0xffu;
+  uint m = max(max(b0, b1), max(b2, b3));
+  values[i] = m;
+}
+)GLSL";
+
+char const* ByteMinShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  uint b0 = v & 0xffu;
+  uint b1 = (v >> 8) & 0xffu;
+  uint b2 = (v >> 16) & 0xffu;
+  uint b3 = (v >> 24) & 0xffu;
+  uint m = min(min(b0, b1), min(b2, b3));
+  values[i] = m;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -1324,6 +1384,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_ctoProgram);
     g_ctoProgram = 0;
   }
+  if (g_reverseNibblesProgram) {
+    glDeleteProgram(g_reverseNibblesProgram);
+    g_reverseNibblesProgram = 0;
+  }
+  if (g_byteMaxProgram) {
+    glDeleteProgram(g_byteMaxProgram);
+    g_byteMaxProgram = 0;
+  }
+  if (g_byteMinProgram) {
+    glDeleteProgram(g_byteMinProgram);
+    g_byteMinProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -1471,7 +1543,10 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_satMulProgram, SatMulShader, "DenseUint32SatMul")
       || !requireProgram(g_swapHalvesProgram, SwapHalvesShader, "DenseUint32SwapHalves")
       || !requireProgram(g_cloProgram, CloShader, "DenseUint32Clo")
-      || !requireProgram(g_ctoProgram, CtoShader, "DenseUint32Cto"))
+      || !requireProgram(g_ctoProgram, CtoShader, "DenseUint32Cto")
+      || !requireProgram(g_reverseNibblesProgram, ReverseNibblesShader, "DenseUint32ReverseNibbles")
+      || !requireProgram(g_byteMaxProgram, ByteMaxShader, "DenseUint32ByteMax")
+      || !requireProgram(g_byteMinProgram, ByteMinShader, "DenseUint32ByteMin"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -1658,6 +1733,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_cloProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32Cto)
     program = g_ctoProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32ReverseNibbles)
+    program = g_reverseNibblesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32ByteMax)
+    program = g_byteMaxProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32ByteMin)
+    program = g_byteMinProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
