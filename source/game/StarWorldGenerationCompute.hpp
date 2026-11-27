@@ -183,7 +183,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32HalfIsNonzero = 157, // low16!=0 ? 0xffffffff : 0; parameter ignored
   DenseUint32HalfClo = 158, // count leading ones of low16 in 16-bit width; 16 if low16==0xffff; parameter ignored
   DenseUint32HalfCto = 159, // count trailing ones of low16; 16 if low16==0xffff; parameter ignored
-  DenseUint32HalfIsPow2 = 160 // low16 nonzero power-of-two mask; parameter ignored
+  DenseUint32HalfIsPow2 = 160, // low16 nonzero power-of-two mask; parameter ignored
+  DenseUint32HalfIlog2 = 161, // floor(log2(low16)); 0 when low16==0; parameter ignored
+  DenseUint32HalfNextPow2 = 162, // round low16 up to power of two (0 stays 0; overflow wraps to 0)
+  DenseUint32HalfMaskLow = 163 // low16 & low-bit mask; parameter = bit count clamped to [0,16]
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
