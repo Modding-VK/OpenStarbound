@@ -16,9 +16,46 @@ namespace Star {
 // pull consideration — never an authorization to merge INT or publish GPU.
 // Fourth cut (MOD-03): recommend a conceptual profile from the pack without
 // silently renaming existing performanceMode strings.
+// Fifth cut (VAL): optional Desktop probe attestation (tip + contract counts).
+
+struct WorldGenerationDesktopProbeAttestation {
+  static constexpr unsigned ModelVersion = 1;
+  // Lower 32 bits of the tip short SHA (first 8 hex digits). 0 means unset.
+  uint32_t tipPrefix = 0;
+  uint32_t testsPassed = 0;
+  uint32_t testsExpected = 0;
+  bool whatIfBootstrapOk = false;
+  bool recorded = false;
+
+  bool contractsPass() const noexcept {
+    return recorded && testsExpected != 0 && testsPassed == testsExpected;
+  }
+};
+
+inline uint32_t worldGenerationTipPrefixFromHex8(char const* hex8) noexcept {
+  if (!hex8)
+    return 0;
+  uint32_t value = 0;
+  for (int i = 0; i < 8; ++i) {
+    char c = hex8[i];
+    if (c == '\0')
+      return 0;
+    uint32_t nibble = 0;
+    if (c >= '0' && c <= '9')
+      nibble = static_cast<uint32_t>(c - '0');
+    else if (c >= 'a' && c <= 'f')
+      nibble = static_cast<uint32_t>(10 + c - 'a');
+    else if (c >= 'A' && c <= 'F')
+      nibble = static_cast<uint32_t>(10 + c - 'A');
+    else
+      return 0;
+    value = (value << 4) | nibble;
+  }
+  return value;
+}
 
 struct WorldGenerationScaleEvidenceBundle {
-  static constexpr unsigned ModelVersion = 1;
+  static constexpr unsigned ModelVersion = 2;
   WorldGenerationEquivalenceVersion equivalence;
   WorldGenerationPlatform probePlatform = WorldGenerationPlatform::Windows;
   WorldGenerationCompatStatus platformStatus = WorldGenerationCompatStatus::Unsupported;
@@ -31,6 +68,7 @@ struct WorldGenerationScaleEvidenceBundle {
   bool gatesAdopt = false;
   bool gatesAuthoritativeGpuBlocked = true;
   bool shadowOutputComparison = false;
+  bool desktopAttested = false;
   bool readyForIntegratorReview = false;
 };
 
@@ -77,6 +115,7 @@ inline WorldGenerationScaleEvidenceBundle buildWorldGenerationScaleEvidence(
   // Integrator may review when: supported probe platform, optional GPU with CPU
   // fallback, no campaign failures, CPU-only matrix covered or GPU shadow
   // comparison present, and adoption still refuses authoritative GPU alone.
+  bundle.desktopAttested = false;
   bundle.readyForIntegratorReview = platformOk
       && computeOptionalOk
       && !bundle.campaignHasFailures
@@ -85,6 +124,21 @@ inline WorldGenerationScaleEvidenceBundle buildWorldGenerationScaleEvidence(
       && !bundle.gatesAdopt
       && equivalence.generationEpoch != 0;
   return bundle;
+}
+
+// When Desktop records an attestation, contracts must pass and tipPrefix must
+// match the tip under review. Missing attestation leaves readiness unchanged.
+inline bool applyWorldGenerationDesktopAttestation(
+    WorldGenerationScaleEvidenceBundle& bundle,
+    WorldGenerationDesktopProbeAttestation const& attestation,
+    uint32_t expectedTipPrefix) noexcept {
+  if (!attestation.recorded)
+    return false;
+  bool tipOk = attestation.tipPrefix != 0 && attestation.tipPrefix == expectedTipPrefix;
+  bundle.desktopAttested = tipOk && attestation.contractsPass();
+  if (attestation.recorded)
+    bundle.readyForIntegratorReview = bundle.readyForIntegratorReview && bundle.desktopAttested;
+  return bundle.desktopAttested;
 }
 
 inline WorldGenerationScaleEvidenceBundle buildWorldGenerationScaleEvidenceFromRecorders(

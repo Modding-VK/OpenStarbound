@@ -125,6 +125,46 @@ TEST(WorldGenerationScaleEvidenceTest, ProfileAdviceNeverSilentRename) {
   EXPECT_TRUE(aggressive.requiresExplicitUserOptIn);
 }
 
+TEST(WorldGenerationScaleEvidenceTest, TipPrefixParsesEightHexDigits) {
+  EXPECT_EQ(worldGenerationTipPrefixFromHex8("da430a98"), 0xda430a98u);
+  EXPECT_EQ(worldGenerationTipPrefixFromHex8("DA430A98"), 0xda430a98u);
+  EXPECT_EQ(worldGenerationTipPrefixFromHex8("short"), 0u);
+  EXPECT_EQ(worldGenerationTipPrefixFromHex8(nullptr), 0u);
+}
+
+TEST(WorldGenerationScaleEvidenceTest, DesktopAttestationGatesReviewWhenRecorded) {
+  WorldGenerationScaleMetricsRecorder scale;
+  WorldGenerationScenarioCampaignRecorder campaign;
+  fillCpuOnlyCampaign(campaign);
+  WorldGenerationDeliveryMetricsRecorder delivery;
+  auto equivalence = worldGenerationScaleEvidenceEquivalence(1, 1, 1);
+  auto bundle = buildWorldGenerationScaleEvidenceFromRecorders(
+      scale, campaign, delivery.snapshot(), true, equivalence);
+  EXPECT_TRUE(bundle.readyForIntegratorReview);
+  EXPECT_FALSE(bundle.desktopAttested);
+
+  uint32_t tip = worldGenerationTipPrefixFromHex8("da430a98");
+  WorldGenerationDesktopProbeAttestation bad;
+  bad.recorded = true;
+  bad.tipPrefix = tip;
+  bad.testsPassed = 45;
+  bad.testsExpected = 46;
+  EXPECT_FALSE(applyWorldGenerationDesktopAttestation(bundle, bad, tip));
+  EXPECT_FALSE(bundle.readyForIntegratorReview);
+
+  bundle = buildWorldGenerationScaleEvidenceFromRecorders(
+      scale, campaign, delivery.snapshot(), true, equivalence);
+  WorldGenerationDesktopProbeAttestation ok;
+  ok.recorded = true;
+  ok.tipPrefix = tip;
+  ok.testsPassed = 46;
+  ok.testsExpected = 46;
+  ok.whatIfBootstrapOk = true;
+  EXPECT_TRUE(applyWorldGenerationDesktopAttestation(bundle, ok, tip));
+  EXPECT_TRUE(bundle.desktopAttested);
+  EXPECT_TRUE(bundle.readyForIntegratorReview);
+}
+
 TEST(WorldGenerationScaleEvidenceTest, MeasuredGainPrefersDynamicBias) {
   WorldGenerationScaleMetricsRecorder scale;
   scale.claimCapabilities({true, true, true});

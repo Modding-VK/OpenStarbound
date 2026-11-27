@@ -39,10 +39,10 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa nesta branch H5: seleção de hardware/escala. O relatório atual é
-[H5 scale profile advice](sector-runtime-h5-scale-profile-advice-2026-11-27.md)
-(antecedentes [evidence bundle](sector-runtime-h5-scale-evidence-bundle-2026-11-27.md),
-[scenario campaign](sector-runtime-h5-scenario-campaign-2026-11-27.md),
-[gates/metrics](sector-runtime-h5-scale-gates-metrics-2026-11-27.md)).
+[H5 desktop attestation](sector-runtime-h5-desktop-probe-attestation-2026-11-27.md)
+(antecedentes [profile advice](sector-runtime-h5-scale-profile-advice-2026-11-27.md),
+[evidence bundle](sector-runtime-h5-scale-evidence-bundle-2026-11-27.md),
+[scenario campaign](sector-runtime-h5-scenario-campaign-2026-11-27.md)).
 H0 permanece em `Experimental` com
 [Concurrent ocean](sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
 e [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
