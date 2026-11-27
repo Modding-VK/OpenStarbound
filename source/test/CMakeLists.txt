@@ -105,6 +105,8 @@ ADD_EXECUTABLE(world_generation_contract_tests
   $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base>
   ../game/StarWorldRegionPartition.cpp
   ../game/StarWorldRegionOwner.cpp
+  ../game/StarWorldRegionBorder.cpp
+  ../game/StarWorldRegionRuntime.cpp
   ../game/StarWorldGenerationDependency.cpp
   ../game/StarWorldGenerationTasks.cpp
   ../game/StarWorldGenerationMemory.cpp
@@ -126,6 +128,8 @@ ADD_EXECUTABLE(world_generation_contract_tests
   core_tests_main.cpp
   world_region_partition_test.cpp
   world_region_owner_test.cpp
+  world_region_border_test.cpp
+  world_region_runtime_test.cpp
   world_generation_dependency_test.cpp
   world_generation_pass_test.cpp
   StarWorldGenerationPassHarness.hpp
@@ -173,6 +177,8 @@ ENDIF()
 FOREACH(world_region_test_suite
     WorldRegionPartitionTest
     WorldRegionOwnerTest
+    WorldRegionBorderTest
+    WorldRegionRuntimeTest
     WorldGenerationDependencyTest
     WorldGenerationPassTest
     WorldGenerationPlacementQueueTest

@@ -499,13 +499,12 @@ Esta frente mantém a decisão de uma thread dedicada por região 2×2 carregada
 Pode aproveitar produtos de H1–H3, mas depende de auditoria completa de
 propriedade e efeitos; não é liberada por um kernel GPU aprovado.
 
-- [x] R1: REG-01 primeiro recorte — identidade/lifecycle harness
-  ([relatório](../sector-runtime-r1-region-owner-identity-2026-11-27.md));
-  REG-02, MOD-01 e IO-03 regionais, estado local, snapshots de borda e
-  checkpoint com passo lógico comum continuam abertos.
-- [ ] R1: REG-01 restante + REG-02, MOD-01 e IO-03 — lifecycle autoritativo,
-  estado local, snapshots de borda e checkpoint, inicialmente com passo lógico comum.
-- [ ] R1: WT-05 — WorldThread como coordenadora dos donos regionais.
+- [x] R1: REG-01/02/WT-05 primeiros harnesses —
+  ([identidade](../sector-runtime-r1-region-owner-identity-2026-11-27.md),
+  [bordas/coordenadora](../sector-runtime-r1-border-runtime-2026-11-27.md)).
+- [ ] R1: REG-01/02 restantes + MOD-01 e IO-03 — lifecycle autoritativo,
+  inventário local completo, checkpoint e passo lógico comum.
+- [ ] R1: WT-05 restante — integração WorldServerThread / legado.
 - [ ] R2: REG-03/04/05 — intenções multirregião, handoff, falhas e custo real.
 - [ ] R2 posterior: avaliar independência de passos após relógio/rede/save
   específicos; registrar decisão antes de remover barreira comum.

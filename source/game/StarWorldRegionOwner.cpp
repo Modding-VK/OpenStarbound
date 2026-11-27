@@ -24,6 +24,14 @@ bool WorldRegionOwnerRegistry::creationAllowed() const {
   return m_creationAllowed;
 }
 
+WorldRegionPartition const& WorldRegionOwnerRegistry::partition() const {
+  return m_partition;
+}
+
+uint64_t WorldRegionOwnerRegistry::worldEpoch() const {
+  return m_worldEpoch;
+}
+
 size_t WorldRegionOwnerRegistry::ownerCount() const {
   return m_owners.size();
 }
@@ -40,10 +48,67 @@ size_t WorldRegionOwnerRegistry::memberCount(Vec2U const& region) const {
   return 0;
 }
 
+uint64_t WorldRegionOwnerRegistry::pendingWork(Vec2U const& region) const {
+  if (auto owner = m_owners.ptr(region))
+    return owner->pendingWork;
+  return 0;
+}
+
 Maybe<WorldRegionOwnerIdentity> WorldRegionOwnerRegistry::identity(Vec2U const& region) const {
   if (auto owner = m_owners.ptr(region))
     return owner->identity;
   return {};
+}
+
+Maybe<WorldRegionOwnerIdentity> WorldRegionOwnerRegistry::identityForSector(Vec2U const& sector) const {
+  auto region = m_partition.regionForSector(sector);
+  if (!region)
+    return {};
+  return identity(*region);
+}
+
+Maybe<WorldRegionMemberLevel> WorldRegionOwnerRegistry::memberLevel(Vec2U const& sector) const {
+  auto region = m_partition.regionForSector(sector);
+  if (!region)
+    return {};
+  if (auto owner = m_owners.ptr(*region)) {
+    if (auto level = owner->members.ptr(sector))
+      return *level;
+  }
+  return {};
+}
+
+List<WorldRegionOwnerMember> WorldRegionOwnerRegistry::members(Vec2U const& region) const {
+  List<WorldRegionOwnerMember> out;
+  if (auto owner = m_owners.ptr(region)) {
+    for (auto const& entry : owner->members.pairs())
+      out.append({entry.first, entry.second});
+  }
+  return out;
+}
+
+bool WorldRegionOwnerRegistry::addPendingWork(Vec2U const& region, uint64_t units) {
+  if (units == 0)
+    return false;
+  auto owner = m_owners.ptr(region);
+  if (!owner || owner->phase == WorldRegionOwnerPhase::Absent)
+    return false;
+  if (std::numeric_limits<uint64_t>::max() - owner->pendingWork < units)
+    return false;
+  owner->pendingWork += units;
+  return true;
+}
+
+bool WorldRegionOwnerRegistry::clearPendingWork(Vec2U const& region, uint64_t units) {
+  if (units == 0)
+    return false;
+  auto owner = m_owners.ptr(region);
+  if (!owner)
+    return false;
+  if (owner->pendingWork < units)
+    return false;
+  owner->pendingWork -= units;
+  return true;
 }
 
 WorldRegionOwnerAdmitResult WorldRegionOwnerRegistry::admit(Vec2U const& sector, WorldRegionMemberLevel level) {
@@ -115,6 +180,8 @@ WorldRegionOwnerReleaseResult WorldRegionOwnerRegistry::completeDrain(Vec2U cons
     return WorldRegionOwnerReleaseResult::Unchanged;
   if (!owner->members.empty())
     return WorldRegionOwnerReleaseResult::Unchanged;
+  if (owner->pendingWork != 0)
+    return WorldRegionOwnerReleaseResult::PendingWork;
 
   m_owners.remove(region);
   return WorldRegionOwnerReleaseResult::OwnerRetired;

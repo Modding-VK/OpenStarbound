@@ -21,9 +21,13 @@ alinhadas a essa decisão na documentação; a formulação antiga fica no Git.
 revalida turnos em sombra. Em 27/11/2026,
 [`WorldRegionOwnerRegistry`](../sector-runtime-r1-region-owner-identity-2026-11-27.md)
 acrescenta identidade e lifecycle de dona (admit/release/drain) sem thread OS
-nem publicação autoritativa. Os previews de lifecycle/mailbox não executam Lua,
-simulação ou instalação autoritativa em paralelo. A WorldThread central ainda
-é a dona do mundo no runtime atual.
+nem publicação autoritativa. Em seguida,
+[`WorldRegionBorderLedger`](../sector-runtime-r1-border-runtime-2026-11-27.md) e
+[`WorldRegionRuntimeCoordinator`](../sector-runtime-r1-border-runtime-2026-11-27.md)
+cobrem o primeiro recorte de bordas confirmadas (REG-02) e coordenação central
+sem publicação de simulação (WT-05). Os previews de lifecycle/mailbox não
+executam Lua, simulação ou instalação autoritativa em paralelo. A WorldThread
+central ainda é a dona do mundo no runtime atual.
 
 ## REG-01 — Lifecycle e identidade da dona
 

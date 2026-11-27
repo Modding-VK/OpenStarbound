@@ -1,5 +1,6 @@
 #pragma once
 
+#include "StarList.hpp"
 #include "StarMap.hpp"
 #include "StarMaybe.hpp"
 #include "StarWorldRegionPartition.hpp"
@@ -26,6 +27,11 @@ enum class WorldRegionMemberLevel : uint8_t {
   Entities = 3
 };
 
+struct WorldRegionOwnerMember {
+  Vec2U sector{};
+  WorldRegionMemberLevel level = WorldRegionMemberLevel::None;
+};
+
 enum class WorldRegionOwnerPhase : uint8_t {
   Absent = 0,
   Active = 1,
@@ -48,15 +54,15 @@ enum class WorldRegionOwnerReleaseResult {
   MemberRemoved,
   DrainStarted,
   OwnerRetired,
+  PendingWork,
   Foreign,
   NotMember,
   UnknownRegion
 };
 
-// First REG-01 executable slice: create an owner identity on the first
-// Tiles/Entities membership of a region, refuse Queued-only activation, drain
-// after the last member leaves, and retire only after completeDrain. Prefetch
-// or enqueue alone must not mint owners.
+// REG-01 harness: identity + membership lifecycle for logical 2x2 regions.
+// Prefetch/enqueue alone must not mint owners. Drain refuses retirement while
+// pending local work remains.
 class WorldRegionOwnerRegistry {
 public:
   WorldRegionOwnerRegistry(uint64_t worldEpoch, WorldRegionPartition partition, bool creationAllowed = true);
@@ -65,10 +71,19 @@ public:
   WorldRegionOwnerReleaseResult release(Vec2U const& sector);
   WorldRegionOwnerReleaseResult completeDrain(Vec2U const& region);
 
+  bool addPendingWork(Vec2U const& region, uint64_t units = 1);
+  bool clearPendingWork(Vec2U const& region, uint64_t units = 1);
+  uint64_t pendingWork(Vec2U const& region) const;
+
   Maybe<WorldRegionOwnerIdentity> identity(Vec2U const& region) const;
+  Maybe<WorldRegionOwnerIdentity> identityForSector(Vec2U const& sector) const;
+  Maybe<WorldRegionMemberLevel> memberLevel(Vec2U const& sector) const;
+  List<WorldRegionOwnerMember> members(Vec2U const& region) const;
   WorldRegionOwnerPhase phase(Vec2U const& region) const;
   size_t memberCount(Vec2U const& region) const;
   size_t ownerCount() const;
+  WorldRegionPartition const& partition() const;
+  uint64_t worldEpoch() const;
   void setCreationAllowed(bool allowed);
   bool creationAllowed() const;
 
@@ -77,6 +92,7 @@ private:
     WorldRegionOwnerIdentity identity;
     WorldRegionOwnerPhase phase = WorldRegionOwnerPhase::Active;
     HashMap<Vec2U, WorldRegionMemberLevel> members;
+    uint64_t pendingWork = 0;
   };
 
   uint64_t const m_worldEpoch;

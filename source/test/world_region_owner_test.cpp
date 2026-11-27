@@ -32,15 +32,18 @@ TEST(WorldRegionOwnerTest, FirstTilesMembershipCreatesStableIdentity) {
   EXPECT_EQ(WorldRegionOwnerPhase::Active, registry.phase({0, 0}));
   EXPECT_EQ(1u, registry.memberCount({0, 0}));
 
-  // Identity is value-based: a copy compares equal without sharing address.
   WorldRegionOwnerIdentity copy = *identity;
   EXPECT_EQ(copy, *identity);
+  auto bySector = registry.identityForSector({0, 0});
+  ASSERT_TRUE(bySector);
+  EXPECT_EQ(*identity, *bySector);
+  ASSERT_TRUE(registry.memberLevel({0, 0}));
+  EXPECT_EQ(WorldRegionMemberLevel::Tiles, *registry.memberLevel({0, 0}));
 }
 
 TEST(WorldRegionOwnerTest, SameRegionSectorsShareOneOwnerGeneration) {
   WorldRegionOwnerRegistry registry(3, partition());
   EXPECT_EQ(registry.admit({0, 0}, WorldRegionMemberLevel::Tiles), WorldRegionOwnerAdmitResult::Created);
-  // Physical sectors {0,0} and {1,0} map to logical region {0,0} under 2x2.
   EXPECT_EQ(registry.admit({1, 0}, WorldRegionMemberLevel::Entities), WorldRegionOwnerAdmitResult::MemberAdded);
   EXPECT_EQ(1u, registry.ownerCount());
   EXPECT_EQ(2u, registry.memberCount({0, 0}));
@@ -49,6 +52,7 @@ TEST(WorldRegionOwnerTest, SameRegionSectorsShareOneOwnerGeneration) {
   EXPECT_EQ(1u, identity->regionGeneration);
   EXPECT_EQ(registry.admit({0, 0}, WorldRegionMemberLevel::Entities), WorldRegionOwnerAdmitResult::MemberRaised);
   EXPECT_EQ(registry.admit({0, 0}, WorldRegionMemberLevel::Entities), WorldRegionOwnerAdmitResult::Unchanged);
+  EXPECT_EQ(2u, registry.members({0, 0}).size());
 }
 
 TEST(WorldRegionOwnerTest, LastUnloadDrainsThenRetiresWithNewGenerationOnReload) {
@@ -76,6 +80,19 @@ TEST(WorldRegionOwnerTest, LastUnloadDrainsThenRetiresWithNewGenerationOnReload)
   EXPECT_EQ(first->region, second->region);
   EXPECT_NE(first->regionGeneration, second->regionGeneration);
   EXPECT_EQ(2u, second->regionGeneration);
+}
+
+TEST(WorldRegionOwnerTest, PendingWorkBlocksDrainRetirement) {
+  WorldRegionOwnerRegistry registry(4, partition());
+  EXPECT_EQ(registry.admit({0, 0}, WorldRegionMemberLevel::Tiles), WorldRegionOwnerAdmitResult::Created);
+  EXPECT_TRUE(registry.addPendingWork({0, 0}, 2));
+  EXPECT_EQ(2u, registry.pendingWork({0, 0}));
+  EXPECT_EQ(registry.release({0, 0}), WorldRegionOwnerReleaseResult::DrainStarted);
+  EXPECT_EQ(registry.completeDrain({0, 0}), WorldRegionOwnerReleaseResult::PendingWork);
+  EXPECT_EQ(WorldRegionOwnerPhase::Draining, registry.phase({0, 0}));
+  EXPECT_TRUE(registry.clearPendingWork({0, 0}, 2));
+  EXPECT_EQ(registry.completeDrain({0, 0}), WorldRegionOwnerReleaseResult::OwnerRetired);
+  EXPECT_EQ(0u, registry.ownerCount());
 }
 
 TEST(WorldRegionOwnerTest, CreationFailureBlocksRegionalActivation) {
