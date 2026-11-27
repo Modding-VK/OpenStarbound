@@ -2793,6 +2793,17 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::listTerminalOp
   return out;
 }
 
+size_t WorldGenerationComputeService::countTerminalOpenKernels() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  std::unordered_set<uint8_t> seen;
+  for (auto const& pair : m_entries) {
+    if (pair.second.state == EntryState::Pending)
+      continue;
+    seen.insert((uint8_t)pair.second.identity.kernel);
+  }
+  return seen.size();
+}
+
 
 size_t WorldGenerationComputeService::countCancelledOpenKernels() const {
   std::lock_guard<std::mutex> lock(m_mutex);

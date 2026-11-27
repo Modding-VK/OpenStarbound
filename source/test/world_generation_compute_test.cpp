@@ -1550,6 +1550,28 @@ TEST(WorldGenerationComputeTest, AnyFailedOpenTicketsTracksFailedPresence) {
 
 
 
+TEST(WorldGenerationComputeTest, CountTerminalOpenKernelsTracksDistinctTerminalKernels) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  EXPECT_EQ(0u, service.countTerminalOpenKernels());
+  auto a = service.submit(
+      makeIdentity(1630, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u);
+  auto b = service.submit(
+      makeIdentity(1631, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{2u}, 0u);
+  auto c = service.submit(
+      makeIdentity(1632, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{3u}, 0u);
+  ASSERT_TRUE((bool)a);
+  ASSERT_TRUE((bool)b);
+  ASSERT_TRUE((bool)c);
+  EXPECT_TRUE(service.complete(*a));
+  EXPECT_TRUE(service.cancel(*b));
+  EXPECT_EQ(1u, service.countTerminalOpenKernels());
+  EXPECT_TRUE(service.complete(*c));
+  EXPECT_EQ(2u, service.countTerminalOpenKernels());
+  EXPECT_EQ(3u, service.discardTerminalOpenTickets());
+  EXPECT_EQ(0u, service.countTerminalOpenKernels());
+}
+
 TEST(WorldGenerationComputeTest, ListTerminalOpenKernelsReturnsDistinctTerminalKernels) {
   WorldGenerationComputeService service;
   service.setDeferredCpuCompletion(true);
