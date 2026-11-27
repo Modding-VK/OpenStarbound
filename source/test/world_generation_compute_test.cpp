@@ -481,6 +481,40 @@ TEST(WorldGenerationComputeTest, ApprovedRngStreamPreservesOrder) {
   EXPECT_EQ(input[0] ^ 0x11u, result.values[0]);
 }
 
+TEST(WorldGenerationComputeTest, SupportedKernelsCatalogListsDenseFamily) {
+  EXPECT_TRUE(WorldGenerationComputeService::isKernelSupported(
+      WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_FALSE(WorldGenerationComputeService::isKernelSupported(
+      WorldGenerationComputeKernel::DenseUint32Xor, 99u));
+  auto kernels = WorldGenerationComputeService::supportedKernels();
+  ASSERT_EQ(10u, kernels.size());
+  EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32Xor, kernels[0]);
+  EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32Shr, kernels[kernels.size() - 1]);
+  EXPECT_TRUE(WorldGenerationComputeService::supportedKernels(2u).empty());
+}
+
+TEST(WorldGenerationComputeTest, CompareShadowBatchRunsIndependentKernels) {
+  WorldGenerationComputeService service;
+  auto input = edgeCorpus();
+  List<WorldGenerationComputeService::ShadowBatchItem> items;
+  for (auto kernel : WorldGenerationComputeService::supportedKernels()) {
+    WorldGenerationComputeService::ShadowBatchItem item;
+    item.identity = makeIdentity(180 + (uint64_t)kernel, kernel);
+    item.parameter = (kernel == WorldGenerationComputeKernel::DenseUint32Shl
+            || kernel == WorldGenerationComputeKernel::DenseUint32Shr)
+        ? 3u
+        : 0x11u;
+    items.append(item);
+  }
+  auto reports = service.compareShadowBatch(input, std::move(items));
+  ASSERT_EQ(10u, reports.size());
+  for (auto const& report : reports) {
+    EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal, report.verdict)
+        << (int)report.identity.kernel;
+    EXPECT_FALSE(report.reproducer.valid);
+  }
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32ShlShrExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();

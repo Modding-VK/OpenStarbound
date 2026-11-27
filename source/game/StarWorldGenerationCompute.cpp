@@ -37,7 +37,12 @@ WorldGenerationComputeService::~WorldGenerationComputeService() = default;
 
 bool WorldGenerationComputeService::supported(WorldGenerationComputeKernel kernel,
     uint32_t version) noexcept {
-  if (version != 1u)
+  return isKernelSupported(kernel, version);
+}
+
+bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKernel kernel,
+    uint32_t kernelVersion) noexcept {
+  if (kernelVersion != 1u)
     return false;
   return kernel == WorldGenerationComputeKernel::DenseUint32Xor
       || kernel == WorldGenerationComputeKernel::DenseUint32Add
@@ -49,6 +54,27 @@ bool WorldGenerationComputeService::supported(WorldGenerationComputeKernel kerne
       || kernel == WorldGenerationComputeKernel::DenseUint32Sub
       || kernel == WorldGenerationComputeKernel::DenseUint32Shl
       || kernel == WorldGenerationComputeKernel::DenseUint32Shr;
+}
+
+List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
+    uint32_t kernelVersion) {
+  List<WorldGenerationComputeKernel> out;
+  if (kernelVersion != 1u)
+    return out;
+  WorldGenerationComputeKernel const all[] = {
+      WorldGenerationComputeKernel::DenseUint32Xor,
+      WorldGenerationComputeKernel::DenseUint32Add,
+      WorldGenerationComputeKernel::DenseUint32And,
+      WorldGenerationComputeKernel::DenseUint32Or,
+      WorldGenerationComputeKernel::DenseUint32Mul,
+      WorldGenerationComputeKernel::DenseUint32Min,
+      WorldGenerationComputeKernel::DenseUint32Max,
+      WorldGenerationComputeKernel::DenseUint32Sub,
+      WorldGenerationComputeKernel::DenseUint32Shl,
+      WorldGenerationComputeKernel::DenseUint32Shr};
+  for (auto kernel : all)
+    out.append(kernel);
+  return out;
 }
 
 uint64_t WorldGenerationComputeService::bufferBytes(List<uint32_t> const& values) noexcept {
@@ -605,6 +631,16 @@ List<WorldGenerationComputeCommitReport> WorldGenerationComputeService::commitBa
     if (outs)
       outs->append(std::move(result));
   }
+  return reports;
+}
+
+List<WorldGenerationComputeShadowReport> WorldGenerationComputeService::compareShadowBatch(
+    List<uint32_t> const& input, List<ShadowBatchItem> items,
+    WorldGenerationComputeBackend primary, WorldGenerationComputeBackend shadow) {
+  List<WorldGenerationComputeShadowReport> reports;
+  reports.reserve(items.size());
+  for (auto const& item : items)
+    reports.append(compareShadow(item.identity, input, item.parameter, primary, shadow));
   return reports;
 }
 
