@@ -259,7 +259,7 @@ PRs com base na integração: **nenhum**. Sem Actions / sem `main`.
 
 ## Revisão sync 27/11/2026 ~03:30 UTC
 
-Bases: Exp `e55c008f` · INT **`d835751d`** (+ CI Integration `ci-integration.yml` sobre `9b8eeed2`).
+Bases: Exp `e55c008f` · INT **`e856104b`** (CI `d835751d` + trigger só INT `79e7092c` + esta revisão).
 Frentes **não** editadas. Sem dispatch manual de `build.yml` / sem `main`.
 PRs GitHub com base na integração: **nenhum**.
 
