@@ -589,6 +589,8 @@ public:
   bool hasRejectedDuplicate(WorldGenerationComputeTicket ticket) const;
   // Removes one rejected-duplicate ticket id if present (asset-free; owner-thread gated).
   bool removeRejectedDuplicate(WorldGenerationComputeTicket ticket);
+  // Order-independent XOR fingerprint of rejected-duplicate ticket ids (asset-free).
+  uint64_t fingerprintRejectedDuplicates() const;
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 

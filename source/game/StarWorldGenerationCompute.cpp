@@ -3739,6 +3739,14 @@ bool WorldGenerationComputeService::removeRejectedDuplicate(WorldGenerationCompu
   return m_rejectedDuplicates.erase(ticket.id) != 0;
 }
 
+uint64_t WorldGenerationComputeService::fingerprintRejectedDuplicates() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  uint64_t fp = 0;
+  for (uint64_t id : m_rejectedDuplicates)
+    fp ^= id;
+  return fp;
+}
+
 size_t WorldGenerationComputeService::clearRejectedDuplicates() {
   std::lock_guard<std::mutex> lock(m_mutex);
   if (!ownerAllowsLocked())
