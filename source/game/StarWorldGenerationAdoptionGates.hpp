@@ -2,6 +2,7 @@
 
 #include "StarWorldGenerationDeliveryMetrics.hpp"
 #include "StarWorldGenerationHardwareSelection.hpp"
+#include "StarWorldGenerationScaleMetrics.hpp"
 #include "StarWorldGenerationScenarioMatrix.hpp"
 
 #include <cstdint>
@@ -10,6 +11,8 @@ namespace Star {
 
 // First H5 / VAL-05 cut: adoption gate checklist over known evidence. A green
 // local test suite alone never flips adopt=true. Missing evidence stays false.
+// Second cut: map ScaleMetrics shadow campaigns into evidence fields without
+// claiming authoritative GPU adoption or a full equivalent benchmark.
 
 enum class WorldGenerationAdoptionGate : uint8_t {
   Invariants = 0,
@@ -90,6 +93,59 @@ inline WorldGenerationAdoptionEvidence worldGenerationAdoptionFromPartialH5(
   evidence.gpuBackendAuthoritative = false;
   evidence.measuredDeliveryGain = false;
   return evidence;
+}
+
+// Map an H4-shaped shadow campaign into VAL-05 evidence. Equal batches covering
+// the tip Half* kernels may mark outputComparison + measuredDeliveryGain; they
+// never set gpuBackendAuthoritative, equivalentBenchmark, invariants, or
+// failureRecovery by themselves.
+inline WorldGenerationAdoptionEvidence worldGenerationAdoptionFromScaleMetrics(
+    WorldGenerationScaleMetricsSnapshot const& scale,
+    WorldGenerationDeliveryMetricsSnapshot const& metrics,
+    bool reportDocumented) noexcept {
+  WorldGenerationAdoptionEvidence evidence;
+  evidence.knownLimitsDocumented = reportDocumented;
+  bool const shadowHealthy = scale.batchesRecorded > 0
+      && scale.equalBatches > 0
+      && scale.divergedBatches == 0
+      && scale.coversH4TipHalfPredicates();
+  evidence.outputComparisonPassed = shadowHealthy;
+  evidence.measuredDeliveryGain = shadowHealthy && scale.measuredDeliveryGain();
+  evidence.memoryBounded = metrics.has(WorldGenerationDeliveryMilestone::Resources)
+      && metrics.resources.coverageComplete;
+  evidence.cpuFallbackComplete = !scale.capabilities.gpuComputeAvailable
+      || evidence.memoryBounded;
+  evidence.invariantsPassed = false;
+  evidence.equivalentBenchmarkPassed = false;
+  evidence.failureRecoveryCovered = false;
+  evidence.gpuBackendAuthoritative = false;
+  return evidence;
+}
+
+struct WorldGenerationScaleGateSummary {
+  static constexpr unsigned ModelVersion = 1;
+  uint32_t requiredMask = 0;
+  uint32_t satisfiedMask = 0;
+  bool adopt = false;
+  bool coverageComplete = false;
+  bool shadowOutputComparison = false;
+  bool measuredDeliveryGain = false;
+  bool authoritativeGpuBlocked = true;
+};
+
+inline WorldGenerationScaleGateSummary summarizeWorldGenerationScaleGates(
+    WorldGenerationAdoptionEvidence const& evidence) noexcept {
+  auto decision = evaluateWorldGenerationAdoption(evidence);
+  WorldGenerationScaleGateSummary summary;
+  summary.requiredMask = decision.requiredMask;
+  summary.satisfiedMask = decision.satisfiedMask;
+  summary.adopt = decision.adopt;
+  summary.coverageComplete = decision.coverageComplete;
+  summary.shadowOutputComparison = evidence.outputComparisonPassed;
+  summary.measuredDeliveryGain = evidence.measuredDeliveryGain;
+  // H5 scale campaigns never authoritatively publish GPU results.
+  summary.authoritativeGpuBlocked = !evidence.gpuBackendAuthoritative;
+  return summary;
 }
 
 inline uint32_t worldGenerationRunnableCpuScenarioCount() noexcept {

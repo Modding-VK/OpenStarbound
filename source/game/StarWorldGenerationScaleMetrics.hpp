@@ -212,6 +212,8 @@ public:
     resources.usefulCpuMs = routing.cpuCost.executionMs;
     resources.gpuWaitMs = routing.gpuCost.fenceMs;
     resources.transferBytes = 0;
+    resources.transferMs = routing.gpuCost.transferMs;
+    resources.transferTimingCalibrated = true;
     resources.coverageComplete = true;
     recorder.recordResources(resources);
     return true;

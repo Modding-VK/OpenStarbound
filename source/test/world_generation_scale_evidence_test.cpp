@@ -1,0 +1,100 @@
+#include "StarWorldGenerationScaleEvidence.hpp"
+#include "StarWorldGenerationDeliveryMetrics.hpp"
+
+#include "gtest/gtest.h"
+
+using namespace Star;
+
+namespace {
+WorldGenerationShadowBatchObservation equalHalf(WorldGenerationShadowKernelFamily kernel) {
+  WorldGenerationShadowBatchObservation o;
+  o.kernel = kernel;
+  o.verdict = WorldGenerationShadowCompareVerdict::Equal;
+  o.compared = 8;
+  o.cpuExecutionMs = 4;
+  o.gpuExecutionMs = 1.5;
+  o.transferMs = 0.3;
+  o.fenceMs = 0.1;
+  o.materializeMs = 0.1;
+  return o;
+}
+
+void fillCpuOnlyCampaign(WorldGenerationScenarioCampaignRecorder& campaign) {
+  WorldGenerationHardwareCapabilities caps{false};
+  for (uint32_t i = 0; i < worldGenerationScenarioCount(); ++i) {
+    auto scenario = static_cast<WorldGenerationValidationScenario>(i);
+    auto entry = worldGenerationScenarioEntry(scenario);
+    if (entry.requiresGpu) {
+      campaign.record(scenario, WorldGenerationScenarioOutcome::SkippedMissingGpu, caps);
+    } else if (entry.requiresAssets) {
+      campaign.record(scenario, WorldGenerationScenarioOutcome::SkippedMissingAssets, caps);
+    } else if (entry.requiresMultiplayer) {
+      campaign.record(scenario, WorldGenerationScenarioOutcome::SkippedMissingMultiplayer, caps);
+    } else {
+      campaign.record(scenario, WorldGenerationScenarioOutcome::Passed, caps);
+    }
+  }
+}
+}
+
+TEST(WorldGenerationScaleEvidenceTest, RejectsZeroGenerationEpoch) {
+  WorldGenerationScaleMetricsRecorder scale;
+  WorldGenerationScenarioCampaignRecorder campaign;
+  fillCpuOnlyCampaign(campaign);
+  WorldGenerationDeliveryMetricsRecorder delivery;
+  auto equivalence = worldGenerationScaleEvidenceEquivalence(0, 1, 1);
+  auto bundle = buildWorldGenerationScaleEvidenceFromRecorders(
+      scale, campaign, delivery.snapshot(), true, equivalence);
+  EXPECT_FALSE(bundle.readyForIntegratorReview);
+}
+
+TEST(WorldGenerationScaleEvidenceTest, ReadyWhenCpuCampaignAndGatesBlockGpuAdopt) {
+  WorldGenerationScaleMetricsRecorder scale;
+  WorldGenerationScenarioCampaignRecorder campaign;
+  fillCpuOnlyCampaign(campaign);
+  WorldGenerationDeliveryMetricsRecorder delivery;
+  auto equivalence = worldGenerationScaleEvidenceEquivalence(1, 1, 1);
+  auto bundle = buildWorldGenerationScaleEvidenceFromRecorders(
+      scale, campaign, delivery.snapshot(), true, equivalence);
+  EXPECT_TRUE(bundle.campaignCpuOnlyCovered);
+  EXPECT_TRUE(bundle.gatesAuthoritativeGpuBlocked);
+  EXPECT_FALSE(bundle.gatesAdopt);
+  EXPECT_TRUE(bundle.readyForIntegratorReview);
+  EXPECT_EQ(bundle.platformStatus, WorldGenerationCompatStatus::Supported);
+  EXPECT_EQ(bundle.hardwareComputeStatus, WorldGenerationCompatStatus::Optional);
+}
+
+TEST(WorldGenerationScaleEvidenceTest, ShadowComparisonAlsoUnlocksReview) {
+  WorldGenerationScaleMetricsRecorder scale;
+  scale.claimCapabilities({true, true, true});
+  EXPECT_TRUE(scale.recordShadowBatch(equalHalf(WorldGenerationShadowKernelFamily::DenseUint32HalfSignMask)));
+  EXPECT_TRUE(scale.recordShadowBatch(equalHalf(WorldGenerationShadowKernelFamily::DenseUint32HalfIsZero)));
+  EXPECT_TRUE(scale.recordShadowBatch(equalHalf(WorldGenerationShadowKernelFamily::DenseUint32HalfIsNonzero)));
+
+  WorldGenerationScenarioCampaignRecorder campaign;
+  EXPECT_TRUE(campaign.recordGpuScenariosFromScale(scale.snapshot()));
+
+  WorldGenerationDeliveryMetricsRecorder delivery;
+  ASSERT_TRUE(scale.fillDeliveryRecorder(delivery));
+  auto equivalence = worldGenerationScaleEvidenceEquivalence(2, 1, 1);
+  auto bundle = buildWorldGenerationScaleEvidenceFromRecorders(
+      scale, campaign, delivery.snapshot(), true, equivalence);
+  EXPECT_TRUE(bundle.shadowOutputComparison);
+  EXPECT_TRUE(bundle.scaleMeasuredGain);
+  EXPECT_FALSE(bundle.gatesAdopt);
+  EXPECT_TRUE(bundle.readyForIntegratorReview);
+}
+
+TEST(WorldGenerationScaleEvidenceTest, CampaignFailureBlocksReview) {
+  WorldGenerationScaleMetricsRecorder scale;
+  WorldGenerationScenarioCampaignRecorder campaign;
+  WorldGenerationHardwareCapabilities caps{false};
+  EXPECT_TRUE(campaign.record(WorldGenerationValidationScenario::OpenSkyTerrain,
+      WorldGenerationScenarioOutcome::Failed, caps));
+  WorldGenerationDeliveryMetricsRecorder delivery;
+  auto equivalence = worldGenerationScaleEvidenceEquivalence(1, 1, 1);
+  auto bundle = buildWorldGenerationScaleEvidenceFromRecorders(
+      scale, campaign, delivery.snapshot(), true, equivalence);
+  EXPECT_TRUE(bundle.campaignHasFailures);
+  EXPECT_FALSE(bundle.readyForIntegratorReview);
+}

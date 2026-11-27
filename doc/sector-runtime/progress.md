@@ -2,14 +2,13 @@
 
 Atualizado em **27/11/2026**. Branch de integração:
 `cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+H4+H5+R1+R2; não `main`).
-Tip INT: merge lote H4 `828a45d2` (HalfHasZeroNibble…HalfAllNibblesEqual/Range/Mask +
-discardTerminal/discardPending/anyPendingOpenTickets; 154/154) — janela ≥15 min.
-Build `46079365811` @ `46a2da76` intacto se in_progress; 1 Build tip final após terminal.
-Última H4: GPU-03 HalfAllNibblesEqual/HalfNibbleRange/HalfMaskNibbles + GPU-02 anyPendingOpenTickets (`828a45d2`); H4 25%.
-Última H5: scale metrics bridge + Instalaveis bootstrap (`96ab005a`); H5 25% (lote H5 a seguir até probe).
+Tip INT: lote H4 `828a45d2` (154/154) + H5 até `62fba03a` (evidence bundle; Desktop probe 44/44).
+`da430a98` retido (sem probe Desktop 46/46). Build `46079365811` intacto; 1 Build tip final após terminal.
+Última H4: GPU-03 HalfAllNibblesEqual/Range/Mask + GPU-02 anyPendingOpenTickets (`828a45d2`); H4 25%.
+Última H5: scale gates/campaign/evidence bundle (`62fba03a`); H5 25%.
 Última H3: TMX cache/reload + flora/replaceBiome + decode/codec (`3bdf1927`); H3 25%.
 Última R2: AuthoritativeOps + REG-03/04/05 sombra (`f86b4d17`).
-Última R1: ThreadStub CPU/OS + wait sleep fix — Build `460650`/`460693`/`460759`/`460777` PASS.
+Última R1: ThreadStub CPU/OS — Build `460650`/`460693`/`460759`/`460777` PASS.
 Última H0: MOD-01 EffectBoundary profundo; VAL-02 BiomeItem completo (25%).
 Última H1: PreparedSector payload/WorldStorage path (`4d014af2`); DAG-03 50%.
 Última H2: consume sobre API H1 (`b1162b5d`); PreparedSector canônico = H1.
@@ -20,7 +19,7 @@ Build `46079365811` @ `46a2da76` intacto se in_progress; 1 Build tip final após
 · [Relatório H2](../sector-runtime-h2-prepared-sector-consume-2026-11-27.md)
 · [Relatório H3](../sector-runtime-h3-tmx-shadow-cache-2026-11-27.md)
 · [Relatório H4](../sector-runtime-h4-gpu02-03-halfnibblepred-anypendingopentickets-2026-11-27.md)
-· [Relatório H5](../sector-runtime-h5-scale-metrics-shadow-bridge-2026-11-27.md)
+· [Relatório H5](../sector-runtime-h5-scale-evidence-bundle-2026-11-27.md)
 · [Relatório R1](../sector-runtime-r1-thread-stub-cpu-2026-11-27.md)
 · [Relatório R2](../sector-runtime-r2-authoritative-ops-2026-11-27.md)
 · [Backlog geral](../performance-backlog.md)
@@ -46,7 +45,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **25,5%** — 50 marcos verificados de 196 |
 | Contratos com avanço registrado | **49 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | H0–H5 + R1/R2; H4 144/144 + H5 ScaleMetrics/Instalaveis; Build `46077733827` em voo @ `b862351c`; Actions manuais |
+| Última evidência de testes | H0–H5 + R1/R2; H4 154/154 + H5 44/44 evidence @`62fba03a`; Build `46079365811` em voo @ `46a2da76`; Actions manuais |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 | Smoke / instalador local | Pendente base local do usuário; sem smoke até lá |
 
@@ -114,8 +113,8 @@ autoritativa. GPU é opcional, com fallback CPU completo.
 
 ## Próximas ações — fila imediata
 
-0. **Integração:** H4 `828a45d2` (lote HalfHasZeroNibble…HalfAllNibblesEqual +
-   discardTerminal/discardPending/anyPending; 154/154).
+0. **Integração:** lote H4 `828a45d2` (154/154) + H5 `62fba03a`
+   (evidence bundle; Desktop 44/44); `da430a98` retido.
    `46067036173` @ `2d4b047f` intacto se in_progress; 1 Build tip final após
    terminal — sem spam. Smoke só após base local.
 1. **H0: DAG-01/RAM-01 com MOD-01/VAL-02:** catálogo compacto e binding de fontes
@@ -209,13 +208,13 @@ auditoria de todas as implementações antigas para conceder crédito retroativo
 | 34 | H4 | [GPU-02](gpu-compute.md) | Contexto e buffers em voo | 25% | Fila/pool/pump/failContext (recover) + Failed/Cancelled/Pending/Ready/discard*/anyPending ticket helpers + harness GL; thread dona WorldThread pendente |
 | 35 | H4 | [GPU-03](gpu-compute.md) | Kernels e equivalência | 25% | DenseUint32 …/HalfSwapAdjacentNibbles/Rol/Ror + HalfHasZeroNibble/CountZero/Broadcast + HalfSext/Extract/InsertNibble + HalfAllNibblesEqual/Range/Mask + batch; terreno/ganho pendentes |
 | 36 | H4 | [GPU-04](gpu-compute.md) | Comparação em sombra | 25% | compareShadowBatch + compareShadowNamed + summarizeShadowReports + fingerprintShadowSummary + fingerprintIdentity + catalog; Equal RTX; multi-driver/publicação pendentes |
-| 37 | H5 | [GPU-05](gpu-compute.md) | Seleção heterogênea e render | 25% | Seletor + ScaleMetrics bridge; backend GPU/ganho medido pendentes |
-| 38 | H5 | [VAL-03](validation-and-telemetry.md) | Métricas e marcos de entrega | 25% | Recorder + ScaleMetrics agregador sombra; sem bus/Tracy |
-| 39 | H5 | [VAL-04](validation-and-telemetry.md) | Matriz de cenários | 25% | Cenários tipados; campanhas reais/streaming pendentes |
-| 40 | H5 | [VAL-05](validation-and-telemetry.md) | Gates de adoção e relatório | 25% | Checklist avalia evidência; adoção permanece fechada no parcial |
-| 41 | H5 | [MOD-02](compatibility.md) | Equivalência e versionamento | 25% | Épocas/máscaras; sem comparador de mundo completo |
+| 37 | H5 | [GPU-05](gpu-compute.md) | Seleção heterogênea e render | 25% | Seletor + ScaleMetrics; ganho ponta a ponta Desktop ainda parcial |
+| 38 | H5 | [VAL-03](validation-and-telemetry.md) | Métricas e marcos de entrega | 25% | transferMs calibrado + bridge; sem Tracy/WorldThread |
+| 39 | H5 | [VAL-04](validation-and-telemetry.md) | Matriz de cenários | 25% | Campaign recorder + skip tipado; streaming real pendente |
+| 40 | H5 | [VAL-05](validation-and-telemetry.md) | Gates de adoção e relatório | 25% | ScaleMetrics→evidence + summary; adopt segue fechado sem suite completa |
+| 41 | H5 | [MOD-02](compatibility.md) | Equivalência e versionamento | 25% | Épocas no evidence bundle; sem comparador de mundo completo |
 | 42 | H5 | [MOD-03](compatibility.md) | Perfis de execução e fallback | 25% | Migração explícita dos modes existentes; regional exige checkpoint |
-| 43 | H5 | [MOD-04](compatibility.md) | Subsistemas e plataformas | 25% | Matriz de suporte; Clang adiado; GPU opcional |
+| 43 | H5 | [MOD-04](compatibility.md) | Subsistemas e plataformas | 25% | Windows+GPU optional no evidence pack; Clang adiado |
 | 44 | R1 | [REG-01](regional-threads.md) | Lifecycle e identidade da dona | 25% | + OS thread CPU stub; sem WorldServer/WorldStorage vivo |
 | 45 | R1 | [REG-02](regional-threads.md) | Estado local e visões de borda | 25% | + contorno parcial/ForeignCell; sem estado vivo integrado |
 | 46 | R1 | [WT-05](worldthread.md) | Coordenadora do runtime regional | 25% | + perimeter skeleton; sem WorldServerThread |
@@ -258,13 +257,13 @@ auditoria de todas as implementações antigas para conceder crédito retroativo
 | GPU-03 | [Xor/Add](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) + [And/Or/Mul](../sector-runtime-h4-gpu03-dense-and-or-mul-2026-11-27.md) + [Min/Max/Sub](../sector-runtime-h4-gpu03-04-minmax-rng-commitbatch-2026-11-27.md) + [Shl/Shr](../sector-runtime-h4-gpu01-03-04-shl-catalog-shadowbatch-2026-11-27.md) + [Rotl/Rotr/Not](../sector-runtime-h4-gpu02-03-rotl-cancel-poll-batch-2026-11-27.md) + [Clz/Ctz/Popcount](../sector-runtime-h4-gpu01-02-03-clz-complete-kernelname-2026-11-27.md) + [Eq/Ne/BitReverse](../sector-runtime-h4-gpu02-03-04-eq-fingerprint-opentickets-2026-11-27.md) + [Lt/Leu/AbsDiff](../sector-runtime-h4-gpu01-03-04-lt-backend-summary-2026-11-27.md) + [Gt/Geu/Xnor](../sector-runtime-h4-gpu01-02-03-gt-cancelall-verdictnames-2026-11-27.md) + [Nand/Nor/MulHi](../sector-runtime-h4-gpu02-03-nand-ticket-reject-2026-11-27.md) + [AndNot/SatAdd/SatSub](../sector-runtime-h4-gpu01-03-sat-capfingerprint-2026-11-27.md) + [OrNot/Avg/IsPow2](../sector-runtime-h4-gpu02-03-ornot-drain-peak-2026-11-27.md) + [Bswap/Parity/BitTest](../sector-runtime-h4-gpu01-03-bswap-named-backend-2026-11-27.md) + [HasZeroByte/NextPow2/MaskLow](../sector-runtime-h4-gpu02-03-haszerobyte-bykernel-2026-11-27.md) + [Ilog2/BroadcastByte/ByteSum](../sector-runtime-h4-gpu02-03-ilog2-cancelbykernel-2026-11-27.md) + [Sext8/Sext16/ExtractByte](../sector-runtime-h4-gpu02-03-sext-drainbykernel-2026-11-27.md) + [BitSet/BitClear/BitToggle](../sector-runtime-h4-gpu01-03-bitset-submitnamed-2026-11-27.md) + [Neg/Abs/RolBytes](../sector-runtime-h4-gpu02-03-neg-stagingfp-2026-11-27.md) + [RorBytes/SignMask/IsZero](../sector-runtime-h4-gpu02-03-ror-completebykernel-2026-11-27.md) + [IsNonzero/MaskHigh/SatMul](../sector-runtime-h4-gpu03-04-nonzero-shadowfp-2026-11-27.md) + [SwapHalves/Clo/Cto](../sector-runtime-h4-gpu03-04-swaphalves-shadownamed-2026-11-27.md) + [ReverseNibbles/ByteMax/ByteMin](../sector-runtime-h4-gpu02-03-revnibbles-inflightbykernel-2026-11-27.md) + [DupLow16/DupHigh16/ReverseBitsInBytes](../sector-runtime-h4-gpu02-03-dup16-readybykernel-2026-11-27.md) + [IsolateLsb/IsolateMsb/LsbMask](../sector-runtime-h4-gpu02-03-isolate-cancelledbykernel-2026-11-27.md) + [ClearLsb/GrayEncode/GrayDecode](../sector-runtime-h4-gpu02-03-gray-anybykernel-2026-11-27.md) + [SmearLsb/ClearMsb/ByteXor](../sector-runtime-h4-gpu02-03-smear-failedbykernel-2026-11-27.md) + [SmearMsb/ByteOr/ByteAnd](../sector-runtime-h4-gpu02-03-smearmsb-listready-2026-11-27.md) + [KeepOddBits/KeepEvenBits/SwapAdjacentBits](../sector-runtime-h4-gpu02-03-keepbits-listfailed-2026-11-27.md) + [CompressOddBits/CompressEvenBits/ExpandLow16ToOdd](../sector-runtime-h4-gpu02-03-compress-listcancelled-2026-11-27.md) + [ExpandLow16ToEven/InterleaveHalves/DeinterleaveHalves](../sector-runtime-h4-gpu02-03-interleave-listinflight-2026-11-27.md) + [NibbleXor/NibbleOr/NibbleAnd](../sector-runtime-h4-gpu02-03-nibble-anyinflight-2026-11-27.md) + [NibbleSum/NibbleMax/NibbleMin](../sector-runtime-h4-gpu02-03-nibblestats-anyready-2026-11-27.md) + [ExtractNibble/InsertNibble/BroadcastNibble](../sector-runtime-h4-gpu02-03-nibbleops-anyfailed-2026-11-27.md) + [SwapAdjacentNibbles/RolNibbles/RorNibbles](../sector-runtime-h4-gpu02-03-nibblerot-anycancelled-2026-11-27.md) + [HasZeroNibble/SextNibble/CountZeroNibbles](../sector-runtime-h4-gpu02-03-nibblezero-discardready-2026-11-27.md) + [PackLowNibbles/PackHighNibbles/ExpandLowNibbles](../sector-runtime-h4-gpu02-03-nibblepack-discardfailed-2026-11-27.md) + [ExpandHighNibbles/ReplaceNibble/MaskNibbles](../sector-runtime-h4-gpu02-03-nibblemask-discardcancelled-2026-11-27.md) + [AllNibblesEqual/NibbleRange/BroadcastNibbleAt](../sector-runtime-h4-gpu02-03-nibblerange-discardterminal-2026-11-27.md) + [HalfSum/HalfMax/HalfMin](../sector-runtime-h4-gpu02-03-halfstats-listopenkernels-2026-11-27.md) + [HalfXor/HalfOr/HalfAnd](../sector-runtime-h4-gpu02-03-halfbitwise-countopenkernels-2026-11-27.md) + [BroadcastHalf/HalfEq/HalfRange](../sector-runtime-h4-gpu02-03-halfcmp-anyopenkernels-2026-11-27.md) + [HalfLt/HalfGt/HalfNe](../sector-runtime-h4-gpu02-03-halfcmp2-listreadyopenkernels-2026-11-27.md) + [HalfLeu/HalfGeu/HalfAvg](../sector-runtime-h4-gpu02-03-halfincl-countreadyopenkernels-2026-11-27.md) + [BroadcastHighHalf/HalfSub/HalfMul](../sector-runtime-h4-gpu02-03-halfarith-anyreadyopenkernels-2026-11-27.md) + [HalfSatAdd/HalfSatSub/HalfMulHi](../sector-runtime-h4-gpu02-03-halfsat-listfailedopenkernels-2026-11-27.md) + [HalfDiv/HalfMod/HalfCeilDiv](../sector-runtime-h4-gpu02-03-halfdiv-countfailedopenkernels-2026-11-27.md) + [HalfIsDivisible/HalfGcd/HalfSelect](../sector-runtime-h4-gpu02-03-halfutil-anyfailedopenkernels-2026-11-27.md) + [HalfLcm/HalfCoprime/HalfAlignUp](../sector-runtime-h4-gpu02-03-halflcm-listcancelledopenkernels-2026-11-27.md) + [HalfAlignDown/HalfRotl/HalfRotr](../sector-runtime-h4-gpu02-03-halfrot-countcancelledopenkernels-2026-11-27.md) + [HalfPopcount/HalfClz/HalfCtz](../sector-runtime-h4-gpu02-03-halfbit-anycancelledopenkernels-2026-11-27.md) + [HalfParity/HalfBitReverse/HalfBswap](../sector-runtime-h4-gpu02-03-halfparity-listpendingopenkernels-2026-11-27.md) + [HalfNot/HalfNeg/HalfAbs](../sector-runtime-h4-gpu02-03-halfunary-countpendingopenkernels-2026-11-27.md) + [HalfSignMask/HalfIsZero/HalfIsNonzero](../sector-runtime-h4-gpu02-03-halfpred-anypendingopenkernels-2026-11-27.md) + [HalfClo/HalfCto/HalfIsPow2](../sector-runtime-h4-gpu02-03-halfones-listpendingopenticketsbykernel-2026-11-27.md) + [HalfIlog2/HalfNextPow2/HalfMaskLow](../sector-runtime-h4-gpu02-03-halfpow-pendingopenticketsbykernel-2026-11-27.md) + [HalfMaskHigh/HalfBitTest/HalfIsolateLsb](../sector-runtime-h4-gpu02-03-halfmask-anypendingopenticketsbykernel-2026-11-27.md) + [HalfIsolateMsb/HalfClearLsb/HalfLsbMask](../sector-runtime-h4-gpu02-03-halflsb-discardpendingopenticketsbykernel-2026-11-27.md) + [HalfGrayEncode/HalfGrayDecode/HalfSmearLsb](../sector-runtime-h4-gpu02-03-halfgray-countpendingopentickets-2026-11-27.md) + [HalfClearMsb/HalfSmearMsb/HalfKeepOddBits](../sector-runtime-h4-gpu02-03-halfmsb-listpendingopentickets-2026-11-27.md) + [HalfKeepEvenBits/HalfSwapAdjacentBits/HalfCompressOddBits](../sector-runtime-h4-gpu02-03-halfeven-listreadyopentickets-2026-11-27.md) + [HalfCompressEvenBits/HalfExpandLow8ToOdd/Even](../sector-runtime-h4-gpu02-03-halfexpand-countreadyopentickets-2026-11-27.md) + [HalfInterleaveBytes/HalfDeinterleaveBytes/HalfSwapBytes](../sector-runtime-h4-gpu02-03-halfbytes-anyreadyopentickets-2026-11-27.md) + [HalfNibbleXor/Or/And](../sector-runtime-h4-gpu02-03-halfnibble-discardreadyopentickets-2026-11-27.md) + [HalfNibbleSum/Max/Min](../sector-runtime-h4-gpu02-03-halfnibblefold-discardfailedopentickets-2026-11-27.md) + [HalfSwapAdjacentNibbles/Rol/Ror](../sector-runtime-h4-gpu02-03-halfnibblerot-discardcancelledopentickets-2026-11-27.md) + [HalfHasZeroNibble/CountZero/Broadcast](../sector-runtime-h4-gpu02-03-halfnibblequery-discardterminalopentickets-2026-11-27.md) + [HalfSext/Extract/InsertNibble](../sector-runtime-h4-gpu02-03-halfnibbleaccess-discardpendingopentickets-2026-11-27.md) + [HalfAllNibblesEqual/Range/Mask](../sector-runtime-h4-gpu02-03-halfnibblepred-anypendingopentickets-2026-11-27.md) | Sem terreno/bioma nem ganho medido |
 | GPU-04 | [compareShadow](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) + [reproducers](../sector-runtime-h4-gpu02-04-failcontext-reproducer-2026-11-27.md) + [commit](../sector-runtime-h4-gpu04-commit-revalidate-2026-11-27.md) + [RNG/commitBatch](../sector-runtime-h4-gpu03-04-minmax-rng-commitbatch-2026-11-27.md) + [catalog/shadowBatch](../sector-runtime-h4-gpu01-03-04-shl-catalog-shadowbatch-2026-11-27.md) + [fingerprintIdentity](../sector-runtime-h4-gpu02-03-04-eq-fingerprint-opentickets-2026-11-27.md) + [summarizeShadowReports](../sector-runtime-h4-gpu01-03-04-lt-backend-summary-2026-11-27.md) + [fingerprintShadowSummary](../sector-runtime-h4-gpu03-04-nonzero-shadowfp-2026-11-27.md) + [compareShadowNamed](../sector-runtime-h4-gpu03-04-swaphalves-shadownamed-2026-11-27.md); Equal RTX | Sem campanha multi-driver / publicação; permanece 25% |
 | GPU-05 | [hardware selection](../sector-runtime-h5-hardware-selection-2026-11-27.md) + [scale bridge](../sector-runtime-h5-scale-metrics-shadow-bridge-2026-11-27.md) | Sem publicação GPU; ganho ponta a ponta Desktop ainda pendente |
-| VAL-03 | [fundações H5](../sector-runtime-h5-scale-foundations-2026-11-27.md) + ScaleMetrics recorder | Sem instrumentação no WorldThread/Tracy nem cobertura completa de pipeline |
-| VAL-04 | mesma entrega, scenario matrix tipada | Sem campanhas executadas nem A/B de streaming |
-| VAL-05 | mesma entrega, adoption gates | Adoção permanece falsa sob evidência parcial; sem gate de pipeline completo |
-| MOD-02 | mesma entrega, equivalence version/mask | Sem comparador de saves/multiplayer/conteúdo completo |
+| VAL-03 | [fundações](../sector-runtime-h5-scale-foundations-2026-11-27.md) + [gates/metrics](../sector-runtime-h5-scale-gates-metrics-2026-11-27.md) | Sem instrumentação no WorldThread/Tracy nem cobertura completa de pipeline |
+| VAL-04 | [scenario campaign](../sector-runtime-h5-scenario-campaign-2026-11-27.md) | Sem streaming/A-B real; skips nao contam como pass |
+| VAL-05 | [gates/metrics](../sector-runtime-h5-scale-gates-metrics-2026-11-27.md) | Adoção permanece falsa sob evidência parcial; sem gate de pipeline completo |
+| MOD-02 | [evidence bundle](../sector-runtime-h5-scale-evidence-bundle-2026-11-27.md) | Sem comparador de saves/multiplayer/conteúdo completo |
 | MOD-03 | mesma entrega, execution profile binding | Sem ativação regional nem migração de config persistida |
-| MOD-04 | mesma entrega, platform/subsystem matrix | Sem builds por plataforma nem matriz CI |
-| CPU-05 | mesma entrega, resource governor advice | Sem resize ao vivo de WorkerPool nem orçamento processual ligado |
+| MOD-04 | [evidence bundle](../sector-runtime-h5-scale-evidence-bundle-2026-11-27.md) | Sem builds por plataforma nem matriz CI |
+| CPU-05 | [scenario campaign](../sector-runtime-h5-scenario-campaign-2026-11-27.md) governor-from-scale | Sem resize ao vivo de WorkerPool nem orçamento processual ligado |
 
 R1 REG-01/02/WT-05 em 25% harness/owner/stub sombra; donas autoritativas OS reais pendentes.
 PreparedSector na integração segue a API H1.
@@ -601,6 +600,10 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | GPU-03 HalfHasZeroNibble lote | DenseUint32 HalfHasZeroNibble/CountZero/Broadcast + Sext/Extract/Insert + AllEqual/Range/Mask; H4 25% | 25,5% |
 | 27/11/2026 | GPU-02 discardTerminal/Pending/anyPending | discardTerminal + discardPending + anyPendingOpenTickets; 154/154; H4 25% | 25,5% |
 | 27/11/2026 | Integração H4 lote 828a45d2 | Merge `--no-ff` lote H4 (3 tips) após janela ≥15 min; Build `460793` intacto; 1 Build tip final; programa 25,5% | 25,5% |
+| 27/11/2026 | H5 scale gates + transferMs | AdoptionFromScaleMetrics + calibrated transfer; 36 testes; H5 25% | 25,5% |
+| 27/11/2026 | H5 scenario campaign | Campaign recorder + governor-from-scale; 40 testes; H5 25% | 25,5% |
+| 27/11/2026 | H5 scale evidence bundle | Integrator review pack; Desktop probe 44/44 @`62fba03a`; H5 25% | 25,5% |
+| 27/11/2026 | Integração H5 62fba03a | Merge `--no-ff` H5 até probe tip; `da430a98` retido; Build `460793` intacto; 1 Build tip final; programa 25,5% | 25,5% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

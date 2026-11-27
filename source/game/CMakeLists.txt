@@ -192,6 +192,8 @@ SET (star_game_HEADERS
     StarWorldGenerationScaleMetrics.hpp
     StarWorldGenerationExecutionProfile.hpp
     StarWorldGenerationScenarioMatrix.hpp
+    StarWorldGenerationScenarioCampaign.hpp
+    StarWorldGenerationScaleEvidence.hpp
     StarWorldGenerationAdoptionGates.hpp
     StarWorldGenerationEquivalenceVersion.hpp
     StarWorldGenerationPlatformMatrix.hpp

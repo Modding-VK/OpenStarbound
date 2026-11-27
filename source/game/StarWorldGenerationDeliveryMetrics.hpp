@@ -88,12 +88,15 @@ struct WorldGenerationResourceMetric {
   size_t vramBytes = 0;
   size_t transferBytes = 0;
   double gpuWaitMs = 0;
+  // Calibrated wall-clock transfer cost. transferBytes alone never imply ms.
+  double transferMs = 0;
+  bool transferTimingCalibrated = false;
   bool recorded = false;
   bool coverageComplete = false;
 };
 
 struct WorldGenerationDeliveryMetricsSnapshot {
-  static constexpr unsigned ModelVersion = 1;
+  static constexpr unsigned ModelVersion = 2;
   WorldGenerationInterestMetric interest;
   WorldGenerationPreparationMetric preparation;
   WorldGenerationEligibilityMetric eligibility;
@@ -182,15 +185,14 @@ public:
       return false;
     out = {};
     out.executionMs = prep.endMs - prep.startMs;
-    out.transferMs = 0;
     out.fenceMs = m_snapshot.resources.gpuWaitMs;
     out.materializeMs = 0;
-    if (prep.backend == WorldGenerationComputeBackend::Gpu) {
-      // Transfer bytes alone are not milliseconds; keep transferMs at 0 until a
-      // calibrated converter exists. Callers must supply transfer timing in a
-      // later VAL-03 cut if they need transport-aware routing.
+    // Bytes alone never become milliseconds. Only an explicit calibration
+    // (Desktop/H4 probe timings) may populate transferMs.
+    if (m_snapshot.resources.transferTimingCalibrated)
+      out.transferMs = m_snapshot.resources.transferMs;
+    else
       out.transferMs = 0;
-    }
     return out.valid();
   }
 

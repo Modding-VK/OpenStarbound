@@ -6,11 +6,11 @@ Pré-condição: H4 probe RTX PASS @ `c7f6e605` (GPU shadow real). Sem merge INT
 
 ## Objetivo deste probe
 
-Validar no host RTX os **33 testes de contrato H5** (GPU-05 + VAL-03/04/05 +
-MOD-02/03/04 + CPU-05 + ScaleMetrics). Sao modelos puros: **nao** ligam OpenGL
-nem reclamam compute. A capacidade GPU real ja comprovada em H4 alimenta o
-ponte de escala (`WorldGenerationScaleMetricsRecorder`); este checklist fecha
-a evidencia Windows dos contratos H5 no tip atual.
+Validar no host RTX os **44 testes de contrato H5** (GPU-05 + VAL-03/04/05 +
+MOD-02/03/04 + CPU-05 + ScaleMetrics/gates/campaign/evidence). Sao modelos
+puros: **nao** ligam OpenGL nem reclamam compute. A capacidade GPU real ja
+comprovada em H4 alimenta o pacote de evidencia; este checklist fecha a
+evidencia Windows dos contratos H5 no tip atual.
 
 ## Pré-requisitos
 
@@ -47,7 +47,7 @@ Filtro único com as oito suites H5:
 
 ```bat
 cd dist
-.\world_generation_contract_tests.exe --gtest_filter=WorldGenerationHardwareSelectionTest.*:WorldGenerationDeliveryMetricsTest.*:WorldGenerationExecutionProfileTest.*:WorldGenerationScenarioMatrixTest.*:WorldGenerationAdoptionGatesTest.*:WorldGenerationEquivalenceVersionTest.*:WorldGenerationPlatformMatrixTest.*:WorldGenerationResourceGovernorTest.*:WorldGenerationScaleMetricsTest.*
+.\world_generation_contract_tests.exe --gtest_filter=WorldGenerationHardwareSelectionTest.*:WorldGenerationDeliveryMetricsTest.*:WorldGenerationExecutionProfileTest.*:WorldGenerationScenarioMatrixTest.*:WorldGenerationScenarioCampaignTest.*:WorldGenerationScaleEvidenceTest.*:WorldGenerationAdoptionGatesTest.*:WorldGenerationEquivalenceVersionTest.*:WorldGenerationPlatformMatrixTest.*:WorldGenerationResourceGovernorTest.*:WorldGenerationScaleMetricsTest.*
 ```
 
 Ou o script:
@@ -58,7 +58,7 @@ pwsh -File scripts\windows\run-h5-contract-probe.ps1 -ExePath .\dist\world_gener
 
 ### Saída esperada (PASS)
 
-- **33/33** testes PASSED
+- **44/44** testes PASSED
 - exit code `0`
 - Sem Actions; sem claim de backend GPU neste log
 
@@ -67,15 +67,17 @@ pwsh -File scripts\windows\run-h5-contract-probe.ps1 -ExePath .\dist\world_gener
 | Suite | Esperado |
 | --- | ---: |
 | WorldGenerationHardwareSelectionTest | 7 |
-| WorldGenerationDeliveryMetricsTest | 3 |
+| WorldGenerationDeliveryMetricsTest | 4 |
 | WorldGenerationExecutionProfileTest | 3 |
 | WorldGenerationScenarioMatrixTest | 2 |
-| WorldGenerationAdoptionGatesTest | 4 |
+| WorldGenerationScenarioCampaignTest | 4 |
+| WorldGenerationScaleEvidenceTest | 4 |
+| WorldGenerationAdoptionGatesTest | 6 |
 | WorldGenerationEquivalenceVersionTest | 3 |
 | WorldGenerationPlatformMatrixTest | 2 |
 | WorldGenerationResourceGovernorTest | 3 |
 | WorldGenerationScaleMetricsTest | 6 |
-| **Total** | **33** |
+| **Total** | **44** |
 
 ## O que reportar ao Project / H5
 

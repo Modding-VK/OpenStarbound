@@ -345,6 +345,8 @@ Segundo recorte:
 [`WorldGenerationScaleMetricsRecorder`](../source/game/StarWorldGenerationScaleMetrics.hpp)
 agrega lotes sombra H4 e pode preencher o recorder de entrega;
 [scale bridge](../sector-runtime-h5-scale-metrics-shadow-bridge-2026-11-27.md).
+Terceiro recorte: `transferTimingCalibrated` / `transferMs` no recurso;
+[gates/metrics](../sector-runtime-h5-scale-gates-metrics-2026-11-27.md).
 
 | Marco/custo | O que deve registrar |
 | --- | --- |
@@ -372,6 +374,10 @@ Primeiro recorte (27/11/2026):
 [`WorldGenerationValidationScenario`](../source/game/StarWorldGenerationScenarioMatrix.hpp)
 enumera os cenários abaixo sem executá-los;
 [fundações H5](../sector-runtime-h5-scale-foundations-2026-11-27.md).
+Segundo recorte:
+[`WorldGenerationScenarioCampaignRecorder`](../source/game/StarWorldGenerationScenarioCampaign.hpp)
+registra Passed/Failed/Skipped* e cobre GPU rows via ScaleMetrics;
+[scenario campaign](../sector-runtime-h5-scenario-campaign-2026-11-27.md).
 
 | Cenário | Falha ou ganho procurado |
 | --- | --- |
@@ -396,6 +402,9 @@ Primeiro recorte (27/11/2026):
 [`evaluateWorldGenerationAdoption`](../source/game/StarWorldGenerationAdoptionGates.hpp)
 fecha adoção sob evidência parcial;
 [fundações H5](../sector-runtime-h5-scale-foundations-2026-11-27.md).
+Segundo recorte: `worldGenerationAdoptionFromScaleMetrics` +
+`summarizeWorldGenerationScaleGates` mapeiam campanhas sombra sem adotar GPU
+autoritativa; [gates/metrics](../sector-runtime-h5-scale-gates-metrics-2026-11-27.md).
 
 Uma variante só avança quando possui: invariantes aprovados, comparação de
 outputs, benchmark equivalente, memória limitada, falhas/recovery cobertas e
