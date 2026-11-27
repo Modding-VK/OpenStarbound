@@ -123,7 +123,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32BroadcastNibble = 97, // replicate low 4 bits across all nibbles; parameter ignored
   DenseUint32SwapAdjacentNibbles = 98, // swap nibble pairs 0↔1, 2↔3, …; parameter ignored
   DenseUint32RolNibbles = 99, // rotate left by (parameter & 7) nibbles
-  DenseUint32RorNibbles = 100 // rotate right by (parameter & 7) nibbles
+  DenseUint32RorNibbles = 100, // rotate right by (parameter & 7) nibbles
+  DenseUint32HasZeroNibble = 101, // 0xffffffff if any nibble is 0, else 0; parameter ignored
+  DenseUint32SextNibble = 102, // sign-extend nibble (parameter & 7) to 32 bits
+  DenseUint32CountZeroNibbles = 103 // count of zero nibbles (0..8); parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -333,6 +336,7 @@ public:
 
   // GPU-02: drain only open tickets whose identity.kernel matches (owner-thread).
   size_t drainOpenTicketsByKernel(WorldGenerationComputeKernel kernel);
+
 
   // GPU-02 accounting for RAM-01 consumers (asset-free observation only).
   WorldGenerationComputeStagingSnapshot stagingSnapshot() const;
