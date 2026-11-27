@@ -100,6 +100,9 @@ GLuint g_bitTestProgram = 0;
 GLuint g_hasZeroByteProgram = 0;
 GLuint g_nextPow2Program = 0;
 GLuint g_maskLowProgram = 0;
+GLuint g_ilog2Program = 0;
+GLuint g_broadcastByteProgram = 0;
+GLuint g_byteSumProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -696,6 +699,52 @@ void main() {
 }
 )GLSL";
 
+char const* Ilog2Shader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  // findMSB matches floor(log2) for nonzero values; define 0 -> 0 like the CPU path.
+  values[i] = v == 0u ? 0u : uint(findMSB(v));
+}
+)GLSL";
+
+char const* BroadcastByteShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint b = values[i] & 0xffu;
+  values[i] = b * 0x01010101u;
+}
+)GLSL";
+
+char const* ByteSumShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  values[i] = (v & 0xffu) + ((v >> 8) & 0xffu) + ((v >> 16) & 0xffu) + ((v >> 24) & 0xffu);
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -904,6 +953,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_maskLowProgram);
     g_maskLowProgram = 0;
   }
+  if (g_ilog2Program) {
+    glDeleteProgram(g_ilog2Program);
+    g_ilog2Program = 0;
+  }
+  if (g_broadcastByteProgram) {
+    glDeleteProgram(g_broadcastByteProgram);
+    g_broadcastByteProgram = 0;
+  }
+  if (g_byteSumProgram) {
+    glDeleteProgram(g_byteSumProgram);
+    g_byteSumProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -1030,7 +1091,10 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_bitTestProgram, BitTestShader, "DenseUint32BitTest")
       || !requireProgram(g_hasZeroByteProgram, HasZeroByteShader, "DenseUint32HasZeroByte")
       || !requireProgram(g_nextPow2Program, NextPow2Shader, "DenseUint32NextPow2")
-      || !requireProgram(g_maskLowProgram, MaskLowShader, "DenseUint32MaskLow"))
+      || !requireProgram(g_maskLowProgram, MaskLowShader, "DenseUint32MaskLow")
+      || !requireProgram(g_ilog2Program, Ilog2Shader, "DenseUint32Ilog2")
+      || !requireProgram(g_broadcastByteProgram, BroadcastByteShader, "DenseUint32BroadcastByte")
+      || !requireProgram(g_byteSumProgram, ByteSumShader, "DenseUint32ByteSum"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -1175,6 +1239,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_nextPow2Program;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32MaskLow)
     program = g_maskLowProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Ilog2)
+    program = g_ilog2Program;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32BroadcastByte)
+    program = g_broadcastByteProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32ByteSum)
+    program = g_byteSumProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
