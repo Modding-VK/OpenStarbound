@@ -6,7 +6,7 @@ Base inspecionada: `5e2e2297`;
 admitidos a partir do composto (ver relatório de sombra).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-r2-entity-handoff-shadow-2026-11-27.md)
+· [Último relatório técnico](../sector-runtime-r2-recovery-shadow-2026-11-27.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -20,10 +20,10 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | --- | --- |
 | Frente ativa | H0 — fundações, invariantes e validação acelerada |
 | Progresso de maturidade de H0 | **25,0%** — 6 marcos verificados de 24 |
-| Progresso de maturidade do programa | **4,6%** — 9 marcos verificados de 196 |
-| Contratos com avanço registrado | **9 de 49**; todos ainda parciais |
+| Progresso de maturidade do programa | **5,1%** — 10 marcos verificados de 196 |
+| Contratos com avanço registrado | **10 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | +5 CrossOp +4 EntityHandoff (REG-03/04 sombra); ASan/UBSan; R2 |
+| Última evidência de testes | +5 CrossOp +4 Handoff +3 Recovery (REG-03/04/05 sombra); ASan/UBSan; R2 |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,6% não significam que o jogo esteja só 3,6% pronto.** O runtime anterior
@@ -55,8 +55,8 @@ Fórmulas:
 - **Contrato:** número de marcos consecutivos verificados × 25%.
 - **Fase de entrada:** soma das notas dos contratos nela cadastrados ÷ número
   desses contratos.
-- **Programa:** soma das notas dos 49 contratos ÷ 49. Hoje: 225 ÷ 49 = 4,6%
-  arredondado; equivalentemente, 9 ÷ (49 × 4) × 100.
+- **Programa:** soma das notas dos 49 contratos ÷ 49. Hoje: 250 ÷ 49 = 5,1%
+  arredondado; equivalentemente, 10 ÷ (49 × 4) × 100.
 - **Aceitação integral:** contratos em 100% ÷ 49. Hoje: 0%.
 
 São percentuais de **maturidade comprovada**, não de horas, esforço, linhas de
@@ -81,8 +81,8 @@ obriga concluir todo trabalho transversal para iniciar um protótipo em sombra.
 | 5 | H4 — backend GPU e comparação em sombra | 4 | 0 / 16 | 0% | Protótipo pode acompanhar H1/H2; publicação depende do kernel CPU equivalente |
 | 6 | H5 — seleção de hardware e escala | 7 | 0 / 28 | 0% | Produtos/backends validados e custo completo de entrega medido |
 | 7 | R1 — donos regionais e coordenadora | 3 | 0 / 12 | 0% | Auditoria de autoridade/efeitos e checkpoint; não basta aprovar GPU |
-| 8 | R2 — operações e transferências entre regiões | 3 | 2 / 12 | 16,7% | REG-03/04 sombra; REG-05 e lifecycle R1 pendentes |
-| — | **Total** | **49** | **9 / 196** | **4,6%** | Não equivale a ganho de desempenho ou autorização de release |
+| 8 | R2 — operações e transferências entre regiões | 3 | 3 / 12 | 25,0% | REG-03/04/05 sombra; lifecycle R1 e custo real pendentes |
+| — | **Total** | **49** | **10 / 196** | **5,1%** | Não equivale a ganho de desempenho ou autorização de release |
 
 Essa é uma ordem de prioridade/dependência, não uma proibição de frentes
 paralelas autorizadas pelo roadmap. Setores comuns permanecem prioritários.
@@ -139,7 +139,7 @@ concorrente.
 
 ## Catálogo ordenado das 49 tarefas
 
-As nove notas de 25% usam as evidências indicadas após o catálogo. Demais 0%
+As dez notas de 25% usam as evidências indicadas após o catálogo. Demais 0%
 significam **sem marco do novo contrato reconhecido nesta leitura do roadmap**,
 não ausência de código relacionado no baseline. Não foi feita nova auditoria
 de todas as implementações antigas para conceder crédito retroativo.
@@ -194,7 +194,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 46 | R1 | [WT-05](worldthread.md) | Coordenadora do runtime regional | 0% | WorldThread coordenando donos, não publicando tudo centralmente |
 | 47 | R2 | [REG-03](regional-threads.md) | Tempo e operações entre regiões | 25% | Ledger sombra de intenções/reserva; autoridade R1 e rede pendentes |
 | 48 | R2 | [REG-04](regional-threads.md) | Transferência de entidades | 25% | Handoff sombra prepare/commit/stale; rede/índice vivo pendentes |
-| 49 | R2 | [REG-05](regional-threads.md) | Falha, checkpoint e custo de escala | 0% | Recuperação e ganho regional real; avaliar passos independentes só depois |
+| 49 | R2 | [REG-05](regional-threads.md) | Falha, checkpoint e custo de escala | 25% | Falha/checkpoint/legado em sombra; métricas de custo e R1 pendentes |
 
 ## Evidências das notas atuais
 
@@ -209,6 +209,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
 | REG-03 | [cross-op sombra](../sector-runtime-r2-cross-op-shadow-2026-11-27.md) | Sem dona R1, rede, checkpoint ou passos independentes |
 | REG-04 | [entity handoff sombra](../sector-runtime-r2-entity-handoff-shadow-2026-11-27.md) | Sem índice/rede vivos, tipos de autoridade por entidade ou NPC externo |
+| REG-05 | [recovery sombra](../sector-runtime-r2-recovery-shadow-2026-11-27.md) | Sem custo de threads medido, save real ou passos independentes |
 
 CPU-01 recebe o primeiro marco porque agora existe cálculo com dados próprios
 que independe da origem/Root após captura, não só callbacks/catálogos ou contagem
@@ -307,6 +308,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 26/11/2026 | Concurrent ocean | Duas sombras oceano no ledger; 106 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 27/11/2026 | REG-03 sombra | Intenções multirregião + reserva/conflito/commit; 5 CrossOp. REG-03 0→25% | 4,1% |
 | 27/11/2026 | REG-04 sombra | Handoff prepare/commit/stale/idempotência; 4 Handoff. REG-04 0→25% | 4,6% |
+| 27/11/2026 | REG-05 sombra | Falha/checkpoint/legado; 3 Recovery. REG-05 0→25%; R2 entrada 25% | 5,1% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

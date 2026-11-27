@@ -93,6 +93,11 @@ Uma falha invalida saídas ainda não confirmadas e interrompe o passo afetado.
 Retorno ao legado exige checkpoint consistente ou novo carregamento. Não
 reaproveitar uma região parcialmente publicada como se tivesse sido revertida.
 
+Primeiro recorte em sombra (`WorldRegionRecoveryShadow`): unconfirmed → fail
+(invalida e mantém marca parcial) → checkpoint consistente ou `reloadLegacy`.
+Sem métricas de custo de threads. Ver
+[relatório](../sector-runtime-r2-recovery-shadow-2026-11-27.md).
+
 Medir pilhas, memória por thread, criação/join, latência de acordar, threads
 simultaneamente prontas, custo da barreira, mensagens e regiões lentas. Threads
 sem trabalho aguardam condição. Muitas threads dedicadas não significam muitos

@@ -28,3 +28,6 @@ Sem Actions.
 ## Progresso
 
 REG-04: **0% → 25%**. Programa: **4,1% → 4,6%** (9 marcos / 196).
+
+Próximo: REG-05 em
+[recovery sombra](sector-runtime-r2-recovery-shadow-2026-11-27.md).

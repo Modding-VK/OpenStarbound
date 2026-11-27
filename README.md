@@ -36,7 +36,7 @@ For the current state and the next work, start here:
 - [Roadmap and acceptance criteria](doc/sector-runtime/roadmap.md)
 - [Progress, evidence and next steps](doc/sector-runtime/progress.md)
 - [Operational checklist and current report](doc/regional-runtime-execution-checklist.md)
-- [Latest R2 report: entity handoff shadow](doc/sector-runtime-r2-entity-handoff-shadow-2026-11-27.md)
+- [Latest R2 report: recovery shadow](doc/sector-runtime-r2-recovery-shadow-2026-11-27.md)
 - [Performance backlog](doc/performance-backlog.md)
 
 <details>

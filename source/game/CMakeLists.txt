@@ -204,6 +204,7 @@ SET (star_game_HEADERS
     StarWorldRegionCoordinator.hpp
     StarWorldRegionCrossOp.hpp
     StarWorldRegionEntityHandoff.hpp
+    StarWorldRegionRecovery.hpp
     StarWorldImpl.hpp
     StarWorldLayout.hpp
     StarWorldParameters.hpp
@@ -499,6 +500,7 @@ SET (star_game_SOURCES
     StarWorldRegionCoordinator.cpp
     StarWorldRegionCrossOp.cpp
     StarWorldRegionEntityHandoff.cpp
+    StarWorldRegionRecovery.cpp
     StarWorldLayout.cpp
     StarWorldParameters.cpp
     StarWorldPerformance.cpp

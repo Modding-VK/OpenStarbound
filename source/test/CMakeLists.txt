@@ -123,11 +123,13 @@ ADD_EXECUTABLE(world_generation_contract_tests
   ../game/StarWorldRegionCoordinator.cpp
   ../game/StarWorldRegionCrossOp.cpp
   ../game/StarWorldRegionEntityHandoff.cpp
+  ../game/StarWorldRegionRecovery.cpp
   gtest/gtest-all.cc
   core_tests_main.cpp
   world_region_partition_test.cpp
   world_region_cross_op_test.cpp
   world_region_entity_handoff_test.cpp
+  world_region_recovery_test.cpp
   world_generation_dependency_test.cpp
   world_generation_pass_test.cpp
   StarWorldGenerationPassHarness.hpp
@@ -217,6 +219,7 @@ FOREACH(world_region_test_suite
     WorldRegionCoordinatorTest
     WorldRegionCrossOpTest
     WorldRegionEntityHandoffTest
+    WorldRegionRecoveryTest
     WorldRegionObservationTest)
   ADD_TEST(NAME world_generation_contract_${world_region_test_suite}
     COMMAND $<TARGET_FILE:world_generation_contract_tests>
