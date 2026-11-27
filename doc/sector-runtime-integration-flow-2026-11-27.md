@@ -717,3 +717,8 @@ integração: **nenhum**.
 - Merge H4 `987e6fca` (HalfParity/HalfBitReverse/HalfBswap + listPendingOpenKernels; 120/120).
 - Build `46067036173` @ `2d4b047f` intacto; 1 Build tip final após terminal; sem spam.
 - Conflito só `progress.md`; reconciliado.
+
+## Revisão 2026-11-27T21:16Z
+- Merge H4 `160170aa` (HalfNot/HalfNeg/HalfAbs + countPendingOpenKernels; 122/122).
+- Build `46067036173` @ `2d4b047f` intacto; 1 Build tip final após terminal; sem spam.
+- Conflito só `progress.md`; reconciliado.
