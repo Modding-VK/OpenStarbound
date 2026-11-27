@@ -104,6 +104,7 @@ SET_TESTS_PROPERTIES(core_tests PROPERTIES
 ADD_EXECUTABLE(world_generation_contract_tests
   $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base>
   ../game/StarWorldRegionPartition.cpp
+  ../game/StarWorldRegionOwner.cpp
   ../game/StarWorldGenerationDependency.cpp
   ../game/StarWorldGenerationTasks.cpp
   ../game/StarWorldGenerationMemory.cpp
@@ -124,6 +125,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   gtest/gtest-all.cc
   core_tests_main.cpp
   world_region_partition_test.cpp
+  world_region_owner_test.cpp
   world_generation_dependency_test.cpp
   world_generation_pass_test.cpp
   StarWorldGenerationPassHarness.hpp
@@ -170,6 +172,7 @@ ENDIF()
 # not consume the entire Actions job timeout.
 FOREACH(world_region_test_suite
     WorldRegionPartitionTest
+    WorldRegionOwnerTest
     WorldGenerationDependencyTest
     WorldGenerationPassTest
     WorldGenerationPlacementQueueTest

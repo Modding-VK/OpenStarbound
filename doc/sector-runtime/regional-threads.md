@@ -18,7 +18,10 @@ alinhadas a essa decisão na documentação; a formulação antiga fica no Git.
 ## Estado real
 
 `WorldRegionPartition` define a geometria. O coordenador observa metadados e
-revalida turnos em sombra. Os previews de lifecycle/mailbox não executam Lua,
+revalida turnos em sombra. Em 27/11/2026,
+[`WorldRegionOwnerRegistry`](../sector-runtime-r1-region-owner-identity-2026-11-27.md)
+acrescenta identidade e lifecycle de dona (admit/release/drain) sem thread OS
+nem publicação autoritativa. Os previews de lifecycle/mailbox não executam Lua,
 simulação ou instalação autoritativa em paralelo. A WorldThread central ainda
 é a dona do mundo no runtime atual.
 
