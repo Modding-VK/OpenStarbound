@@ -408,6 +408,40 @@ TEST(WorldGenerationComputeTest, DenseUint32AndOrMulExactCpuAndShadow) {
 #endif
 }
 
+TEST(WorldGenerationComputeTest, DenseUint32MinMaxSubExactCpuAndShadow) {
+  WorldGenerationComputeService service;
+  auto input = edgeCorpus();
+  uint32_t const bound = 0x80000000u;
+
+  for (size_t i = 0; i < input.size(); ++i) {
+    EXPECT_EQ(input[i] < bound ? input[i] : bound,
+        WorldGenerationComputeService::runKernel(
+            WorldGenerationComputeKernel::DenseUint32Min, 1u, List<uint32_t>{input[i]}, bound)[0]);
+    EXPECT_EQ(input[i] > bound ? input[i] : bound,
+        WorldGenerationComputeService::runKernel(
+            WorldGenerationComputeKernel::DenseUint32Max, 1u, List<uint32_t>{input[i]}, bound)[0]);
+    EXPECT_EQ(input[i] - 1u,
+        WorldGenerationComputeService::runKernel(
+            WorldGenerationComputeKernel::DenseUint32Sub, 1u, List<uint32_t>{input[i]}, 1u)[0]);
+  }
+
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(makeIdentity(140, WorldGenerationComputeKernel::DenseUint32Min), input,
+          bound, WorldGenerationComputeBackend::CpuReference,
+          WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(makeIdentity(141, WorldGenerationComputeKernel::DenseUint32Max), input,
+          bound, WorldGenerationComputeBackend::CpuReference,
+          WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(makeIdentity(142, WorldGenerationComputeKernel::DenseUint32Sub), input,
+          1u, WorldGenerationComputeBackend::CpuReference,
+          WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+}
+
 TEST(WorldGenerationComputeTest, OwnerThreadRejectsForeignMutations) {
   // GPU-02: submission/dispatch stay on the adopted owner thread (asset-free).
   WorldGenerationComputeService service;

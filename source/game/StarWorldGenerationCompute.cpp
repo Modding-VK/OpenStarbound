@@ -43,7 +43,10 @@ bool WorldGenerationComputeService::supported(WorldGenerationComputeKernel kerne
       || kernel == WorldGenerationComputeKernel::DenseUint32Add
       || kernel == WorldGenerationComputeKernel::DenseUint32And
       || kernel == WorldGenerationComputeKernel::DenseUint32Or
-      || kernel == WorldGenerationComputeKernel::DenseUint32Mul;
+      || kernel == WorldGenerationComputeKernel::DenseUint32Mul
+      || kernel == WorldGenerationComputeKernel::DenseUint32Min
+      || kernel == WorldGenerationComputeKernel::DenseUint32Max
+      || kernel == WorldGenerationComputeKernel::DenseUint32Sub;
 }
 
 uint64_t WorldGenerationComputeService::bufferBytes(List<uint32_t> const& values) noexcept {
@@ -71,6 +74,15 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
   } else if (kernel == WorldGenerationComputeKernel::DenseUint32Mul) {
     for (uint32_t value : input)
       out.append(value * parameter);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Min) {
+    for (uint32_t value : input)
+      out.append(value < parameter ? value : parameter);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Max) {
+    for (uint32_t value : input)
+      out.append(value > parameter ? value : parameter);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Sub) {
+    for (uint32_t value : input)
+      out.append(value - parameter);
   }
   return out;
 }
