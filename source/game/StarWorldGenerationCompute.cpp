@@ -111,7 +111,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32ByteMin
       || kernel == WorldGenerationComputeKernel::DenseUint32DupLow16
       || kernel == WorldGenerationComputeKernel::DenseUint32DupHigh16
-      || kernel == WorldGenerationComputeKernel::DenseUint32ReverseBitsInBytes;
+      || kernel == WorldGenerationComputeKernel::DenseUint32ReverseBitsInBytes
+      || kernel == WorldGenerationComputeKernel::DenseUint32IsolateLsb
+      || kernel == WorldGenerationComputeKernel::DenseUint32IsolateMsb
+      || kernel == WorldGenerationComputeKernel::DenseUint32LsbMask;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -186,7 +189,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32ByteMin,
       WorldGenerationComputeKernel::DenseUint32DupLow16,
       WorldGenerationComputeKernel::DenseUint32DupHigh16,
-      WorldGenerationComputeKernel::DenseUint32ReverseBitsInBytes};
+      WorldGenerationComputeKernel::DenseUint32ReverseBitsInBytes,
+      WorldGenerationComputeKernel::DenseUint32IsolateLsb,
+      WorldGenerationComputeKernel::DenseUint32IsolateMsb,
+      WorldGenerationComputeKernel::DenseUint32LsbMask};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -196,7 +202,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 67u;
+  return 70u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -285,6 +291,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32DupLow16: return "DenseUint32DupLow16";
     case WorldGenerationComputeKernel::DenseUint32DupHigh16: return "DenseUint32DupHigh16";
     case WorldGenerationComputeKernel::DenseUint32ReverseBitsInBytes: return "DenseUint32ReverseBitsInBytes";
+    case WorldGenerationComputeKernel::DenseUint32IsolateLsb: return "DenseUint32IsolateLsb";
+    case WorldGenerationComputeKernel::DenseUint32IsolateMsb: return "DenseUint32IsolateMsb";
+    case WorldGenerationComputeKernel::DenseUint32LsbMask: return "DenseUint32LsbMask";
   }
   return nullptr;
 }
@@ -728,6 +737,19 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
       v = ((v >> 4) & 0x0f0f0f0fu) | ((v & 0x0f0f0f0fu) << 4);
       out.append(v);
     }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32IsolateLsb) {
+    for (uint32_t value : input)
+      out.append(value & (uint32_t)(0u - value));
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32IsolateMsb) {
+    for (uint32_t value : input) {
+      if (value == 0u)
+        out.append(0u);
+      else
+        out.append(1u << (31u - denseClz(value)));
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32LsbMask) {
+    for (uint32_t value : input)
+      out.append(value ^ (value - 1u));
   }
   return out;
 }

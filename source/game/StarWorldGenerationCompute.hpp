@@ -90,7 +90,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32ByteMin = 64, // min of four bytes as uint32; parameter ignored
   DenseUint32DupLow16 = 65, // duplicate low 16 bits into both halves; parameter ignored
   DenseUint32DupHigh16 = 66, // duplicate high 16 bits into both halves; parameter ignored
-  DenseUint32ReverseBitsInBytes = 67 // reverse bits inside each byte; parameter ignored
+  DenseUint32ReverseBitsInBytes = 67, // reverse bits inside each byte; parameter ignored
+  DenseUint32IsolateLsb = 68, // value & -value; parameter ignored
+  DenseUint32IsolateMsb = 69, // highest set bit only; 0 when value==0; parameter ignored
+  DenseUint32LsbMask = 70 // value ^ (value - 1); bits through lowest set bit
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
