@@ -10,8 +10,7 @@ using namespace Star;
 namespace {
 
 List<uint32_t> edgeCorpus() {
-  return List<uint32_t>{0u, 1u, 0xffffffffu, 0x80000000u, 0x7fffffffu, 0xfffffffeu,
-      0x55aa55aau, 0xa5a5a5a5u};
+  return WorldGenerationComputeService::shadowEdgeCorpus();
 }
 
 WorldGenerationComputeInputIdentity makeIdentity(uint64_t sequence,

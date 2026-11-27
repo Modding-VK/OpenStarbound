@@ -85,6 +85,21 @@ struct WorldGenerationComputeBatchItem {
   uint32_t parameter = 0;
 };
 
+// GPU-04 minimal numeric reproducer (no mod payload): enough to replay the
+// first divergence with the same kernel/version/parameter/input sample.
+struct WorldGenerationComputeShadowReproducer {
+  bool valid = false;
+  uint64_t worldEpoch = 0;
+  uint64_t sequence = 0;
+  uint32_t kernelVersion = 0;
+  WorldGenerationComputeKernel kernel = WorldGenerationComputeKernel::DenseUint32Xor;
+  uint32_t parameter = 0;
+  size_t index = 0;
+  uint32_t inputSample = 0;
+  uint32_t primarySample = 0;
+  uint32_t shadowSample = 0;
+};
+
 struct WorldGenerationComputeShadowReport {
   WorldGenerationComputeShadowVerdict verdict = WorldGenerationComputeShadowVerdict::Equal;
   WorldGenerationComputeInputIdentity identity;
@@ -93,8 +108,10 @@ struct WorldGenerationComputeShadowReport {
   size_t firstDivergenceIndex = 0;
   uint32_t primarySample = 0;
   uint32_t shadowSample = 0;
+  uint32_t parameter = 0;
   WorldGenerationComputeBackend primaryBackend = WorldGenerationComputeBackend::CpuReference;
   WorldGenerationComputeBackend shadowBackend = WorldGenerationComputeBackend::CpuReference;
+  WorldGenerationComputeShadowReproducer reproducer;
 };
 
 // Owner-thread service: explicit queue, reusable staging pool, in-flight limit,
@@ -138,18 +155,31 @@ public:
 
   bool cancel(WorldGenerationComputeTicket ticket);
 
-  // Context/driver failure: revoke open tickets, drop pooled staging owned by
-  // failed work, and reject later duplicate polls for those ids.
+  // Context/driver failure (GPU-02): recalculate open tickets on the CPU
+  // reference path, then reject later duplicate polls for those ids (late GPU
+  // results must not publish). Returns the number of open tickets affected.
   size_t failContext();
 
   // GPU-04: run primary and shadow on identical inputs. Without GPU capability
   // or failed GL dispatch, shadowBackend GpuOpenGlCompute yields
   // ShadowUnavailable. With a successful probe, GPU path uses compute shaders
-  // (DenseUint32*) rather than the CPU helper.
+  // (DenseUint32*) rather than the CPU helper. Diverged reports fill
+  // `reproducer` with a minimal numeric replay record.
   WorldGenerationComputeShadowReport compareShadow(WorldGenerationComputeInputIdentity identity,
       List<uint32_t> const& input, uint32_t parameter,
       WorldGenerationComputeBackend primary = WorldGenerationComputeBackend::CpuReference,
       WorldGenerationComputeBackend shadow = WorldGenerationComputeBackend::GpuOpenGlCompute);
+
+  // Compare already-materialized buffers (asset-free harness / unit path).
+  static WorldGenerationComputeShadowReport compareShadowBuffers(
+      WorldGenerationComputeInputIdentity identity, List<uint32_t> const& input,
+      uint32_t parameter, List<uint32_t> const& primaryValues,
+      List<uint32_t> const& shadowValues,
+      WorldGenerationComputeBackend primary = WorldGenerationComputeBackend::CpuReference,
+      WorldGenerationComputeBackend shadow = WorldGenerationComputeBackend::CpuReference);
+
+  // Edge corpus for wrap / negative-as-uint32 / near-limit patterns (no assets).
+  static List<uint32_t> shadowEdgeCorpus();
 
   static List<uint32_t> runKernel(WorldGenerationComputeKernel kernel, uint32_t kernelVersion,
       List<uint32_t> const& input, uint32_t parameter);

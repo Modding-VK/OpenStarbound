@@ -21,8 +21,7 @@ List<uint32_t> sampleInput() {
 }
 
 List<uint32_t> edgeCorpus() {
-  // GPU-04 edge corpus: zero, one, max, wrap-adjacent, and patterned values.
-  return List<uint32_t>{0u, 1u, 0xffffffffu, 0x80000000u, 0x7fffffffu, 0xfffffffeu};
+  return WorldGenerationComputeService::shadowEdgeCorpus();
 }
 
 }
@@ -178,14 +177,22 @@ TEST(WorldGenerationComputeTest, CancelWhilePendingThenPump) {
   EXPECT_TRUE(result.values.empty());
 }
 
-TEST(WorldGenerationComputeTest, ContextFailureRejectsDuplicates) {
+TEST(WorldGenerationComputeTest, ContextFailureRecalculatesOnCpuAndRejectsDuplicates) {
   WorldGenerationComputeService service;
   service.setDeferredCpuCompletion(true);
-  auto ticket = service.submit(makeIdentity(21), sampleInput(), 1u);
+  auto input = sampleInput();
+  uint32_t parameter = 0x55aa55aau;
+  auto ticket = service.submit(makeIdentity(21), input, parameter);
   ASSERT_TRUE(ticket);
   EXPECT_EQ(1u, service.failContext());
+
   WorldGenerationComputeResult result;
-  EXPECT_EQ(WorldGenerationComputePollStatus::Cancelled, service.poll(*ticket, &result));
+  EXPECT_EQ(WorldGenerationComputePollStatus::Ready, service.poll(*ticket, &result));
+  EXPECT_EQ(WorldGenerationComputeBackend::CpuReference, result.backend);
+  ASSERT_EQ(input.size(), result.values.size());
+  for (size_t i = 0; i < input.size(); ++i)
+    EXPECT_EQ(input[i] ^ parameter, result.values[i]) << i;
+  // Late duplicate (e.g. GPU finishing after context loss) must not publish.
   EXPECT_EQ(WorldGenerationComputePollStatus::UnknownTicket, service.poll(*ticket, &result));
 }
 
@@ -291,6 +298,47 @@ TEST(WorldGenerationComputeTest, KernelHelperMatchesServiceOutput) {
   ASSERT_EQ(direct.size(), result.values.size());
   for (size_t i = 0; i < direct.size(); ++i)
     EXPECT_EQ(direct[i], result.values[i]) << i;
+}
+
+TEST(WorldGenerationComputeTest, ShadowEdgeCorpusAndMinimalReproducer) {
+  auto corpus = WorldGenerationComputeService::shadowEdgeCorpus();
+  ASSERT_GE(corpus.size(), 8u);
+  // Negative-as-uint32 encodings present.
+  bool sawNeg1 = false;
+  bool sawNeg32 = false;
+  for (uint32_t v : corpus) {
+    if (v == 0xffffffffu)
+      sawNeg1 = true;
+    if (v == 0xffffffe0u)
+      sawNeg32 = true;
+  }
+  EXPECT_TRUE(sawNeg1);
+  EXPECT_TRUE(sawNeg32);
+
+  WorldGenerationComputeService service;
+  auto equal = service.compareShadow(makeIdentity(100), corpus, 0x11u,
+      WorldGenerationComputeBackend::CpuReference,
+      WorldGenerationComputeBackend::CpuReference);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal, equal.verdict);
+  EXPECT_FALSE(equal.reproducer.valid);
+
+  auto primary = WorldGenerationComputeService::runKernel(
+      WorldGenerationComputeKernel::DenseUint32Xor, 1u, corpus, 0x11u);
+  auto shadow = primary;
+  ASSERT_GE(shadow.size(), 3u);
+  shadow[2] ^= 0xffffffffu; // force a single divergence
+  auto diverged = WorldGenerationComputeService::compareShadowBuffers(
+      makeIdentity(101), corpus, 0x11u, primary, shadow);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Diverged, diverged.verdict);
+  EXPECT_EQ(1u, diverged.divergenceCount);
+  EXPECT_EQ(2u, diverged.firstDivergenceIndex);
+  ASSERT_TRUE(diverged.reproducer.valid);
+  EXPECT_EQ(101u, diverged.reproducer.sequence);
+  EXPECT_EQ(0x11u, diverged.reproducer.parameter);
+  EXPECT_EQ(2u, diverged.reproducer.index);
+  EXPECT_EQ(corpus[2], diverged.reproducer.inputSample);
+  EXPECT_EQ(primary[2], diverged.reproducer.primarySample);
+  EXPECT_EQ(shadow[2], diverged.reproducer.shadowSample);
 }
 
 TEST(WorldGenerationComputeTest, DenseUint32AndOrMulExactCpuAndShadow) {
