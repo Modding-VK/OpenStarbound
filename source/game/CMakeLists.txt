@@ -179,6 +179,7 @@ SET (star_game_HEADERS
     StarWorldGenerationMemoryPressure.hpp
     StarWorldGenerationHardwareSelection.hpp
     StarWorldGenerationDeliveryMetrics.hpp
+    StarWorldGenerationScaleMetrics.hpp
     StarWorldGenerationExecutionProfile.hpp
     StarWorldGenerationScenarioMatrix.hpp
     StarWorldGenerationAdoptionGates.hpp

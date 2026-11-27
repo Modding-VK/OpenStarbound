@@ -82,7 +82,11 @@ Primeiro recorte (27/11/2026, branch `cursor/h5-hardware-scale-9f77`):
 escolhe Cpu/Gpu pelo custo completo de entrega com fallback CPU obrigatório e
 histerese; relatório em
 [hardware selection](../sector-runtime-h5-hardware-selection-2026-11-27.md).
-Ainda não há backend GPU, publicação nem medição de ganho ponta a ponta.
+Segundo recorte: [`WorldGenerationScaleMetricsRecorder`](../source/game/StarWorldGenerationScaleMetrics.hpp)
+agrega observações sombra H4 (incl. HalfSignMask/HalfIsZero/HalfIsNonzero) em
+amostra de roteamento;
+[scale bridge](../sector-runtime-h5-scale-metrics-shadow-bridge-2026-11-27.md).
+Ainda não há publicação autoritativa nem ganho ponta a ponta arquivado no Desktop.
 
 Comparar custo CPU com espera GPU + upload + dispatch + fence + readback +
 materialização. Escolher backend por classe/tamanho e prazo, com histerese.

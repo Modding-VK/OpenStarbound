@@ -341,6 +341,10 @@ Primeiro recorte (27/11/2026):
 [`WorldGenerationDeliveryMetricsRecorder`](../source/game/StarWorldGenerationDeliveryMetrics.hpp)
 registra os marcos abaixo e só deriva custo observado com cobertura completa;
 [fundações H5](../sector-runtime-h5-scale-foundations-2026-11-27.md).
+Segundo recorte:
+[`WorldGenerationScaleMetricsRecorder`](../source/game/StarWorldGenerationScaleMetrics.hpp)
+agrega lotes sombra H4 e pode preencher o recorder de entrega;
+[scale bridge](../sector-runtime-h5-scale-metrics-shadow-bridge-2026-11-27.md).
 
 | Marco/custo | O que deve registrar |
 | --- | --- |
