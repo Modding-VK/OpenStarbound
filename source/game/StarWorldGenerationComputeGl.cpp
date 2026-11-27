@@ -139,6 +139,9 @@ GLuint g_byteXorProgram = 0;
 GLuint g_smearMsbProgram = 0;
 GLuint g_byteOrProgram = 0;
 GLuint g_byteAndProgram = 0;
+GLuint g_keepOddBitsProgram = 0;
+GLuint g_keepEvenBitsProgram = 0;
+GLuint g_swapAdjacentBitsProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -1349,6 +1352,49 @@ void main() {
 }
 )GLSL";
 
+char const* KeepOddBitsShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = values[i] & 0x55555555u;
+}
+)GLSL";
+
+char const* KeepEvenBitsShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = values[i] & 0xaaaaaaaau;
+}
+)GLSL";
+
+char const* SwapAdjacentBitsShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  values[i] = ((v & 0x55555555u) << 1) | ((v & 0xaaaaaaaau) >> 1);
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -1713,6 +1759,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_byteAndProgram);
     g_byteAndProgram = 0;
   }
+  if (g_keepOddBitsProgram) {
+    glDeleteProgram(g_keepOddBitsProgram);
+    g_keepOddBitsProgram = 0;
+  }
+  if (g_keepEvenBitsProgram) {
+    glDeleteProgram(g_keepEvenBitsProgram);
+    g_keepEvenBitsProgram = 0;
+  }
+  if (g_swapAdjacentBitsProgram) {
+    glDeleteProgram(g_swapAdjacentBitsProgram);
+    g_swapAdjacentBitsProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -1879,7 +1937,11 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_byteXorProgram, ByteXorShader, "DenseUint32ByteXor")
       || !requireProgram(g_smearMsbProgram, SmearMsbShader, "DenseUint32SmearMsb")
       || !requireProgram(g_byteOrProgram, ByteOrShader, "DenseUint32ByteOr")
-      || !requireProgram(g_byteAndProgram, ByteAndShader, "DenseUint32ByteAnd"))
+      || !requireProgram(g_byteAndProgram, ByteAndShader, "DenseUint32ByteAnd")
+      || !requireProgram(g_keepOddBitsProgram, KeepOddBitsShader, "DenseUint32KeepOddBits")
+      || !requireProgram(g_keepEvenBitsProgram, KeepEvenBitsShader, "DenseUint32KeepEvenBits")
+      || !requireProgram(g_swapAdjacentBitsProgram, SwapAdjacentBitsShader,
+            "DenseUint32SwapAdjacentBits"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -2102,6 +2164,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_byteOrProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32ByteAnd)
     program = g_byteAndProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32KeepOddBits)
+    program = g_keepOddBitsProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32KeepEvenBits)
+    program = g_keepEvenBitsProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32SwapAdjacentBits)
+    program = g_swapAdjacentBitsProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
