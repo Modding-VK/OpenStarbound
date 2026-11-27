@@ -118,6 +118,9 @@ GLuint g_isZeroProgram = 0;
 GLuint g_isNonzeroProgram = 0;
 GLuint g_maskHighProgram = 0;
 GLuint g_satMulProgram = 0;
+GLuint g_swapHalvesProgram = 0;
+GLuint g_cloProgram = 0;
+GLuint g_ctoProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -986,6 +989,49 @@ void main() {
 }
 )GLSL";
 
+char const* SwapHalvesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  values[i] = (v << 16) | (v >> 16);
+}
+)GLSL";
+
+char const* CloShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = findMSB(~values[i]) == -1 ? 32u : (31u - uint(findMSB(~values[i])));
+}
+)GLSL";
+
+char const* CtoShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = findLSB(~values[i]) == -1 ? 32u : uint(findLSB(~values[i]));
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -1266,6 +1312,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_satMulProgram);
     g_satMulProgram = 0;
   }
+  if (g_swapHalvesProgram) {
+    glDeleteProgram(g_swapHalvesProgram);
+    g_swapHalvesProgram = 0;
+  }
+  if (g_cloProgram) {
+    glDeleteProgram(g_cloProgram);
+    g_cloProgram = 0;
+  }
+  if (g_ctoProgram) {
+    glDeleteProgram(g_ctoProgram);
+    g_ctoProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -1410,7 +1468,10 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_isZeroProgram, IsZeroShader, "DenseUint32IsZero")
       || !requireProgram(g_isNonzeroProgram, IsNonzeroShader, "DenseUint32IsNonzero")
       || !requireProgram(g_maskHighProgram, MaskHighShader, "DenseUint32MaskHigh")
-      || !requireProgram(g_satMulProgram, SatMulShader, "DenseUint32SatMul"))
+      || !requireProgram(g_satMulProgram, SatMulShader, "DenseUint32SatMul")
+      || !requireProgram(g_swapHalvesProgram, SwapHalvesShader, "DenseUint32SwapHalves")
+      || !requireProgram(g_cloProgram, CloShader, "DenseUint32Clo")
+      || !requireProgram(g_ctoProgram, CtoShader, "DenseUint32Cto"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -1591,6 +1652,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_maskHighProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32SatMul)
     program = g_satMulProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32SwapHalves)
+    program = g_swapHalvesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Clo)
+    program = g_cloProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Cto)
+    program = g_ctoProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))

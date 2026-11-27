@@ -540,11 +540,11 @@ do kernel CPU e do resultado versionado.
   list/countOpenTicketsByKernel + cancelOpenTicketsByKernel +
   drainOpenTicketsByKernel (primeiro recorte 25%; integração WorldThread
   pendente).
-- [x] GPU-03: kernels densos DenseUint32* incl. IsNonzero/MaskHigh/SatMul +
+- [x] GPU-03: kernels densos DenseUint32* incl. SwapHalves/Clo/Cto +
   submitBatch (primeiro recorte 25%; terreno/bioma/ganho pendentes).
-- [x] GPU-04: compareShadow/compareShadowBatch + commit/RngStream +
-  fingerprintIdentity + summarizeShadowReports + fingerprintShadowSummary
-  (primeiro recorte 25%; multi-driver pendente).
+- [x] GPU-04: compareShadow/compareShadowBatch/compareShadowNamed +
+  commit/RngStream + fingerprintIdentity + summarizeShadowReports +
+  fingerprintShadowSummary (primeiro recorte 25%; multi-driver pendente).
 
 Saída: equivalência e custo completo demonstrados, sem publicar divergências.
 A existência de shaders/uso de GPU no gráfico não conclui esta entrega.

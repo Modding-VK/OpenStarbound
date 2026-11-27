@@ -81,7 +81,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32IsZero = 55, // value == 0 ? 0xffffffff : 0; parameter ignored
   DenseUint32IsNonzero = 56, // value != 0 ? 0xffffffff : 0; parameter ignored
   DenseUint32MaskHigh = 57, // value & high-bit mask; parameter = bit count clamped to [0,32]
-  DenseUint32SatMul = 58 // saturating multiply (clamp product to 0xffffffff)
+  DenseUint32SatMul = 58, // saturating multiply (clamp product to 0xffffffff)
+  DenseUint32SwapHalves = 59, // swap high/low 16-bit halves; parameter ignored
+  DenseUint32Clo = 60, // count leading ones; parameter ignored
+  DenseUint32Cto = 61 // count trailing ones; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -339,6 +342,13 @@ public:
       List<uint32_t> const& input, uint32_t parameter,
       WorldGenerationComputeBackend primary = WorldGenerationComputeBackend::CpuReference,
       WorldGenerationComputeBackend shadow = WorldGenerationComputeBackend::GpuOpenGlCompute);
+
+  // GPU-04: compareShadow with identity.kernel filled from a stable ASCII name.
+  // Unknown names yield PrimaryFailed without dispatch.
+  WorldGenerationComputeShadowReport compareShadowNamed(char const* kernelName,
+      WorldGenerationComputeInputIdentity identity, List<uint32_t> const& input, uint32_t parameter,
+      WorldGenerationComputeBackend primary = WorldGenerationComputeBackend::CpuReference,
+      WorldGenerationComputeBackend shadow = WorldGenerationComputeBackend::CpuReference);
 
   // Compare already-materialized buffers (asset-free harness / unit path).
   static WorldGenerationComputeShadowReport compareShadowBuffers(
