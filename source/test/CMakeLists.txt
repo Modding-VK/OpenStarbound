@@ -141,6 +141,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_flora_spawn_plan_test.cpp
   world_generation_replace_biome_plan_test.cpp
   world_generation_tmx_static_product_test.cpp
+  world_generation_tmx_static_decode_test.cpp
   world_generation_tmx_binding_plan_test.cpp
   world_generation_structure_command_plan_test.cpp
   world_generation_structure_batch_staging_test.cpp

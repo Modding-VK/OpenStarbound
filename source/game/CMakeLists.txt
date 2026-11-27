@@ -190,6 +190,7 @@ SET (star_game_HEADERS
     StarWorldGenerationFloraSpawnPlan.hpp
     StarWorldGenerationReplaceBiomePlan.hpp
     StarWorldGenerationTmxStaticProduct.hpp
+    StarWorldGenerationTmxStaticDecode.hpp
     StarWorldGenerationTmxBindingPlan.hpp
     StarWorldGenerationStructureCommandPlan.hpp
     StarWorldGenerationStructureBatchStaging.hpp

@@ -30,5 +30,6 @@ collision autoritativa e publish. Não concede 50%.
 
 ## Próximo
 
-Decode TMX real (MD-02) em sombra, ou equivalência viva só com
-`apis_ready` live-publish.
+Decode TMX comprimido/Assets, ou equivalência viva só com
+`apis_ready` live-publish. Decode Json controlado já em
+[TMX decode](sector-runtime-h3-tmx-static-decode-2026-11-27.md).

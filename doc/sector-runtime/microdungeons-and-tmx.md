@@ -27,10 +27,12 @@ Ordenação e sementes usam o contrato existente de coordenadas canônicas.
 
 ## MD-02 — Formato intermediário estático de TMX
 
-Primeiro recorte em `cursor/h3-kernels-publication-9f77`:
-`WorldGenerationTmxStaticProduct` retém camadas GID, objetos e conectores
-com identidade assetGeneration/contentHash, sem RandomBrush/NpcBrush nem
-facade. Ver [relatório](../sector-runtime-h3-tmx-static-product-2026-11-27.md).
+Recortes em `cursor/h3-kernels-publication-9f77`:
+`WorldGenerationTmxStaticProduct` retém camadas GID/objetos/conectores, e
+`tryDecodeWorldGenerationTmxStaticProduct` decodifica Json TMX controlado
+sem Root/tilesets. Ver
+[produto](../sector-runtime-h3-tmx-static-product-2026-11-27.md) e
+[decode](../sector-runtime-h3-tmx-static-decode-2026-11-27.md).
 
 Separar leitura dos dados e decodificação estática de instanciação de brushes.
 O produto intermediário pode conter camadas decodificadas, geometria,
