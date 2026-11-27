@@ -454,11 +454,12 @@ de crescimento persistente após mudança de rota ou fechamento do mundo.
 
 Propósito: reduzir trabalho serial após o desbloqueio do pipeline.
 
-- [x] CPU-04 (recortes sombra): CaveLiquid plan/delta e Finalize normalização
+- [x] CPU-04 (recortes sombra): CaveLiquid, Finalize e Flora/spawn intents
   em `cursor/h3-kernels-publication-9f77`
   ([CaveLiquid](../sector-runtime-h3-cave-liquid-plan-2026-11-27.md),
-  [Finalize](../sector-runtime-h3-finalize-normalize-2026-11-27.md)); flora e
-  equivalência viva pendentes.
+  [Finalize](../sector-runtime-h3-finalize-normalize-2026-11-27.md),
+  [Flora/spawn](../sector-runtime-h3-flora-spawn-plan-2026-11-27.md));
+  `replaceBiomeBlocks`/equivalência viva pendentes (permanece 25%).
 - [x] MD-02 (primeiro recorte): produto TMX estático em sombra em
   `cursor/h3-kernels-publication-9f77`
   ([relatório](../sector-runtime-h3-tmx-static-product-2026-11-27.md)).
@@ -488,7 +489,7 @@ Propósito: reduzir trabalho serial após o desbloqueio do pipeline.
   IO-05 packet
   ([relatório](../sector-runtime-h3-shadow-integration-2026-11-27.md));
   sem publish vivo; não eleva contratos a 50%.
-- [ ] Além do primeiro recorte: flora/spawn sombra, decode TMX real, e
+- [ ] Além do primeiro recorte: decode TMX real; `replaceBiomeBlocks` sombra;
   equivalência viva / publish autoritativo só com `apis_ready` live-publish.
 
 Saída: custo serial menor por setor/estrutura, com save, scripts e rede

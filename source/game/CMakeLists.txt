@@ -187,6 +187,7 @@ SET (star_game_HEADERS
     StarWorldGenerationBaseTiles.hpp
     StarWorldGenerationCaveLiquidPlan.hpp
     StarWorldGenerationFinalizePlan.hpp
+    StarWorldGenerationFloraSpawnPlan.hpp
     StarWorldGenerationTmxStaticProduct.hpp
     StarWorldGenerationTmxBindingPlan.hpp
     StarWorldGenerationStructureCommandPlan.hpp
