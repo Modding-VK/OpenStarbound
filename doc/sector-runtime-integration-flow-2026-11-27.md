@@ -692,3 +692,8 @@ integração: **nenhum**.
 - Build `46067036173` @ `2d4b047f` in_progress — intacto; 1 Build tip final após terminal; sem spam.
 - Conflito só `progress.md` (padrão 4 blocos); reconciliado. Sem PRs abertos para INT nesta checagem.
 - H3 remoto presente (`3bdf1927`) ahead=0.
+
+## Revisão 2026-11-27T21:05Z
+- Merge H4 `e9aadc63` (HalfIsDivisible/HalfGcd/HalfSelect + anyFailedOpenKernels; 112/112).
+- Build `46067036173` @ `2d4b047f` intacto; 1 Build tip final após terminal; sem spam.
+- Conflito só `progress.md`; reconciliado.

@@ -196,6 +196,9 @@ GLuint g_halfMulHiProgram = 0;
 GLuint g_halfDivProgram = 0;
 GLuint g_halfModProgram = 0;
 GLuint g_halfCeilDivProgram = 0;
+GLuint g_halfIsDivisibleProgram = 0;
+GLuint g_halfGcdProgram = 0;
+GLuint g_halfSelectProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -2400,6 +2403,61 @@ void main() {
 }
 )GLSL";
 
+char const* HalfIsDivisibleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  uint lo = v & 0xffffu;
+  uint hi = v >> 16;
+  values[i] = (hi != 0u && (lo % hi) == 0u) ? 0xffffffffu : 0u;
+}
+)GLSL";
+
+char const* HalfGcdShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint a = values[i] & 0xffffu;
+  uint b = values[i] >> 16;
+  while (b != 0u) {
+    uint t = a % b;
+    a = b;
+    b = t;
+  }
+  values[i] = a;
+}
+)GLSL";
+
+char const* HalfSelectShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  uint lo = v & 0xffffu;
+  uint hi = v >> 16;
+  values[i] = ((uParameter & 1u) != 0u) ? hi : lo;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -2992,6 +3050,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfCeilDivProgram);
     g_halfCeilDivProgram = 0;
   }
+  if (g_halfIsDivisibleProgram) {
+    glDeleteProgram(g_halfIsDivisibleProgram);
+    g_halfIsDivisibleProgram = 0;
+  }
+  if (g_halfGcdProgram) {
+    glDeleteProgram(g_halfGcdProgram);
+    g_halfGcdProgram = 0;
+  }
+  if (g_halfSelectProgram) {
+    glDeleteProgram(g_halfSelectProgram);
+    g_halfSelectProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -3230,7 +3300,10 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfMulHiProgram, HalfMulHiShader, "DenseUint32HalfMulHi")
       || !requireProgram(g_halfDivProgram, HalfDivShader, "DenseUint32HalfDiv")
       || !requireProgram(g_halfModProgram, HalfModShader, "DenseUint32HalfMod")
-      || !requireProgram(g_halfCeilDivProgram, HalfCeilDivShader, "DenseUint32HalfCeilDiv"))
+      || !requireProgram(g_halfCeilDivProgram, HalfCeilDivShader, "DenseUint32HalfCeilDiv")
+      || !requireProgram(g_halfIsDivisibleProgram, HalfIsDivisibleShader, "DenseUint32HalfIsDivisible")
+      || !requireProgram(g_halfGcdProgram, HalfGcdShader, "DenseUint32HalfGcd")
+      || !requireProgram(g_halfSelectProgram, HalfSelectShader, "DenseUint32HalfSelect"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -3567,6 +3640,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfModProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfCeilDiv)
     program = g_halfCeilDivProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfIsDivisible)
+    program = g_halfIsDivisibleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfGcd)
+    program = g_halfGcdProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSelect)
+    program = g_halfSelectProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
