@@ -176,13 +176,18 @@ GitHub, comentar o veredito em cada PR e só então mergear na integração na
 ordem acima. Antes do merge H1/H2/H5, decidir ownership único de
 `PreparedSector` e `ResourceGovernor`.
 
-## Plano de merge H0 (27/11/2026 ~01:41 UTC)
+## Plano de merge H0 (27/11/2026 ~01:41 UTC) — **FEITO**
 
-- Head H0: `d6a6419a` (`ready-for-integration`) → base integração `dbd42879`
+- Merge `--no-ff` H0 `d6a6419a` → integração **`d87516d0`** (autorizado pelo Project)
+- Só `cursor/integration-sector-runtime-7342`; não `main`
+
+## Plano de merge H1 (27/11/2026 ~01:43 UTC)
+
+- Head H1: `7ed91dec` (front-status: `standby`) → base integração `d87516d0`
 - Compare:
-  https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/h0-foundations-9f77?expand=1
-- Preview: `merge --no-commit --no-ff` **sem conflitos**; abortado (H0 não editada)
-- Escopo: 11 commits / 21 files (harness RealBlockInfo, CandidateSequence, docs)
-- Ação pendente: autorização do Project para merge `--no-ff` **só** na integração
-  (não `main`, sem Actions). Detalhe no store:
-  `internal/h0-merge-plan-2026-11-27.md`
+  https://github.com/Modding-VK/OpenStarbound/compare/cursor/integration-sector-runtime-7342...cursor/h1-graph-cpu-9f77?expand=1
+- Preview pós-H0: **conflitos** em `README.md`, `checklist`, `progress.md`; CMake OK; abortado
+- Escopo: 7 commits / 33 files (Executive* + PreparedSector + ResourceGovernor)
+- Ação pendente: autorização explícita; ao mergear, reconciliar os 3 docs e tratar
+  PreparedSector/ResourceGovernor de H1 como canônicos da integração (H2/H5 rebaseiam)
+- Store: `internal/h1-merge-plan-2026-11-27.md`
