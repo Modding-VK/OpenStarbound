@@ -726,6 +726,36 @@ TEST(WorldGenerationComputeTest, DiscardCancelledOpenTicketsByKernelIsSelective)
       service.discardCancelledOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add));
 }
 
+TEST(WorldGenerationComputeTest, DiscardTerminalOpenTicketsByKernelIsSelective) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  auto xorReady = service.submit(
+      makeIdentity(820, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u);
+  auto xorCancel = service.submit(
+      makeIdentity(821, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{2u}, 0u);
+  auto xorPending = service.submit(
+      makeIdentity(822, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{3u}, 0u);
+  ASSERT_TRUE((bool)xorReady);
+  ASSERT_TRUE((bool)xorCancel);
+  ASSERT_TRUE((bool)xorPending);
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(823, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{4u}, 0u));
+
+  EXPECT_TRUE(service.complete(*xorReady));
+  EXPECT_TRUE(service.cancel(*xorCancel));
+  EXPECT_EQ(1u, service.readyOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(1u, service.cancelledOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(1u, service.inFlightByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(2u,
+      service.discardTerminalOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(0u, service.readyOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(0u, service.cancelledOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(1u, service.inFlightByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(1u, service.inFlightByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+  EXPECT_EQ(0u,
+      service.discardTerminalOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32AllEqualRangeBroadcastAtExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();
