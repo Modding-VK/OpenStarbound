@@ -6,7 +6,7 @@ Base inspecionada: `5e2e2297`;
 admitidos a partir do composto (ver relatório de sombra).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h0-sector-shadow-adjacent-lifecycle-2026-11-26.md)
+· [Último relatório técnico](../sector-runtime-h0-sector-shadow-ocean-island-hotreload-2026-11-26.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -23,7 +23,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **3,6%** — 7 marcos verificados de 196 |
 | Contratos com avanço registrado | **7 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | 791 padrão +93 RealBlockInfo (adjacent lifecycle); ASan/UBSan; gates H0 antes de H1 |
+| Última evidência de testes | 791 padrão +95 RealBlockInfo (ocean/Island hotReload); ASan/UBSan; gates H0 antes de H1 |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,6% não significam que o jogo esteja só 3,6% pronto.** O runtime anterior
@@ -296,6 +296,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 26/11/2026 | Noise lifecycle | Cache/Perlin invalidate/abandon/fail; 89 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 26/11/2026 | Adjacent handoff | Setor {1,0} handoff Stale + invalidate; 91 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 26/11/2026 | Adjacent lifecycle | Setor {1,0} abandon + producer Failed; 93 RealBlockInfo. Sem novo marco completo | 3,6% |
+| 26/11/2026 | Ocean/Island hotReload | Sombra sobrevive hotReload até discard; 95 RealBlockInfo. Sem novo marco completo | 3,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

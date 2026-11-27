@@ -20,4 +20,6 @@ ASan/UBSan: 1×5; **93/93** RealBlockInfo.
 
 ## Próximo passo
 
-Assets sob variantes (hotReload/loadMods oceano/Island). Não disparar Actions.
+hotReload oceano/Island em
+[ocean-island hotreload](sector-runtime-h0-sector-shadow-ocean-island-hotreload-2026-11-26.md).
+Segue loadMods sob variantes. Não disparar Actions.
