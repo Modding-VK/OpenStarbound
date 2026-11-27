@@ -487,9 +487,9 @@ TEST(WorldGenerationComputeTest, SupportedKernelsCatalogListsDenseFamily) {
   EXPECT_FALSE(WorldGenerationComputeService::isKernelSupported(
       WorldGenerationComputeKernel::DenseUint32Xor, 99u));
   auto kernels = WorldGenerationComputeService::supportedKernels();
-  ASSERT_EQ(37u, kernels.size());
+  ASSERT_EQ(40u, kernels.size());
   EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32Xor, kernels[0]);
-  EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32BitTest, kernels[kernels.size() - 1]);
+  EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32MaskLow, kernels[kernels.size() - 1]);
   EXPECT_TRUE(WorldGenerationComputeService::supportedKernels(2u).empty());
 }
 
@@ -509,12 +509,102 @@ TEST(WorldGenerationComputeTest, CompareShadowBatchRunsIndependentKernels) {
     items.append(item);
   }
   auto reports = service.compareShadowBatch(input, std::move(items));
-  ASSERT_EQ(37u, reports.size());
+  ASSERT_EQ(40u, reports.size());
   for (auto const& report : reports) {
     EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal, report.verdict)
         << (int)report.identity.kernel;
     EXPECT_FALSE(report.reproducer.valid);
   }
+}
+
+TEST(WorldGenerationComputeTest, DenseUint32HasZeroByteNextPow2MaskLowExactCpuAndShadow) {
+  WorldGenerationComputeService service;
+  auto input = edgeCorpus();
+  EXPECT_EQ(0xffffffffu,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32HasZeroByte, 1u, List<uint32_t>{0x00112233u},
+          0u)[0]);
+  EXPECT_EQ(0u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32HasZeroByte, 1u, List<uint32_t>{0x11223344u},
+          0u)[0]);
+  EXPECT_EQ(0u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32NextPow2, 1u, List<uint32_t>{0u}, 0u)[0]);
+  EXPECT_EQ(8u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32NextPow2, 1u, List<uint32_t>{5u}, 0u)[0]);
+  EXPECT_EQ(0u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32NextPow2, 1u, List<uint32_t>{0xffffffffu}, 0u)[0]);
+  EXPECT_EQ(0x01u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32MaskLow, 1u, List<uint32_t>{0xabcdef01u}, 8u)[0]);
+  EXPECT_EQ(0xabcdef01u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32MaskLow, 1u, List<uint32_t>{0xabcdef01u}, 32u)[0]);
+  EXPECT_EQ(0u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32MaskLow, 1u, List<uint32_t>{0xabcdef01u}, 0u)[0]);
+
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(350, WorldGenerationComputeKernel::DenseUint32HasZeroByte), input, 0u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(makeIdentity(351, WorldGenerationComputeKernel::DenseUint32NextPow2),
+          input, 0u, WorldGenerationComputeBackend::CpuReference,
+          WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(makeIdentity(352, WorldGenerationComputeKernel::DenseUint32MaskLow),
+          input, 8u, WorldGenerationComputeBackend::CpuReference,
+          WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+}
+
+TEST(WorldGenerationComputeTest, ListAndCountOpenTicketsByKernel) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  auto xorTicket = service.submit(
+      makeIdentity(360, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 1u);
+  auto addTicket = service.submit(
+      makeIdentity(361, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{2u}, 1u);
+  auto xorTicket2 = service.submit(
+      makeIdentity(362, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{3u}, 1u);
+  ASSERT_TRUE((bool)xorTicket);
+  ASSERT_TRUE((bool)addTicket);
+  ASSERT_TRUE((bool)xorTicket2);
+
+  EXPECT_EQ(2u, service.countOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  EXPECT_EQ(1u, service.countOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+  EXPECT_EQ(0u, service.countOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Mul));
+
+  auto xorOpen =
+      service.listOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor);
+  ASSERT_EQ(2u, xorOpen.size());
+  bool sawXor0 = false;
+  bool sawXor2 = false;
+  for (auto const& ticket : xorOpen) {
+    if (ticket.id == xorTicket->id)
+      sawXor0 = true;
+    if (ticket.id == xorTicket2->id)
+      sawXor2 = true;
+  }
+  EXPECT_TRUE(sawXor0);
+  EXPECT_TRUE(sawXor2);
+
+  auto addOpen =
+      service.listOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add);
+  ASSERT_EQ(1u, addOpen.size());
+  EXPECT_EQ(addTicket->id, addOpen[0].id);
+
+  EXPECT_TRUE(service.cancel(*xorTicket));
+  // Cancel marks the entry; poll is what retires the open-ticket id.
+  EXPECT_EQ(2u, service.countOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  service.poll(*xorTicket);
+  EXPECT_EQ(1u, service.countOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
 }
 
 TEST(WorldGenerationComputeTest, RunNamedKernelAndIsBackendSupported) {
@@ -643,7 +733,7 @@ TEST(WorldGenerationComputeTest, DenseUint32OrNotAvgIsPow2ExactCpuAndShadow) {
 }
 
 TEST(WorldGenerationComputeTest, FingerprintCapabilitiesAndSupportedKernelCount) {
-  EXPECT_EQ(37u, WorldGenerationComputeService::supportedKernelCount());
+  EXPECT_EQ(40u, WorldGenerationComputeService::supportedKernelCount());
   EXPECT_EQ(0u, WorldGenerationComputeService::supportedKernelCount(2u));
   EXPECT_EQ(WorldGenerationComputeService::supportedKernels().size(),
       WorldGenerationComputeService::supportedKernelCount());

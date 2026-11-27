@@ -81,7 +81,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32IsPow2
       || kernel == WorldGenerationComputeKernel::DenseUint32Bswap
       || kernel == WorldGenerationComputeKernel::DenseUint32Parity
-      || kernel == WorldGenerationComputeKernel::DenseUint32BitTest;
+      || kernel == WorldGenerationComputeKernel::DenseUint32BitTest
+      || kernel == WorldGenerationComputeKernel::DenseUint32HasZeroByte
+      || kernel == WorldGenerationComputeKernel::DenseUint32NextPow2
+      || kernel == WorldGenerationComputeKernel::DenseUint32MaskLow;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -126,7 +129,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32IsPow2,
       WorldGenerationComputeKernel::DenseUint32Bswap,
       WorldGenerationComputeKernel::DenseUint32Parity,
-      WorldGenerationComputeKernel::DenseUint32BitTest};
+      WorldGenerationComputeKernel::DenseUint32BitTest,
+      WorldGenerationComputeKernel::DenseUint32HasZeroByte,
+      WorldGenerationComputeKernel::DenseUint32NextPow2,
+      WorldGenerationComputeKernel::DenseUint32MaskLow};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -136,7 +142,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 37u;
+  return 40u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -195,6 +201,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32Bswap: return "DenseUint32Bswap";
     case WorldGenerationComputeKernel::DenseUint32Parity: return "DenseUint32Parity";
     case WorldGenerationComputeKernel::DenseUint32BitTest: return "DenseUint32BitTest";
+    case WorldGenerationComputeKernel::DenseUint32HasZeroByte: return "DenseUint32HasZeroByte";
+    case WorldGenerationComputeKernel::DenseUint32NextPow2: return "DenseUint32NextPow2";
+    case WorldGenerationComputeKernel::DenseUint32MaskLow: return "DenseUint32MaskLow";
   }
   return nullptr;
 }
@@ -473,6 +482,30 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
     uint32_t bit = parameter & 31u;
     for (uint32_t value : input)
       out.append(((value >> bit) & 1u) ? 0xffffffffu : 0u);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HasZeroByte) {
+    for (uint32_t value : input) {
+      bool hasZero = ((value - 0x01010101u) & ~value & 0x80808080u) != 0u;
+      out.append(hasZero ? 0xffffffffu : 0u);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32NextPow2) {
+    for (uint32_t value : input) {
+      if (value == 0u) {
+        out.append(0u);
+        continue;
+      }
+      uint32_t v = value - 1u;
+      v |= v >> 1;
+      v |= v >> 2;
+      v |= v >> 4;
+      v |= v >> 8;
+      v |= v >> 16;
+      out.append(v + 1u);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32MaskLow) {
+    uint32_t bits = parameter > 32u ? 32u : parameter;
+    uint32_t mask = bits == 32u ? 0xffffffffu : (bits == 0u ? 0u : ((1u << bits) - 1u));
+    for (uint32_t value : input)
+      out.append(value & mask);
   }
   return out;
 }
@@ -544,6 +577,31 @@ List<WorldGenerationComputeTicket> WorldGenerationComputeService::listOpenTicket
     out.append(ticket);
   }
   return out;
+}
+
+List<WorldGenerationComputeTicket> WorldGenerationComputeService::listOpenTicketsByKernel(
+    WorldGenerationComputeKernel kernel) const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  List<WorldGenerationComputeTicket> out;
+  for (auto const& pair : m_entries) {
+    if (pair.second.identity.kernel != kernel)
+      continue;
+    WorldGenerationComputeTicket ticket;
+    ticket.id = pair.first;
+    out.append(ticket);
+  }
+  return out;
+}
+
+size_t WorldGenerationComputeService::countOpenTicketsByKernel(
+    WorldGenerationComputeKernel kernel) const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  size_t count = 0;
+  for (auto const& pair : m_entries) {
+    if (pair.second.identity.kernel == kernel)
+      ++count;
+  }
+  return count;
 }
 
 bool WorldGenerationComputeService::ticketIsOpen(WorldGenerationComputeTicket ticket) const {

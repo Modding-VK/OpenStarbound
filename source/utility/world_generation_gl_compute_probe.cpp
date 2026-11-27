@@ -129,6 +129,12 @@ int main() {
       "DenseUint32Parity");
   rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32BitTest, 1u,
       "DenseUint32BitTest");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HasZeroByte, 0u,
+      "DenseUint32HasZeroByte");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32NextPow2, 0u,
+      "DenseUint32NextPow2");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32MaskLow, 8u,
+      "DenseUint32MaskLow");
 
   auto ticket = service.submit(makeIdentity(99, WorldGenerationComputeKernel::DenseUint32Xor),
       edgeCorpus(), 0x55aa55aau, WorldGenerationComputeBackend::GpuOpenGlCompute);
