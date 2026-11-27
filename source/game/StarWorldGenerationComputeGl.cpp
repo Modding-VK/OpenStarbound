@@ -62,6 +62,9 @@ SDL_Window* g_window = nullptr;
 SDL_GLContext g_context = nullptr;
 GLuint g_xorProgram = 0;
 GLuint g_addProgram = 0;
+GLuint g_andProgram = 0;
+GLuint g_orProgram = 0;
+GLuint g_mulProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -94,6 +97,48 @@ void main() {
   if (i >= uCount)
     return;
   values[i] = values[i] + uParameter;
+}
+)GLSL";
+
+char const* AndShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = values[i] & uParameter;
+}
+)GLSL";
+
+char const* OrShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = values[i] | uParameter;
+}
+)GLSL";
+
+char const* MulShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  values[i] = values[i] * uParameter;
 }
 )GLSL";
 
@@ -152,6 +197,18 @@ void destroyContextUnlocked() {
   if (g_addProgram) {
     glDeleteProgram(g_addProgram);
     g_addProgram = 0;
+  }
+  if (g_andProgram) {
+    glDeleteProgram(g_andProgram);
+    g_andProgram = 0;
+  }
+  if (g_orProgram) {
+    glDeleteProgram(g_orProgram);
+    g_orProgram = 0;
+  }
+  if (g_mulProgram) {
+    glDeleteProgram(g_mulProgram);
+    g_mulProgram = 0;
   }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
@@ -231,18 +288,21 @@ bool createContext(std::string& failure) {
   }
 
   std::string shaderError;
-  g_xorProgram = compileComputeProgram(XorShader, shaderError);
-  if (!g_xorProgram) {
-    failure = strf("DenseUint32Xor shader failed: {}", shaderError);
-    destroyContextUnlocked();
+  auto requireProgram = [&](GLuint& slot, char const* source, char const* label) -> bool {
+    slot = compileComputeProgram(source, shaderError);
+    if (!slot) {
+      failure = strf("{} shader failed: {}", label, shaderError);
+      destroyContextUnlocked();
+      return false;
+    }
+    return true;
+  };
+  if (!requireProgram(g_xorProgram, XorShader, "DenseUint32Xor")
+      || !requireProgram(g_addProgram, AddShader, "DenseUint32Add")
+      || !requireProgram(g_andProgram, AndShader, "DenseUint32And")
+      || !requireProgram(g_orProgram, OrShader, "DenseUint32Or")
+      || !requireProgram(g_mulProgram, MulShader, "DenseUint32Mul"))
     return false;
-  }
-  g_addProgram = compileComputeProgram(AddShader, shaderError);
-  if (!g_addProgram) {
-    failure = strf("DenseUint32Add shader failed: {}", shaderError);
-    destroyContextUnlocked();
-    return false;
-  }
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
     failure = "glGenBuffers failed for SSBO";
@@ -310,6 +370,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_xorProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32Add)
     program = g_addProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32And)
+    program = g_andProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Or)
+    program = g_orProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32Mul)
+    program = g_mulProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))

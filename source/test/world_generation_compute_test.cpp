@@ -292,3 +292,67 @@ TEST(WorldGenerationComputeTest, KernelHelperMatchesServiceOutput) {
   for (size_t i = 0; i < direct.size(); ++i)
     EXPECT_EQ(direct[i], result.values[i]) << i;
 }
+
+TEST(WorldGenerationComputeTest, DenseUint32AndOrMulExactCpuAndShadow) {
+  // GPU-03 next asset-free dense kernels: And / Or / Mul (wrapping).
+  WorldGenerationComputeService service;
+  auto input = edgeCorpus();
+  uint32_t const mask = 0x0f0f0f0fu;
+  uint32_t const factor = 3u;
+
+  auto andOut = WorldGenerationComputeService::runKernel(
+      WorldGenerationComputeKernel::DenseUint32And, 1u, input, mask);
+  ASSERT_EQ(input.size(), andOut.size());
+  for (size_t i = 0; i < input.size(); ++i)
+    EXPECT_EQ(input[i] & mask, andOut[i]) << i;
+
+  auto orOut = WorldGenerationComputeService::runKernel(
+      WorldGenerationComputeKernel::DenseUint32Or, 1u, input, mask);
+  for (size_t i = 0; i < input.size(); ++i)
+    EXPECT_EQ(input[i] | mask, orOut[i]) << i;
+
+  auto mulOut = WorldGenerationComputeService::runKernel(
+      WorldGenerationComputeKernel::DenseUint32Mul, 1u, input, factor);
+  for (size_t i = 0; i < input.size(); ++i)
+    EXPECT_EQ(input[i] * factor, mulOut[i]) << i;
+
+  auto andShadow = service.compareShadow(
+      makeIdentity(80, WorldGenerationComputeKernel::DenseUint32And), input, mask,
+      WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal, andShadow.verdict);
+
+  auto orShadow = service.compareShadow(
+      makeIdentity(81, WorldGenerationComputeKernel::DenseUint32Or), input, mask,
+      WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal, orShadow.verdict);
+
+  auto mulShadow = service.compareShadow(
+      makeIdentity(82, WorldGenerationComputeKernel::DenseUint32Mul), input, factor,
+      WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal, mulShadow.verdict);
+
+  auto ticket = service.submit(makeIdentity(83, WorldGenerationComputeKernel::DenseUint32And),
+      input, mask);
+  ASSERT_TRUE(ticket);
+  WorldGenerationComputeResult result;
+  EXPECT_EQ(WorldGenerationComputePollStatus::Ready, service.poll(*ticket, &result));
+  ASSERT_EQ(andOut.size(), result.values.size());
+  for (size_t i = 0; i < andOut.size(); ++i)
+    EXPECT_EQ(andOut[i], result.values[i]) << i;
+
+#ifdef STAR_ENABLE_WORLDGEN_GL_COMPUTE
+  auto probed = WorldGenerationComputeService::probeCapabilities();
+  if (probed.gpuOpenGlCompute) {
+    WorldGenerationComputeService gpuService(probed);
+    for (auto kernel : {WorldGenerationComputeKernel::DenseUint32And,
+             WorldGenerationComputeKernel::DenseUint32Or,
+             WorldGenerationComputeKernel::DenseUint32Mul}) {
+      uint32_t parameter = kernel == WorldGenerationComputeKernel::DenseUint32Mul ? factor : mask;
+      auto report = gpuService.compareShadow(makeIdentity(90 + (uint64_t)kernel, kernel), input,
+          parameter, WorldGenerationComputeBackend::CpuReference,
+          WorldGenerationComputeBackend::GpuOpenGlCompute);
+      EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal, report.verdict) << (int)kernel;
+    }
+  }
+#endif
+}

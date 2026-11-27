@@ -22,9 +22,12 @@ enum class WorldGenerationComputeBackend : uint8_t {
 };
 
 enum class WorldGenerationComputeKernel : uint8_t {
-  // Exact-integer dense transforms (GPU-03 first candidate).
+  // Exact-integer dense transforms (GPU-03 first candidate family; asset-free).
   DenseUint32Xor = 1,
-  DenseUint32Add = 2
+  DenseUint32Add = 2,
+  DenseUint32And = 3,
+  DenseUint32Or = 4,
+  DenseUint32Mul = 5 // wrapping uint32 multiply
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
