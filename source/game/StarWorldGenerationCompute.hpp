@@ -351,6 +351,10 @@ public:
   static uint64_t fingerprintCapabilities(
       WorldGenerationComputeCapabilities const& capabilities) noexcept;
 
+  // GPU-02: stable fingerprint of a staging/pool observation snapshot (asset-free).
+  static uint64_t fingerprintStagingSnapshot(
+      WorldGenerationComputeStagingSnapshot const& snapshot) noexcept;
+
   // GPU-04 approved RNG: deterministic uint32 draws; advances counter by 1.
   static uint32_t drawRng(WorldGenerationComputeRngStream& stream) noexcept;
   static List<uint32_t> fillRng(WorldGenerationComputeRngStream& stream, size_t count);

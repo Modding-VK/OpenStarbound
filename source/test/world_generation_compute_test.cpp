@@ -718,6 +718,30 @@ TEST(WorldGenerationComputeTest, DenseUint32HasZeroByteNextPow2MaskLowExactCpuAn
           .verdict);
 }
 
+TEST(WorldGenerationComputeTest, FingerprintStagingSnapshotIsStableAndSensitive) {
+  WorldGenerationComputeStagingSnapshot a;
+  a.stagingBytes = 16;
+  a.peakStagingBytes = 32;
+  a.maxStagingBytes = 64;
+  a.pooledBufferBytes = 8;
+  a.pooledBufferCount = 1;
+  a.openTickets = 2;
+  a.peakOpenTickets = 3;
+  a.inFlight = 1;
+  a.gpuInFlight = 0;
+  a.estimatedVramBytes = 0;
+  a.gpuCapable = false;
+  auto first = WorldGenerationComputeService::fingerprintStagingSnapshot(a);
+  EXPECT_EQ(first, WorldGenerationComputeService::fingerprintStagingSnapshot(a));
+
+  WorldGenerationComputeStagingSnapshot b = a;
+  b.openTickets = 4;
+  EXPECT_NE(first, WorldGenerationComputeService::fingerprintStagingSnapshot(b));
+  b = a;
+  b.gpuCapable = true;
+  EXPECT_NE(first, WorldGenerationComputeService::fingerprintStagingSnapshot(b));
+}
+
 TEST(WorldGenerationComputeTest, SubmitNamedResolvesKernelAndRejectsUnknown) {
   WorldGenerationComputeService service;
   service.setDeferredCpuCompletion(true);
