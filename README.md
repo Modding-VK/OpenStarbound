@@ -36,7 +36,7 @@ For the current state and the next work, start here:
 - [Roadmap and acceptance criteria](doc/sector-runtime/roadmap.md)
 - [Progress, evidence and next steps](doc/sector-runtime/progress.md)
 - [Operational checklist and current report](doc/regional-runtime-execution-checklist.md)
-- [Latest H0 report: concurrent noise-cache sector shadow handoffs](doc/sector-runtime-h0-sector-shadow-concurrent-noise-handoff-2026-11-27.md)
+- [Latest H0 report: concurrent ledger and loadMods-reload matrix](doc/sector-runtime-h0-sector-shadow-concurrent-reload-matrix-2026-11-27.md)
 - [Performance backlog](doc/performance-backlog.md)
 
 <details>
