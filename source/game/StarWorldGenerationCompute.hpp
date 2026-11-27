@@ -387,6 +387,8 @@ public:
   bool anyCancelledOpenKernels() const;
   // Distinct identity.kernel values among Pending open tickets (asset-free).
   List<WorldGenerationComputeKernel> listPendingOpenKernels() const;
+  // Count of distinct identity.kernel values among Pending open tickets (asset-free).
+  size_t countPendingOpenKernels() const;
   // Open tickets whose identity.kernel matches (asset-free observation).
   List<WorldGenerationComputeTicket> listOpenTicketsByKernel(
       WorldGenerationComputeKernel kernel) const;
