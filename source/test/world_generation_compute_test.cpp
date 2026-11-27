@@ -1147,6 +1147,32 @@ TEST(WorldGenerationComputeTest, ReadyOpenTicketsByKernelCountsCompletedMatches)
   EXPECT_EQ(1u, service.inFlightByKernel(WorldGenerationComputeKernel::DenseUint32Add));
 }
 
+TEST(WorldGenerationComputeTest, ListReadyOpenTicketsByKernelReturnsReadyIdsOnly) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  auto xorA = service.submit(
+      makeIdentity(600, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u);
+  auto xorB = service.submit(
+      makeIdentity(601, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{2u}, 0u);
+  auto add = service.submit(
+      makeIdentity(602, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{3u}, 0u);
+  ASSERT_TRUE((bool)xorA);
+  ASSERT_TRUE((bool)xorB);
+  ASSERT_TRUE((bool)add);
+
+  EXPECT_TRUE(service.listReadyOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor)
+          .empty());
+  EXPECT_EQ(2u, service.completeOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+  auto readyXor = service.listReadyOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor);
+  ASSERT_EQ(2u, readyXor.size());
+  EXPECT_TRUE(readyXor[0] == *xorA || readyXor[0] == *xorB);
+  EXPECT_TRUE(readyXor[1] == *xorA || readyXor[1] == *xorB);
+  EXPECT_NE(readyXor[0].id, readyXor[1].id);
+  EXPECT_TRUE(service.listReadyOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add)
+          .empty());
+  EXPECT_EQ(1u, service.inFlightByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+}
+
 TEST(WorldGenerationComputeTest, InFlightByKernelCountsOnlyPendingMatches) {
   WorldGenerationComputeService service;
   service.setDeferredCpuCompletion(true);
