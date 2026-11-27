@@ -1,12 +1,12 @@
 # Progressão do projeto — percentuais e ordem das tarefas
 
-Atualizado em **26/11/2026**. Branch: `Experimental`.
-Base inspecionada: `5e2e2297`;
-última implementação de runtime: sombra por setor com BaseTiles privados
-admitidos a partir do composto (ver relatório de sombra).
+Atualizado em **27/11/2026**. Branch: `cursor/h0-foundations-9f77`.
+Base inspecionada: `c37519b6`;
+última implementação H0: discriminante BiomeItem no candidate record
+(ver relatório VAL-02).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
+· [Último relatório técnico](../sector-runtime-h0-candidate-item-kind-2026-11-27.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -23,7 +23,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **3,6%** — 7 marcos verificados de 196 |
 | Contratos com avanço registrado | **7 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | 791 padrão +106 RealBlockInfo (concurrent ocean); ASan/UBSan; gates H0 antes de H1 |
+| Última evidência de testes | contract CandidateSequence 10/10 +134 RealBlockInfo; ASan/UBSan; gates H0 antes de H1 |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,6% não significam que o jogo esteja só 3,6% pronto.** O runtime anterior
@@ -117,9 +117,10 @@ autoritativa. GPU é opcional, com fallback CPU completo.
    mailbox/DAG, provider, promoção/fairness e pressão externa. A
    [cobertura de memória](../sector-runtime-memory-envelope.md) não é heap completo;
    não ampliar filas/defaults por teste controlado.
-2. **VAL-02, próxima entrega e apoio à primeira:** ampliar o comparador para
-   candidatos, IDs, prioridades, ordem e outputs completos. Manter os controles
-   de colisões de hash como gate de qualquer eliminação de cópias.
+2. **VAL-02, próxima entrega e apoio à primeira:** sequência id/posição/prioridade
+   já compara em diagnóstico; falta payload `BiomeItem`, ligação a planos reais
+   e outputs completos. Manter os controles de colisões de hash como gate de
+   qualquer eliminação de cópias.
 3. **MOD-01:** completar a fronteira de efeitos/inputs puros do próximo kernel,
    incluindo inicialização/RNG/dependências. Seed automática corrigida e sequências
    explícitas verificadas; Perlin, biomeTransition/SkyParameters e a auditoria de
@@ -149,7 +150,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 1 | H0 | [DAG-01](dependency-scheduler.md) | Identidades estáveis | 25% | IDs de colocações e ticket BaseTiles testados; contexto profundo/integração geral pendentes |
 | 2 | H0 | [DAG-04](dependency-scheduler.md) | Conclusões e progresso dentro da passagem | 25% | Mailbox executiva/reação a conclusões; continuação/avanço já corrigidos no recorte |
 | 3 | H0 | [RAM-01](memory-and-prefetch.md) | Reserva e contabilização de bytes | 25% | Json retido medido/deduplicado no contexto estático; polígonos/wrappers e admissão/contexto/consumidor globais pendentes |
-| 4 | H0 | [VAL-02](validation-and-telemetry.md) | Comparador de outputs e produtores controlados | 25% | Root/layout/seletores simples/LRU reais e BaseTiles 32×32 comparados; noise/caches mutáveis, planeta/mods e streaming pendentes |
+| 4 | H0 | [VAL-02](validation-and-telemetry.md) | Comparador de outputs e produtores controlados | 25% | BaseTiles + sombra 2×2 + sequência id/posição/prioridade/itemKind + queue snapshot; falta payload BiomeItem, planeta/mods e streaming |
 | 5 | H0 | [MOD-01](compatibility.md) | Classificar operações por efeito | 25% | Config lazy preserva ramos/falhas, custom terrain Root-free; adapter normal conserva Assets e restante do contexto é pendente |
 | 6 | H0 | [VAL-01](validation-and-telemetry.md) | Benchmark de streaming | 25% | Rota/save/config fixos, streaming real e A/B equivalente |
 | 7 | H1 | [DAG-02](dependency-scheduler.md) | Grafo persistente e demanda compartilhada | 0% | Grafo executivo em sombra, separado das dependências de publicação |
@@ -303,6 +304,17 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 26/11/2026 | Ocean/Island stale | TemplateRevision bump sob sombra oceano/Island; 103 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 26/11/2026 | Noise/adjacent stale | TemplateRevision bump sob noise e setor {1,0}; 105 RealBlockInfo. Sem novo marco completo | 3,6% |
 | 26/11/2026 | Concurrent ocean | Duas sombras oceano no ledger; 106 RealBlockInfo. Sem novo marco completo | 3,6% |
+| 27/11/2026 | Concurrent ocean handoff | Handoffs paralelos oceano {0,0}+{1,0}; 107 RealBlockInfo. Sem novo marco completo | 3,6% |
+| 27/11/2026 | Concurrent Island handoff | Handoffs paralelos IslandSurface {0,0}+{1,0}; 108 RealBlockInfo. Sem novo marco completo | 3,6% |
+| 27/11/2026 | Concurrent noise handoff | Handoffs paralelos Cache/Perlin {0,0}+{1,0}; 109 RealBlockInfo. Sem novo marco completo | 3,6% |
+| 27/11/2026 | Concurrent+reload matrix | Island/noise ledger + loadMods reload em 4 variantes; 115 RealBlockInfo. Sem novo marco completo | 3,6% |
+| 27/11/2026 | Vertical adjacent | Setor {0,1} matriz lifecycle/assets + handoff vertical; 125 RealBlockInfo. Sem novo marco completo | 3,6% |
+| 27/11/2026 | Diagonal adjacent | Setor {1,1} lifecycle/hotReload/stale; 132 RealBlockInfo. Sem novo marco completo | 3,6% |
+| 27/11/2026 | Capstone 2×2 + tight ledger | Quatro sombras terrestres + oceano tight admit/refuse/retry; 134 RealBlockInfo. Matriz sombra BaseTiles geográfica fechada. Sem novo marco completo | 3,6% |
+| 27/11/2026 | Candidate sequence comparator | Comparador diagnóstico id/posição/prioridade/ordem; 6 testes contract. Sem payload BiomeItem nem streaming. Sem novo marco completo | 3,6% |
+| 27/11/2026 | Candidate placement adapter | BiomeItemPlacement→record + sort estável por prioridade; 8 testes contract. Sem payload profundo. Sem novo marco completo | 3,6% |
+| 27/11/2026 | Candidate queue snapshot | PlacementQueue→records com IDs ascendentes pós-retirement; 9 testes contract. Sem payload BiomeItem. Sem novo marco completo | 3,6% |
+| 27/11/2026 | Candidate itemKind | typeIndex BiomeItem no record v2; 10 testes contract. Payload profundo ainda fora. Sem novo marco completo | 3,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.
