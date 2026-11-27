@@ -172,6 +172,9 @@ GLuint g_maskNibblesProgram = 0;
 GLuint g_allNibblesEqualProgram = 0;
 GLuint g_nibbleRangeProgram = 0;
 GLuint g_broadcastNibbleAtProgram = 0;
+GLuint g_halfSumProgram = 0;
+GLuint g_halfMaxProgram = 0;
+GLuint g_halfMinProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -1979,6 +1982,55 @@ void main() {
 }
 )GLSL";
 
+char const* HalfSumShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  values[i] = (v & 0xffffu) + (v >> 16);
+}
+)GLSL";
+
+char const* HalfMaxShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  uint lo = v & 0xffffu;
+  uint hi = v >> 16;
+  values[i] = max(lo, hi);
+}
+)GLSL";
+
+char const* HalfMinShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  uint lo = v & 0xffffu;
+  uint hi = v >> 16;
+  values[i] = min(lo, hi);
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -2475,6 +2527,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_broadcastNibbleAtProgram);
     g_broadcastNibbleAtProgram = 0;
   }
+  if (g_halfSumProgram) {
+    glDeleteProgram(g_halfSumProgram);
+    g_halfSumProgram = 0;
+  }
+  if (g_halfMaxProgram) {
+    glDeleteProgram(g_halfMaxProgram);
+    g_halfMaxProgram = 0;
+  }
+  if (g_halfMinProgram) {
+    glDeleteProgram(g_halfMinProgram);
+    g_halfMinProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -2689,7 +2753,10 @@ bool createContext(std::string& failure) {
             "DenseUint32AllNibblesEqual")
       || !requireProgram(g_nibbleRangeProgram, NibbleRangeShader, "DenseUint32NibbleRange")
       || !requireProgram(g_broadcastNibbleAtProgram, BroadcastNibbleAtShader,
-            "DenseUint32BroadcastNibbleAt"))
+            "DenseUint32BroadcastNibbleAt")
+      || !requireProgram(g_halfSumProgram, HalfSumShader, "DenseUint32HalfSum")
+      || !requireProgram(g_halfMaxProgram, HalfMaxShader, "DenseUint32HalfMax")
+      || !requireProgram(g_halfMinProgram, HalfMinShader, "DenseUint32HalfMin"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -2978,6 +3045,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_nibbleRangeProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32BroadcastNibbleAt)
     program = g_broadcastNibbleAtProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSum)
+    program = g_halfSumProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfMax)
+    program = g_halfMaxProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfMin)
+    program = g_halfMinProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
