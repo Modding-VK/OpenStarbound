@@ -190,6 +190,7 @@ Maybe<WorldGenerationComputeTicket> WorldGenerationComputeService::submitLocked(
   entry.input = acquireBuffer(input.size());
   for (size_t i = 0; i < input.size(); ++i)
     entry.input[i] = input[i];
+  entry.inputFingerprint = fingerprintInput(entry.input);
   entry.stagingBytes = bytes;
   m_stagingBytes += bytes;
 
@@ -374,6 +375,95 @@ List<uint32_t> WorldGenerationComputeService::shadowEdgeCorpus() {
   return List<uint32_t>{0u, 1u, 2u, 0xffffffffu /* -1 */, 0xffffffe0u /* -32 */,
       0x80000000u, 0x7fffffffu, 0xfffffffeu, 0x80000001u, 0x55aa55aau, 0xa5a5a5a5u,
       0x0000ffffu, 0xffff0000u};
+}
+
+uint64_t WorldGenerationComputeService::fingerprintInput(List<uint32_t> const& input) noexcept {
+  // FNV-1a 64 with position mix — deterministic, no assets/crypto dependency.
+  uint64_t hash = 14695981039346656037ull;
+  for (size_t i = 0; i < input.size(); ++i) {
+    hash ^= (uint64_t)input[i];
+    hash *= 1099511628211ull;
+    hash ^= (uint64_t)(i + 1u) * 0x9e3779b97f4a7c15ull;
+  }
+  hash ^= ((uint64_t)input.size() << 32) | (uint64_t)input.size();
+  return hash;
+}
+
+WorldGenerationComputeCommitReport WorldGenerationComputeService::commit(
+    WorldGenerationComputeTicket ticket, WorldGenerationComputeInputIdentity const& liveIdentity,
+    uint64_t liveInputFingerprint, WorldGenerationComputeResult* out) {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  WorldGenerationComputeCommitReport report;
+  report.ticket = ticket;
+  report.liveIdentity = liveIdentity;
+  report.liveInputFingerprint = liveInputFingerprint;
+
+  if (m_rejectedDuplicates.count(ticket.id)) {
+    report.verdict = WorldGenerationComputeCommitVerdict::UnknownTicket;
+    if (out)
+      *out = WorldGenerationComputeResult{};
+    return report;
+  }
+
+  auto it = m_entries.find(ticket.id);
+  if (it == m_entries.end()) {
+    report.verdict = WorldGenerationComputeCommitVerdict::UnknownTicket;
+    if (out)
+      *out = WorldGenerationComputeResult{};
+    return report;
+  }
+
+  Entry& entry = it->second;
+  report.submittedIdentity = entry.identity;
+  report.submittedInputFingerprint = entry.inputFingerprint;
+  report.backend = entry.backend;
+
+  if (entry.publicationRevoked || entry.state == EntryState::Cancelled) {
+    report.verdict = WorldGenerationComputeCommitVerdict::Cancelled;
+    entry.state = EntryState::Cancelled;
+    entry.output.clear();
+  } else if (entry.state == EntryState::Pending) {
+    report.verdict = WorldGenerationComputeCommitVerdict::NotReady;
+    if (out)
+      *out = WorldGenerationComputeResult{};
+    return report;
+  } else if (entry.state == EntryState::Failed) {
+    report.verdict = WorldGenerationComputeCommitVerdict::Failed;
+  } else if (entry.identity != liveIdentity) {
+    report.verdict = WorldGenerationComputeCommitVerdict::StaleIdentity;
+    entry.publicationRevoked = true;
+    entry.state = EntryState::Cancelled;
+    entry.output.clear();
+  } else if (entry.inputFingerprint != liveInputFingerprint) {
+    report.verdict = WorldGenerationComputeCommitVerdict::StaleInput;
+    entry.publicationRevoked = true;
+    entry.state = EntryState::Cancelled;
+    entry.output.clear();
+  } else if (entry.state == EntryState::Ready) {
+    report.verdict = WorldGenerationComputeCommitVerdict::Accepted;
+    if (out) {
+      out->identity = entry.identity;
+      out->backend = entry.backend;
+      out->values = entry.output;
+    }
+  } else {
+    report.verdict = WorldGenerationComputeCommitVerdict::Failed;
+  }
+
+  // Consume ticket (same lifetime rules as poll for terminal states).
+  if (report.verdict != WorldGenerationComputeCommitVerdict::NotReady) {
+    m_stagingBytes -= entry.stagingBytes;
+    releaseBuffer(std::move(entry.input));
+    if (entry.contextFailed
+        || report.verdict == WorldGenerationComputeCommitVerdict::StaleIdentity
+        || report.verdict == WorldGenerationComputeCommitVerdict::StaleInput
+        || report.verdict == WorldGenerationComputeCommitVerdict::Cancelled)
+      m_rejectedDuplicates.insert(ticket.id);
+    m_entries.erase(it);
+  }
+  if (report.verdict != WorldGenerationComputeCommitVerdict::Accepted && out)
+    *out = WorldGenerationComputeResult{};
+  return report;
 }
 
 WorldGenerationComputeShadowReport WorldGenerationComputeService::compareShadowBuffers(

@@ -404,3 +404,50 @@ TEST(WorldGenerationComputeTest, DenseUint32AndOrMulExactCpuAndShadow) {
   }
 #endif
 }
+
+TEST(WorldGenerationComputeTest, CommitRevalidatesIdentityAndInputFingerprint) {
+  // GPU-04: equivalence alone is not publication — commit checks live inputs.
+  WorldGenerationComputeService service;
+  auto input = sampleInput();
+  uint64_t fp = WorldGenerationComputeService::fingerprintInput(input);
+  EXPECT_EQ(fp, WorldGenerationComputeService::fingerprintInput(input));
+
+  auto ticket = service.submit(makeIdentity(110), input, 0x11u);
+  ASSERT_TRUE(ticket);
+
+  WorldGenerationComputeResult result;
+  auto accepted = service.commit(*ticket, makeIdentity(110), fp, &result);
+  EXPECT_EQ(WorldGenerationComputeCommitVerdict::Accepted, accepted.verdict);
+  ASSERT_EQ(input.size(), result.values.size());
+  EXPECT_EQ(input[0] ^ 0x11u, result.values[0]);
+  EXPECT_EQ(WorldGenerationComputeCommitVerdict::UnknownTicket,
+      service.commit(*ticket, makeIdentity(110), fp, &result).verdict);
+
+  auto ticketB = service.submit(makeIdentity(111), input, 0x22u);
+  ASSERT_TRUE(ticketB);
+  auto staleId = makeIdentity(111);
+  staleId.sequence = 999;
+  auto idMismatch = service.commit(*ticketB, staleId, fp, &result);
+  EXPECT_EQ(WorldGenerationComputeCommitVerdict::StaleIdentity, idMismatch.verdict);
+  EXPECT_TRUE(result.values.empty());
+  EXPECT_EQ(WorldGenerationComputeCommitVerdict::UnknownTicket,
+      service.commit(*ticketB, makeIdentity(111), fp, &result).verdict);
+
+  auto ticketC = service.submit(makeIdentity(112), input, 0x33u);
+  ASSERT_TRUE(ticketC);
+  List<uint32_t> mutated = input;
+  mutated[0] = 0xdeadbeefu;
+  auto inputMismatch = service.commit(*ticketC, makeIdentity(112),
+      WorldGenerationComputeService::fingerprintInput(mutated), &result);
+  EXPECT_EQ(WorldGenerationComputeCommitVerdict::StaleInput, inputMismatch.verdict);
+  EXPECT_TRUE(result.values.empty());
+
+  service.setDeferredCpuCompletion(true);
+  auto ticketD = service.submit(makeIdentity(113), input, 1u);
+  ASSERT_TRUE(ticketD);
+  EXPECT_EQ(WorldGenerationComputeCommitVerdict::NotReady,
+      service.commit(*ticketD, makeIdentity(113), fp, &result).verdict);
+  EXPECT_TRUE(service.complete(*ticketD));
+  EXPECT_EQ(WorldGenerationComputeCommitVerdict::Accepted,
+      service.commit(*ticketD, makeIdentity(113), fp, &result).verdict);
+}

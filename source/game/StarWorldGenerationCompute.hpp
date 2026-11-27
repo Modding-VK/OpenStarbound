@@ -46,6 +46,17 @@ enum class WorldGenerationComputeShadowVerdict : uint8_t {
   Cancelled = 4
 };
 
+// GPU-04 commit gate: kernel equivalence alone does not authorize publication.
+enum class WorldGenerationComputeCommitVerdict : uint8_t {
+  Accepted = 0,
+  StaleIdentity = 1,
+  StaleInput = 2,
+  NotReady = 3,
+  Cancelled = 4,
+  Failed = 5,
+  UnknownTicket = 6
+};
+
 struct WorldGenerationComputeCapabilities {
   bool cpuReference = true;
   bool gpuOpenGlCompute = false;
@@ -71,6 +82,16 @@ struct WorldGenerationComputeTicket {
   bool operator==(WorldGenerationComputeTicket const& rhs) const { return id == rhs.id; }
   bool operator!=(WorldGenerationComputeTicket const& rhs) const { return id != rhs.id; }
   explicit operator bool() const { return id != 0; }
+};
+
+struct WorldGenerationComputeCommitReport {
+  WorldGenerationComputeCommitVerdict verdict = WorldGenerationComputeCommitVerdict::UnknownTicket;
+  WorldGenerationComputeTicket ticket;
+  WorldGenerationComputeInputIdentity submittedIdentity;
+  WorldGenerationComputeInputIdentity liveIdentity;
+  uint64_t submittedInputFingerprint = 0;
+  uint64_t liveInputFingerprint = 0;
+  WorldGenerationComputeBackend backend = WorldGenerationComputeBackend::CpuReference;
 };
 
 struct WorldGenerationComputeResult {
@@ -181,6 +202,16 @@ public:
   // Edge corpus for wrap / negative-as-uint32 / near-limit patterns (no assets).
   static List<uint32_t> shadowEdgeCorpus();
 
+  // Stable fingerprint of an immutable input buffer (asset-free; no mod payload).
+  static uint64_t fingerprintInput(List<uint32_t> const& input) noexcept;
+
+  // GPU-04: publish only after live identity + input fingerprint still match the
+  // submitted ticket. Consumes the ticket like poll. Stale/mismatch revokes
+  // publication and rejects later duplicate polls for that id.
+  WorldGenerationComputeCommitReport commit(WorldGenerationComputeTicket ticket,
+      WorldGenerationComputeInputIdentity const& liveIdentity, uint64_t liveInputFingerprint,
+      WorldGenerationComputeResult* out = nullptr);
+
   static List<uint32_t> runKernel(WorldGenerationComputeKernel kernel, uint32_t kernelVersion,
       List<uint32_t> const& input, uint32_t parameter);
 
@@ -194,6 +225,7 @@ private:
     uint32_t parameter = 0;
     List<uint32_t> input;
     List<uint32_t> output;
+    uint64_t inputFingerprint = 0;
     uint64_t stagingBytes = 0;
     bool publicationRevoked = false;
     bool contextFailed = false;
