@@ -28,5 +28,6 @@ Root opt-in 1 caso × 5; **63/63** RealBlockInfo.
 
 ## Próximo passo
 
-Estender a sombra a oceano/setor adjacente e noises/caches privados alinhados
-ao composto, ainda sem publicação. Não disparar Actions.
+Estendido em
+[oceano/setor adjacente](sector-runtime-h0-sector-shadow-ocean-adjacent-2026-11-26.md).
+Segue: noises/caches privados alinhados ao composto. Não disparar Actions.
