@@ -881,6 +881,48 @@ TEST(WorldGenerationComputeTest, AnyReadyOpenKernelsTracksReadyPresence) {
   EXPECT_EQ(0u, service.countReadyOpenKernels());
 }
 
+TEST(WorldGenerationComputeTest, ListFailedOpenKernelsReturnsFailedDistinctKernels) {
+  WorldGenerationComputeCapabilities caps = WorldGenerationComputeService::probeCapabilities();
+  caps.gpuOpenGlCompute = true;
+  WorldGenerationComputeService service(caps);
+  service.setDeferredCpuCompletion(true);
+  EXPECT_TRUE(service.listFailedOpenKernels().empty());
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(960, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{1u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(961, WorldGenerationComputeKernel::DenseUint32Xor), List<uint32_t>{2u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute));
+  ASSERT_TRUE((bool)service.submit(
+      makeIdentity(962, WorldGenerationComputeKernel::DenseUint32Add), List<uint32_t>{3u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute));
+  EXPECT_TRUE(service.listFailedOpenKernels().empty());
+  EXPECT_EQ(2u, service.completeOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Xor));
+#ifndef STAR_ENABLE_WORLDGEN_GL_COMPUTE
+  auto failed = service.listFailedOpenKernels();
+  ASSERT_EQ(1u, failed.size());
+  EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32Xor, failed[0]);
+  EXPECT_EQ(1u, service.completeOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+  failed = service.listFailedOpenKernels();
+  ASSERT_EQ(2u, failed.size());
+  EXPECT_TRUE(failed[0] == WorldGenerationComputeKernel::DenseUint32Xor
+      || failed[0] == WorldGenerationComputeKernel::DenseUint32Add);
+  EXPECT_TRUE(failed[1] == WorldGenerationComputeKernel::DenseUint32Xor
+      || failed[1] == WorldGenerationComputeKernel::DenseUint32Add);
+  EXPECT_NE(failed[0], failed[1]);
+  EXPECT_EQ(3u, service.drainOpenTickets());
+  EXPECT_TRUE(service.listFailedOpenKernels().empty());
+#else
+  // With GL builds, dispatch may succeed; just ensure the API stays consistent.
+  size_t failedCount = service.listFailedOpenKernels().size();
+  size_t readyCount = service.listReadyOpenKernels().size();
+  EXPECT_EQ(1u, failedCount + readyCount);
+  EXPECT_EQ(1u, service.completeOpenTicketsByKernel(WorldGenerationComputeKernel::DenseUint32Add));
+  EXPECT_EQ(3u, service.drainOpenTickets());
+  EXPECT_TRUE(service.listFailedOpenKernels().empty());
+#endif
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32HalfSumMaxMinExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();

@@ -1495,6 +1495,22 @@ bool WorldGenerationComputeService::anyReadyOpenKernels() const {
   return false;
 }
 
+List<WorldGenerationComputeKernel> WorldGenerationComputeService::listFailedOpenKernels() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  List<WorldGenerationComputeKernel> out;
+  std::unordered_set<uint8_t> seen;
+  for (auto const& pair : m_entries) {
+    if (pair.second.state != EntryState::Failed)
+      continue;
+    auto kernel = pair.second.identity.kernel;
+    uint8_t key = (uint8_t)kernel;
+    if (!seen.insert(key).second)
+      continue;
+    out.append(kernel);
+  }
+  return out;
+}
+
 List<WorldGenerationComputeTicket> WorldGenerationComputeService::listOpenTicketsByKernel(
     WorldGenerationComputeKernel kernel) const {
   std::lock_guard<std::mutex> lock(m_mutex);
