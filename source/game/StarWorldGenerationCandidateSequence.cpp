@@ -10,6 +10,7 @@ WorldGenerationCandidateRecord worldGenerationCandidateRecord(BiomeItemPlacement
   record.placementId = std::move(placementId);
   record.position = placement.position;
   record.priority = placement.priority;
+  record.itemKind = placement.item.typeIndex();
   return record;
 }
 
@@ -51,6 +52,7 @@ uint32_t differentFields(WorldGenerationCandidateRecord const& a, WorldGeneratio
   check(WorldGenerationCandidateField::PlacementId, sameId(a.placementId, b.placementId));
   check(WorldGenerationCandidateField::Position, a.position == b.position);
   check(WorldGenerationCandidateField::Priority, sameFloat(a.priority, b.priority));
+  check(WorldGenerationCandidateField::ItemKind, a.itemKind == b.itemKind);
   return result;
 }
 }

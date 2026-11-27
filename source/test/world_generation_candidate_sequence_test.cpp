@@ -14,8 +14,9 @@ using namespace Star;
 namespace {
 using Field = WorldGenerationCandidateField;
 uint32_t mask(Field field) { return static_cast<uint32_t>(field); }
-WorldGenerationCandidateRecord record(Maybe<WorldGenerationPlacementId> id, Vec2I position, float priority) {
-  return {id, position, priority};
+WorldGenerationCandidateRecord record(Maybe<WorldGenerationPlacementId> id, Vec2I position, float priority,
+    VariantTypeIndex itemKind = InvalidVariantType) {
+  return {id, position, priority, itemKind};
 }
 float bits(uint32_t value) {
   float result;
@@ -164,6 +165,25 @@ TEST(WorldGenerationCandidateSequenceTest, StablePrioritySortMatchesBiomeItemPla
     entry.placementId = {};
   auto result = compareWorldGenerationCandidateSequences(records, expected);
   EXPECT_TRUE(result.equal());
+}
+
+TEST(WorldGenerationCandidateSequenceTest, ItemKindDiffersWithoutComparingPayload) {
+  auto grassKind = BiomeItem{GrassVariant{}}.typeIndex();
+  auto dungeonKind = BiomeItem{MicroDungeonNames(StringSet{"x"})}.typeIndex();
+  ASSERT_NE(grassKind, dungeonKind);
+
+  auto left = record({}, {0, 0}, 1.0f, grassKind);
+  auto right = record({}, {0, 0}, 1.0f, dungeonKind);
+  auto result = compareWorldGenerationCandidateSequences({left}, {right});
+  EXPECT_FALSE(result.equal());
+  EXPECT_EQ(result.differentFields, mask(Field::ItemKind));
+
+  BiomeItemPlacement grass{BiomeItem{GrassVariant{}}, Vec2I(1, 2), 0.25f};
+  BiomeItemPlacement dungeon{BiomeItem{MicroDungeonNames(StringSet{"y"})}, Vec2I(1, 2), 0.25f};
+  auto adapted = compareWorldGenerationCandidateSequences(
+      {worldGenerationCandidateRecord(grass)}, {worldGenerationCandidateRecord(dungeon)});
+  EXPECT_FALSE(adapted.equal());
+  EXPECT_EQ(adapted.differentFields, mask(Field::ItemKind));
 }
 
 TEST(WorldGenerationCandidateSequenceTest, QueueSnapshotPreservesAscendingIdsAfterRetirement) {

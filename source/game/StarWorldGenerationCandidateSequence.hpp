@@ -16,21 +16,24 @@ namespace Star {
 // BaseTiles: identity/order/priority/position only. BiomeItem payload and
 // live-world publication are out of scope.
 struct WorldGenerationCandidateRecord {
-  static constexpr unsigned ModelVersion = 1;
+  static constexpr unsigned ModelVersion = 2;
   Maybe<WorldGenerationPlacementId> placementId;
   Vec2I position{};
   float priority = 0.0f;
+  // BiomeItem Variant typeIndex only — not payload contents.
+  VariantTypeIndex itemKind = InvalidVariantType;
 };
 
 enum class WorldGenerationCandidateField : uint32_t {
   Length = 1u << 0,
   PlacementId = 1u << 1,
   Position = 1u << 2,
-  Priority = 1u << 3
+  Priority = 1u << 3,
+  ItemKind = 1u << 4
 };
 
 struct WorldGenerationCandidateSequenceComparison {
-  static constexpr unsigned ModelVersion = 1;
+  static constexpr unsigned ModelVersion = 2;
   bool valid = false;
   size_t comparedEntries = 0;
   size_t differentEntries = 0;
