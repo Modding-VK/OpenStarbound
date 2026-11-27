@@ -1329,6 +1329,16 @@ size_t WorldGenerationComputeService::cancelledOpenTicketsByKernel(
   return count;
 }
 
+bool WorldGenerationComputeService::anyCancelledOpenTicketsByKernel(
+    WorldGenerationComputeKernel kernel) const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  for (auto const& entry : m_entries) {
+    if (entry.second.state == EntryState::Cancelled && entry.second.identity.kernel == kernel)
+      return true;
+  }
+  return false;
+}
+
 bool WorldGenerationComputeService::anyOpenTicketsByKernel(
     WorldGenerationComputeKernel kernel) const {
   std::lock_guard<std::mutex> lock(m_mutex);
