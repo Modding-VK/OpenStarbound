@@ -468,7 +468,9 @@ Propósito: reduzir trabalho serial após o desbloqueio do pipeline.
 - [x] MD-04 (primeiro recorte): footprint/comandos/reservas em sombra
   ([relatório](../sector-runtime-h3-structure-command-plan-2026-11-27.md));
   writer vivo pendente.
-- [ ] MD-05 e WT-04: aplicação em batches e staging quando necessário.
+- [x] MD-05 (primeiro recorte): batches/staging invisível em sombra
+  ([relatório](../sector-runtime-h3-structure-batch-staging-2026-11-27.md)).
+- [ ] WT-04: publicação mais barata / staging na WorldThread.
 - [ ] IO-02/03/04: banco, checkpoint e unload coerentes com novos produtos.
 - [ ] IO-05: pacote confirmado e medição até aplicação no cliente.
 

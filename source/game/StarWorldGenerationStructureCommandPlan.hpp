@@ -240,7 +240,7 @@ public:
   // Revalidate identity + live region revisions. Truncated footprints never
   // authorize consume. Success does not publish structure effects.
   bool tryConsume(WorldGenerationStructureCommandPlanIdentity const& liveExpectation,
-      HashMap<Vec2U, uint64_t> const& liveRevisions) {
+      HashMap<Vec2U, uint64_t> const& liveRevisions) const {
     if (!active() || !m_identity.matches(liveExpectation))
       return false;
     if (m_footprint.truncated)

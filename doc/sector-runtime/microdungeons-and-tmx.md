@@ -87,6 +87,11 @@ compatível. Ativar publicação por regiões exige o contrato de
 
 ## MD-05 — Reduzir aplicação e permitir retomada
 
+Primeiro recorte em `cursor/h3-kernels-publication-9f77`:
+`WorldGenerationStructureBatchStaging` fatia comandos, aplica em staging
+privado, retoma via token e só completa a unidade lógica sem publish vivo.
+Ver [relatório](../sector-runtime-h3-structure-batch-staging-2026-11-27.md).
+
 Avaliar representação compacta de tiles relevantes, operações por fase e
 índices de conectores, preservando ordem de opções e RNG. Agrupar escritas e
 invalidações somente após provar equivalência de consultas e notificações.

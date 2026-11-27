@@ -141,6 +141,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_tmx_static_product_test.cpp
   world_generation_tmx_binding_plan_test.cpp
   world_generation_structure_command_plan_test.cpp
+  world_generation_structure_batch_staging_test.cpp
   world_generation_base_tiles_test.cpp
   world_generation_block_info_test.cpp
   world_generation_custom_terrain_test.cpp
