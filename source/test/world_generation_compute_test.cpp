@@ -565,6 +565,44 @@ TEST(WorldGenerationComputeTest, DenseUint32ClzCtzPopcountExactCpuAndShadow) {
           .verdict);
 }
 
+TEST(WorldGenerationComputeTest, KernelNameRoundTripAndCompleteBatch) {
+  for (auto kernel : WorldGenerationComputeService::supportedKernels()) {
+    char const* name = WorldGenerationComputeService::kernelName(kernel);
+    ASSERT_TRUE(name != nullptr);
+    auto parsed = WorldGenerationComputeService::parseKernelName(name);
+    ASSERT_TRUE(parsed.isValid());
+    EXPECT_EQ(kernel, *parsed);
+  }
+  EXPECT_EQ(nullptr,
+      WorldGenerationComputeService::kernelName((WorldGenerationComputeKernel)0));
+  EXPECT_FALSE(WorldGenerationComputeService::parseKernelName("nope").isValid());
+  EXPECT_FALSE(WorldGenerationComputeService::parseKernelName(nullptr).isValid());
+
+  WorldGenerationComputeCapabilities caps;
+  caps.maxInFlight = 4;
+  WorldGenerationComputeService service(caps);
+  service.setDeferredCpuCompletion(true);
+  List<WorldGenerationComputeTicket> tickets;
+  for (uint64_t i = 0; i < 2; ++i) {
+    auto ticket = service.submit(makeIdentity(220 + i), List<uint32_t>{(uint32_t)(i + 1)}, 0x11u);
+    ASSERT_TRUE((bool)ticket);
+    tickets.append(*ticket);
+  }
+  auto done = service.completeBatch(List<WorldGenerationComputeTicket>{tickets[0],
+      WorldGenerationComputeTicket{424242}, tickets[1]});
+  ASSERT_EQ(3u, done.size());
+  EXPECT_TRUE(done[0]);
+  EXPECT_FALSE(done[1]);
+  EXPECT_TRUE(done[2]);
+  List<WorldGenerationComputeResult> outs;
+  auto statuses = service.pollBatch(tickets, &outs);
+  ASSERT_EQ(2u, statuses.size());
+  EXPECT_EQ(WorldGenerationComputePollStatus::Ready, statuses[0]);
+  EXPECT_EQ(WorldGenerationComputePollStatus::Ready, statuses[1]);
+  EXPECT_EQ(1u ^ 0x11u, outs[0].values[0]);
+  EXPECT_EQ(2u ^ 0x11u, outs[1].values[0]);
+}
+
 TEST(WorldGenerationComputeTest, CancelAndPollBatchAreIndependent) {
   WorldGenerationComputeCapabilities caps;
   caps.maxInFlight = 4;

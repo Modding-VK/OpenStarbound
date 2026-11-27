@@ -217,6 +217,9 @@ public:
 
   bool complete(WorldGenerationComputeTicket ticket);
 
+  // GPU-02: complete many deferred Pending tickets; each bool is independent.
+  List<bool> completeBatch(List<WorldGenerationComputeTicket> tickets);
+
   WorldGenerationComputePollStatus poll(WorldGenerationComputeTicket ticket,
       WorldGenerationComputeResult* out = nullptr);
 
@@ -288,6 +291,10 @@ public:
   static bool isKernelSupported(WorldGenerationComputeKernel kernel,
       uint32_t kernelVersion = 1u) noexcept;
   static List<WorldGenerationComputeKernel> supportedKernels(uint32_t kernelVersion = 1u);
+  // Stable ASCII name for catalogs/logs; nullptr if the enum is unknown.
+  static char const* kernelName(WorldGenerationComputeKernel kernel) noexcept;
+  // Inverse of kernelName; empty when the token is unknown (asset-free).
+  static Maybe<WorldGenerationComputeKernel> parseKernelName(char const* name) noexcept;
 
   struct ShadowBatchItem {
     WorldGenerationComputeInputIdentity identity;

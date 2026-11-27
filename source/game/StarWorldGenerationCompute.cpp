@@ -2,6 +2,7 @@
 #include "StarWorldGenerationComputeGl.hpp"
 
 #include <algorithm>
+#include <cstring>
 
 namespace Star {
 
@@ -87,6 +88,40 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
   for (auto kernel : all)
     out.append(kernel);
   return out;
+}
+
+char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKernel kernel) noexcept {
+  switch (kernel) {
+    case WorldGenerationComputeKernel::DenseUint32Xor: return "DenseUint32Xor";
+    case WorldGenerationComputeKernel::DenseUint32Add: return "DenseUint32Add";
+    case WorldGenerationComputeKernel::DenseUint32And: return "DenseUint32And";
+    case WorldGenerationComputeKernel::DenseUint32Or: return "DenseUint32Or";
+    case WorldGenerationComputeKernel::DenseUint32Mul: return "DenseUint32Mul";
+    case WorldGenerationComputeKernel::DenseUint32Min: return "DenseUint32Min";
+    case WorldGenerationComputeKernel::DenseUint32Max: return "DenseUint32Max";
+    case WorldGenerationComputeKernel::DenseUint32Sub: return "DenseUint32Sub";
+    case WorldGenerationComputeKernel::DenseUint32Shl: return "DenseUint32Shl";
+    case WorldGenerationComputeKernel::DenseUint32Shr: return "DenseUint32Shr";
+    case WorldGenerationComputeKernel::DenseUint32Rotl: return "DenseUint32Rotl";
+    case WorldGenerationComputeKernel::DenseUint32Rotr: return "DenseUint32Rotr";
+    case WorldGenerationComputeKernel::DenseUint32Not: return "DenseUint32Not";
+    case WorldGenerationComputeKernel::DenseUint32Clz: return "DenseUint32Clz";
+    case WorldGenerationComputeKernel::DenseUint32Ctz: return "DenseUint32Ctz";
+    case WorldGenerationComputeKernel::DenseUint32Popcount: return "DenseUint32Popcount";
+  }
+  return nullptr;
+}
+
+Maybe<WorldGenerationComputeKernel> WorldGenerationComputeService::parseKernelName(
+    char const* name) noexcept {
+  if (!name)
+    return {};
+  for (auto kernel : supportedKernels()) {
+    char const* label = kernelName(kernel);
+    if (label && std::strcmp(label, name) == 0)
+      return kernel;
+  }
+  return {};
 }
 
 namespace {
@@ -496,6 +531,28 @@ bool WorldGenerationComputeService::complete(WorldGenerationComputeTicket ticket
   completeEntry(it->second);
   return it->second.state == EntryState::Ready || it->second.state == EntryState::Cancelled
       || it->second.state == EntryState::Failed;
+}
+
+List<bool> WorldGenerationComputeService::completeBatch(List<WorldGenerationComputeTicket> tickets) {
+  List<bool> out;
+  out.reserve(tickets.size());
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked()) {
+    for (size_t i = 0; i < tickets.size(); ++i)
+      out.append(false);
+    return out;
+  }
+  for (auto ticket : tickets) {
+    auto it = m_entries.find(ticket.id);
+    if (it == m_entries.end() || it->second.state != EntryState::Pending) {
+      out.append(false);
+      continue;
+    }
+    completeEntry(it->second);
+    out.append(it->second.state == EntryState::Ready || it->second.state == EntryState::Cancelled
+        || it->second.state == EntryState::Failed);
+  }
+  return out;
 }
 
 WorldGenerationComputePollStatus WorldGenerationComputeService::pollLocked(
