@@ -792,3 +792,10 @@ integração: **nenhum**.
 ## Revisão 2026-11-27T22:45Z
 - Merge H4 `9e93aa31` (HalfSwapAdjacentNibbles/Rol/Ror + discardCancelledOpenTickets; 148/148).
 - Build `46077733827` @ `b862351c` intacto; 1 Build tip final após terminal; sem spam.
+
+## Política H4 lote — 2026-11-27T22:43Z
+- Não mergear H4 tip-a-tip.
+- Agrupar 2–3 tips ready (ou janela ~15–20 min) num único merge `--no-ff`.
+- 1 Build tip material só após Build em voo terminal; sem spam.
+- Catch-up: se houver fila atrasada, merge só o tip H4 mais novo ready; depois esperar lote.
+- Estado: INT `43869cf3` absorveu `9e93aa31` (148/148); h4 ahead=0; Build `46077733827` intacto @b862351c.
