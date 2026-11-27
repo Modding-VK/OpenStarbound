@@ -742,3 +742,7 @@ integração: **nenhum**.
 ## Revisão 2026-11-27T22:20Z
 - FREEZE levantado. Merge H4 `653b865f` (HalfClo/HalfCto/HalfIsPow2 + listPendingOpenTicketsByKernel; 126/126) — tip material.
 - Policy B: 1 Build na tip material após push; sem spam.
+
+## Revisão 2026-11-27T22:22Z
+- Merge H4 `c5620193` (HalfIlog2/HalfNextPow2/HalfMaskLow + pendingOpenTicketsByKernel; 128/128).
+- Build `46075958751` @ `a4a84b28` intacto; 1 Build tip final após terminal; sem spam.
