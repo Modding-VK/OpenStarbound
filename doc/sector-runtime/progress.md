@@ -21,7 +21,7 @@ local. Não mergear outras frentes até ahead>0.
 · [Relatório H1](../sector-runtime-h1-prepared-sector-2026-11-27.md)
 · [Relatório H2](../sector-runtime-h2-prepared-sector-consume-2026-11-27.md)
 · [Relatório H3](../sector-runtime-h3-tmx-shadow-cache-2026-11-27.md)
-· [Relatório H4](../sector-runtime-h4-gpu03-04-shl-catalog-shadowbatch-2026-11-27.md)
+· [Relatório H4](../sector-runtime-h4-gpu01-03-04-shl-catalog-shadowbatch-2026-11-27.md)
 · [Relatório H5](../sector-runtime-h5-scale-foundations-2026-11-27.md)
 · [Relatório R1](../sector-runtime-r1-thread-stub-cpu-2026-11-27.md)
 · [Relatório R2](../sector-runtime-r2-authoritative-ops-2026-11-27.md)
@@ -257,8 +257,8 @@ auditoria de todas as implementações antigas para conceder crédito retroativo
 | WT-05 | [RuntimeCoordinator](../sector-runtime-r1-border-runtime-2026-11-27.md) | Sem integração WorldServerThread nem thread dedicada por região |
 | GPU-01 | [interface+CPU reference](../sector-runtime-h4-gpu01-compute-interface-2026-11-27.md); probe PASS Desktop-Vinicius | Sem 50%: publicação versionada e caminho vivo pendentes |
 | GPU-02 | [fila/voo](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) + [failContext](../sector-runtime-h4-gpu02-04-failcontext-reproducer-2026-11-27.md) + [staging/VRAM](../sector-runtime-h4-gpu02-staging-accounting-2026-11-27.md) + [ownerThread](../sector-runtime-h4-gpu02-owner-thread-2026-11-27.md) | Sem integração WorldThread viva; sem 50% |
-| GPU-03 | [Xor/Add](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) + [And/Or/Mul](../sector-runtime-h4-gpu03-dense-and-or-mul-2026-11-27.md) + [Min/Max/Sub](../sector-runtime-h4-gpu03-04-minmax-rng-commitbatch-2026-11-27.md) + [Shl/Shr](../sector-runtime-h4-gpu03-04-shl-catalog-shadowbatch-2026-11-27.md) | Sem terreno/bioma nem ganho medido |
-| GPU-04 | [compareShadow](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) + [reproducers](../sector-runtime-h4-gpu02-04-failcontext-reproducer-2026-11-27.md) + [commit](../sector-runtime-h4-gpu04-commit-revalidate-2026-11-27.md) + [RNG/commitBatch](../sector-runtime-h4-gpu03-04-minmax-rng-commitbatch-2026-11-27.md) + [catalog/shadowBatch](../sector-runtime-h4-gpu03-04-shl-catalog-shadowbatch-2026-11-27.md); Equal RTX | Sem campanha multi-driver / publicação; permanece 25% |
+| GPU-03 | [Xor/Add](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) + [And/Or/Mul](../sector-runtime-h4-gpu03-dense-and-or-mul-2026-11-27.md) + [Min/Max/Sub](../sector-runtime-h4-gpu03-04-minmax-rng-commitbatch-2026-11-27.md) + [Shl/Shr](../sector-runtime-h4-gpu01-03-04-shl-catalog-shadowbatch-2026-11-27.md) | Sem terreno/bioma nem ganho medido |
+| GPU-04 | [compareShadow](../sector-runtime-h4-gpu02-03-04-2026-11-27.md) + [reproducers](../sector-runtime-h4-gpu02-04-failcontext-reproducer-2026-11-27.md) + [commit](../sector-runtime-h4-gpu04-commit-revalidate-2026-11-27.md) + [RNG/commitBatch](../sector-runtime-h4-gpu03-04-minmax-rng-commitbatch-2026-11-27.md) + [catalog/shadowBatch](../sector-runtime-h4-gpu01-03-04-shl-catalog-shadowbatch-2026-11-27.md); Equal RTX | Sem campanha multi-driver / publicação; permanece 25% |
 | GPU-05 | [hardware selection](../sector-runtime-h5-hardware-selection-2026-11-27.md), `StarWorldGenerationHardwareSelection.hpp`, 7 testes de contrato | Sem backend GPU, sem custos observados de runtime, sem ganho ponta a ponta nem publicação |
 | VAL-03 | [fundações H5](../sector-runtime-h5-scale-foundations-2026-11-27.md), delivery metrics recorder | Sem instrumentação no WorldThread/Tracy nem cobertura completa de pipeline |
 | VAL-04 | mesma entrega, scenario matrix tipada | Sem campanhas executadas nem A/B de streaming |
