@@ -20,4 +20,6 @@ ASan/UBSan: 1×5; **91/91** RealBlockInfo.
 
 ## Próximo passo
 
-Abandon/fail adjacente e assets sob variantes. Não disparar Actions.
+Abandon/fail em
+[adjacent lifecycle](sector-runtime-h0-sector-shadow-adjacent-lifecycle-2026-11-26.md).
+Segue assets sob variantes. Não disparar Actions.
