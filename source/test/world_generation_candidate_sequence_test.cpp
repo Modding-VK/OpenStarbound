@@ -1,5 +1,6 @@
 #include "StarWorldGenerationCandidateSequence.hpp"
 #include "StarBiomePlacementTypes.hpp"
+#include "StarWorldGenerationPlacementQueue.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -163,4 +164,36 @@ TEST(WorldGenerationCandidateSequenceTest, StablePrioritySortMatchesBiomeItemPla
     entry.placementId = {};
   auto result = compareWorldGenerationCandidateSequences(records, expected);
   EXPECT_TRUE(result.equal());
+}
+
+TEST(WorldGenerationCandidateSequenceTest, QueueSnapshotPreservesAscendingIdsAfterRetirement) {
+  WorldGenerationPlacementQueue<BiomeItemPlacement> queue;
+  auto first = queue.append(BiomeItemPlacement{BiomeItem{MicroDungeonNames(StringSet{"a"})}, Vec2I(0, 0), 2.0f});
+  auto second = queue.append(BiomeItemPlacement{BiomeItem{MicroDungeonNames(StringSet{"b"})}, Vec2I(1, 0), 1.0f});
+  auto third = queue.append(BiomeItemPlacement{BiomeItem{MicroDungeonNames(StringSet{"c"})}, Vec2I(2, 0), 3.0f});
+
+  auto before = worldGenerationCandidateRecordsFromQueue(queue);
+  ASSERT_EQ(before.size(), 3u);
+  EXPECT_EQ(*before[0].placementId, first);
+  EXPECT_EQ(*before[1].placementId, second);
+  EXPECT_EQ(*before[2].placementId, third);
+  EXPECT_EQ(before[0].priority, 2.0f);
+  EXPECT_EQ(before[1].position, Vec2I(1, 0));
+
+  ASSERT_TRUE(queue.take(second));
+  auto after = worldGenerationCandidateRecordsFromQueue(queue);
+  ASSERT_EQ(after.size(), 2u);
+  EXPECT_EQ(*after[0].placementId, first);
+  EXPECT_EQ(*after[1].placementId, third);
+
+  auto mismatch = compareWorldGenerationCandidateSequences(before, after);
+  EXPECT_FALSE(mismatch.equal());
+  EXPECT_NE(mismatch.differentFields & mask(Field::Length), 0u);
+
+  auto sorted = after;
+  sortWorldGenerationCandidateRecords(sorted);
+  EXPECT_EQ(sorted[0].priority, 2.0f);
+  EXPECT_EQ(sorted[1].priority, 3.0f);
+  EXPECT_EQ(*sorted[0].placementId, first);
+  EXPECT_EQ(*sorted[1].placementId, third);
 }

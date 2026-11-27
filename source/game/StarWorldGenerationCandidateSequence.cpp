@@ -13,6 +13,15 @@ WorldGenerationCandidateRecord worldGenerationCandidateRecord(BiomeItemPlacement
   return record;
 }
 
+std::vector<WorldGenerationCandidateRecord> worldGenerationCandidateRecordsFromQueue(
+    WorldGenerationPlacementQueue<BiomeItemPlacement> const& queue) {
+  std::vector<WorldGenerationCandidateRecord> records;
+  records.reserve(queue.entries().size());
+  for (auto const& entry : queue.entries())
+    records.push_back(worldGenerationCandidateRecord(entry.second, entry.first));
+  return records;
+}
+
 void sortWorldGenerationCandidateRecords(std::vector<WorldGenerationCandidateRecord>& records) {
   std::stable_sort(records.begin(), records.end(),
       [](WorldGenerationCandidateRecord const& a, WorldGenerationCandidateRecord const& b) {

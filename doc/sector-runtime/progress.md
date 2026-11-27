@@ -1,12 +1,12 @@
 # Progressão do projeto — percentuais e ordem das tarefas
 
 Atualizado em **27/11/2026**. Branch: `cursor/h0-foundations-9f77`.
-Base inspecionada: `b7df0947`;
-última implementação H0: adapter BiomeItemPlacement → candidate record
+Base inspecionada: `7020b127`;
+última implementação H0: snapshot PlacementQueue → candidate records
 (ver relatório VAL-02).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico](../sector-runtime-h0-candidate-placement-adapter-2026-11-27.md)
+· [Último relatório técnico](../sector-runtime-h0-candidate-queue-snapshot-2026-11-27.md)
 · [Backlog geral](../performance-backlog.md)
 
 Este é o **painel canônico de progressão** do novo programa de geração/runtime
@@ -23,7 +23,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **3,6%** — 7 marcos verificados de 196 |
 | Contratos com avanço registrado | **7 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | contract CandidateSequence 8/8 +134 RealBlockInfo; ASan/UBSan; gates H0 antes de H1 |
+| Última evidência de testes | contract CandidateSequence 9/9 +134 RealBlockInfo; ASan/UBSan; gates H0 antes de H1 |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 3,6% não significam que o jogo esteja só 3,6% pronto.** O runtime anterior
@@ -313,6 +313,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | Capstone 2×2 + tight ledger | Quatro sombras terrestres + oceano tight admit/refuse/retry; 134 RealBlockInfo. Matriz sombra BaseTiles geográfica fechada. Sem novo marco completo | 3,6% |
 | 27/11/2026 | Candidate sequence comparator | Comparador diagnóstico id/posição/prioridade/ordem; 6 testes contract. Sem payload BiomeItem nem streaming. Sem novo marco completo | 3,6% |
 | 27/11/2026 | Candidate placement adapter | BiomeItemPlacement→record + sort estável por prioridade; 8 testes contract. Sem payload profundo. Sem novo marco completo | 3,6% |
+| 27/11/2026 | Candidate queue snapshot | PlacementQueue→records com IDs ascendentes pós-retirement; 9 testes contract. Sem payload BiomeItem. Sem novo marco completo | 3,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

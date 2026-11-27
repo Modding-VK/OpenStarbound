@@ -46,6 +46,11 @@ struct WorldGenerationCandidateSequenceComparison {
 WorldGenerationCandidateRecord worldGenerationCandidateRecord(BiomeItemPlacement const& placement,
     Maybe<WorldGenerationPlacementId> placementId = {});
 
+// Owner-thread snapshot: ascending placement IDs, no BiomeItem copy retained.
+// Does not sort by priority; callers may sortWorldGenerationCandidateRecords.
+std::vector<WorldGenerationCandidateRecord> worldGenerationCandidateRecordsFromQueue(
+    WorldGenerationPlacementQueue<BiomeItemPlacement> const& queue);
+
 // Stable order matching BiomeItemPlacement::operator< (priority ascending).
 // Equal priorities keep relative order (stable_sort). Does not mutate item.
 void sortWorldGenerationCandidateRecords(std::vector<WorldGenerationCandidateRecord>& records);
