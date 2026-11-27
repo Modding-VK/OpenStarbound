@@ -57,7 +57,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32SatSub = 31, // saturating subtract (clamp to 0)
   DenseUint32OrNot = 32, // value | ~parameter
   DenseUint32Avg = 33, // ((uint64)value + parameter) >> 1
-  DenseUint32IsPow2 = 34 // nonzero power-of-two mask; parameter ignored
+  DenseUint32IsPow2 = 34, // nonzero power-of-two mask; parameter ignored
+  DenseUint32Bswap = 35, // byte-swap; parameter ignored
+  DenseUint32Parity = 36, // popcount(value) & 1; parameter ignored
+  DenseUint32BitTest = 37 // ((value >> (parameter & 31)) & 1) ? 0xffffffff : 0
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
