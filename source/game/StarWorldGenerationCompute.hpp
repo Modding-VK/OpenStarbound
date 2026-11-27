@@ -39,7 +39,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32Not = 13, // bitwise complement (~value); parameter ignored
   DenseUint32Clz = 14, // count leading zeros; 32 for zero; parameter ignored
   DenseUint32Ctz = 15, // count trailing zeros; 32 for zero; parameter ignored
-  DenseUint32Popcount = 16 // population count; parameter ignored
+  DenseUint32Popcount = 16, // population count; parameter ignored
+  DenseUint32Eq = 17, // value == parameter ? 0xffffffff : 0
+  DenseUint32Ne = 18, // value != parameter ? 0xffffffff : 0
+  DenseUint32BitReverse = 19 // bitfield reverse; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {

@@ -60,7 +60,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32Not
       || kernel == WorldGenerationComputeKernel::DenseUint32Clz
       || kernel == WorldGenerationComputeKernel::DenseUint32Ctz
-      || kernel == WorldGenerationComputeKernel::DenseUint32Popcount;
+      || kernel == WorldGenerationComputeKernel::DenseUint32Popcount
+      || kernel == WorldGenerationComputeKernel::DenseUint32Eq
+      || kernel == WorldGenerationComputeKernel::DenseUint32Ne
+      || kernel == WorldGenerationComputeKernel::DenseUint32BitReverse;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -84,7 +87,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32Not,
       WorldGenerationComputeKernel::DenseUint32Clz,
       WorldGenerationComputeKernel::DenseUint32Ctz,
-      WorldGenerationComputeKernel::DenseUint32Popcount};
+      WorldGenerationComputeKernel::DenseUint32Popcount,
+      WorldGenerationComputeKernel::DenseUint32Eq,
+      WorldGenerationComputeKernel::DenseUint32Ne,
+      WorldGenerationComputeKernel::DenseUint32BitReverse};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -108,6 +114,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32Clz: return "DenseUint32Clz";
     case WorldGenerationComputeKernel::DenseUint32Ctz: return "DenseUint32Ctz";
     case WorldGenerationComputeKernel::DenseUint32Popcount: return "DenseUint32Popcount";
+    case WorldGenerationComputeKernel::DenseUint32Eq: return "DenseUint32Eq";
+    case WorldGenerationComputeKernel::DenseUint32Ne: return "DenseUint32Ne";
+    case WorldGenerationComputeKernel::DenseUint32BitReverse: return "DenseUint32BitReverse";
   }
   return nullptr;
 }
@@ -185,6 +194,14 @@ uint32_t densePopcount(uint32_t value) noexcept {
   return value & 0x3fu;
 }
 
+uint32_t denseBitReverse(uint32_t value) noexcept {
+  value = ((value >> 1u) & 0x55555555u) | ((value & 0x55555555u) << 1u);
+  value = ((value >> 2u) & 0x33333333u) | ((value & 0x33333333u) << 2u);
+  value = ((value >> 4u) & 0x0f0f0f0fu) | ((value & 0x0f0f0f0fu) << 4u);
+  value = ((value >> 8u) & 0x00ff00ffu) | ((value & 0x00ff00ffu) << 8u);
+  return (value >> 16u) | (value << 16u);
+}
+
 }
 
 uint64_t WorldGenerationComputeService::bufferBytes(List<uint32_t> const& values) noexcept {
@@ -249,6 +266,15 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
   } else if (kernel == WorldGenerationComputeKernel::DenseUint32Popcount) {
     for (uint32_t value : input)
       out.append(densePopcount(value));
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Eq) {
+    for (uint32_t value : input)
+      out.append(value == parameter ? 0xffffffffu : 0u);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32Ne) {
+    for (uint32_t value : input)
+      out.append(value != parameter ? 0xffffffffu : 0u);
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32BitReverse) {
+    for (uint32_t value : input)
+      out.append(denseBitReverse(value));
   }
   return out;
 }
