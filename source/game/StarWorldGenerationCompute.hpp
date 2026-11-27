@@ -189,7 +189,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32HalfMaskLow = 163, // low16 & low-bit mask; parameter = bit count clamped to [0,16]
   DenseUint32HalfMaskHigh = 164, // low16 & high-bit mask; parameter = bit count clamped to [0,16]
   DenseUint32HalfBitTest = 165, // ((low16 >> (parameter & 15)) & 1) ? 0xffffffff : 0
-  DenseUint32HalfIsolateLsb = 166 // low16 & -low16; parameter ignored
+  DenseUint32HalfIsolateLsb = 166, // low16 & -low16; parameter ignored
+  DenseUint32HalfIsolateMsb = 167, // highest set bit of low16; 0 when low16==0; parameter ignored
+  DenseUint32HalfClearLsb = 168, // low16 & (low16 - 1); parameter ignored
+  DenseUint32HalfLsbMask = 169 // low16 ^ (low16 - 1) in 16-bit width; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {

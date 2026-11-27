@@ -387,6 +387,12 @@ int main() {
       "DenseUint32HalfBitTest");
   rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfIsolateLsb, 0u,
       "DenseUint32HalfIsolateLsb");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfIsolateMsb, 0u,
+      "DenseUint32HalfIsolateMsb");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfClearLsb, 0u,
+      "DenseUint32HalfClearLsb");
+  rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfLsbMask, 0u,
+      "DenseUint32HalfLsbMask");
 
   auto ticket = service.submit(makeIdentity(99, WorldGenerationComputeKernel::DenseUint32Xor),
       edgeCorpus(), 0x55aa55aau, WorldGenerationComputeBackend::GpuOpenGlCompute);
