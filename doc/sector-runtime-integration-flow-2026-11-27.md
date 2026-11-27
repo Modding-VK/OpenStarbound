@@ -822,3 +822,8 @@ integração: **nenhum**.
 - Correção: Desktop validou `da430a98` 46/46 e `ffce0834` 48/48.
 - Merge H5 tip `ffce0834` (inclui profile advice) na INT.
 - Build `46079365811` intacto; 1 Build tip final após terminal; sem spam.
+
+## Revisão 2026-11-27T23:04Z — H5 f1bddd2b + standby
+- Merge H5 `f1bddd2b` (Desktop 49/49 evidence fingerprint).
+- H5 em standby depois deste tip.
+- Build `46079365811` intacto; 1 Build tip final após terminal; sem spam.

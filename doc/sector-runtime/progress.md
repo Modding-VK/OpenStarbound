@@ -2,10 +2,10 @@
 
 Atualizado em **27/11/2026**. Branch de integração:
 `cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+H4+H5+R1+R2; não `main`).
-Tip INT: H5 `ffce0834` (Desktop probe attestation 48/48; inclui `da430a98` 46/46) + H4 `828a45d2`.
+Tip INT: H5 `f1bddd2b` (evidence fingerprint; Desktop 49/49) — H5 standby depois.
 Build `46079365811` @ `46a2da76` intacto; 1 Build tip final após terminal; sem spam.
 Última H4: GPU-03 HalfAllNibblesEqual/Range/Mask + GPU-02 anyPendingOpenTickets (`828a45d2`); H4 25%.
-Última H5: profile advice + Desktop probe attestation (`ffce0834`); H5 25%.
+Última H5: deterministic fingerprint evidence pack (`f1bddd2b`); H5 25%; standby.
 Última H3: TMX cache/reload + flora/replaceBiome + decode/codec (`3bdf1927`); H3 25%.
 Última R2: AuthoritativeOps + REG-03/04/05 sombra (`f86b4d17`).
 Última R1: ThreadStub CPU/OS — Builds recentes PASS.
@@ -19,7 +19,7 @@ Build `46079365811` @ `46a2da76` intacto; 1 Build tip final após terminal; sem 
 · [Relatório H2](../sector-runtime-h2-prepared-sector-consume-2026-11-27.md)
 · [Relatório H3](../sector-runtime-h3-tmx-shadow-cache-2026-11-27.md)
 · [Relatório H4](../sector-runtime-h4-gpu02-03-halfnibblepred-anypendingopentickets-2026-11-27.md)
-· [Relatório H5](../sector-runtime-h5-desktop-probe-attestation-2026-11-27.md)
+· [Relatório H5](../sector-runtime-h5-scale-evidence-fingerprint-2026-11-27.md)
 · [Relatório R1](../sector-runtime-r1-thread-stub-cpu-2026-11-27.md)
 · [Relatório R2](../sector-runtime-r2-authoritative-ops-2026-11-27.md)
 · [Backlog geral](../performance-backlog.md)
@@ -45,7 +45,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **25,5%** — 50 marcos verificados de 196 |
 | Contratos com avanço registrado | **49 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | H0–H5 + R1/R2; H4 154/154 + H5 44/44 evidence @`62fba03a`; Build `46079365811` em voo @ `46a2da76`; Actions manuais |
+| Última evidência de testes | H0–H5 + R1/R2; H4 154/154 + H5 Desktop 49/49 @`f1bddd2b`; Build `46079365811` em voo @ `46a2da76`; Actions manuais |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 | Smoke / instalador local | Pendente base local do usuário; sem smoke até lá |
 
@@ -113,8 +113,8 @@ autoritativa. GPU é opcional, com fallback CPU completo.
 
 ## Próximas ações — fila imediata
 
-0. **Integração:** H5 `ffce0834` (Desktop 48/48; inclui `da430a98` 46/46)
-   + H4 `828a45d2` (154/154).
+0. **Integração:** H5 `f1bddd2b` (Desktop 49/49 fingerprint) + H4 `828a45d2`;
+   H5 standby depois deste tip.
    `46067036173` @ `2d4b047f` intacto se in_progress; 1 Build tip final após
    terminal — sem spam. Smoke só após base local.
 1. **H0: DAG-01/RAM-01 com MOD-01/VAL-02:** catálogo compacto e binding de fontes
@@ -607,6 +607,8 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | H5 scale profile advice | recommendProfileFromScaleEvidence opt-in; Desktop 46/46 @`da430a98`; H5 25% | 25,5% |
 | 27/11/2026 | H5 Desktop probe attestation | Attestation pack; Desktop 48/48 @`ffce0834`; H5 25% | 25,5% |
 | 27/11/2026 | Integração H5 ffce0834 | Merge `--no-ff` da430a98+ffce0834; Build `460793` intacto; 1 Build tip final; programa 25,5% | 25,5% |
+| 27/11/2026 | H5 evidence fingerprint | Fingerprint determinístico no evidence pack; Desktop 49/49 @`f1bddd2b`; H5 25% | 25,5% |
+| 27/11/2026 | Integração H5 f1bddd2b | Merge `--no-ff`; H5 standby depois; Build `460793` intacto; 1 Build tip final; programa 25,5% | 25,5% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.
