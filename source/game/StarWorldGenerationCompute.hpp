@@ -240,7 +240,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32HalfMulNibble = 214, // multiply each low16 nibble by (parameter & 0xf) (wrap 4-bit)
   DenseUint32HalfSatMulNibble = 215, // multiply each low16 nibble by (parameter & 0xf) (saturate to 0xf)
   DenseUint32HalfDivNibble = 216, // divide each low16 nibble by (parameter & 0xf); 0 if divisor==0
-  DenseUint32HalfModNibble = 217 // each low16 nibble % (parameter & 0xf); 0 if divisor==0
+  DenseUint32HalfModNibble = 217, // each low16 nibble % (parameter & 0xf); 0 if divisor==0
+  DenseUint32HalfMinNibble = 218, // min(each low16 nibble, parameter & 0xf)
+  DenseUint32HalfMaxNibble = 219, // max(each low16 nibble, parameter & 0xf)
+  DenseUint32HalfClampNibble = 220 // clamp each low16 nibble to [(parameter&0xf), ((parameter>>8)&0xf)]
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
