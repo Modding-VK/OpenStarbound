@@ -38,6 +38,14 @@ constexpr WorldGenerationEffectBoundary kCatalog[] = {
         false, "Owner retires IDs before promise fulfill; workers receive IDs only"},
     {"worker-pool-handoff", "WorkerPool", WorldGenerationEffectKind::PreparedDependency, false, false, true, false,
         "Stale/Cancelled/Failed retire private outputs; no live-world publish"},
+    {"block-info-kernel", "BlockInfo", WorldGenerationEffectKind::PureKernel, false, false, false, false,
+        "Separated blockInfo math; customTerrainWeighting still may touch Assets on normal path"},
+    {"custom-terrain-capture", "CustomTerrain", WorldGenerationEffectKind::PreparedDependency, false, false, false, false,
+        "Root-free geometry capture; normal adapter may still consult Assets"},
+    {"base-tile-liquid-subkernel", "BaseTiles", WorldGenerationEffectKind::PureKernel, false, false, false, false,
+        "Scalar liquid decision with materials resolved; Keep preserves prior liquid"},
+    {"base-tile-lookup-catalog", "BaseTiles", WorldGenerationEffectKind::PreparedDependency, false, false, true, false,
+        "Sealed response catalog; miss does not write; owner chooses legacy path"},
 };
 
 bool sameId(char const* a, char const* b) {
