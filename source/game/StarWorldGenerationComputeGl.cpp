@@ -145,6 +145,9 @@ GLuint g_swapAdjacentBitsProgram = 0;
 GLuint g_compressOddBitsProgram = 0;
 GLuint g_compressEvenBitsProgram = 0;
 GLuint g_expandLow16ToOddProgram = 0;
+GLuint g_expandLow16ToEvenProgram = 0;
+GLuint g_interleaveHalvesProgram = 0;
+GLuint g_deinterleaveHalvesProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -1455,6 +1458,71 @@ void main() {
 }
 )GLSL";
 
+char const* ExpandLow16ToEvenShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint x = values[i] & 0xffffu;
+  x = (x | (x << 8)) & 0x00ff00ffu;
+  x = (x | (x << 4)) & 0x0f0f0f0fu;
+  x = (x | (x << 2)) & 0x33333333u;
+  x = (x | (x << 1)) & 0x55555555u;
+  values[i] = x << 1;
+}
+)GLSL";
+
+char const* InterleaveHalvesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+uint expandOdd(uint x) {
+  x &= 0xffffu;
+  x = (x | (x << 8)) & 0x00ff00ffu;
+  x = (x | (x << 4)) & 0x0f0f0f0fu;
+  x = (x | (x << 2)) & 0x33333333u;
+  x = (x | (x << 1)) & 0x55555555u;
+  return x;
+}
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  values[i] = (expandOdd(v >> 16) << 1) | expandOdd(v);
+}
+)GLSL";
+
+char const* DeinterleaveHalvesShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+uint compressOdd(uint x) {
+  x &= 0x55555555u;
+  x = (x | (x >> 1)) & 0x33333333u;
+  x = (x | (x >> 2)) & 0x0f0f0f0fu;
+  x = (x | (x >> 4)) & 0x00ff00ffu;
+  x = (x | (x >> 8)) & 0x0000ffffu;
+  return x;
+}
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint v = values[i];
+  values[i] = (compressOdd(v >> 1) << 16) | compressOdd(v);
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -1843,6 +1911,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_expandLow16ToOddProgram);
     g_expandLow16ToOddProgram = 0;
   }
+  if (g_expandLow16ToEvenProgram) {
+    glDeleteProgram(g_expandLow16ToEvenProgram);
+    g_expandLow16ToEvenProgram = 0;
+  }
+  if (g_interleaveHalvesProgram) {
+    glDeleteProgram(g_interleaveHalvesProgram);
+    g_interleaveHalvesProgram = 0;
+  }
+  if (g_deinterleaveHalvesProgram) {
+    glDeleteProgram(g_deinterleaveHalvesProgram);
+    g_deinterleaveHalvesProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -2019,7 +2099,13 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_compressEvenBitsProgram, CompressEvenBitsShader,
             "DenseUint32CompressEvenBits")
       || !requireProgram(g_expandLow16ToOddProgram, ExpandLow16ToOddShader,
-            "DenseUint32ExpandLow16ToOdd"))
+            "DenseUint32ExpandLow16ToOdd")
+      || !requireProgram(g_expandLow16ToEvenProgram, ExpandLow16ToEvenShader,
+            "DenseUint32ExpandLow16ToEven")
+      || !requireProgram(g_interleaveHalvesProgram, InterleaveHalvesShader,
+            "DenseUint32InterleaveHalves")
+      || !requireProgram(g_deinterleaveHalvesProgram, DeinterleaveHalvesShader,
+            "DenseUint32DeinterleaveHalves"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -2254,6 +2340,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_compressEvenBitsProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32ExpandLow16ToOdd)
     program = g_expandLow16ToOddProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32ExpandLow16ToEven)
+    program = g_expandLow16ToEvenProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32InterleaveHalves)
+    program = g_interleaveHalvesProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32DeinterleaveHalves)
+    program = g_deinterleaveHalvesProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))

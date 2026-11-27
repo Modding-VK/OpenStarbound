@@ -108,7 +108,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32SwapAdjacentBits = 82, // swap bit pairs 0\leftrightarrow1, 2\leftrightarrow3, …; parameter ignored
   DenseUint32CompressOddBits = 83, // pack bits 0,2,4,… into low 16 bits; parameter ignored
   DenseUint32CompressEvenBits = 84, // pack bits 1,3,5,… into low 16 bits; parameter ignored
-  DenseUint32ExpandLow16ToOdd = 85 // place low 16 bits into positions 0,2,4,…; parameter ignored
+  DenseUint32ExpandLow16ToOdd = 85, // place low 16 bits into positions 0,2,4,…; parameter ignored
+  DenseUint32ExpandLow16ToEven = 86, // place low 16 bits into positions 1,3,5,…; parameter ignored
+  DenseUint32InterleaveHalves = 87, // Morton-merge high/low 16-bit halves; parameter ignored
+  DenseUint32DeinterleaveHalves = 88 // split odd/even bits into low/high 16-bit halves; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -268,6 +271,9 @@ public:
   size_t inFlight() const;
   // Pending tickets whose identity.kernel matches (asset-free observation).
   size_t inFlightByKernel(WorldGenerationComputeKernel kernel) const;
+  // Pending open tickets whose identity.kernel matches (asset-free observation).
+  List<WorldGenerationComputeTicket> listInFlightByKernel(
+      WorldGenerationComputeKernel kernel) const;
   // Ready open tickets whose identity.kernel matches (asset-free observation).
   size_t readyOpenTicketsByKernel(WorldGenerationComputeKernel kernel) const;
   // Cancelled open tickets whose identity.kernel matches (asset-free observation).
