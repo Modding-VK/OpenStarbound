@@ -208,6 +208,7 @@ SET (star_game_HEADERS
     StarWorldRegionLocalState.hpp
     StarWorldRegionCheckpoint.hpp
     StarWorldRegionAuthority.hpp
+    StarWorldRegionThreadStub.hpp
     StarWorldImpl.hpp
     StarWorldLayout.hpp
     StarWorldParameters.hpp
@@ -507,6 +508,7 @@ SET (star_game_SOURCES
     StarWorldRegionLocalState.cpp
     StarWorldRegionCheckpoint.cpp
     StarWorldRegionAuthority.cpp
+    StarWorldRegionThreadStub.cpp
     StarWorldLayout.cpp
     StarWorldParameters.cpp
     StarWorldPerformance.cpp

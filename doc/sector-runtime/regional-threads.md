@@ -35,10 +35,11 @@ Em seguida,
 e `retireAll` cobrem contorno geométrico/parcial e aposentadoria simulada de
 epoch, ainda sem thread OS.
 [`WorldRegionAuthoritativeOwnerLedger`](../sector-runtime-r1-authoritative-owner-2026-11-27.md)
-promove donas Active a autoridade exclusiva de escrita por identidade-valor
-(sem thread OS). Os previews de lifecycle/mailbox não executam Lua, simulação
-ou instalação no WorldServer vivo. A WorldThread central ainda é a dona do
-mundo no runtime atual.
+promove donas Active a autoridade exclusiva de escrita por identidade-valor.
+[`WorldRegionOwnerThreadStubLedger`](../sector-runtime-r1-thread-stub-shadow-2026-11-27.md)
+rastreia lifecycle de thread em sombra (sem pthread). Os previews de
+lifecycle/mailbox não executam Lua, simulação ou instalação no WorldServer
+vivo. A WorldThread central ainda é a dona do mundo no runtime atual.
 
 ## REG-01 — Lifecycle e identidade da dona
 

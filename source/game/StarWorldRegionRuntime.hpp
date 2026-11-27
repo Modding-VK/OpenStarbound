@@ -5,6 +5,7 @@
 #include "StarWorldRegionCheckpoint.hpp"
 #include "StarWorldRegionLocalState.hpp"
 #include "StarWorldRegionOwner.hpp"
+#include "StarWorldRegionThreadStub.hpp"
 
 namespace Star {
 
@@ -38,6 +39,12 @@ public:
   Maybe<WorldRegionOwnerIdentity> authoritativeOwner(Vec2U const& region) const;
   WorldRegionAuthorityGrade authorityGrade(Vec2U const& region) const;
 
+  WorldRegionThreadStubStartResult startAuthoritativeThreadStub(Vec2U const& region);
+  WorldRegionThreadStubStopResult beginAuthoritativeThreadJoin(Vec2U const& region);
+  WorldRegionThreadStubStopResult completeAuthoritativeThreadJoin(Vec2U const& region);
+  WorldRegionThreadStubPhase threadStubPhase(Vec2U const& region) const;
+  void setThreadStubCreationAllowed(bool allowed);
+
   WorldRegionBorderCaptureResult publishBorder(Vec2U const& region, List<WorldRegionBorderCell> cells);
   WorldRegionBorderCaptureResult publishAuthoritativeBorder(Vec2U const& region, List<WorldRegionBorderCell> cells);
   WorldRegionBorderCaptureResult publishPerimeterSkeleton(Vec2U const& region);
@@ -57,6 +64,7 @@ public:
   uint64_t clock() const;
   size_t ownerCount() const;
   size_t authoritativeOwnerCount() const;
+  size_t runningThreadStubCount() const;
   WorldRegionOwnerRegistry const& owners() const;
   WorldRegionAuthoritativeOwnerLedger const& authority() const;
 
@@ -66,6 +74,7 @@ private:
   WorldRegionLocalStateLedger m_localState;
   WorldRegionCheckpointBarrier m_checkpoints;
   WorldRegionAuthoritativeOwnerLedger m_authority;
+  WorldRegionOwnerThreadStubLedger m_threadStubs;
   uint64_t m_clock = 0;
 };
 
