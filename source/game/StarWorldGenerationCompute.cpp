@@ -336,6 +336,18 @@ size_t WorldGenerationComputeService::openTickets() const {
   return m_entries.size();
 }
 
+List<WorldGenerationComputeTicket> WorldGenerationComputeService::listOpenTickets() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  List<WorldGenerationComputeTicket> out;
+  out.reserve(m_entries.size());
+  for (auto const& pair : m_entries) {
+    WorldGenerationComputeTicket ticket;
+    ticket.id = pair.first;
+    out.append(ticket);
+  }
+  return out;
+}
+
 size_t WorldGenerationComputeService::inFlight() const {
   std::lock_guard<std::mutex> lock(m_mutex);
   size_t count = 0;
@@ -734,6 +746,20 @@ uint64_t WorldGenerationComputeService::fingerprintInput(List<uint32_t> const& i
     hash ^= (uint64_t)(i + 1u) * 0x9e3779b97f4a7c15ull;
   }
   hash ^= ((uint64_t)input.size() << 32) | (uint64_t)input.size();
+  return hash;
+}
+
+uint64_t WorldGenerationComputeService::fingerprintIdentity(
+    WorldGenerationComputeInputIdentity const& identity) noexcept {
+  uint64_t hash = 14695981039346656037ull;
+  auto mix = [&](uint64_t lane) {
+    hash ^= lane;
+    hash *= 1099511628211ull;
+  };
+  mix(identity.worldEpoch);
+  mix(identity.sequence);
+  mix(identity.kernelVersion);
+  mix((uint64_t)identity.kernel);
   return hash;
 }
 

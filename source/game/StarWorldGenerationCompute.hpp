@@ -191,6 +191,9 @@ public:
   size_t stagingBytes() const;
   size_t pooledBuffers() const;
 
+  // GPU-02 observation (any thread under mutex): open ticket ids snapshot.
+  List<WorldGenerationComputeTicket> listOpenTickets() const;
+
   // GPU-02 accounting for RAM-01 consumers (asset-free observation only).
   WorldGenerationComputeStagingSnapshot stagingSnapshot() const;
   void resetPeakStagingBytes() noexcept;
@@ -265,6 +268,9 @@ public:
 
   // Stable fingerprint of an immutable input buffer (asset-free; no mod payload).
   static uint64_t fingerprintInput(List<uint32_t> const& input) noexcept;
+
+  // GPU-04: stable fingerprint of an input identity (asset-free; no mod payload).
+  static uint64_t fingerprintIdentity(WorldGenerationComputeInputIdentity const& identity) noexcept;
 
   // GPU-04 approved RNG: deterministic uint32 draws; advances counter by 1.
   static uint32_t drawRng(WorldGenerationComputeRngStream& stream) noexcept;

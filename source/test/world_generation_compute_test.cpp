@@ -517,6 +517,46 @@ TEST(WorldGenerationComputeTest, CompareShadowBatchRunsIndependentKernels) {
   }
 }
 
+TEST(WorldGenerationComputeTest, FingerprintIdentityAndListOpenTickets) {
+  auto a = makeIdentity(240, WorldGenerationComputeKernel::DenseUint32Eq);
+  auto b = makeIdentity(241, WorldGenerationComputeKernel::DenseUint32Eq);
+  EXPECT_NE(WorldGenerationComputeService::fingerprintIdentity(a),
+      WorldGenerationComputeService::fingerprintIdentity(b));
+  EXPECT_EQ(WorldGenerationComputeService::fingerprintIdentity(a),
+      WorldGenerationComputeService::fingerprintIdentity(a));
+  auto flipped = a;
+  flipped.kernel = WorldGenerationComputeKernel::DenseUint32Ne;
+  EXPECT_NE(WorldGenerationComputeService::fingerprintIdentity(a),
+      WorldGenerationComputeService::fingerprintIdentity(flipped));
+
+  WorldGenerationComputeCapabilities caps;
+  caps.maxInFlight = 4;
+  WorldGenerationComputeService service(caps);
+  service.setDeferredCpuCompletion(true);
+  EXPECT_TRUE(service.listOpenTickets().empty());
+  auto t0 = service.submit(makeIdentity(242), List<uint32_t>{1u}, 0u);
+  auto t1 = service.submit(makeIdentity(243), List<uint32_t>{2u}, 0u);
+  ASSERT_TRUE((bool)t0);
+  ASSERT_TRUE((bool)t1);
+  auto open = service.listOpenTickets();
+  ASSERT_EQ(2u, open.size());
+  bool saw0 = false;
+  bool saw1 = false;
+  for (auto ticket : open) {
+    if (ticket.id == t0->id)
+      saw0 = true;
+    if (ticket.id == t1->id)
+      saw1 = true;
+  }
+  EXPECT_TRUE(saw0);
+  EXPECT_TRUE(saw1);
+  EXPECT_TRUE(service.cancel(*t0));
+  EXPECT_EQ(WorldGenerationComputePollStatus::Cancelled, service.poll(*t0));
+  open = service.listOpenTickets();
+  ASSERT_EQ(1u, open.size());
+  EXPECT_EQ(t1->id, open[0].id);
+}
+
 TEST(WorldGenerationComputeTest, DenseUint32EqNeBitReverseExactCpuAndShadow) {
   WorldGenerationComputeService service;
   auto input = edgeCorpus();
