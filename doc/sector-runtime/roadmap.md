@@ -478,8 +478,9 @@ do kernel CPU e do resultado versionado.
 - [x] GPU-02: fila/buffers em voo/pump/failContext + stagingSnapshot +
   adoptOwnerThread + cancel/poll/completeBatch + listOpenTickets +
   cancelAll + ticketIsOpen/clearRejectedDuplicates + drainOpenTickets +
-  peakOpenTickets (primeiro recorte 25%; integração WorldThread pendente).
-- [x] GPU-03: kernels densos DenseUint32* incl. Bswap/Parity/BitTest +
+  peakOpenTickets + list/countOpenTicketsByKernel (primeiro recorte 25%;
+  integração WorldThread pendente).
+- [x] GPU-03: kernels densos DenseUint32* incl. HasZeroByte/NextPow2/MaskLow +
   submitBatch (primeiro recorte 25%; terreno/bioma/ganho pendentes).
 - [x] GPU-04: compareShadow/compareShadowBatch + commit/RngStream +
   fingerprintIdentity + summarizeShadowReports (primeiro recorte 25%;

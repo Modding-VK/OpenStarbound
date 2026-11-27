@@ -9,10 +9,11 @@ liberar CPU para outros produtores. O renderer atual negocia contexto OpenGL
 moderno quando disponível, mas não fornece uma API de compute de worldgen.
 
 **Estado (27/11/2026, `cursor/h4-gpu-shadow-9f77`):** GPU-01/02/03/04 no
-primeiro marco (25%). Lote OrNot/drain/peak a mergear na INT. Recortes
-asset-free seguintes: `DenseUint32Bswap/Parity/BitTest`, `runNamedKernel`,
-`isBackendSupported`. Build **normal** não claima OpenGL compute. Ver
-[bswap/named/backend](../sector-runtime-h4-gpu01-03-bswap-named-backend-2026-11-27.md).
+primeiro marco (25%). Lote Bswap/named na INT (`deb9c018`). Recortes
+asset-free seguintes: `DenseUint32HasZeroByte/NextPow2/MaskLow`,
+`listOpenTicketsByKernel`, `countOpenTicketsByKernel`. Build **normal** não
+claima OpenGL compute. Ver
+[haszerobyte/bykernel](../sector-runtime-h4-gpu02-03-haszerobyte-bykernel-2026-11-27.md).
 Sem 50% enquanto terreno/bioma/ganho e multi-driver faltarem.
 
 ## GPU-01 — Interface e capacidades
