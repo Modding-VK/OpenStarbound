@@ -171,7 +171,10 @@ enum class WorldGenerationComputeKernel : uint8_t {
   DenseUint32HalfRotr = 145, // rotate low16 right by (high16 & 15); parameter ignored
   DenseUint32HalfPopcount = 146, // popcount(low16); parameter ignored
   DenseUint32HalfClz = 147, // leading zero count of low16 in 16-bit width; 16 if low16==0; parameter ignored
-  DenseUint32HalfCtz = 148 // trailing zero count of low16; 16 if low16==0; parameter ignored
+  DenseUint32HalfCtz = 148, // trailing zero count of low16; 16 if low16==0; parameter ignored
+  DenseUint32HalfParity = 149, // popcount(low16) & 1; parameter ignored
+  DenseUint32HalfBitReverse = 150, // reverse bits of low16; parameter ignored
+  DenseUint32HalfBswap = 151 // swap bytes of low16; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -379,6 +382,8 @@ public:
   size_t countCancelledOpenKernels() const;
   // True while any Cancelled open ticket exists (asset-free observation).
   bool anyCancelledOpenKernels() const;
+  // Distinct identity.kernel values among Pending open tickets (asset-free).
+  List<WorldGenerationComputeKernel> listPendingOpenKernels() const;
   // Open tickets whose identity.kernel matches (asset-free observation).
   List<WorldGenerationComputeTicket> listOpenTicketsByKernel(
       WorldGenerationComputeKernel kernel) const;
