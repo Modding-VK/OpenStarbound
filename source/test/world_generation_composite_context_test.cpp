@@ -174,3 +174,37 @@ TEST(WorldGenerationCompositeContextTest, DestroyingCompositeReleasesSelectorAdm
   EXPECT_TRUE(WorldGenerationCompositeContext::tryCapture(ledger, selectorIdentity(revision, 128, -37.f, 917, 2),
       baseTilesIdentity(revision), *world, false).has_value());
 }
+
+TEST(WorldGenerationCompositeContextTest, ReconstructPureInputsMatchesMaterializedSelectors) {
+  auto world = Access::planet(JsonObject{{"biomeTransitionThreshold", 0.5}});
+  auto revision = world->generationRevision();
+  auto selectors = selectorIdentity(revision);
+  auto baseTiles = baseTilesIdentity(revision);
+
+  Random::init(441);
+  WorldGenerationMemoryLedger ledger;
+  auto context = WorldGenerationCompositeContext::tryCapture(ledger, selectors, baseTiles, *world);
+  ASSERT_TRUE(context.has_value());
+  auto nextAfterCapture = Random::randu64();
+
+  // Poison global RNG; PureKernel reconstruction must ignore it and not draw.
+  Random::init(7);
+  auto pure = context->reconstructPureInputs();
+  EXPECT_EQ(1u, WorldGenerationCompositeContext::PureInputs::ModelVersion);
+  EXPECT_EQ(context->terrain().toJson(), pure.terrain.toJson());
+  EXPECT_EQ(context->foregroundCave().toJson(), pure.foregroundCave.toJson());
+  EXPECT_EQ(context->backgroundCave().toJson(), pure.backgroundCave.toJson());
+  EXPECT_TRUE(pure.baseTiles.matches(baseTiles));
+  EXPECT_EQ(selectors.worldWidth, pure.terrain.worldWidth);
+  EXPECT_EQ(bits(selectors.baseHeight), bits(pure.terrain.baseHeight));
+
+  auto again = context->reconstructPureInputs();
+  EXPECT_EQ(pure.terrain.toJson(), again.terrain.toJson());
+  EXPECT_EQ(pure.baseTiles, again.baseTiles);
+
+  // Same post-capture sequence after reconstruct (no extra global draws).
+  Random::init(441);
+  WorldGenerationMemoryLedger verify;
+  ASSERT_TRUE(WorldGenerationCompositeContext::tryCapture(verify, selectors, baseTiles, *world).has_value());
+  EXPECT_EQ(nextAfterCapture, Random::randu64());
+}

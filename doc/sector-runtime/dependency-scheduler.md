@@ -71,6 +71,19 @@ Primeira implementação em sombra: confrontar o grafo com o caminho recursivo,
 registrando divergências sem mudar resultados. Depois permitir antecipação
 pura; publicação fora da sequência antiga exige validação própria.
 
+Primeiro recorte H1 (`cursor/h1-graph-cpu-9f77`, 27/11/2026):
+`WorldGenerationExecutiveShadowGraph` ingere planos recursivos com nós
+compartilhados, demanda por consumidor e arestas de preparação/publicação
+separadas; `comparePreparationToPlan` / `comparePublicationToPlan` só
+registram divergências. Ver
+[relatório](../sector-runtime-h1-executive-shadow-2026-11-27.md). Ainda não há
+mailbox nem ligação ao caminho de geração ao vivo.
+
+Recorte seguinte (27/11/2026): `applyInterest` / `clearInterest` /
+`anticipatePreparation` / `unloadSector` na sombra; demanda compartilhada
+bloqueia unload. Ver
+[interest/priority](../sector-runtime-h1-executive-interest-priority-2026-11-27.md).
+
 ## DAG-03 — Prioridade, justiça e distância correta
 
 Definir prioridade por classe de interesse, prazo estimado de chegada, idade
@@ -86,6 +99,13 @@ sem renovação oculta causada por prioridade.
 Registrar quem foi escolhido, qual razão e qual bloqueador impediu o avanço,
 com cardinalidade limitada. Não confundir total de bloqueios com quantidade
 de dungeons executadas.
+
+Recorte H1 sombra (27/11/2026): `WorldGenerationExecutivePriority` pontua
+interesse/distância(wrap)/idade/eta/unlock e `selectFair` / `selectFairTraced`
+aplicam TTL e teto de Background sem renovar `ageTick`. Auxiliares herdam
+urgência do consumidor Visible. Contrato em 50% local; 75% exige integração
+viva. Ver
+[interest/priority](../sector-runtime-h1-executive-interest-priority-2026-11-27.md).
 
 ## DAG-04 — Conclusões e progresso dentro da passagem
 
@@ -114,6 +134,12 @@ Não fazer um worker aguardar uma tarefa que só pode começar na mesma pool
 ocupada. A dona também não espera um produtor individual enquanto houver
 outro caminho executável.
 
+Recorte H1 sombra (27/11/2026): `WorldGenerationExecutiveMailbox` posta/consome
+mensagens com token imutável e ticks separados; aplica sucesso/falha só na
+sombra. Ver
+[cancel/mailbox](../sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md).
+Não substitui a mailbox executiva no caminho vivo.
+
 ## DAG-05 — Cancelamento, falha e invalidação
 
 ```text
@@ -131,6 +157,10 @@ o resultado antigo, mesmo que o endereço de memória seja reutilizado.
 Revisões de conteúdo e de template precisam ser independentes de cache
 derivado de colisão. Um retry tem motivo e limite, seguido de fallback
 documentado; falha de geração essencial não vira sucesso vazio.
+
+Primeiro recorte H1 sombra (27/11/2026): invalidate/cancel/executing/drain/retry
+em `WorldGenerationExecutiveShadowGraph`. Ver
+[cancel/mailbox](../sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md).
 
 ## Interfaces e aceitação
 

@@ -46,6 +46,12 @@ de uma interrupção artificial.
 Aceitação: resultado já pronto não ganha uma rodada extra sem motivo; testes
 de completions fora de ordem conservam justiça e sequência dos efeitos.
 
+Primeiro recorte H1 sombra (27/11/2026):
+`WorldGenerationExecutiveScheduler::drainMailbox` consome a mailbox e aplica
+à sombra sem rodada artificial; `complete` separa término do worker da
+observação. Ver
+[cancel/mailbox/scheduler](../sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md).
+
 ## WT-02 — Orçamento produtivo e resposta do jogo
 
 Separar tempo de simulação, preparação, publicação e montagem de pacotes.
@@ -60,6 +66,11 @@ aplicar duas vezes a física ou Lua de uma entidade no mesmo passo.
 Aceitação: teto concedido, tempo gasto e causa de saída são comparáveis;
 ganho em entrega não vem de simulação acelerada ou pacotes contraditórios.
 
+Primeiro recorte H1 sombra (27/11/2026): `runPass` aplica tetos de starts/
+drain/deadline e devolve `WorldGenerationExecutivePassExitReason` com
+contagens e ticks began/ended. Não altera `dt` de simulação nem monta pacotes.
+Ver [cancel/mailbox/scheduler](../sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md).
+
 ## WT-03 — Entrada síncrona em lote
 
 Gerar o plano de demanda da região inteira antes de aguardar sua conclusão.
@@ -71,7 +82,18 @@ Aceitação: entrada no planeta reproduz output e estado ativo, mas consegue
 executar vários produtores independentes antes da primeira espera. Benchmark
 de startup fica separado do streaming contínuo.
 
+Primeiro recorte H2: `WorldGenerationRegionDemandBatch` planeja/admite/marca
+ready|failed|cancelled por setor da região antes de qualquer espera. Sem
+integração ao WorldThread nem benchmark de startup. Ver
+[relatório](../sector-runtime-h2-resident-prefetch-batch-io-2026-11-27.md).
+
 ## WT-04 — Publicação mais barata
+
+Primeiro recorte em `cursor/h3-kernels-publication-9f77`:
+`WorldGenerationPublicationPass` avança staging invisível sob orçamento de
+passagem, confirma dirty diferido só na fronteira lógica e descarta stale
+sem publish vivo. Ver
+[relatório](../sector-runtime-h3-publication-pass-2026-11-27.md).
 
 Receber deltas tipados e operações preparadas. Agrupar invalidação de colisão,
 marcações dirty e notificações somente quando a equivalência observável for

@@ -19,9 +19,11 @@ das 49 tarefas, fila imediata, evidências e regra de atualização. Percentuais
 medem marcos de maturidade do novo programa, não tempo restante ou ganho de CPU.
 
 O [roadmap H0–H5/R1–R2](roadmap.md) governa a sequência de implementação;
-planos anteriores permanecem como apoio e histórico. A frente ativa é H0,
-começando por identidade estável e validação acelerada antes de ampliar
-admissão e concorrência. O primeiro recorte de DAG-01 troca índices de
+planos anteriores permanecem como apoio e histórico. Nesta branch a frente
+ativa de implementação é H2 (`cursor/h2-products-prefetch-9f77`); H0 segue
+em `Experimental`. O painel e o
+[relatório PreparedSector](../sector-runtime-h2-prepared-sector-2026-11-27.md)
+registram o estado atual. O primeiro recorte de DAG-01 troca índices de
 colocações por IDs monotônicos e possui
 [relatório próprio](../sector-runtime-h0-placement-identities-2026-11-08.md).
 O [recorte de streaming](../sector-runtime-h0-streaming-pass-2026-11-09.md)

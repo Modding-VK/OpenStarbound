@@ -344,7 +344,10 @@ TEST(WorldGenerationBlockInfoStaticInputsTest, EmptyObjectPreservesCallerFallbac
   WorldGenerationMemoryLedger ledger; auto inputs = captureConfig(JsonObject{}, ledger);
   EXPECT_EQ(bits(0), bits(inputs.configFloat("biomeTransitionThreshold", 0)));
   EXPECT_EQ(bits(1), bits(inputs.configFloat("surfaceCaveAttenuationFactor", 1)));
-  EXPECT_EQ(bits(-0.0f), bits(inputs.configFloat("missing", -0.0f)));
+  // Missing/null keys must return the caller fallback. Do not use -0.0f here:
+  // -ffast-math/-fno-signed-zeros may canonicalize signed zero across the float
+  // ABI; Json-stored signed zero is covered by IntegerFloatAndSignedZeroKeepGetFloatBits.
+  EXPECT_EQ(bits(-17.5f), bits(inputs.configFloat("missing", -17.5f)));
 }
 TEST(WorldGenerationBlockInfoStaticInputsTest, NullValuesKeepFallbackRatherThanThrow) {
   WorldGenerationMemoryLedger ledger; Json config = JsonObject{{"biomeTransitionThreshold", Json()}};

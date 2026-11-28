@@ -56,6 +56,18 @@ TARGET_LINK_LIBRARIES (make_versioned_json PRIVATE ${STAR_EXT_LIBS})
 #  fix_embedded_tilesets.cpp)
 #TARGET_LINK_LIBRARIES (fix_embedded_tilesets ${STAR_EXT_LIBS})
 
+# Opt-in OpenGL compute probe for H4 (Windows/RTX validator). Built only when
+# STAR_ENABLE_WORLDGEN_GL_COMPUTE=ON; excluded from default ALL when flag is off.
+IF(STAR_ENABLE_WORLDGEN_GL_COMPUTE)
+  ADD_EXECUTABLE (world_generation_gl_compute_probe
+    $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base> $<TARGET_OBJECTS:star_game>
+    world_generation_gl_compute_probe.cpp)
+  TARGET_LINK_LIBRARIES (world_generation_gl_compute_probe PRIVATE ${STAR_EXT_LIBS})
+  IF(STAR_ENABLE_TRACY)
+    TARGET_LINK_LIBRARIES (world_generation_gl_compute_probe PRIVATE Tracy::TracyClient)
+  ENDIF()
+ENDIF()
+
 # This benchmark is opt-in because it is a developer tool and requires game assets at runtime.
 ADD_EXECUTABLE (world_benchmark EXCLUDE_FROM_ALL
   $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base> $<TARGET_OBJECTS:star_game>

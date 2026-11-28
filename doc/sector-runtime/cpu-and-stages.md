@@ -122,6 +122,16 @@ global; comparador de outputs cobre a mudança de contexto e de worker.
 
 ## CPU-02 — Produto `PreparedSector`
 
+Recorte em `cursor/h2-products-prefetch-9f77`:
+`WorldGenerationPreparedSectorIdentity` + `WorldGenerationPreparedSector`
+retêm chave/revisão na cache residente, com `tryConsume` só após
+revalidação do dono e sem publicação. O handle consome as formas H1
+`payloadView` / `worldStoragePath` / `probeHandoff` sem escrever
+WorldStorage (`writesWorldStorage=false`; BaseTiles sombra
+`NotAuthorized`). Ver [identidade](../sector-runtime-h2-prepared-sector-2026-11-27.md)
+e [consumo](../sector-runtime-h2-prepared-sector-consume-2026-11-27.md).
+Payloads reais tipados e install autorizado continuam abertos.
+
 Representar resultados independentes num produto versionado:
 
 | Produto | Inputs | Consumo autoritativo |
@@ -141,6 +151,11 @@ BaseTiles e seleção de candidatos percorrem dados semelhantes; compartilhar
 cálculo e cache local antes de criar mais produtores independentes. Finalize
 continua filtrando pelo `dungeonId` e pelos efeitos reais da geração anterior.
 
+Recorte H1 sombra (27/11/2026): `WorldGenerationPreparedSectorStore` guarda
+Empty/OrderedCandidates/BaseTilesPrivate/TerrainFields/StepDelta, expõe
+`payloadView` / `worldStoragePath` / `probeHandoff` sem escrever WorldStorage.
+Ver [prepared sector](../sector-runtime-h1-prepared-sector-2026-11-27.md).
+
 ## CPU-03 — Executor processual e granularidade
 
 Coordenar a capacidade CPU usada pelos mundos, decode, compressão e tarefas
@@ -158,7 +173,25 @@ setor mantém identidade, seed, resultados e cancelamento individuais. Reduzir
 lote que atrase o setor urgente. Uma janela grande de jobs pode ocultar
 latência; uma janela excessiva pode apenas produzir resultados stale.
 
+Primeiro recorte H1 sombra (27/11/2026):
+`WorldGenerationExecutiveScheduler` escolhe um nó da frontier via
+`selectFair`, marca executing e completa via mailbox. Sem pool física,
+afinidade ou lote multi-setor. Ver
+[cancel/mailbox/scheduler](../sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md).
+
 ## CPU-04 — Extração por etapa
+
+Recortes em `cursor/h3-kernels-publication-9f77`:
+`WorldGenerationCaveLiquidPlan` (seeds + delta de pressão),
+`WorldGenerationFinalizePlan` (normalização oceano/cores/`collisionCacheDirty`)
+`WorldGenerationFloraSpawnPlan` (grass-mod + spawn intents) e
+`WorldGenerationReplaceBiomePlan` (placeholders → materiais/hues) sobre
+amostras privadas, com `tryConsume` só após revalidação e sem publicação.
+Ver [CaveLiquid](../sector-runtime-h3-cave-liquid-plan-2026-11-27.md),
+[Finalize](../sector-runtime-h3-finalize-normalize-2026-11-27.md),
+[Flora/spawn](../sector-runtime-h3-flora-spawn-plan-2026-11-27.md) e
+[ReplaceBiome](../sector-runtime-h3-replace-biome-plan-2026-11-27.md).
+Collision autoritativa e equivalência viva continuam abertos.
 
 **BaseTiles:** preservar materiais preexistentes e regras de oceanos/bioma.
 O cálculo já é privado; reduzir cópias e publicação/invalidação de colisão
@@ -202,6 +235,10 @@ e manual. Nomes são conceitos de produto, não chaves atuais. Alto throughput
 aceita consumo elevado conforme alvos escolhidos, sem exigir mudança do
 `dt`. GPU integrada e render também disputam banda/memória; medir a carga
 combinada é parte do controle.
+
+Primeiro recorte H1 sombra (27/11/2026): `WorldGenerationResourceGovernor`
+mapeia observação → orçamento de passagem. Ver
+[resource governor](../sector-runtime-h1-resource-governor-2026-11-27.md).
 
 ## Melhorias esperadas e aceitação
 

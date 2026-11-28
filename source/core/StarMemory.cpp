@@ -105,8 +105,11 @@ namespace Star {
 
 }
 
-#ifndef  STAR_USE_RPMALLOC
-
+// rpmalloc installs global new/delete via rpnew.h. Unprefixed jemalloc does
+// the same in jemalloc_cpp.cpp; defining both breaks the Linux link of test
+// binaries (multiple definition of operator new/delete). Prefixed jemalloc
+// (Windows/macOS) still needs the overrides below to call je_*.
+#if !defined(STAR_USE_RPMALLOC) && !(defined(STAR_USE_JEMALLOC) && !defined(STAR_JEMALLOC_IS_PREFIXED))
 
 void* operator new(std::size_t size) {
   auto ptr = Star::malloc(size);

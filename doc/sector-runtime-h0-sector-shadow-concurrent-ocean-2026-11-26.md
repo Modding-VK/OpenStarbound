@@ -19,4 +19,6 @@ ASan/UBSan: 1×5; **106/106** RealBlockInfo.
 
 ## Próximo passo
 
-Gates H0 restantes antes de H1. Não disparar Actions.
+Handoffs concorrentes oceano em
+[concurrent ocean handoff](sector-runtime-h0-sector-shadow-concurrent-ocean-handoff-2026-11-27.md).
+Segue gates H0 restantes. Não disparar Actions.

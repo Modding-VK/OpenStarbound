@@ -174,9 +174,19 @@ SET (star_game_HEADERS
     StarWorldClientState.hpp
     StarWorldGeneration.hpp
     StarWorldGenerationDependency.hpp
+    StarWorldGenerationExecutiveShadow.hpp
+    StarWorldGenerationExecutivePriority.hpp
+    StarWorldGenerationExecutiveMailbox.hpp
+    StarWorldGenerationExecutiveScheduler.hpp
+    StarWorldGenerationPreparedSector.hpp
+    StarWorldGenerationResourceGovernor.hpp
     StarWorldGenerationMemory.hpp
     StarWorldGenerationMemoryEnvelope.hpp
     StarWorldGenerationMemoryPressure.hpp
+    StarWorldGenerationProductRevisionCache.hpp
+    StarWorldGenerationPrefetchPlan.hpp
+    StarWorldGenerationRegionDemandBatch.hpp
+    StarWorldGenerationDecodePromotion.hpp
     StarWorldGenerationHardwareSelection.hpp
     StarWorldGenerationDeliveryMetrics.hpp
     StarWorldGenerationScaleMetrics.hpp
@@ -188,7 +198,6 @@ SET (star_game_HEADERS
     StarWorldGenerationAdoptionGates.hpp
     StarWorldGenerationEquivalenceVersion.hpp
     StarWorldGenerationPlatformMatrix.hpp
-    StarWorldGenerationResourceGovernor.hpp
     StarWorldGenerationMemoryRetry.hpp
     StarWorldGenerationBaseTileLiquid.hpp
     StarWorldGenerationBaseTileInput.hpp
@@ -197,6 +206,25 @@ SET (star_game_HEADERS
     StarWorldGenerationLookupSources.hpp
     StarWorldGenerationLookupResolver.hpp
     StarWorldGenerationBaseTiles.hpp
+    StarWorldGenerationCandidateSequence.hpp
+    StarWorldGenerationEffectBoundary.hpp
+    StarWorldGenerationCaveLiquidPlan.hpp
+    StarWorldGenerationFinalizePlan.hpp
+    StarWorldGenerationFloraSpawnPlan.hpp
+    StarWorldGenerationReplaceBiomePlan.hpp
+    StarWorldGenerationTmxStaticProduct.hpp
+    StarWorldGenerationTmxStaticDecode.hpp
+    StarWorldGenerationTmxShadowAssets.hpp
+    StarWorldGenerationTmxShadowCache.hpp
+    StarWorldGenerationTmxBindingPlan.hpp
+    StarWorldGenerationStructureCommandPlan.hpp
+    StarWorldGenerationStructureBatchStaging.hpp
+    StarWorldGenerationPublicationPass.hpp
+    StarWorldGenerationShadowDb.hpp
+    StarWorldGenerationShadowCheckpoint.hpp
+    StarWorldGenerationShadowUnload.hpp
+    StarWorldGenerationShadowPacket.hpp
+    StarWorldGenerationShadowIntegration.hpp
     StarWorldGenerationBlockInfo.hpp
     StarWorldGenerationCustomTerrain.hpp
     StarWorldGenerationBlockInfoStaticInputs.hpp
@@ -212,8 +240,22 @@ SET (star_game_HEADERS
     StarWorldGenerationPass.hpp
     StarWorldGenerationPlacementQueue.hpp
     StarWorldGenerationTasks.hpp
+    StarWorldGenerationCompute.hpp
+    StarWorldGenerationComputeGl.hpp
+    StarWorldGenerationComputeRuntime.hpp
     StarWorldRegionPartition.hpp
     StarWorldRegionCoordinator.hpp
+    StarWorldRegionOwner.hpp
+    StarWorldRegionBorder.hpp
+    StarWorldRegionRuntime.hpp
+    StarWorldRegionLocalState.hpp
+    StarWorldRegionCheckpoint.hpp
+    StarWorldRegionAuthority.hpp
+    StarWorldRegionThreadStub.hpp
+    StarWorldRegionCrossOp.hpp
+    StarWorldRegionEntityHandoff.hpp
+    StarWorldRegionRecovery.hpp
+    StarWorldRegionAuthoritativeOps.hpp
     StarWorldImpl.hpp
     StarWorldLayout.hpp
     StarWorldParameters.hpp
@@ -497,16 +539,38 @@ SET (star_game_SOURCES
     StarWorldClientState.cpp
     StarWorldGeneration.cpp
     StarWorldGenerationDependency.cpp
+    StarWorldGenerationExecutiveShadow.cpp
+    StarWorldGenerationExecutivePriority.cpp
+    StarWorldGenerationExecutiveMailbox.cpp
+    StarWorldGenerationExecutiveScheduler.cpp
+    StarWorldGenerationPreparedSector.cpp
+    StarWorldGenerationResourceGovernor.cpp
     StarWorldGenerationMemory.cpp
     StarWorldGenerationBaseTiles.cpp
+    StarWorldGenerationCandidateSequence.cpp
+    StarWorldGenerationEffectBoundary.cpp
     StarWorldGenerationCustomTerrain.cpp
     StarWorldGenerationBlockInfoStaticInputs.cpp
     StarTileDamageState.cpp
     StarWorldGenerationMemoryEnvelope.cpp
     StarWorldGenerationMemoryEstimate.cpp
     StarWorldGenerationTasks.cpp
+    StarWorldGenerationCompute.cpp
+    StarWorldGenerationComputeGl.cpp
+    StarWorldGenerationComputeRuntime.cpp
     StarWorldRegionPartition.cpp
     StarWorldRegionCoordinator.cpp
+    StarWorldRegionOwner.cpp
+    StarWorldRegionBorder.cpp
+    StarWorldRegionRuntime.cpp
+    StarWorldRegionLocalState.cpp
+    StarWorldRegionCheckpoint.cpp
+    StarWorldRegionAuthority.cpp
+    StarWorldRegionThreadStub.cpp
+    StarWorldRegionCrossOp.cpp
+    StarWorldRegionEntityHandoff.cpp
+    StarWorldRegionRecovery.cpp
+    StarWorldRegionAuthoritativeOps.cpp
     StarWorldLayout.cpp
     StarWorldParameters.cpp
     StarWorldPerformance.cpp

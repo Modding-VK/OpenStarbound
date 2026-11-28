@@ -65,6 +65,10 @@ void fill(ServerTileSectorArray::Array& array, unsigned width = 32, unsigned hei
     for (unsigned y = 0; y < height; ++y) populate(array(x, y), x * 32 + y);
 }
 float bits(uint32_t value) { float result; static_assert(sizeof(result) == sizeof(value)); std::memcpy(&result, &value, sizeof(result)); return result; }
+void storeBits(float& dest, uint32_t value) {
+  static_assert(sizeof(dest) == sizeof(value));
+  std::memcpy(&dest, &value, sizeof(dest));
+}
 void legacyLiquid(LiquidStore& store, WorldGenerationBaseTileLiquidInput const& in) {
   if (in.foreground != EmptyMaterialId) store = LiquidStore();
   else if (in.oceanLiquid != EmptyLiquidId && in.y < in.oceanLiquidLevel) {
@@ -251,9 +255,15 @@ TEST(WorldGenerationBaseTilesTest, DerivedDamageEffectIsComparedWithoutRecomputi
 }
 
 TEST(WorldGenerationBaseTilesTest, LiquidFloatBitsPreserveZeroSignsAndNanPayloads) {
-  Pair pair; pair.a.liquid.level = 0.0f; pair.b.liquid.level = -0.0f; expectOnly(pair, Field::LiquidLevel);
-  pair.a.liquid.level = pair.b.liquid.level = bits(0x7fc00001u); EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
-  pair.b.liquid.level = bits(0x7fc00002u); expectOnly(pair, Field::LiquidLevel);
+  Pair pair;
+  storeBits(pair.a.liquid.level, 0x00000000u);
+  storeBits(pair.b.liquid.level, 0x80000000u);
+  expectOnly(pair, Field::LiquidLevel);
+  storeBits(pair.a.liquid.level, 0x7fc00001u);
+  storeBits(pair.b.liquid.level, 0x7fc00001u);
+  EXPECT_TRUE(compareWorldGenerationBaseTile(pair.a, pair.b).equal());
+  storeBits(pair.b.liquid.level, 0x7fc00002u);
+  expectOnly(pair, Field::LiquidLevel);
 }
 
 TEST(WorldGenerationBaseTilesTest, RootSourcePresenceIsNotTheSameAsTheZeroCoordinate) {
@@ -692,8 +702,10 @@ TEST(WorldGenerationBaseTileObservationTest, EveryRelevantOriginalFieldIsChecked
       [](auto& t) { ++t.foregroundModHueShift; }, [](auto& t) { ++t.foregroundColorVariant; },
       [](auto& t) { t.background = 3; }, [](auto& t) { ++t.backgroundHueShift; }, [](auto& t) { t.backgroundMod = 3; },
       [](auto& t) { ++t.backgroundModHueShift; }, [](auto& t) { ++t.backgroundColorVariant; },
-      [](auto& t) { ++t.liquid.liquid; }, [](auto& t) { t.liquid.level = -0.0f; },
-      [](auto& t) { t.liquid.pressure = bits(0x7fc00001u); }, [](auto& t) { t.liquid.source = !t.liquid.source; }}};
+      [](auto& t) { ++t.liquid.liquid; },
+      [](auto& t) { storeBits(t.liquid.level, 0x80000000u); },
+      [](auto& t) { storeBits(t.liquid.pressure, 0x7fc00001u); },
+      [](auto& t) { t.liquid.source = !t.liquid.source; }}};
   auto observation = capturedTile();
   for (auto change : changes) {
     Pair pair; missing(pair); change(pair.a); change(pair.b);

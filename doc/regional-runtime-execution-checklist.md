@@ -1,7 +1,7 @@
 # Checklist operacional do runtime regional
 
-**Branch:** `Experimental`  
-**Estado:** fundações em andamento; nenhuma escrita paralela no mundo está autorizada ainda.
+**Branch:** `cursor/r1-regional-owners-9f77` (R1); H0 segue em `Experimental`  
+**Estado:** REG-01 identidade/lifecycle em harness; nenhuma escrita paralela no mundo está autorizada ainda.
 
 Este documento consolida as entregas distribuídas entre os planos de geração,
 regiões, microdungeons, persistência, objetos e diagnóstico.
@@ -38,11 +38,10 @@ histórico, sem outra fila de prioridades. O
 [painel de progressão](sector-runtime/progress.md) consolida percentuais por
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
-Frente ativa nesta branch H5: seleção de hardware/escala. O relatório atual é
+Frente ativa nesta branch H5: seleção de hardware/escala. Base absorvida:
+INT tip `191cb6e4` (H4 WorldThread runtime `76ab0fa2`). Relatório atual:
 [H5 WorldThread scale adapter](sector-runtime-h5-worldthread-scale-adapter-2026-11-28.md)
-(antecedentes [fingerprint](sector-runtime-h5-scale-evidence-fingerprint-2026-11-27.md),
-[desktop attestation](sector-runtime-h5-desktop-probe-attestation-2026-11-27.md),
-[profile advice](sector-runtime-h5-scale-profile-advice-2026-11-27.md)).
+· [H4 worldthread runtime](sector-runtime-h4-gpu-m50-worldthread-runtime-2026-11-28.md).
 H0 permanece em `Experimental` com
 [Concurrent ocean](sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
 e [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
@@ -246,9 +245,42 @@ executivo e o planejador menor são propostas, ainda não implementadas.
 
 - [ ] H0/H1: estabilizar IDs, baseline de streaming e grafo executivo com
   preparação CPU/limites processuais; verificar entrega e ordem dos efeitos.
-- [ ] H2: produtos `PreparedSector`, caches versionadas e prefetch por rota,
-  com orçamento de RAM e contabilização de memória compartilhada.
-- [ ] H3: ampliar kernels CPU e preparar batches de publicação validáveis.
+- [x] H2 (primeiro marco dos 6 contratos): cache versionada, retenção,
+  prefetch planejado, batch regional e ticket de promoção Prefetch→Visible em
+  `cursor/h2-products-prefetch-9f77`.
+- [x] CPU-02 (primeiro marco, entrada H1 / continua em H2): identidade e
+  handle `PreparedSector` residente sem publicação (API canônica H1 na integração).
+- [ ] H2 restante: payloads `PreparedSector`/BaseTiles reais, WorldStorage,
+  WorldThread startup e justiça multi-mundo.
+- [x] H3 (CPU-04 + MD-02..05 + WT-04 + IO-02..05 sombra): kernels/
+  estruturas/IO harness em `cursor/h3-kernels-publication-9f77`
+  ([CaveLiquid](sector-runtime-h3-cave-liquid-plan-2026-11-27.md),
+  [Finalize](sector-runtime-h3-finalize-normalize-2026-11-27.md),
+  [TMX static](sector-runtime-h3-tmx-static-product-2026-11-27.md),
+  [TMX binding](sector-runtime-h3-tmx-binding-plan-2026-11-27.md),
+  [Structure commands](sector-runtime-h3-structure-command-plan-2026-11-27.md),
+  [Batch staging](sector-runtime-h3-structure-batch-staging-2026-11-27.md),
+  [Publication pass](sector-runtime-h3-publication-pass-2026-11-27.md),
+  [Shadow DB](sector-runtime-h3-shadow-db-2026-11-27.md),
+  [Shadow checkpoint](sector-runtime-h3-shadow-checkpoint-2026-11-27.md),
+  [Shadow unload](sector-runtime-h3-shadow-unload-2026-11-27.md),
+  [Shadow packet](sector-runtime-h3-shadow-packet-2026-11-27.md),
+  [Shadow integration](sector-runtime-h3-shadow-integration-2026-11-27.md)).
+- [x] H3 integração cruzada sombra WT-04→IO-03→IO-05 (sem elevação a 50%).
+- [x] H3 flora/spawn sombra (CPU-04 adicional; sem elevação a 50%)
+  ([Flora/spawn](sector-runtime-h3-flora-spawn-plan-2026-11-27.md)).
+- [x] H3 replaceBiomeBlocks sombra (CPU-04 adicional; sem elevação a 50%)
+  ([ReplaceBiome](sector-runtime-h3-replace-biome-plan-2026-11-27.md)).
+- [x] H3 decode Json TMX sombra (MD-02 adicional; sem elevação a 50%)
+  ([TMX decode](sector-runtime-h3-tmx-static-decode-2026-11-27.md)).
+- [x] H3 codec TMX gzip/zlib/zstd sombra (MD-02 adicional; sem elevação a 50%)
+  ([TMX codec](sector-runtime-h3-tmx-static-codec-2026-11-27.md)).
+- [x] H3 Assets-backed TMX decode sombra (fixture in-memory; sem elevação a 50%)
+  ([TMX Assets-fixture](sector-runtime-h3-tmx-shadow-assets-2026-11-27.md)).
+- [x] H3 cache/reload TMX sombra (MD-02 adicional; sem elevação a 50%)
+  ([TMX cache](sector-runtime-h3-tmx-shadow-cache-2026-11-27.md)).
+- [ ] H3 além do primeiro recorte: equivalência viva / publish autoritativo
+  só com `apis_ready` live-publish.
 - [ ] H4/H5: GPU compute opcional, comparação CPU/GPU em sombra, seleção por
   custo e orçamento de VRAM/latência; manter execução CPU independente.
   Recorte inicial H5: seletor por custo com fallback CPU
@@ -596,3 +628,11 @@ etapa acima.
   bloqueio: examina cadeias posteriores já prontas antes do fallback legado de
   BaseTiles-only, sem escrita concorrente, TTL novo ou interesse implícito.
   Requer comparação de entrega, expirações, justiça e saves/mods.
+
+## Política merge H4/H5 (timer + idle antecipado)
+1. Timer 15–20 min CONTINUA — ao vencer, merge lote mesmo com frentes ativas.
+2. Idle antecipado — todas frentes de dev idle antes do timer → merge imediato.
+3. Nunca tip-a-tip. 1 Build tip final se Build anterior terminal; sem spam.
+4. **H4 filtro material (02:02Z):** ignorar micro-lotes DenseUint32/rejectedDuplicates*;
+   merge H4 só tips reais rumo a 50% (GL/terreno/bioma/WorldThread/multi-driver/ganho).
+

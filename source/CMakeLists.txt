@@ -140,6 +140,7 @@ endif()
 
 option(STAR_LUA_APICHECK "Use lua api checks" OFF)
 option(STAR_ENABLE_TRACY "Enable diagnostic Tracy profiling" OFF)
+option(STAR_ENABLE_WORLDGEN_GL_COMPUTE "Opt-in OpenGL compute probe/harness for worldgen (diagnostic; Windows/RTX)" OFF)
 option(STAR_USE_JEMALLOC "Use jemalloc allocators" OFF)
 option(STAR_USE_MIMALLOC "Use mimalloc allocators" OFF)
 option(STAR_USE_RPMALLOC "Use rpmalloc allocators" OFF)
@@ -586,6 +587,19 @@ if(STAR_BUILD_GUI)
     find_package(DiscordApi REQUIRED)
     set(STAR_EXT_GUI_LIBS ${STAR_EXT_GUI_LIBS} ${DISCORD_API_LIBRARY})
   endif()
+endif()
+
+# Diagnostic worldgen GL compute: real probe/dispatch. Keep OFF for normal builds.
+# Requires GUI deps (SDL3/OpenGL/GLEW). Local Windows/RTX validator enables this.
+if(STAR_ENABLE_WORLDGEN_GL_COMPUTE)
+  if(NOT STAR_BUILD_GUI)
+    message(FATAL_ERROR "STAR_ENABLE_WORLDGEN_GL_COMPUTE requires STAR_BUILD_GUI=ON")
+  endif()
+  add_definitions(-DSTAR_ENABLE_WORLDGEN_GL_COMPUTE)
+  set(STAR_EXT_LIBS ${STAR_EXT_LIBS} ${STAR_EXT_GUI_LIBS})
+  message(STATUS "Worldgen OpenGL compute probe: ON (diagnostic; not a normal-build claim)")
+else()
+  message(STATUS "Worldgen OpenGL compute probe: OFF")
 endif()
 
 # Set basic build flags, include all the relevant source directories, based on

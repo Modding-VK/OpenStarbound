@@ -423,15 +423,30 @@ espera reproduzíveis. Não depende de uma nova amostra TMX para começar.
 Propósito: transformar orçamento e núcleos livres em progresso de setores.
 Depende de H0 para identidade e comparação.
 
-- [ ] DAG-02: nós compartilhados, demanda por consumidor e grafo em sombra.
-- [ ] DAG-03: prioridade herdada, justiça e distância com wrap.
-- [ ] DAG-04/05: mailbox, revalidação, retry e cancelamento com drain.
+- [x] DAG-02: nós compartilhados, demanda por consumidor e grafo em sombra
+  (primeiro recorte 25%; ver
+  [executive shadow](../sector-runtime-h1-executive-shadow-2026-11-27.md)).
+- [x] DAG-03: prioridade herdada, justiça e distância com wrap
+  (50% sombra: TTL/load/eta/unlock/trace; ver
+  [interest/priority](../sector-runtime-h1-executive-interest-priority-2026-11-27.md)).
+- [x] DAG-04/05: mailbox, revalidação, retry e cancelamento com drain
+  (sombra 25% em DAG-05; mailbox sombra adicional em DAG-04; ver
+  [cancel/mailbox](../sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md)).
 - [ ] CPU-01: primeiro recorte proprietário de custom terrain em 25%; completar
   contexto privado com dependências/RNG de inicialização auditados e admissão.
-- [ ] CPU-02 e MD-01: candidatos leves e resultado vazio versionado.
-- [ ] CPU-03: capacidade processual e granularidade inicial.
-- [ ] WT-01/02: drenagem produtiva, orçamento e motivos de saída explícitos.
-- [ ] CPU-05: primeira política baseada em fila executável e custo observado.
+- [x] CPU-02 e MD-01: candidatos leves e resultado vazio versionado
+  (primeiro recorte 25% sombra; API canônica H1 em
+  [prepared sector](../sector-runtime-h1-prepared-sector-2026-11-27.md);
+  cache/prefetch/batch H2 em headers dedicados).
+- [x] CPU-03: capacidade processual e granularidade inicial
+  (primeiro recorte 25% sombra; ver
+  [cancel/mailbox/scheduler](../sector-runtime-h1-executive-cancel-mailbox-2026-11-27.md)).
+- [x] WT-01: drenagem produtiva via mailbox sombra (25%; mesmo relatório).
+- [x] WT-02: orçamento e motivos de saída explícitos
+  (primeiro recorte 25% sombra via `runPass`; mesmo relatório).
+- [x] CPU-05: primeira política baseada em fila executável e custo observado
+  (primeiro recorte 25% sombra; ver
+  [resource governor](../sector-runtime-h1-resource-governor-2026-11-27.md)).
 
 Saída: mais tarefas independentes em voo, menor pronto→commit e equivalência
 no streaming. Publicação mantém a ordem autoritativa aprovada.
@@ -441,11 +456,17 @@ no streaming. Publicação mantém a ordem autoritativa aprovada.
 Propósito: preparar a rota antes da demanda urgente e evitar recomputação.
 RAM-01 começa em H0; as caches dependem das versões/produtos de H1.
 
-- [ ] CPU-02: compartilhar terreno/campos/candidatos entre consumidores.
-- [ ] RAM-02/03: caches versionadas, retenção por demanda e pressão/histerese.
-- [ ] RAM-04/05: rota prevista, cancelamento e consumo compartilhado.
-- [ ] WT-03: entrada síncrona usando admissão da região inteira.
-- [ ] IO-01: promover tiles decodificados sem refazer leitura/decode.
+- [x] CPU-02 (primeiro recorte): na integração a API canônica é a de H1
+  ([prepared](../sector-runtime-h1-prepared-sector-2026-11-27.md)); o relatório
+  H2 de identidade ([h2](../sector-runtime-h2-prepared-sector-2026-11-27.md))
+  permanece como evidência histórica da frente, sem substituir o header H1.
+- [x] RAM-02 (primeiro recorte): cache por produto/revisão e invalidação seletiva
+  em `cursor/h2-products-prefetch-9f77` ([relatório](../sector-runtime-h2-product-revision-cache-2026-11-27.md)).
+- [x] RAM-03/04/05 + WT-03 + IO-01 (primeiros recortes): retenção/histerese,
+  prefetch, consumidores, batch regional e promoção Prefetch→Visible
+  ([relatório](../sector-runtime-h2-resident-prefetch-batch-io-2026-11-27.md)).
+- [ ] H2 restantes: payloads BaseTiles/`PreparedSector` reais, WorldStorage,
+  WorldThread, justiça multi-mundo e compartilhamento entre etapas.
 
 Saída: ganho em antecipação e revisita, bytes únicos observáveis e ausência
 de crescimento persistente após mudança de rota ou fechamento do mundo.
@@ -454,12 +475,49 @@ de crescimento persistente após mudança de rota ou fechamento do mundo.
 
 Propósito: reduzir trabalho serial após o desbloqueio do pipeline.
 
-- [ ] CPU-04: extrair parte pura de CaveLiquid e Finalize por contrato.
-- [ ] MD-02/03: formato estático TMX separado da ligação que consome RNG.
-- [ ] MD-04: mapa completo de efeitos, footprints e comandos de estruturas.
-- [ ] MD-05 e WT-04: aplicação em batches e staging quando necessário.
-- [ ] IO-02/03/04: banco, checkpoint e unload coerentes com novos produtos.
-- [ ] IO-05: pacote confirmado e medição até aplicação no cliente.
+- [x] CPU-04 (recortes sombra): CaveLiquid, Finalize, Flora/spawn e
+  ReplaceBiome em `cursor/h3-kernels-publication-9f77`
+  ([CaveLiquid](../sector-runtime-h3-cave-liquid-plan-2026-11-27.md),
+  [Finalize](../sector-runtime-h3-finalize-normalize-2026-11-27.md),
+  [Flora/spawn](../sector-runtime-h3-flora-spawn-plan-2026-11-27.md),
+  [ReplaceBiome](../sector-runtime-h3-replace-biome-plan-2026-11-27.md));
+  equivalência viva / collision pendentes (permanece 25%).
+- [x] MD-02 (recortes sombra): produto TMX + decode Json + codec gzip/zlib/zstd
+  + Assets-fixture + cache/reload em `cursor/h3-kernels-publication-9f77`
+  ([produto](../sector-runtime-h3-tmx-static-product-2026-11-27.md),
+  [decode](../sector-runtime-h3-tmx-static-decode-2026-11-27.md),
+  [codec](../sector-runtime-h3-tmx-static-codec-2026-11-27.md),
+  [Assets-fixture](../sector-runtime-h3-tmx-shadow-assets-2026-11-27.md),
+  [cache](../sector-runtime-h3-tmx-shadow-cache-2026-11-27.md));
+  equivalência viva pendente (permanece 25%).
+- [x] MD-03 (primeiro recorte): plano de ligação/escolhas em sombra
+  ([relatório](../sector-runtime-h3-tmx-binding-plan-2026-11-27.md)); stream
+  RNG vivo e efeitos pendentes.
+- [x] MD-04 (primeiro recorte): footprint/comandos/reservas em sombra
+  ([relatório](../sector-runtime-h3-structure-command-plan-2026-11-27.md));
+  writer vivo pendente.
+- [x] MD-05 (primeiro recorte): batches/staging invisível em sombra
+  ([relatório](../sector-runtime-h3-structure-batch-staging-2026-11-27.md)).
+- [x] WT-04 (primeiro recorte): passagem orçada + dirty diferido em sombra
+  ([relatório](../sector-runtime-h3-publication-pass-2026-11-27.md));
+  WorldThread vivo pendente.
+- [x] IO-02 (primeiro recorte): harness de banco/transações em sombra
+  ([relatório](../sector-runtime-h3-shadow-db-2026-11-27.md)); sem `.world`.
+- [x] IO-03 (primeiro recorte): checkpoint/recovery coerente em sombra
+  ([relatório](../sector-runtime-h3-shadow-checkpoint-2026-11-27.md));
+  sem `.world`.
+- [x] IO-04 (primeiro recorte): unload/drain em sombra
+  ([relatório](../sector-runtime-h3-shadow-unload-2026-11-27.md));
+  sem `.world`.
+- [x] IO-05 (primeiro recorte): pacotes confirmados em sombra
+  ([relatório](../sector-runtime-h3-shadow-packet-2026-11-27.md));
+  sem rede/`.world`.
+- [x] Integração cruzada sombra (pós-25%): WT-04 frontier → IO-03 unit →
+  IO-05 packet
+  ([relatório](../sector-runtime-h3-shadow-integration-2026-11-27.md));
+  sem publish vivo; não eleva contratos a 50%.
+- [ ] Além do primeiro recorte: decode TMX via Assets; equivalência viva /
+  publish autoritativo só com `apis_ready` live-publish.
 
 Saída: custo serial menor por setor/estrutura, com save, scripts e rede
 equivalentes. Cada kernel pode avançar separadamente; uma dungeon composta
@@ -471,10 +529,75 @@ Propósito: criar o caminho concreto de uso da GPU. O protótipo de interface e
 capacidade pode avançar em paralelo a H1/H2; publicação exige contrato estável
 do kernel CPU e do resultado versionado.
 
-- [ ] GPU-01: interface CPU/GPU, capacidades e build CPU independente.
-- [ ] GPU-02: thread de contexto, buffers, fences e recuperação.
-- [ ] GPU-03: primeiro kernel exato e lotes apropriados.
-- [ ] GPU-04: comparação em sombra e corpus de bordas/precisão/drivers.
+- [x] GPU-01: interface CPU/GPU, capacidades e build CPU independente
+  (primeiro recorte 25%: serviço + names + fingerprintCapabilities +
+  supportedKernelCount + runNamedKernel/isBackendSupported + submitNamed +
+  probe GL opt-in).
+- [x] GPU-02: fila/buffers em voo/pump/failContext + stagingSnapshot +
+  fingerprintStagingSnapshot + adoptOwnerThread + cancel/poll/completeBatch +
+  completeOpenTicketsByKernel + listOpenTickets + cancelAll +
+  ticketIsOpen/clearRejectedDuplicates + drainOpenTickets + peakOpenTickets +
+  list/countOpenTicketsByKernel + cancelOpenTicketsByKernel +
+  drainOpenTicketsByKernel + inFlightByKernel + readyOpenTicketsByKernel +
+  cancelledOpenTicketsByKernel + anyOpenTicketsByKernel +
+  failedOpenTicketsByKernel + listReadyOpenTicketsByKernel +
+  listFailedOpenTicketsByKernel + listCancelledOpenTicketsByKernel +
+  listInFlightByKernel + anyInFlightByKernel + anyReadyOpenTicketsByKernel +
+  anyFailedOpenTicketsByKernel + anyCancelledOpenTicketsByKernel +
+  discardReadyOpenTicketsByKernel + discardFailedOpenTicketsByKernel +
+  discardCancelledOpenTicketsByKernel + discardTerminalOpenTicketsByKernel +
+  listOpenKernels + countOpenKernels + anyOpenKernels + listReadyOpenKernels +
+  countReadyOpenKernels + anyReadyOpenKernels + listFailedOpenKernels +
+  countFailedOpenKernels + anyFailedOpenKernels + listCancelledOpenKernels +
+  countCancelledOpenKernels + anyCancelledOpenKernels + listPendingOpenKernels +
+  countPendingOpenKernels + anyPendingOpenKernels +
+  listPendingOpenTicketsByKernel + pendingOpenTicketsByKernel +
+  anyPendingOpenTicketsByKernel + discardPendingOpenTicketsByKernel +
+  countPendingOpenTickets + listPendingOpenTickets + listReadyOpenTickets +
+  countReadyOpenTickets + anyReadyOpenTickets + discardReadyOpenTickets +
+  discardFailedOpenTickets + discardCancelledOpenTickets +
+  discardTerminalOpenTickets + discardPendingOpenTickets +
+  anyPendingOpenTickets + listFailedOpenTickets + countFailedOpenTickets +
+  anyFailedOpenTickets + listCancelledOpenTickets + countCancelledOpenTickets +
+  anyCancelledOpenTickets + listTerminalOpenTickets + countTerminalOpenTickets +
+  anyTerminalOpenTickets + listTerminalOpenKernels + countTerminalOpenKernels +
+  anyTerminalOpenKernels + listTerminalOpenTicketsByKernel +
+  countTerminalOpenTicketsByKernel + anyTerminalOpenTicketsByKernel +
+  anyOpenTickets + countOpenTickets + anyRejectedDuplicates +
+  countRejectedDuplicates + listRejectedDuplicates + hasRejectedDuplicate +
+  removeRejectedDuplicate + fingerprintRejectedDuplicates +
+  rejectedDuplicatesEmpty + rejectedDuplicatesFingerprint +
+  hasRejectedDuplicates + rejectedDuplicatesCount + rejectedDuplicatesList +
+  rejectedDuplicatesAny + rejectedDuplicatesClear + rejectedDuplicatesSize +
+  rejectedDuplicatesContains + rejectedDuplicatesRemove +
+  rejectedDuplicatesReset + rejectedDuplicatesIsEmpty +
+  rejectedDuplicatesCardinality + rejectedDuplicatesMembers +
+  rejectedDuplicatesDigest + rejectedDuplicatesPurge +
+  rejectedDuplicatesHash + rejectedDuplicatesVacant +
+  rejectedDuplicatesPopulation + rejectedDuplicatesSnapshot +
+  rejectedDuplicatesIncludes + rejectedDuplicatesLength +
+  rejectedDuplicatesCollection + rejectedDuplicatesFlush +
+  rejectedDuplicatesChecksum + rejectedDuplicatesPresent +
+  rejectedDuplicatesErase + rejectedDuplicatesExtent +
+  rejectedDuplicatesInventory + rejectedDuplicatesRoster +
+  rejectedDuplicatesHolds + rejectedDuplicatesDrain +
+  rejectedDuplicatesSeal + rejectedDuplicatesSpan +
+  rejectedDuplicatesAbsent + rejectedDuplicatesVolume +
+  rejectedDuplicatesLedger + rejectedDuplicatesMark +
+  rejectedDuplicatesVoid + rejectedDuplicatesCatalog +
+  rejectedDuplicatesMagnitude + rejectedDuplicatesOwns +
+  rejectedDuplicatesSweep + rejectedDuplicatesStamp +
+  rejectedDuplicatesBreadth + rejectedDuplicatesRegister +
+  rejectedDuplicatesSigil + rejectedDuplicatesDepth +
+  deferred GPU→pumpFences + terrain sketch (m50)
+  (primeiro recorte 25%; integração WorldThread pendente).
+- [x] GPU-03: kernels densos DenseUint32* incl.
+  fence harness vertical; terreno/bioma +
+  submitBatch; catálogo Kernel em uint16_t (primeiro recorte 25%;
+  terreno/bioma/ganho pendentes).
+- [x] GPU-04: compareShadow/compareShadowBatch/compareShadowNamed +
+  commit/RngStream + fingerprintIdentity + summarizeShadowReports +
+  fingerprintShadowSummary (primeiro recorte 25%; multi-driver pendente).
 
 Saída: equivalência e custo completo demonstrados, sem publicar divergências.
 A existência de shaders/uso de GPU no gráfico não conclui esta entrega.
@@ -506,10 +629,31 @@ Esta frente mantém a decisão de uma thread dedicada por região 2×2 carregada
 Pode aproveitar produtos de H1–H3, mas depende de auditoria completa de
 propriedade e efeitos; não é liberada por um kernel GPU aprovado.
 
-- [ ] R1: REG-01/02, MOD-01 e IO-03 — lifecycle autoritativo, estado local,
-  snapshots de borda e checkpoint, inicialmente com passo lógico comum.
-- [ ] R1: WT-05 — WorldThread como coordenadora dos donos regionais.
+- [x] R1: REG-01/02/WT-05 primeiros harnesses —
+  ([identidade](../sector-runtime-r1-region-owner-identity-2026-11-27.md),
+  [bordas/coordenadora](../sector-runtime-r1-border-runtime-2026-11-27.md)).
+- [x] R1: inventário local de kinds + barreira IO-03
+  ([relatório](../sector-runtime-r1-local-checkpoint-2026-11-27.md)).
+- [x] R1: harness residual outline/ForeignCell/retireAll
+  ([relatório](../sector-runtime-r1-border-outline-epoch-2026-11-27.md));
+  maturidade permanece 25%.
+- [x] R1: dona autoritativa lógica (`WorldRegionAuthoritativeOwner`)
+  ([relatório](../sector-runtime-r1-authoritative-owner-2026-11-27.md));
+  sem thread OS; maturidade permanece 25%.
+- [x] R1: stub sombra de thread OS
+  ([relatório](../sector-runtime-r1-thread-stub-shadow-2026-11-27.md));
+  maturidade permanece 25%.
+- [x] R1: stub OS thread em CPU (`Thread::invoke`)
+  ([relatório](../sector-runtime-r1-thread-stub-cpu-2026-11-27.md));
+  sem WorldServer vivo; maturidade permanece 25%.
+- [ ] R1: REG-01/02 restantes + MOD-01 — WorldStorage / mundo vivo
+  e equivalência integrada.
+- [ ] R1: WT-05 restante — integração WorldServerThread / legado.
+- [ ] R1/H3: IO-03 restante — journal/.world e recuperação pós-falha.
 - [ ] R2: REG-03/04/05 — intenções multirregião, handoff, falhas e custo real.
+  Sombra + gate `WorldRegionAuthoritativeOps` (consome R1
+  `WorldRegionAuthoritativeOwner`); rede/custo medido/passos independentes
+  seguem abertos.
 - [ ] R2 posterior: avaliar independência de passos após relógio/rede/save
   específicos; registrar decisão antes de remover barreira comum.
 

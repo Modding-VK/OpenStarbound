@@ -12,7 +12,10 @@ enum class WorldGenerationTaskStage : uint8_t {
   // These stages reserve identity, memory and a region owner before their
   // producers are introduced. They do not authorize live-world writes.
   MicroDungeonPlan,
-  CaveLiquidPlan
+  CaveLiquidPlan,
+  // FinalizePlan reserves identity for pure normalization/selection products.
+  // It does not authorize entity placement or live-world writes.
+  FinalizePlan
 };
 
 enum class WorldGenerationTaskState : uint8_t {

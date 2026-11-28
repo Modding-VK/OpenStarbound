@@ -18,9 +18,28 @@ alinhadas a essa decisão na documentação; a formulação antiga fica no Git.
 ## Estado real
 
 `WorldRegionPartition` define a geometria. O coordenador observa metadados e
-revalida turnos em sombra. Os previews de lifecycle/mailbox não executam Lua,
-simulação ou instalação autoritativa em paralelo. A WorldThread central ainda
-é a dona do mundo no runtime atual.
+revalida turnos em sombra. Em 27/11/2026,
+[`WorldRegionOwnerRegistry`](../sector-runtime-r1-region-owner-identity-2026-11-27.md)
+acrescenta identidade e lifecycle de dona (admit/release/drain) sem thread OS
+nem publicação autoritativa. Em seguida,
+[`WorldRegionBorderLedger`](../sector-runtime-r1-border-runtime-2026-11-27.md) e
+[`WorldRegionRuntimeCoordinator`](../sector-runtime-r1-border-runtime-2026-11-27.md)
+cobrem o primeiro recorte de bordas confirmadas (REG-02) e coordenação central
+sem publicação de simulação (WT-05).
+[`WorldRegionLocalStateLedger`](../sector-runtime-r1-local-checkpoint-2026-11-27.md)
+e
+[`WorldRegionCheckpointBarrier`](../sector-runtime-r1-local-checkpoint-2026-11-27.md)
+registram inventário de autoridade local e a barreira de passo comum (IO-03).
+Em seguida,
+[`WorldRegionBorderOutline`](../sector-runtime-r1-border-outline-epoch-2026-11-27.md)
+e `retireAll` cobrem contorno geométrico/parcial e aposentadoria simulada de
+epoch, ainda sem thread OS.
+[`WorldRegionAuthoritativeOwnerLedger`](../sector-runtime-r1-authoritative-owner-2026-11-27.md)
+promove donas Active a autoridade exclusiva de escrita por identidade-valor.
+[`WorldRegionOwnerThreadStubLedger`](../sector-runtime-r1-thread-stub-cpu-2026-11-27.md)
+sobe um OS thread real de CPU (sem WorldServer/Lua). Os previews de
+lifecycle/mailbox não executam simulação ou instalação no WorldServer vivo.
+A WorldThread central ainda é a dona do mundo no runtime atual.
 
 ## REG-01 — Lifecycle e identidade da dona
 
@@ -56,6 +75,17 @@ confirmada na fronteira do passo. Cada thread executa no máximo um turno
 local aplicável, produzindo intenções remotas versionadas. Conclusão mais
 rápida não decide a ordem de conflito.
 
+Primeiro recorte em sombra (`WorldRegionCrossOpShadow`, branch
+`cursor/r2-regional-ops-9f77`): intenções versionadas, reserva exclusiva do
+footprint em ordem lexicográfica, Conflict sem hold parcial e
+commit/rejeição/timeout. Não concede dona autoritativa nem remove a barreira
+de passo. Ver [relatório](../sector-runtime-r2-cross-op-shadow-2026-11-27.md).
+
+Além da sombra: `WorldRegionAuthoritativeOps` exige
+`WorldRegionAuthoritativeOwner` (R1) em origem/alvos antes de propor. Harness
+Active sozinho é recusado. Ver
+[ops autoritativas](../sector-runtime-r2-authoritative-ops-2026-11-27.md).
+
 Operações multirregião reservam footprint completo numa ordem estável, sem
 Lua segurando locks de outros donos e sem espera circular entre threads.
 Definir commit/rejeição, timeout e recuperação. Fios, líquidos e roteadores
@@ -72,6 +102,14 @@ dona autoritativa por passo. Origem prepara transferência, destino valida e
 o commit atualiza dono/índice/rede conjuntamente. Mensagens antigas são
 rejeitadas; idempotência impede update, item ou dano duplicado.
 
+Primeiro recorte em sombra (`WorldRegionEntityHandoffShadow`): seed exclusivo,
+um Prepared por entidade, commit com checagem de geração, rejeição e
+idempotência por passo. Sem índice/rede vivos. Ver
+[relatório](../sector-runtime-r2-entity-handoff-shadow-2026-11-27.md).
+
+Além da sombra: prepare via `WorldRegionAuthoritativeOps` exige origem e
+destino Authoritative.
+
 Manter a autoridade atual de jogadores, entidades master do cliente,
 monstros, veículos e stagehands conforme o tipo. Projeções de leitura não
 executam IA. Essa tarefa não retoma externalização de NPCs, que segue suspensa.
@@ -81,6 +119,13 @@ executam IA. Essa tarefa não retoma externalização de NPCs, que segue suspens
 Uma falha invalida saídas ainda não confirmadas e interrompe o passo afetado.
 Retorno ao legado exige checkpoint consistente ou novo carregamento. Não
 reaproveitar uma região parcialmente publicada como se tivesse sido revertida.
+
+Primeiro recorte em sombra (`WorldRegionRecoveryShadow`): unconfirmed → fail
+(invalida e mantém marca parcial) → checkpoint consistente ou `reloadLegacy`.
+Sem métricas de custo de threads. Ver
+[relatório](../sector-runtime-r2-recovery-shadow-2026-11-27.md).
+
+Além da sombra: `noteUnconfirmed` via gate exige região Authoritative.
 
 Medir pilhas, memória por thread, criação/join, latência de acordar, threads
 simultaneamente prontas, custo da barreira, mensagens e regiões lentas. Threads

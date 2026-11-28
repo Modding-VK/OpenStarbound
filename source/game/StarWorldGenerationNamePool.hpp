@@ -3,6 +3,7 @@
 #include "StarWorldGenerationBufferAllocator.hpp"
 #include "StarWorldGenerationMemoryEstimate.hpp"
 
+#include <memory>
 #include <unordered_map>
 
 namespace Star {
@@ -46,14 +47,14 @@ class WorldGenerationNamePool {
 
 public:
   explicit WorldGenerationNamePool(WorldGenerationMemoryLedger& ledger)
-    : m_ledger(ledger), m_names(0, Hash{}, Equal{},
-        Allocator(ledger, WorldGenerationMemoryClass::MicroDungeonNameBuffer)) {}
+    : m_ledger(ledger) {}
   WorldGenerationNamePool(WorldGenerationNamePool const&) = delete;
   WorldGenerationNamePool& operator=(WorldGenerationNamePool const&) = delete;
 
   WorldGenerationName intern(String const& value) {
-    auto found = m_names.find(&value);
-    if (found != m_names.end()) return found->second;
+    ensureIndex();
+    auto found = m_names->find(&value);
+    if (found != m_names->end()) return found->second;
     WorldGenerationSizeEstimate estimate;
     // The copy's capacity is implementation-dependent: reconcile afterwards.
     // This is a pre-copy estimate, not a hard bound on string allocation.
@@ -67,15 +68,25 @@ public:
             WorldGenerationMemoryClass::MicroDungeonNameBuffer), std::move(memory), value);
     // Keys point into immutable owned entries, never into the caller's string.
     // A failed insertion releases the new name; existing entries stay valid.
-    m_names.emplace(&name->value(), name);
+    m_names->emplace(&name->value(), name);
     return name;
   }
 
-  size_t size() const { return m_names.size(); }
+  size_t size() const { return m_names ? m_names->size() : 0u; }
 
 private:
+  // Some STL unordered_map implementations allocate buckets on construction
+  // even with a zero size hint. Defer the index until the first name so an
+  // empty pool never charges the ledger (Windows MSVC/clang-cl included).
+  void ensureIndex() {
+    if (!m_names) {
+      m_names = std::make_unique<Index>(0, Hash{}, Equal{},
+          Allocator(m_ledger, WorldGenerationMemoryClass::MicroDungeonNameBuffer));
+    }
+  }
+
   WorldGenerationMemoryLedger m_ledger;
-  Index m_names;
+  std::unique_ptr<Index> m_names;
 };
 
 }

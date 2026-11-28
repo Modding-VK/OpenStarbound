@@ -104,11 +104,29 @@ SET_TESTS_PROPERTIES(core_tests PROPERTIES
 ADD_EXECUTABLE(world_generation_contract_tests
   $<TARGET_OBJECTS:star_extern> $<TARGET_OBJECTS:star_core> $<TARGET_OBJECTS:star_base>
   ../game/StarWorldRegionPartition.cpp
+  ../game/StarWorldRegionOwner.cpp
+  ../game/StarWorldRegionBorder.cpp
+  ../game/StarWorldRegionRuntime.cpp
+  ../game/StarWorldRegionLocalState.cpp
+  ../game/StarWorldRegionCheckpoint.cpp
+  ../game/StarWorldRegionAuthority.cpp
+  ../game/StarWorldRegionThreadStub.cpp
   ../game/StarWorldGenerationDependency.cpp
+  ../game/StarWorldGenerationExecutiveShadow.cpp
+  ../game/StarWorldGenerationExecutivePriority.cpp
+  ../game/StarWorldGenerationExecutiveMailbox.cpp
+  ../game/StarWorldGenerationExecutiveScheduler.cpp
+  ../game/StarWorldGenerationPreparedSector.cpp
+  ../game/StarWorldGenerationResourceGovernor.cpp
   ../game/StarWorldGenerationTasks.cpp
+  ../game/StarWorldGenerationCompute.cpp
+  ../game/StarWorldGenerationComputeGl.cpp
+  ../game/StarWorldGenerationComputeRuntime.cpp
   ../game/StarWorldGenerationMemory.cpp
   ../game/StarLiquidTypes.cpp
   ../game/StarWorldGenerationBaseTiles.cpp
+  ../game/StarWorldGenerationCandidateSequence.cpp
+  ../game/StarWorldGenerationEffectBoundary.cpp
   ../game/StarWorldGenerationCustomTerrain.cpp
   ../game/StarTerrainSelector.cpp
   ../game/StarWorldGenerationBlockInfoStaticInputs.cpp
@@ -121,20 +139,51 @@ ADD_EXECUTABLE(world_generation_contract_tests
   ../game/StarBiomePlacementSampling.cpp
   ../game/StarBiomePlacementDefaults.cpp
   ../game/StarWorldRegionCoordinator.cpp
+  ../game/StarWorldRegionCrossOp.cpp
+  ../game/StarWorldRegionEntityHandoff.cpp
+  ../game/StarWorldRegionRecovery.cpp
+  ../game/StarWorldRegionOwner.cpp
+  ../game/StarWorldRegionAuthority.cpp
+  ../game/StarWorldRegionAuthoritativeOps.cpp
   gtest/gtest-all.cc
   core_tests_main.cpp
   world_region_partition_test.cpp
+  world_region_owner_test.cpp
+  world_region_border_test.cpp
+  world_region_runtime_test.cpp
+  world_region_local_state_test.cpp
+  world_region_checkpoint_test.cpp
+  world_region_authority_test.cpp
+  world_region_thread_stub_test.cpp
+  world_region_cross_op_test.cpp
+  world_region_entity_handoff_test.cpp
+  world_region_recovery_test.cpp
+  world_region_authoritative_ops_test.cpp
   world_generation_dependency_test.cpp
+  world_generation_executive_shadow_test.cpp
+  world_generation_executive_priority_test.cpp
+  world_generation_executive_mailbox_test.cpp
+  world_generation_executive_scheduler_test.cpp
+  world_generation_prepared_sector_test.cpp
+  world_generation_resource_governor_test.cpp
   world_generation_pass_test.cpp
   StarWorldGenerationPassHarness.hpp
   world_generation_placement_queue_test.cpp
+  world_generation_candidate_sequence_test.cpp
+  world_generation_effect_boundary_test.cpp
   world_generation_tasks_test.cpp
+  world_generation_compute_test.cpp
   world_generation_memory_test.cpp
   world_generation_memory_envelope_test.cpp
   world_generation_memory_admission_test.cpp
   world_generation_memory_batch_test.cpp
   world_generation_memory_retry_test.cpp
   world_generation_memory_capacity_test.cpp
+  world_generation_product_revision_cache_test.cpp
+  world_generation_prefetch_plan_test.cpp
+  world_generation_region_demand_batch_test.cpp
+  world_generation_decode_promotion_test.cpp
+  world_generation_prepared_sector_test.cpp
   world_generation_hardware_selection_test.cpp
   world_generation_delivery_metrics_test.cpp
   world_generation_execution_profile_test.cpp
@@ -145,9 +194,25 @@ ADD_EXECUTABLE(world_generation_contract_tests
   world_generation_adoption_gates_test.cpp
   world_generation_equivalence_version_test.cpp
   world_generation_platform_matrix_test.cpp
-  world_generation_resource_governor_test.cpp
   world_generation_scale_metrics_test.cpp
   world_generation_base_tile_liquid_test.cpp
+  world_generation_cave_liquid_plan_test.cpp
+  world_generation_finalize_plan_test.cpp
+  world_generation_flora_spawn_plan_test.cpp
+  world_generation_replace_biome_plan_test.cpp
+  world_generation_tmx_static_product_test.cpp
+  world_generation_tmx_static_decode_test.cpp
+  world_generation_tmx_shadow_assets_test.cpp
+  world_generation_tmx_shadow_cache_test.cpp
+  world_generation_tmx_binding_plan_test.cpp
+  world_generation_structure_command_plan_test.cpp
+  world_generation_structure_batch_staging_test.cpp
+  world_generation_publication_pass_test.cpp
+  world_generation_shadow_db_test.cpp
+  world_generation_shadow_checkpoint_test.cpp
+  world_generation_shadow_unload_test.cpp
+  world_generation_shadow_packet_test.cpp
+  world_generation_shadow_integration_test.cpp
   world_generation_base_tiles_test.cpp
   world_generation_block_info_test.cpp
   world_generation_custom_terrain_test.cpp
@@ -182,16 +247,36 @@ ENDIF()
 # not consume the entire Actions job timeout.
 FOREACH(world_region_test_suite
     WorldRegionPartitionTest
+    WorldRegionOwnerTest
+    WorldRegionBorderTest
+    WorldRegionRuntimeTest
+    WorldRegionLocalStateTest
+    WorldRegionCheckpointTest
+    WorldRegionAuthorityTest
+    WorldRegionThreadStubTest
     WorldGenerationDependencyTest
+    WorldGenerationExecutiveShadowTest
+    WorldGenerationExecutivePriorityTest
+    WorldGenerationExecutiveMailboxTest
+    WorldGenerationExecutiveSchedulerTest
+    WorldGenerationPreparedSectorTest
+    WorldGenerationResourceGovernorTest
     WorldGenerationPassTest
     WorldGenerationPlacementQueueTest
+    WorldGenerationCandidateSequenceTest
+    WorldGenerationEffectBoundaryTest
     WorldGenerationTasksTest
+    WorldGenerationComputeTest
     WorldGenerationMemoryTest
     WorldGenerationMemoryEnvelopeTest
     WorldGenerationMemoryAdmissionTest
     WorldGenerationMemoryBatchTest
     WorldGenerationMemoryRetryTest
     WorldGenerationMemoryCapacityTest
+    WorldGenerationProductRevisionCacheTest
+    WorldGenerationPrefetchPlanTest
+    WorldGenerationRegionDemandBatchTest
+    WorldGenerationDecodePromotionTest
     WorldGenerationHardwareSelectionTest
     WorldGenerationDeliveryMetricsTest
     WorldGenerationExecutionProfileTest
@@ -202,7 +287,6 @@ FOREACH(world_region_test_suite
     WorldGenerationAdoptionGatesTest
     WorldGenerationEquivalenceVersionTest
     WorldGenerationPlatformMatrixTest
-    WorldGenerationResourceGovernorTest
     WorldGenerationScaleMetricsTest
     WorldGenerationBaseTileLiquidTest
     WorldGenerationBaseTilesTest
@@ -235,6 +319,10 @@ FOREACH(world_region_test_suite
     WorldGenerationVariantJsonTest
     BlockAllocatorExceptionTest
     WorldRegionCoordinatorTest
+    WorldRegionCrossOpTest
+    WorldRegionEntityHandoffTest
+    WorldRegionRecoveryTest
+    WorldRegionAuthoritativeOpsTest
     WorldRegionObservationTest)
   ADD_TEST(NAME world_generation_contract_${world_region_test_suite}
     COMMAND $<TARGET_FILE:world_generation_contract_tests>
