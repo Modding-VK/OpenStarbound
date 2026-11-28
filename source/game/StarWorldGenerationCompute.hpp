@@ -734,6 +734,8 @@ public:
   bool rejectedDuplicatesErase(WorldGenerationComputeTicket ticket);
   // Alias of rejectedDuplicatesCount (asset-free observation naming).
   size_t rejectedDuplicatesExtent() const;
+  // Alias of listRejectedDuplicates (asset-free observation naming).
+  List<WorldGenerationComputeTicket> rejectedDuplicatesInventory() const;
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 
