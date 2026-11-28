@@ -839,6 +839,8 @@ public:
   size_t rejectedDuplicatesDepth() const;
   // Alias of clearRejectedDuplicates (asset-free observation naming).
   size_t rejectedDuplicatesWipe();
+  // Alias of rejectedDuplicatesCount (asset-free observation naming).
+  size_t rejectedDuplicatesTally() const;
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 
