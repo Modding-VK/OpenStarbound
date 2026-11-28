@@ -1,6 +1,7 @@
 #pragma once
 
 #include "StarWorldServer.hpp"
+#include "StarWorldGenerationComputeRuntime.hpp"
 #include "StarThread.hpp"
 #include "StarRpcPromise.hpp"
 
@@ -95,6 +96,8 @@ private:
 
   WorldServerPtr m_worldServer;
   unique_ptr<NpcActorBridge> m_npcActorBridge;
+  // GPU-02 opt-in: owned/pumped only on this world thread; never publishes to the live world.
+  unique_ptr<WorldGenerationComputeRuntime> m_computeRuntime;
   WorldId m_worldId;
   WorldServerAction m_updateAction;
 

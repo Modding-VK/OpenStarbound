@@ -259,6 +259,11 @@ void WorldServerThread::run() {
     double fidelityScore = 0.0;
     WorldServerFidelity automaticFidelity = WorldServerFidelity::Medium;
 
+    // GPU-02: adopt compute owners on this world thread only (opt-in config).
+    m_computeRuntime = make_unique<WorldGenerationComputeRuntime>();
+    m_computeRuntime->startOnWorldThread(
+        WorldGenerationComputeRuntime::optionsFromConfig(root.configuration()->currentConfiguration()));
+
     while (!m_stop && !m_errorOccurred) {
       STAR_TRACE_ZONE("WorldServerThread tick");
       STAR_TRACE_FRAME("WorldServerThread");
@@ -318,6 +323,10 @@ void WorldServerThread::run() {
     Logger::error("WorldServerThread exception caught: {}", outputException(e, true));
     m_errorOccurred = true;
   }
+  if (m_computeRuntime) {
+    m_computeRuntime->stopOnWorldThread();
+    m_computeRuntime.reset();
+  }
   if (m_npcActorBridge)
     m_npcActorBridge->stop();
 }
@@ -345,6 +354,10 @@ void WorldServerThread::update(WorldServerFidelity fidelity) {
   m_worldServer->setFidelity(fidelity);
   if (dt > 0.0f && (!m_pause || *m_pause == false))
     m_worldServer->update(dt);
+
+  // Non-blocking GPU-02 fence pump after world update; never publishes GPU results.
+  if (m_computeRuntime)
+    m_computeRuntime->pumpUpdate();
 
   if (m_npcActorBridge) {
     NpcActorBridge::WorldFrame frame;
