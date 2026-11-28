@@ -54,11 +54,11 @@ TEST(WorldGenerationResourceGovernorTest, EmptyFrontierYieldsZeroStarts) {
 
 namespace {
 WorldGenerationHardwareSelection cpuDeadline() {
-  return {WorldGenerationComputeBackend::Cpu,
+  return {WorldGenerationHardwareRoutingBackend::Cpu,
       WorldGenerationHardwareSelectionReason::DeadlinePrefersCpu, 8};
 }
 WorldGenerationHardwareSelection gpuChoice() {
-  return {WorldGenerationComputeBackend::Gpu,
+  return {WorldGenerationHardwareRoutingBackend::Gpu,
       WorldGenerationHardwareSelectionReason::LowerDeliveryCost, 4};
 }
 }
@@ -85,7 +85,7 @@ TEST(WorldGenerationResourceGovernorTest, GrowsOnlyForThroughputProfilesWithVisi
   // Deadline preference wins over growth when hardware already forced CPU.
   observation.renderPressure = false;
   observation.memoryPressure = false;
-  WorldGenerationHardwareSelection plainCpu{WorldGenerationComputeBackend::Cpu,
+  WorldGenerationHardwareSelection plainCpu{WorldGenerationHardwareRoutingBackend::Cpu,
       WorldGenerationHardwareSelectionReason::LowerDeliveryCost, 12};
   auto lagGrow = adviseWorldGenerationResources(aggressive, observation, plainCpu);
   EXPECT_EQ(lagGrow.action, WorldGenerationGovernorAction::GrowConcurrency);
@@ -101,5 +101,5 @@ TEST(WorldGenerationResourceGovernorTest, PrefersGpuWhenHardwareSelectionDoes) {
   observation.demand = WorldGenerationGovernorDemand::Speculative;
   auto advice = adviseWorldGenerationResources(binding, observation, gpuChoice());
   EXPECT_EQ(advice.action, WorldGenerationGovernorAction::PreferGpuBackend);
-  EXPECT_EQ(advice.preferredBackend, WorldGenerationComputeBackend::Gpu);
+  EXPECT_EQ(advice.preferredBackend, WorldGenerationHardwareRoutingBackend::Gpu);
 }

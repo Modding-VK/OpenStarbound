@@ -72,7 +72,7 @@ struct WorldGenerationGovernorObservation {
 
 struct WorldGenerationGovernorAdvice {
   WorldGenerationGovernorAction action = WorldGenerationGovernorAction::Hold;
-  WorldGenerationComputeBackend preferredBackend = WorldGenerationComputeBackend::Cpu;
+  WorldGenerationHardwareRoutingBackend preferredBackend = WorldGenerationHardwareRoutingBackend::Cpu;
   WorldGenerationExecutionProfile profile = WorldGenerationExecutionProfile::Balanced;
   bool allowsGrowth = false;
 };
@@ -100,14 +100,14 @@ inline WorldGenerationGovernorAdvice adviseWorldGenerationResources(
     return advice;
   }
 
-  if (hardware.backend == WorldGenerationComputeBackend::Cpu
+  if (hardware.backend == WorldGenerationHardwareRoutingBackend::Cpu
       && binding.allowsGpuSelection
       && hardware.reason == WorldGenerationHardwareSelectionReason::DeadlinePrefersCpu) {
     advice.action = WorldGenerationGovernorAction::PreferCpuBackend;
     return advice;
   }
 
-  if (hardware.backend == WorldGenerationComputeBackend::Gpu) {
+  if (hardware.backend == WorldGenerationHardwareRoutingBackend::Gpu) {
     advice.action = WorldGenerationGovernorAction::PreferGpuBackend;
     return advice;
   }

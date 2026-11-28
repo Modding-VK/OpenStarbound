@@ -356,8 +356,12 @@ void WorldServerThread::update(WorldServerFidelity fidelity) {
     m_worldServer->update(dt);
 
   // Non-blocking GPU-02 fence pump after world update; never publishes GPU results.
-  if (m_computeRuntime)
+  // H5 observes active pump ticks only; delivery costs stay uncalibrated here.
+  if (m_computeRuntime) {
     m_computeRuntime->pumpUpdate();
+    if (m_computeRuntime->active())
+      m_worldThreadScale.recordPump(observeWorldGenerationComputeRuntime(*m_computeRuntime));
+  }
 
   if (m_npcActorBridge) {
     NpcActorBridge::WorldFrame frame;

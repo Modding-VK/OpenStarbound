@@ -11,7 +11,7 @@ namespace Star {
 // fence, publish path or world authority. GPU selection remains advisory until
 // H4 kernels are equivalent and an adoption gate records measured gain.
 
-enum class WorldGenerationComputeBackend { Cpu, Gpu };
+enum class WorldGenerationHardwareRoutingBackend { Cpu, Gpu };
 
 enum class WorldGenerationPerformanceMode {
   Legacy,
@@ -61,7 +61,7 @@ struct WorldGenerationHardwareSelectionLimits {
 };
 
 struct WorldGenerationHardwareSelection {
-  WorldGenerationComputeBackend backend = WorldGenerationComputeBackend::Cpu;
+  WorldGenerationHardwareRoutingBackend backend = WorldGenerationHardwareRoutingBackend::Cpu;
   WorldGenerationHardwareSelectionReason reason =
       WorldGenerationHardwareSelectionReason::CpuOnlyCapability;
   double selectedCostMs = 0;
@@ -94,10 +94,10 @@ class WorldGenerationHardwareSelector {
 public:
   WorldGenerationHardwareSelector() = default;
 
-  explicit WorldGenerationHardwareSelector(WorldGenerationComputeBackend initial) noexcept
+  explicit WorldGenerationHardwareSelector(WorldGenerationHardwareRoutingBackend initial) noexcept
     : m_current(initial) {}
 
-  WorldGenerationComputeBackend current() const noexcept { return m_current; }
+  WorldGenerationHardwareRoutingBackend current() const noexcept { return m_current; }
 
   WorldGenerationHardwareSelection select(
       WorldGenerationHardwareCapabilities const& capabilities,
@@ -113,14 +113,14 @@ public:
 
     double const cpuTotal = cpuCost.totalMs();
     if (!capabilities.gpuComputeAvailable) {
-      return choose(WorldGenerationComputeBackend::Cpu,
+      return choose(WorldGenerationHardwareRoutingBackend::Cpu,
           WorldGenerationHardwareSelectionReason::CpuOnlyCapability, cpuTotal);
     }
 
     if (mode == WorldGenerationPerformanceMode::Legacy
         || mode == WorldGenerationPerformanceMode::Unknown
         || !worldGenerationPerformanceModeAllowsGpu(mode)) {
-      return choose(WorldGenerationComputeBackend::Cpu,
+      return choose(WorldGenerationHardwareRoutingBackend::Cpu,
           WorldGenerationHardwareSelectionReason::LegacyForcesCpu, cpuTotal);
     }
 
@@ -131,30 +131,30 @@ public:
       bool const cpuMeets = cpuTotal <= limits.deadlineMs;
       bool const gpuMeets = gpuTotal <= limits.deadlineMs;
       if (cpuMeets && !gpuMeets) {
-        return choose(WorldGenerationComputeBackend::Cpu,
+        return choose(WorldGenerationHardwareRoutingBackend::Cpu,
             WorldGenerationHardwareSelectionReason::DeadlinePrefersCpu, cpuTotal);
       }
       if (cpuMeets && gpuMeets && cpuTotal < gpuTotal) {
-        return choose(WorldGenerationComputeBackend::Cpu,
+        return choose(WorldGenerationHardwareRoutingBackend::Cpu,
             WorldGenerationHardwareSelectionReason::DeadlinePrefersCpu, cpuTotal);
       }
     }
 
-    WorldGenerationComputeBackend preferred = cpuTotal <= gpuTotal
-        ? WorldGenerationComputeBackend::Cpu
-        : WorldGenerationComputeBackend::Gpu;
-    double preferredCost = preferred == WorldGenerationComputeBackend::Cpu ? cpuTotal : gpuTotal;
-    double currentCost = m_current == WorldGenerationComputeBackend::Cpu ? cpuTotal : gpuTotal;
-    double alternateCost = m_current == WorldGenerationComputeBackend::Cpu ? gpuTotal : cpuTotal;
+    WorldGenerationHardwareRoutingBackend preferred = cpuTotal <= gpuTotal
+        ? WorldGenerationHardwareRoutingBackend::Cpu
+        : WorldGenerationHardwareRoutingBackend::Gpu;
+    double preferredCost = preferred == WorldGenerationHardwareRoutingBackend::Cpu ? cpuTotal : gpuTotal;
+    double currentCost = m_current == WorldGenerationHardwareRoutingBackend::Cpu ? cpuTotal : gpuTotal;
+    double alternateCost = m_current == WorldGenerationHardwareRoutingBackend::Cpu ? gpuTotal : cpuTotal;
 
     if (preferred == m_current) {
       return choose(m_current, WorldGenerationHardwareSelectionReason::LowerDeliveryCost, preferredCost);
     }
 
     if (alternateCost + margin < currentCost) {
-      WorldGenerationComputeBackend next = m_current == WorldGenerationComputeBackend::Cpu
-          ? WorldGenerationComputeBackend::Gpu
-          : WorldGenerationComputeBackend::Cpu;
+      WorldGenerationHardwareRoutingBackend next = m_current == WorldGenerationHardwareRoutingBackend::Cpu
+          ? WorldGenerationHardwareRoutingBackend::Gpu
+          : WorldGenerationHardwareRoutingBackend::Cpu;
       return choose(next, WorldGenerationHardwareSelectionReason::LowerDeliveryCost, alternateCost);
     }
 
@@ -162,7 +162,7 @@ public:
   }
 
 private:
-  WorldGenerationHardwareSelection choose(WorldGenerationComputeBackend backend,
+  WorldGenerationHardwareSelection choose(WorldGenerationHardwareRoutingBackend backend,
       WorldGenerationHardwareSelectionReason reason, double costMs) noexcept {
     m_current = backend;
     return {backend, reason, costMs};
@@ -173,7 +173,7 @@ private:
     return {m_current, reason, costMs};
   }
 
-  WorldGenerationComputeBackend m_current = WorldGenerationComputeBackend::Cpu;
+  WorldGenerationHardwareRoutingBackend m_current = WorldGenerationHardwareRoutingBackend::Cpu;
 };
 
 }

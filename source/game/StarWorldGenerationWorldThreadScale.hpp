@@ -1,5 +1,6 @@
 #pragma once
 
+#include "StarWorldGenerationComputeRuntime.hpp"
 #include "StarWorldGenerationDeliveryMetrics.hpp"
 #include "StarWorldGenerationHardwareSelection.hpp"
 #include "StarWorldGenerationScaleMetrics.hpp"
@@ -8,7 +9,7 @@
 
 namespace Star {
 
-// H5 / GPU-05 cut after H4 tip 76ab0fa2 (WorldGenerationComputeRuntime pump):
+// H5 / GPU-05 cut after INT tip 191cb6e4 (H4 WorldGenerationComputeRuntime pump):
 // Observe WorldThread pump signals without owning GL, DenseUint32 kernels, or
 // live-world publish. Rehearsal completions never count as measured gain.
 // Real workload costs must be supplied by Desktop/H4 (gain_pipeline), not invented.
@@ -42,6 +43,28 @@ inline bool worldGenerationWorldThreadPumpObservationValid(
       return false;
   }
   return true;
+}
+
+// Map live ComputeRuntime pump getters into the H5 observation contract.
+// Does not invent delivery costs; calibrated samples must be attached separately.
+inline WorldGenerationWorldThreadPumpObservation observeWorldGenerationComputeRuntime(
+    WorldGenerationComputeRuntime const& runtime) noexcept {
+  WorldGenerationWorldThreadPumpObservation observation;
+  observation.runtimeActive = runtime.active();
+  observation.rehearsal = runtime.rehearsal();
+  observation.lastPumpCompletions = runtime.lastPumpCompletions();
+  return observation;
+}
+
+inline WorldGenerationWorldThreadPumpObservation observeWorldGenerationComputeRuntime(
+    WorldGenerationComputeRuntime const& runtime,
+    WorldGenerationDeliveryCost cpuCost,
+    WorldGenerationDeliveryCost gpuCost) noexcept {
+  auto observation = observeWorldGenerationComputeRuntime(runtime);
+  observation.deliveryCostsCalibrated = true;
+  observation.cpuCost = cpuCost;
+  observation.gpuCost = gpuCost;
+  return observation;
 }
 
 class WorldGenerationWorldThreadScaleRecorder {

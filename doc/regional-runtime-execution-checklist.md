@@ -40,7 +40,8 @@ marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Frente ativa nesta branch H5: seleção de hardware/escala. Base absorvida:
 INT tip `191cb6e4` (H4 WorldThread runtime `76ab0fa2`). Relatório atual:
-[H5 WorldThread scale adapter](sector-runtime-h5-worldthread-scale-adapter-2026-11-28.md)
+[H5 WorldThread runtime wire](sector-runtime-h5-worldthread-runtime-wire-2026-11-28.md)
+· [H5 WorldThread scale adapter](sector-runtime-h5-worldthread-scale-adapter-2026-11-28.md)
 · [H4 worldthread runtime](sector-runtime-h4-gpu-m50-worldthread-runtime-2026-11-28.md).
 H0 permanece em `Experimental` com
 [Concurrent ocean](sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)

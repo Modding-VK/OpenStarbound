@@ -106,9 +106,9 @@ inline bool worldGenerationShadowObservationValid(
 
 inline WorldGenerationDeliveryCost worldGenerationCostFromShadowObservation(
     WorldGenerationShadowBatchObservation const& observation,
-    WorldGenerationComputeBackend backend) noexcept {
+    WorldGenerationHardwareRoutingBackend backend) noexcept {
   WorldGenerationDeliveryCost cost;
-  if (backend == WorldGenerationComputeBackend::Cpu) {
+  if (backend == WorldGenerationHardwareRoutingBackend::Cpu) {
     cost.executionMs = observation.cpuExecutionMs;
     cost.transferMs = 0;
     cost.fenceMs = 0;
@@ -149,9 +149,9 @@ public:
       case WorldGenerationShadowCompareVerdict::Equal:
         m_snapshot.equalBatches += 1;
         m_snapshot.cpuTotalMsSum += worldGenerationCostFromShadowObservation(
-            observation, WorldGenerationComputeBackend::Cpu).totalMs();
+            observation, WorldGenerationHardwareRoutingBackend::Cpu).totalMs();
         m_snapshot.gpuTotalMsSum += worldGenerationCostFromShadowObservation(
-            observation, WorldGenerationComputeBackend::Gpu).totalMs();
+            observation, WorldGenerationHardwareRoutingBackend::Gpu).totalMs();
         break;
       case WorldGenerationShadowCompareVerdict::Diverged:
         m_snapshot.divergedBatches += 1;
@@ -181,9 +181,9 @@ public:
         && m_snapshot.capabilities.worldgenGlComputeProbePass
         && m_snapshot.capabilities.glContextCreated;
     sample.cpuCost = worldGenerationCostFromShadowObservation(
-        m_lastEqual, WorldGenerationComputeBackend::Cpu);
+        m_lastEqual, WorldGenerationHardwareRoutingBackend::Cpu);
     sample.gpuCost = worldGenerationCostFromShadowObservation(
-        m_lastEqual, WorldGenerationComputeBackend::Gpu);
+        m_lastEqual, WorldGenerationHardwareRoutingBackend::Gpu);
     if (!sample.cpuCost.valid() || !sample.gpuCost.valid())
       return sample;
 
@@ -203,7 +203,7 @@ public:
     prep.reservationId = 1;
     prep.startMs = 0;
     prep.endMs = routing.gpuCost.executionMs;
-    prep.backend = WorldGenerationComputeBackend::Gpu;
+    prep.backend = WorldGenerationHardwareRoutingBackend::Gpu;
     prep.bytes = 0;
     prep.inputRevision = 1;
     recorder.recordPreparation(prep);

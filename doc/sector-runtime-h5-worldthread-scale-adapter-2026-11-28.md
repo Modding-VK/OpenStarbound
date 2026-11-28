@@ -19,15 +19,19 @@ proximo passo H5 GPU-05:
 
 `WorldGenerationWorldThreadScaleRecorder`: observa `active` / `rehearsal` /
 `lastPumpCompletions` + custos calibrados. Rehearsal **nunca** marca
-`measuredGainFromLivePump`. Sem DenseUint32. Sem merge INT. H5 permanece **25%**.
+`measuredGainFromLivePump`. Sem DenseUint32. H5 permanece **25%**.
+
+Seguimento (wiring no tip INT): ver
+[worldthread-runtime-wire](sector-runtime-h5-worldthread-runtime-wire-2026-11-28.md)
+apos absorcao INT `191cb6e4`.
 
 ## Validacao
 
-Filtro H5: **53/53** local.
+Filtro H5 (adapter original): **53/53** local. Apos wiring INT: **58/58**.
 
 ## O que ainda falta p/ 50%
 
-1. Wiring real H5<-H4 runtime no mesmo tip/INT (observacao so e o contrato)
+1. ~~Wiring real H5<-H4 runtime~~ — feito sobre INT `191cb6e4`
 2. Amostras **live** (`rehearsal=false`) no WorldThread com custos Desktop
 3. Publish live / dual-context (H4) se adocao autoritativa
 4. Benchmark setores/s (nao so harness)
