@@ -348,7 +348,10 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfRemNibble = 322, // n%d; d=parameter&0xf, d==0 -> 0; high nibble ignored
   DenseUint32HalfShlWrapNibble = 323, // (n<<(parameter&3))&0xf; high nibble ignored
   DenseUint32HalfShrWrapNibble = 324, // n>>(parameter&3); high nibble ignored
-  DenseUint32HalfFunnelShiftNibble = 325 // ((n<<k)|(((parameter>>4)&0xf)>>(4-k)))&0xf; k=parameter&3
+  DenseUint32HalfFunnelShiftNibble = 325, // ((n<<k)|(((parameter>>4)&0xf)>>(4-k)))&0xf; k=parameter&3
+  DenseUint32HalfRotlWrapNibble = 326, // rotate-left by (parameter&3) within nibble; high ignored
+  DenseUint32HalfRotrWrapNibble = 327, // rotate-right by (parameter&3) within nibble; high ignored
+  DenseUint32HalfBitPairSwapNibble = 328 // swap bit-pairs (1:0)<->(3:2); parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
