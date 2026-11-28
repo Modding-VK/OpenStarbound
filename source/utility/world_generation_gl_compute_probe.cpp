@@ -53,37 +53,95 @@ List<uint32_t> timingCorpus(size_t repeats) {
   return out;
 }
 
+bool valuesEqual(List<uint32_t> const& a, List<uint32_t> const& b) {
+  if (a.size() != b.size())
+    return false;
+  for (size_t i = 0; i < a.size(); ++i) {
+    if (a[i] != b[i])
+      return false;
+  }
+  return true;
+}
+
 int runTiming(WorldGenerationComputeService& service, WorldGenerationComputeKernel kernel,
-    uint32_t parameter, char const* name, size_t repeats) {
+    uint32_t parameter, char const* name, size_t repeats, size_t iters) {
   auto input = timingCorpus(repeats);
-  auto t0 = std::chrono::steady_clock::now();
-  auto cpu = WorldGenerationComputeService::runKernel(kernel, 1u, input, parameter);
-  auto t1 = std::chrono::steady_clock::now();
-  auto ticket = service.submit(makeIdentity(9000ull + (uint64_t)kernel, kernel), input, parameter,
+  // Warmup (excluded from totals): one CPU + one GPU pass.
+  auto warmCpu = WorldGenerationComputeService::runKernel(kernel, 1u, input, parameter);
+  auto warmTicket = service.submit(makeIdentity(8000ull + (uint64_t)kernel, kernel), input, parameter,
       WorldGenerationComputeBackend::GpuOpenGlCompute);
-  if (!ticket) {
+  if (!warmTicket) {
     std::printf("timing %s: gpu submit refused\n", name);
     return 4;
   }
-  WorldGenerationComputeResult result;
-  auto status = service.poll(*ticket, &result);
-  auto t2 = std::chrono::steady_clock::now();
-  auto cpuUs = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
-  auto gpuUs = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
-  bool equal = status == WorldGenerationComputePollStatus::Ready
-      && result.backend == WorldGenerationComputeBackend::GpuOpenGlCompute
-      && result.values.size() == cpu.size();
-  if (equal) {
-    for (size_t i = 0; i < cpu.size(); ++i) {
-      if (result.values[i] != cpu[i]) {
-        equal = false;
-        break;
-      }
-    }
+  WorldGenerationComputeResult warmResult;
+  if (service.poll(*warmTicket, &warmResult) != WorldGenerationComputePollStatus::Ready
+      || !valuesEqual(warmResult.values, warmCpu)) {
+    std::printf("timing %s: warmup mismatch\n", name);
+    return 5;
   }
-  std::printf("timing %s: n=%zu cpu_us=%lld gpu_submit_poll_us=%lld status=%u equal=%d\n", name,
-      input.size(), (long long)cpuUs, (long long)gpuUs, (unsigned)status, equal ? 1 : 0);
-  return equal ? 0 : 5;
+
+  long long cpuUs = 0;
+  long long gpuUs = 0;
+  for (size_t i = 0; i < iters; ++i) {
+    auto t0 = std::chrono::steady_clock::now();
+    auto cpu = WorldGenerationComputeService::runKernel(kernel, 1u, input, parameter);
+    auto t1 = std::chrono::steady_clock::now();
+    auto ticket = service.submit(
+        makeIdentity(9000ull + (uint64_t)kernel * 100ull + (uint64_t)i, kernel), input, parameter,
+        WorldGenerationComputeBackend::GpuOpenGlCompute);
+    if (!ticket) {
+      std::printf("timing %s: gpu submit refused at iter %zu\n", name, i);
+      return 4;
+    }
+    WorldGenerationComputeResult result;
+    auto status = service.poll(*ticket, &result);
+    auto t2 = std::chrono::steady_clock::now();
+    if (status != WorldGenerationComputePollStatus::Ready
+        || result.backend != WorldGenerationComputeBackend::GpuOpenGlCompute
+        || !valuesEqual(result.values, cpu)) {
+      std::printf("timing %s: iter %zu mismatch status=%u\n", name, i, (unsigned)status);
+      return 5;
+    }
+    cpuUs += std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
+    gpuUs += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+  }
+  double ratio = gpuUs > 0 ? (double)cpuUs / (double)gpuUs : 0.0;
+  int gpuFaster = (gpuUs > 0 && cpuUs > gpuUs) ? 1 : 0;
+  std::printf(
+      "timing %s: n=%zu iters=%zu cpu_us=%lld gpu_submit_poll_us=%lld ratio_cpu_over_gpu=%.3f "
+      "gpu_faster=%d equal=1\n",
+      name, input.size(), iters, cpuUs, gpuUs, ratio, gpuFaster);
+  // Equality is the contract here; gpu_faster is evidence for the 50% gain gate, not a hard FAIL.
+  return 0;
+}
+
+int runDriverEvidence(WorldGenerationComputeService& service) {
+  // Multi-driver evidence line: stable fingerprints Desktop workers can compare across vendors.
+  auto const& info = WorldGenerationComputeGlDevice::lastProbeInfo();
+  auto caps = service.capabilities();
+  auto capsFp = WorldGenerationComputeService::fingerprintCapabilities(caps);
+  auto input = edgeCorpus();
+  auto terrain = service.compareShadow(
+      makeIdentity(9200, WorldGenerationComputeKernel::TerrainFieldMax2), input, 0u,
+      WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::GpuOpenGlCompute);
+  auto biome = service.compareShadow(
+      makeIdentity(9201, WorldGenerationComputeKernel::BiomeIdBucket), input, 0x10u,
+      WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::GpuOpenGlCompute);
+  List<WorldGenerationComputeShadowReport> reports;
+  reports.append(terrain);
+  reports.append(biome);
+  auto summary = WorldGenerationComputeService::summarizeShadowReports(reports);
+  auto shadowFp = WorldGenerationComputeService::fingerprintShadowSummary(summary);
+  std::printf(
+      "driver_evidence vendor='%s' renderer='%s' version='%s' caps_fp=%llu shadow_fp=%llu "
+      "terrain_verdict=%u biome_verdict=%u\n",
+      info.glVendor, info.glRenderer, info.glVersion, (unsigned long long)capsFp,
+      (unsigned long long)shadowFp, (unsigned)terrain.verdict, (unsigned)biome.verdict);
+  if (terrain.verdict != WorldGenerationComputeShadowVerdict::equal
+      || biome.verdict != WorldGenerationComputeShadowVerdict::equal)
+    return 7;
+  return 0;
 }
 
 int runDeferredGpuPump(WorldGenerationComputeService& service) {
@@ -1053,18 +1111,33 @@ int main() {
       rc |= 4;
   }
 
-  // Wall timing (informative; not a 50% claim). Repeats enlarge corpus for measurable us.
+  // Wall timing (informative; not a 50% claim). Larger corpus + iters for gain evidence.
+  // Env overrides: STAR_WORLDGEN_GL_TIMING_REPEATS / STAR_WORLDGEN_GL_TIMING_ITERS
+  size_t timingRepeats = 16384u;
+  size_t timingIters = 8u;
+  if (char const* envRep = std::getenv("STAR_WORLDGEN_GL_TIMING_REPEATS")) {
+    unsigned long v = std::strtoul(envRep, nullptr, 10);
+    if (v >= 1ul && v <= 1000000ul)
+      timingRepeats = (size_t)v;
+  }
+  if (char const* envIt = std::getenv("STAR_WORLDGEN_GL_TIMING_ITERS")) {
+    unsigned long v = std::strtoul(envIt, nullptr, 10);
+    if (v >= 1ul && v <= 1000ul)
+      timingIters = (size_t)v;
+  }
   rc |= runTiming(service, WorldGenerationComputeKernel::TerrainFieldMax2, 0u, "TerrainFieldMax2",
-      4096u);
+      timingRepeats, timingIters);
   rc |= runTiming(service, WorldGenerationComputeKernel::BiomeIdBucket, 0x10u, "BiomeIdBucket",
-      4096u);
+      timingRepeats, timingIters);
 
   rc |= runDeferredGpuPump(service);
+  rc |= runDriverEvidence(service);
 
   WorldGenerationComputeGlDevice::shutdown();
   if (rc == 0)
     std::printf(
-        "PASS: probe + DenseUint32* + TerrainField/Biome CPU↔GPU shadow + deferred pump\n");
+        "PASS: probe + DenseUint32* + TerrainField/Biome CPU↔GPU shadow + deferred pump + "
+        "driver_evidence\n");
   else
     std::printf("FAIL: rc=%d\n", rc);
   return rc == 0 ? 0 : 1;

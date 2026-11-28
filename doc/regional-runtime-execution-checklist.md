@@ -38,10 +38,10 @@ histórico, sem outra fila de prioridades. O
 [painel de progressão](sector-runtime/progress.md) consolida percentuais por
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
-Frente ativa nesta branch H4: GPU-01…04 (CPU-first esgotado sem GL;
-m50 Terrain/Biome GL prep + checklist Desktop V até 2026-11-29).
+Frente ativa nesta branch H4: GPU-01…04 (Desktop probe PASS; ganho + multi-driver
+abertos; sem claim 50%).
 Relatório atual:
-[m50 Terrain/Biome GL prep](sector-runtime-h4-gpu-m50-terrain-biome-gl-prep-2026-11-28.md),
+[GL-ON tests + gain/multidriver](sector-runtime-h4-gpu-m50-gl-on-tests-gain-multidriver-2026-11-28.md),
 [checklist Desktop V](sector-runtime-h4-gpu-m50-desktop-v-probe-checklist-2026-11-28.md),
 com [GPU-01](sector-runtime-h4-gpu01-compute-interface-2026-11-27.md).
 H0 continua em `Experimental` com
