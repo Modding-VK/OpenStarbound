@@ -5779,6 +5779,10 @@ bool WorldGenerationComputeService::rejectedDuplicatesVoid() const {
   return rejectedDuplicatesEmpty();
 }
 
+List<WorldGenerationComputeTicket> WorldGenerationComputeService::rejectedDuplicatesCatalog() const {
+  return rejectedDuplicatesList();
+}
+
 size_t WorldGenerationComputeService::clearRejectedDuplicates() {
   std::lock_guard<std::mutex> lock(m_mutex);
   if (!ownerAllowsLocked())
