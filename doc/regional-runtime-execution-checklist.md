@@ -667,4 +667,6 @@ etapa acima.
 1. Timer 15–20 min CONTINUA — ao vencer, merge lote mesmo com frentes ativas.
 2. Idle antecipado — todas frentes de dev idle antes do timer → merge imediato.
 3. Nunca tip-a-tip. 1 Build tip final se Build anterior terminal; sem spam.
+4. **H4 filtro material (02:02Z):** ignorar micro-lotes DenseUint32/rejectedDuplicates*;
+   merge H4 só tips reais rumo a 50% (GL/terreno/bioma/WorldThread/multi-driver/ganho).
 

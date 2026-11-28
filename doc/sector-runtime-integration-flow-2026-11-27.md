@@ -956,3 +956,9 @@ integração: **nenhum**.
 - H3: `cursor/h3-kernels-publication-9f77` @ `3bdf1927` sem tip novo; `h3-tmx-shadow-9f77` remote ausente.
 - PRs abertos com base na INT: nenhum.
 - Build `46095423615` in_progress @`e07fcdbc`; tip final pendente após terminal; sem Actions nesta revisão.
+
+## Política user 2026-11-28T02:02Z — H4 material 50% (GL/terreno)
+- DenseUint32 nibble/helpers (`rejectedDuplicates*`, Half* nibble kernels, catálogo uint16) = **micro-lote**: NÃO mergear mesmo com ahead>0 / idle / timer.
+- Próximos tips H4 elegíveis: **material rumo a 50%** — GL/terreno/bioma, WorldThread, multi-driver, ganho medido (GPU-03 seguinte / GPU-02 WorldThread).
+- Idle/timer 3 cláusulas CONTINUAM, mas só para tips **reais/materiais** (H4 filtrado acima; H5 inalterado).
+- Build tip final: só após tip material absorvido + Build anterior terminal; sem spam.
