@@ -694,6 +694,8 @@ public:
   size_t rejectedDuplicatesPopulation() const;
   // Alias of listRejectedDuplicates (asset-free observation naming).
   List<WorldGenerationComputeTicket> rejectedDuplicatesSnapshot() const;
+  // Alias of hasRejectedDuplicate (asset-free observation naming).
+  bool rejectedDuplicatesIncludes(WorldGenerationComputeTicket ticket) const;
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 
