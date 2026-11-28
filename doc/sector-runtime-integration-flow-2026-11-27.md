@@ -1187,3 +1187,7 @@ integração: **nenhum**.
 ## Sync 2026-11-28T09:30Z
 - Tip INT `3d867881` (flow/docs; tip-final base `9683d377` Build SUCCESS).
 - Ahead h0–h5/r1/r2=0. H4 standby 2º vendor (50% sem claim). Sem spam.
+
+## Sync 2026-11-28T10:00Z
+- Tip INT `82b5bcc7` (flow/docs; tip-final base `9683d377` Build SUCCESS).
+- Ahead h0–h5/r1/r2=0. H4 standby 2º vendor (50% sem claim). Sem spam.
