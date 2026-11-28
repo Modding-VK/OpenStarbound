@@ -19,6 +19,7 @@ WorldGenerationComputeRuntime::Options WorldGenerationComputeRuntime::optionsFro
     options.enabled = block.getBool("worldThreadPump", false);
     options.gpuFenceRehearsal = block.getBool("gpuFenceRehearsal", true);
     options.deferredCompletion = block.getBool("deferredCompletion", true);
+    options.autoStageReady = block.getBool("autoStageReady", false);
   } catch (...) {
     // Config parse failures leave the runtime inactive (safe default).
     options = {};
@@ -39,7 +40,9 @@ void WorldGenerationComputeRuntime::startOnWorldThread(Options options) {
   m_service->adoptOwnerThread();
 
   m_rehearsal = options.gpuFenceRehearsal;
+  m_autoStageReady = options.autoStageReady;
   m_lastPumpCompletions = 0;
+  m_lastAutoStaged = 0;
   m_active = true;
 }
 
@@ -47,6 +50,9 @@ size_t WorldGenerationComputeRuntime::pumpUpdate(size_t maxCompletions) {
   if (!m_active || !m_service)
     return 0;
   m_lastPumpCompletions = m_service->pump(maxCompletions);
+  m_lastAutoStaged = 0;
+  if (m_autoStageReady)
+    m_lastAutoStaged = m_admission.stageReadyOpen(*m_service, m_publishGate, maxCompletions);
   return m_lastPumpCompletions;
 }
 
@@ -61,9 +67,28 @@ void WorldGenerationComputeRuntime::stopOnWorldThread() {
   WorldGenerationComputeGlDevice::shutdown();
   m_service.reset();
   m_publishGate.clearStaged();
+  m_admission.clearPending();
   m_active = false;
   m_rehearsal = false;
+  m_autoStageReady = false;
   m_lastPumpCompletions = 0;
+  m_lastAutoStaged = 0;
+}
+
+WorldGenerationComputeAdmissionRecord WorldGenerationComputeRuntime::admitPreparation(
+    WorldGenerationComputeAdmissionRequest request) {
+  WorldGenerationComputeAdmissionRecord refused;
+  refused.identity = request.identity;
+  refused.verdict = WorldGenerationComputeAdmissionVerdict::RefusedInactive;
+  if (!m_active || !m_service)
+    return refused;
+  return m_admission.admit(*m_service, std::move(request), m_rehearsal);
+}
+
+size_t WorldGenerationComputeRuntime::stageReadyOpen(size_t maxRecords) {
+  if (!m_active || !m_service)
+    return 0;
+  return m_admission.stageReadyOpen(*m_service, m_publishGate, maxRecords);
 }
 
 char const* WorldGenerationComputeRuntime::dualContextPrepStatus() noexcept {

@@ -38,9 +38,10 @@ histórico, sem outra fila de prioridades. O
 [painel de progressão](sector-runtime/progress.md) consolida percentuais por
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
-Frente ativa nesta branch H4: GPU-01…04 (WorldThread + publish stage gate +
-dual-context stubs; 2º vendor estacionado; sem claim 50%).
+Frente ativa nesta branch H4: GPU-01…04 (WorldThread + publish stage + prep
+admission→staged; 2º vendor estacionado; sem claim 50%).
 Relatório atual:
+[prep admission→staged](sector-runtime-h4-gpu-m50-prep-admission-staged-2026-11-28.md),
 [publish/dual-context prep](sector-runtime-h4-gpu-m50-publish-dualcontext-prep-2026-11-28.md),
 [worldthread runtime](sector-runtime-h4-gpu-m50-worldthread-runtime-2026-11-28.md),
 [multidriver path](sector-runtime-h4-gpu-m50-multidriver-path-2026-11-28.md),

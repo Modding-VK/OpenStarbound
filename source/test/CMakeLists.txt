@@ -109,6 +109,7 @@ ADD_EXECUTABLE(world_generation_contract_tests
   ../game/StarWorldGenerationCompute.cpp
   ../game/StarWorldGenerationComputeGl.cpp
   ../game/StarWorldGenerationComputePublish.cpp
+  ../game/StarWorldGenerationComputeAdmission.cpp
   ../game/StarWorldGenerationComputeRuntime.cpp
   ../game/StarWorldGenerationMemory.cpp
   ../game/StarLiquidTypes.cpp

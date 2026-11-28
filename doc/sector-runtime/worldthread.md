@@ -96,12 +96,13 @@ A migração preserva um caminho legado completo para mods sem contrato
 regional. Uma passagem de modo só ocorre numa fronteira consistente de mundo,
 nunca em meio a callback ou transação de estrutura.
 
-## GPU publish gate (prep cloud-safe, 28/11/2026)
+## GPU publish gate + prep admission (cloud-safe, 28/11/2026)
 
-`WorldGenerationComputePublishGate` (via `WorldGenerationComputeRuntime`)
-permite **stage** de resultados Ready para revisão; `applyToLiveWorld` sempre
-recusa. Dual-context: stubs (`renderer_share=unsupported`). Sem claim 50%.
-Relatório: [publish/dual-context prep](../sector-runtime-h4-gpu-m50-publish-dualcontext-prep-2026-11-28.md).
+`WorldGenerationComputeAdmission` admite só Terrain/Biome (DenseUint32
+recusado), escolhe backend por heurística e encaminha Ready ao
+`PublishGate` (`autoStageReady` opt-in). `applyToLiveWorld` sempre recusa.
+Dual-context: stubs (`renderer_share=unsupported`). Sem claim 50%.
+Relatório: [prep admission→staged](../sector-runtime-h4-gpu-m50-prep-admission-staged-2026-11-28.md).
 
 ## Dependências e métricas
 
