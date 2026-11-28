@@ -29,6 +29,8 @@ public:
     bool deferredCompletion = true;
     // When true, pumpUpdate also stages Ready admitted preparation tickets.
     bool autoStageReady = false;
+    // When true, allow limited live publish into the in-memory sink (not WorldStorage).
+    bool livePublishLimited = false;
   };
 
   WorldGenerationComputeRuntime() = default;
@@ -42,6 +44,7 @@ public:
   //   gpuFenceRehearsal (bool, default true)
   //   deferredCompletion (bool, default true)
   //   autoStageReady (bool, default false)
+  //   livePublishLimited (bool, default false)
   static Options optionsFromConfig(Json const& config) noexcept;
 
   // Must run on the WorldServerThread that will own compute/GL for this world.

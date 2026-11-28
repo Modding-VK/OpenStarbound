@@ -12226,12 +12226,13 @@ bool WorldGenerationComputeGlDevice::rendererShareSupported() noexcept {
 }
 
 char const* WorldGenerationComputeGlDevice::dualContextPrepStatus() noexcept {
-  // Observation string for Desktop harness. renderer_share stays unsupported.
+  // Desktop V tip 462e2cbc observed WorldThreadHidden (rehearsal off). Share still unsupported.
   auto role = contextRole();
   if (role == WorldGenerationComputeGlContextRole::WorldThreadHidden)
     return "gl_build; role=WorldThreadHidden; renderer_share=unsupported; "
-           "desktop_validation=awaiting_harness";
-  return "gl_build; role=Inactive; renderer_share=unsupported; desktop_validation=awaiting_harness";
+           "desktop_validation=worldthread_hidden_ok";
+  return "gl_build; role=Inactive; renderer_share=unsupported; "
+         "desktop_validation=worldthread_hidden_ok";
 }
 
 WorldGenerationComputeCapabilities WorldGenerationComputeGlDevice::probeCapabilities() noexcept {
