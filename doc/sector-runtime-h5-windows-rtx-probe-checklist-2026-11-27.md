@@ -6,11 +6,11 @@ Pré-condição: H4 probe RTX PASS @ `c7f6e605` (GPU shadow real). Sem merge INT
 
 ## Objetivo deste probe
 
-Validar no host RTX os **49 testes de contrato H5** (GPU-05 + VAL-03/04/05 +
-MOD-02/03/04 + CPU-05 + ScaleMetrics/gates/campaign/evidence/profile/attest/
-fingerprint). Sao modelos puros: **nao** ligam OpenGL nem reclamam compute.
-A capacidade GPU real ja comprovada em H4 alimenta o pacote de evidencia; este
-checklist fecha a evidencia Windows dos contratos H5 no tip atual.
+Validar no host RTX os **53 testes de contrato H5** (GPU-05 + VAL-03/04/05 +
+MOD-02/03/04 + CPU-05 + ScaleMetrics/.../WorldThreadScale). Sao modelos puros:
+**nao** ligam OpenGL nem reclamam compute. A capacidade GPU real ja comprovada
+em H4 alimenta o pacote de evidencia; este checklist fecha a evidencia Windows
+dos contratos H5 no tip atual.
 
 ## Pré-requisitos
 
@@ -47,7 +47,7 @@ Filtro único com as oito suites H5:
 
 ```bat
 cd dist
-.\world_generation_contract_tests.exe --gtest_filter=WorldGenerationHardwareSelectionTest.*:WorldGenerationDeliveryMetricsTest.*:WorldGenerationExecutionProfileTest.*:WorldGenerationScenarioMatrixTest.*:WorldGenerationScenarioCampaignTest.*:WorldGenerationScaleEvidenceTest.*:WorldGenerationAdoptionGatesTest.*:WorldGenerationEquivalenceVersionTest.*:WorldGenerationPlatformMatrixTest.*:WorldGenerationResourceGovernorTest.*:WorldGenerationScaleMetricsTest.*
+.\world_generation_contract_tests.exe --gtest_filter=WorldGenerationHardwareSelectionTest.*:WorldGenerationDeliveryMetricsTest.*:WorldGenerationExecutionProfileTest.*:WorldGenerationScenarioMatrixTest.*:WorldGenerationScenarioCampaignTest.*:WorldGenerationScaleEvidenceTest.*:WorldGenerationWorldThreadScaleTest.*:WorldGenerationAdoptionGatesTest.*:WorldGenerationEquivalenceVersionTest.*:WorldGenerationPlatformMatrixTest.*:WorldGenerationResourceGovernorTest.*:WorldGenerationScaleMetricsTest.*
 ```
 
 Ou o script:
@@ -58,7 +58,7 @@ pwsh -File scripts\windows\run-h5-contract-probe.ps1 -ExePath .\dist\world_gener
 
 ### Saída esperada (PASS)
 
-- **49/49** testes PASSED
+- **53/53** testes PASSED
 - exit code `0`
 - Sem Actions; sem claim de backend GPU neste log
 
@@ -72,12 +72,13 @@ pwsh -File scripts\windows\run-h5-contract-probe.ps1 -ExePath .\dist\world_gener
 | WorldGenerationScenarioMatrixTest | 2 |
 | WorldGenerationScenarioCampaignTest | 4 |
 | WorldGenerationScaleEvidenceTest | 9 |
+| WorldGenerationWorldThreadScaleTest | 4 |
 | WorldGenerationAdoptionGatesTest | 6 |
 | WorldGenerationEquivalenceVersionTest | 3 |
 | WorldGenerationPlatformMatrixTest | 2 |
 | WorldGenerationResourceGovernorTest | 3 |
 | WorldGenerationScaleMetricsTest | 6 |
-| **Total** | **49** |
+| **Total** | **53** |
 
 ## O que reportar ao Project / H5
 

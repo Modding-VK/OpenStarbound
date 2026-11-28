@@ -3,10 +3,10 @@
 Atualizado em **27/11/2026**. Branch ativa desta frente: `cursor/h5-hardware-scale-9f77`
 (H0 continua em `Experimental`).
 Base inspecionada H5: `720f51e5` + fundações VAL/MOD/CPU;
-última implementação H5: evidence fingerprint/manifest para o Integrador.
+última implementação H5: WorldThread scale adapter (pos H4 `76ab0fa2`).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico H5](../sector-runtime-h5-scale-evidence-fingerprint-2026-11-27.md)
+· [Último relatório técnico H5](../sector-runtime-h5-worldthread-scale-adapter-2026-11-28.md)
 · [Último relatório H0](../sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
 · [Backlog geral](../performance-backlog.md)
 
@@ -26,7 +26,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **7,7%** — 15 marcos verificados de 196 |
 | Contratos com avanço registrado | **15 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | 49/49 H5 contract suites (evidence fingerprint); H0 ainda 791 padrão +106 RealBlockInfo |
+| Última evidência de testes | 53/53 H5 (WorldThreadScale + fingerprint); H0 ainda 791 padrão +106 RealBlockInfo |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 7,7% não significam que o jogo esteja só 7,7% pronto.** O runtime anterior
@@ -185,7 +185,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 34 | H4 | [GPU-02](gpu-compute.md) | Contexto e buffers em voo | 0% | Thread de contexto, fences, lifetime e recuperação |
 | 35 | H4 | [GPU-03](gpu-compute.md) | Kernels e equivalência | 0% | Primeiro kernel exato e lotes com ganho de custo completo |
 | 36 | H4 | [GPU-04](gpu-compute.md) | Comparação em sombra | 0% | Corpus de precisão/bordas/drivers antes da publicação |
-| 37 | H5 | [GPU-05](gpu-compute.md) | Seleção heterogênea e render | 25% | Seletor + ScaleMetrics; ganho ponta a ponta Desktop ainda parcial |
+| 37 | H5 | [GPU-05](gpu-compute.md) | Seleção heterogênea e render | 25% | WorldThread pump observer; ganho so com live+calibrado; sem 50% |
 | 38 | H5 | [VAL-03](validation-and-telemetry.md) | Métricas e marcos de entrega | 25% | transferMs calibrado + bridge; sem Tracy/WorldThread |
 | 39 | H5 | [VAL-04](validation-and-telemetry.md) | Matriz de cenários | 25% | Campaign recorder + skip tipado; streaming real pendente |
 | 40 | H5 | [VAL-05](validation-and-telemetry.md) | Gates de adoção e relatório | 25% | ScaleMetrics→evidence + summary; adopt segue fechado sem suite completa |
@@ -210,7 +210,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | MOD-01 | [Leitores imutáveis](../sector-runtime-h0-distribution-bundles-2026-11-09.md), [proteção da seleção](../sector-runtime-h0-planning-storage-2026-11-09.md) e [lifecycle/scope 2](../sector-runtime-h0-lookup-source-generations-2026-11-09.md) | Metadata não é sincronização/commit nem auditoria de toda mutação; fronteira biomeTransition e integração abertas |
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
-| GPU-05 | [hardware selection](../sector-runtime-h5-hardware-selection-2026-11-27.md) + [scale bridge](../sector-runtime-h5-scale-metrics-shadow-bridge-2026-11-27.md) | Sem publicação GPU; ganho ponta a ponta Desktop ainda parcial |
+| GPU-05 | [worldthread adapter](../sector-runtime-h5-worldthread-scale-adapter-2026-11-28.md) | Sem publish live; rehearsal != ganho; wiring INT/H4 pendente |
 | VAL-03 | [fundações](../sector-runtime-h5-scale-foundations-2026-11-27.md) + [gates/metrics](../sector-runtime-h5-scale-gates-metrics-2026-11-27.md) | Sem instrumentação no WorldThread/Tracy nem cobertura completa de pipeline |
 | VAL-04 | [scenario campaign](../sector-runtime-h5-scenario-campaign-2026-11-27.md) | Sem streaming/A-B real; skips nao contam como pass |
 | VAL-05 | [gates/metrics](../sector-runtime-h5-scale-gates-metrics-2026-11-27.md) | Adoção permanece falsa sob evidência parcial; sem gate de pipeline completo |
@@ -323,6 +323,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 27/11/2026 | H5 scale profile advice | MOD-03 recommend + materializeMs; 46 testes. H5 25%; programa 7,7% | 7,7% |
 | 27/11/2026 | H5 desktop attestation | tipPrefix + contract counts no evidence pack; 48 testes. H5 25%; programa 7,7% | 7,7% |
 | 27/11/2026 | H5 evidence fingerprint | manifest deterministico; 49 testes. H5 25%; puros esgotados ate WorldThread/ganho | 7,7% |
+| 28/11/2026 | H5 WorldThread scale adapter | Observa pump H4 `76ab0fa2`; rehearsal!=ganho; 53 testes; H5 25% | 7,7% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.
