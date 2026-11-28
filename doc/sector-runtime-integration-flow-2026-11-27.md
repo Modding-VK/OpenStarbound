@@ -1108,3 +1108,9 @@ integração: **nenhum**.
 - Gates: Build tip-final `46120464804` in_progress @`191cb6e4` (hold; 1× HEAD pós-terminal);
   CI Int/SR in_progress @`d5983159`.
 - H4 m50: 2º vendor estacionado; 50% sem claim. Sem Actions nesta revisão.
+
+## Sync 2026-11-28T07:30Z
+- Tip INT `457b0815` (flow/docs; material base `d5983159` H4 admission→staged).
+- Ahead h0–h5/r1/r2=0. H4/H5 ativos (tips absorvidos; frentes em trabalho).
+- Build `46120464804` in_progress @`191cb6e4` (Upload Artifacts); hold tip-final → 1× HEAD pós-terminal.
+- 50% sem claim. Sem spam.
