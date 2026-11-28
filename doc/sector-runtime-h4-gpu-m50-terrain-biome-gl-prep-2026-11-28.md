@@ -14,7 +14,7 @@
 ## Branch / prior tip
 
 - Prior HEAD: `84378eb7` (deferred GPU → pumpFences + terrain CPU sketch docs)
-- This tip: Terrain/Biome GL programs + probe m50 section + Desktop checklist
+- This tip: `4dc4c11e` — Terrain/Biome GL programs + probe m50 section + Desktop checklist
 
 ## Changes
 
