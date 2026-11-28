@@ -483,7 +483,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfPopMaxNibble
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfOddPopFillNibble
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfPopMod3Nibble
-      || kernel == WorldGenerationComputeKernel::DenseUint32HalfMaj3FillNibble;
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfMaj3FillNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfZeroPopFillNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfFullPopFillNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfPopEqCountFillNibble;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -930,7 +933,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32HalfPopMaxNibble,
       WorldGenerationComputeKernel::DenseUint32HalfOddPopFillNibble,
       WorldGenerationComputeKernel::DenseUint32HalfPopMod3Nibble,
-      WorldGenerationComputeKernel::DenseUint32HalfMaj3FillNibble};
+      WorldGenerationComputeKernel::DenseUint32HalfMaj3FillNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfZeroPopFillNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfFullPopFillNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfPopEqCountFillNibble};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -940,7 +946,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 439u;
+  return 442u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -1401,6 +1407,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32HalfOddPopFillNibble: return "DenseUint32HalfOddPopFillNibble";
     case WorldGenerationComputeKernel::DenseUint32HalfPopMod3Nibble: return "DenseUint32HalfPopMod3Nibble";
     case WorldGenerationComputeKernel::DenseUint32HalfMaj3FillNibble: return "DenseUint32HalfMaj3FillNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfZeroPopFillNibble: return "DenseUint32HalfZeroPopFillNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfFullPopFillNibble: return "DenseUint32HalfFullPopFillNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfPopEqCountFillNibble: return "DenseUint32HalfPopEqCountFillNibble";
   }
   return nullptr;
 }
@@ -5801,6 +5810,43 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
       }
       out.append(result);
     }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfZeroPopFillNibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t aPop = ((a >> 0) & 1u) + ((a >> 1) & 1u) + ((a >> 2) & 1u) + ((a >> 3) & 1u);
+        uint32_t outN = (aPop == 0u) ? 0xfu : 0u;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfFullPopFillNibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t aPop = ((a >> 0) & 1u) + ((a >> 1) & 1u) + ((a >> 2) & 1u) + ((a >> 3) & 1u);
+        uint32_t outN = (aPop == 4u) ? 0xfu : 0u;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfPopEqCountFillNibble) {
+    uint32_t target = parameter & 7u;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t aPop = ((a >> 0) & 1u) + ((a >> 1) & 1u) + ((a >> 2) & 1u) + ((a >> 3) & 1u);
+        uint32_t outN = (aPop == target) ? 0xfu : 0u;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
   }
   return out;
 }
@@ -6651,6 +6697,10 @@ uint64_t WorldGenerationComputeService::rejectedDuplicatesCipher() const {
 
 List<WorldGenerationComputeTicket> WorldGenerationComputeService::rejectedDuplicatesDocket() const {
   return rejectedDuplicatesList();
+}
+
+size_t WorldGenerationComputeService::rejectedDuplicatesEvacuate() {
+  return clearRejectedDuplicates();
 }
 
 size_t WorldGenerationComputeService::clearRejectedDuplicates() {
