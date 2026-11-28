@@ -354,7 +354,10 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfBitPairSwapNibble = 328, // swap bit-pairs (1:0)<->(3:2); parameter ignored
   DenseUint32HalfNibbleMirror = 329, // reverse 4 bits in each low16 nibble; parameter ignored
   DenseUint32HalfXorShiftNibble = 330, // (n ^ (n<<(parameter&3))) & 0xf; high ignored
-  DenseUint32HalfAddCarryFillNibble = 331 // 0xf if n+(parameter&0xf) > 15 else 0; high ignored
+  DenseUint32HalfAddCarryFillNibble = 331, // 0xf if n+(parameter&0xf) > 15 else 0; high ignored
+  DenseUint32HalfSubBorrowFillNibble = 332, // 0xf if n < (parameter&0xf) else 0; high ignored
+  DenseUint32HalfMulOverflowFillNibble = 333, // 0xf if n*(parameter&0xf) > 15 else 0; high ignored
+  DenseUint32HalfInterleaveLowNibble = 334 // interleave low2 of n with low2 of (parameter&0xf); high ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {

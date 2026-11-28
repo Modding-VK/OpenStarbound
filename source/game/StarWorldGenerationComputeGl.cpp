@@ -391,6 +391,9 @@ GLuint g_halfBitPairSwapNibbleProgram = 0;
 GLuint g_halfNibbleMirrorProgram = 0;
 GLuint g_halfXorShiftNibbleProgram = 0;
 GLuint g_halfAddCarryFillNibbleProgram = 0;
+GLuint g_halfSubBorrowFillNibbleProgram = 0;
+GLuint g_halfMulOverflowFillNibbleProgram = 0;
+GLuint g_halfInterleaveLowNibbleProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -6626,6 +6629,78 @@ void main() {
 }
 )GLSL";
 
+char const* HalfSubBorrowFillNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint sub = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint outN = (a < sub) ? 0xfu : 0u;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfMulOverflowFillNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint mul = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint outN = (a * mul > 0xfu) ? 0xfu : 0u;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfInterleaveLowNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint p = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint outN = 0u;
+    for (uint b = 0u; b < 2u; ++b) {
+      if ((a & (1u << b)) != 0u)
+        outN |= 1u << (2u * b + 1u);
+      if ((p & (1u << b)) != 0u)
+        outN |= 1u << (2u * b);
+    }
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -7998,6 +8073,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfAddCarryFillNibbleProgram);
     g_halfAddCarryFillNibbleProgram = 0;
   }
+  if (g_halfSubBorrowFillNibbleProgram) {
+    glDeleteProgram(g_halfSubBorrowFillNibbleProgram);
+    g_halfSubBorrowFillNibbleProgram = 0;
+  }
+  if (g_halfMulOverflowFillNibbleProgram) {
+    glDeleteProgram(g_halfMulOverflowFillNibbleProgram);
+    g_halfMulOverflowFillNibbleProgram = 0;
+  }
+  if (g_halfInterleaveLowNibbleProgram) {
+    glDeleteProgram(g_halfInterleaveLowNibbleProgram);
+    g_halfInterleaveLowNibbleProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -8548,7 +8635,13 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfXorShiftNibbleProgram, HalfXorShiftNibbleShader,
             "DenseUint32HalfXorShiftNibble")
       || !requireProgram(g_halfAddCarryFillNibbleProgram, HalfAddCarryFillNibbleShader,
-            "DenseUint32HalfAddCarryFillNibble"))
+            "DenseUint32HalfAddCarryFillNibble")
+      || !requireProgram(g_halfSubBorrowFillNibbleProgram, HalfSubBorrowFillNibbleShader,
+            "DenseUint32HalfSubBorrowFillNibble")
+      || !requireProgram(g_halfMulOverflowFillNibbleProgram, HalfMulOverflowFillNibbleShader,
+            "DenseUint32HalfMulOverflowFillNibble")
+      || !requireProgram(g_halfInterleaveLowNibbleProgram, HalfInterleaveLowNibbleShader,
+            "DenseUint32HalfInterleaveLowNibble"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -9275,6 +9368,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfXorShiftNibbleProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfAddCarryFillNibble)
     program = g_halfAddCarryFillNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSubBorrowFillNibble)
+    program = g_halfSubBorrowFillNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfMulOverflowFillNibble)
+    program = g_halfMulOverflowFillNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfInterleaveLowNibble)
+    program = g_halfInterleaveLowNibbleProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
