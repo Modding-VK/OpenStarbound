@@ -769,6 +769,8 @@ public:
   size_t rejectedDuplicatesSpan() const;
   // Alias of rejectedDuplicatesEmpty (asset-free observation naming).
   bool rejectedDuplicatesAbsent() const;
+  // Alias of rejectedDuplicatesCount (asset-free observation naming).
+  size_t rejectedDuplicatesVolume() const;
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 
