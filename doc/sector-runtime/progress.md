@@ -2,12 +2,13 @@
 
 Atualizado em **28/11/2026**. Branch: `cursor/h4-gpu-shadow-9f77`
 (frente H4; H0 continua em `Experimental`).
-Base inspecionada: Desktop `gain_pipeline` PASS + WorldThread + publish gate +
-prep admission→staged (cloud-safe); 2º vendor estacionado; marco 50% em
-progresso, **sem claim**.
+Base inspecionada: Desktop dual_context PASS `462e2cbc` + limited live publish
+sink (opt-in); 2º vendor estacionado; marco 50% em progresso, **sem claim**
+(NVIDIA-only **não** autoriza 50% — ver ledger).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico H4](../sector-runtime-h4-gpu-m50-dualcontext-desktop-harness-2026-11-28.md)
+· [Último relatório técnico H4](../sector-runtime-h4-gpu-m50-live-publish-limited-2026-11-28.md)
+· [Ledger critérios NVIDIA](../sector-runtime-h4-gpu-m50-criteria-ledger-nvidia-2026-11-28.md)
 · [Último relatório H0](../sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
 · [Backlog geral](../performance-backlog.md)
 
@@ -26,7 +27,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **5,6%** — 11 marcos verificados de 196 |
 | Contratos com avanço registrado | **11 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | Prep admission→staged cloud-safe 324/324; Desktop gain_pipeline gpu_faster=1 (NVIDIA); 2º vendor estacionado; H0: 791 padrão +106 RealBlockInfo |
+| Última evidência de testes | Live-publish limited + dual_context Desktop `462e2cbc`; cloud 325/325; 2º vendor estacionado; H0: 791 padrão +106 RealBlockInfo |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 5,6% não significam que o jogo esteja só 5,6% pronto.** O runtime anterior
@@ -182,7 +183,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 31 | H3 | [IO-04](io-persistence-network.md) | Unload, drain e retorno ao legado | 0% | Encerrar sem liberar buffers/produtores ainda ativos |
 | 32 | H3 | [IO-05](io-persistence-network.md) | Pacotes e aplicação no cliente | 0% | Medir entrega até o cliente, não apenas commit |
 | 33 | H4 | [GPU-01](gpu-compute.md) | Interface e capacidades CPU/GPU | 25% | submitNamed+runNamedKernel; probe GL opt-in |
-| 34 | H4 | [GPU-02](gpu-compute.md) | Contexto e buffers em voo | 25% | WorldThread + publish stage + prep admission; live apply / renderer share / custo medido pendentes |
+| 34 | H4 | [GPU-02](gpu-compute.md) | Contexto e buffers em voo | 25% | dual_context Desktop PASS + limited live sink; WorldStorage apply / renderer share / 2º vendor pendentes |
 | 35 | H4 | [GPU-03](gpu-compute.md) | Kernels e equivalência | 25% | gain_pipeline `gpu_faster=1` (NVIDIA); 2º vendor / WorldThread pendentes |
 | 36 | H4 | [GPU-04](gpu-compute.md) | Comparação em sombra | 25% | `driver_evidence` NVIDIA OK; ≥2º vendor pendente |
 | 37 | H5 | [GPU-05](gpu-compute.md) | Seleção heterogênea e render | 0% | Escolher backend pelo custo de entrega, incluindo transporte |
@@ -211,7 +212,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | VAL-01 | [Harness de passagens](../sector-runtime-h0-streaming-pass-2026-11-09.md), `2131ead3` | Primeiro instrumento auxiliar, não benchmark de streaming real/A-B |
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
 | GPU-01 | [named/backend](../sector-runtime-h4-gpu01-03-bswap-named-backend-2026-11-27.md) + [submitNamed](../sector-runtime-h4-gpu01-03-bitset-submitnamed-2026-11-27.md) | Sem 50% (publicação versionada / caps driver completas) |
-| GPU-02 | [prep admission→staged](../sector-runtime-h4-gpu-m50-prep-admission-staged-2026-11-28.md) + publish gate + worldthread | Stage only; live apply recusa; seletor heurístico ≠ GPU-05; sem 50% |
+| GPU-02 | [live publish limited](../sector-runtime-h4-gpu-m50-live-publish-limited-2026-11-28.md) + dual_context `462e2cbc` | Sink≠WorldStorage; renderer share open; NVIDIA-only ≠ 50% |
 | GPU-03 | [gain pipeline](../sector-runtime-h4-gpu-m50-gain-pipeline-2026-11-28.md) + Desktop `509aaed0` (`gpu_faster=1`) | Um vendor; sem 50% |
 | GPU-04 | [driver_evidence NVIDIA](../sector-runtime-h4-gpu-m50-multidriver-path-2026-11-28.md) | Falta ≥2º vendor; sem 50% |
 
@@ -475,6 +476,8 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 28/11/2026 | GPU-02 m50 publish + dual-context prep | `PublishGate` stage-only + GlDevice dual-context stubs; apply live sempre recusa; 323/323; H4 permanece 25% | 5,6% |
 | 28/11/2026 | GPU-02 m50 prep admission→staged | `Admission` Terrain/Biome + heurística backend + `autoStageReady`; DenseUint32 recusado; 324/324; H4 25%; GPU-05 0% | 5,6% |
 | 28/11/2026 | GPU-02 m50 dual-context Desktop harness | Probe WorldThreadHidden + rehearsal OFF; path (1) auth→2026-11-29; aguarda PASS Desktop; H4 25% | 5,6% |
+| 28/11/2026 | GPU-02 m50 dual_context Desktop PASS | INT `462e2cbc` WorldThreadHidden OK; probe SHA256 `9D52D121…`; H4 25% | 5,6% |
+| 28/11/2026 | GPU-02 m50 live publish limited + ledger | Sink in-memory opt-in; ledger NVIDIA ≠ claim 50%; 325/325; H4 25% | 5,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

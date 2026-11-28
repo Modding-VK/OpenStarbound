@@ -20,6 +20,7 @@ WorldGenerationComputeRuntime::Options WorldGenerationComputeRuntime::optionsFro
     options.gpuFenceRehearsal = block.getBool("gpuFenceRehearsal", true);
     options.deferredCompletion = block.getBool("deferredCompletion", true);
     options.autoStageReady = block.getBool("autoStageReady", false);
+    options.livePublishLimited = block.getBool("livePublishLimited", false);
   } catch (...) {
     // Config parse failures leave the runtime inactive (safe default).
     options = {};
@@ -41,6 +42,7 @@ void WorldGenerationComputeRuntime::startOnWorldThread(Options options) {
 
   m_rehearsal = options.gpuFenceRehearsal;
   m_autoStageReady = options.autoStageReady;
+  m_publishGate.setLivePublishLimited(options.livePublishLimited);
   m_lastPumpCompletions = 0;
   m_lastAutoStaged = 0;
   m_active = true;
@@ -67,6 +69,8 @@ void WorldGenerationComputeRuntime::stopOnWorldThread() {
   WorldGenerationComputeGlDevice::shutdown();
   m_service.reset();
   m_publishGate.clearStaged();
+  m_publishGate.clearLivePublication();
+  m_publishGate.setLivePublishLimited(false);
   m_admission.clearPending();
   m_active = false;
   m_rehearsal = false;

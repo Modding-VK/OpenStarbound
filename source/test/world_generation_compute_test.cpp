@@ -9085,9 +9085,23 @@ TEST(WorldGenerationComputeTest, PublishGateStagesAndRefusesLiveWorld) {
           WorldGenerationComputeKernel::TerrainFieldMax2, 1u, input, 0u)[0]);
   EXPECT_STREQ("Staged", WorldGenerationComputePublishGate::publishVerdictName(staged.verdict));
 
+  // Default: live apply refused (WorldStorage untouched).
   EXPECT_EQ(WorldGenerationComputePublishVerdict::RefusedLiveWorld, gate.applyToLiveWorld(staged));
   EXPECT_EQ(WorldGenerationComputePublishVerdict::RefusedLiveWorld,
       gate.applyToLiveWorld(WorldGenerationComputePublishRecord{}));
+  EXPECT_FALSE(gate.hasLivePublication());
+
+  // Limited live publish: in-memory sink only (Terrain/Biome), still no WorldStorage.
+  gate.setLivePublishLimited(true);
+  EXPECT_EQ(WorldGenerationComputePublishVerdict::PublishedLiveLimited,
+      gate.applyToLiveWorld(staged));
+  ASSERT_TRUE(gate.hasLivePublication());
+  ASSERT_NE(nullptr, gate.livePublication());
+  ASSERT_EQ(1u, gate.livePublication()->values.size());
+  EXPECT_EQ(0x0020u, gate.livePublication()->values[0]);
+  EXPECT_EQ(0u, gate.stagedCount());
+  EXPECT_EQ(1u, gate.clearLivePublication());
+  EXPECT_FALSE(gate.hasLivePublication());
 
   // Ticket consumed by commit inside stageReady.
   WorldGenerationComputeResult gone;
@@ -9101,8 +9115,31 @@ TEST(WorldGenerationComputeTest, PublishGateStagesAndRefusesLiveWorld) {
   auto refused = gate.stageReady(service, *ticket2, staleId, inputFp);
   EXPECT_EQ(WorldGenerationComputePublishVerdict::StaleIdentity, refused.verdict);
 
-  EXPECT_EQ(1u, gate.clearStaged());
+  EXPECT_EQ(0u, gate.clearStaged());
   EXPECT_EQ(0u, gate.stagedCount());
+}
+
+TEST(WorldGenerationComputeTest, LivePublishLimitedRefusesDenseAndOversized) {
+  WorldGenerationComputePublishGate gate;
+  gate.setLivePublishLimited(true);
+
+  WorldGenerationComputePublishRecord dense;
+  dense.verdict = WorldGenerationComputePublishVerdict::Staged;
+  dense.identity = makeIdentity(3500, WorldGenerationComputeKernel::DenseUint32Xor);
+  dense.values = List<uint32_t>{1u, 2u};
+  dense.valueCount = 2;
+  dense.outputFingerprint = WorldGenerationComputeService::fingerprintInput(dense.values);
+  EXPECT_EQ(WorldGenerationComputePublishVerdict::RefusedLiveWorld, gate.applyToLiveWorld(dense));
+  EXPECT_FALSE(gate.hasLivePublication());
+
+  WorldGenerationComputePublishRecord ok;
+  ok.verdict = WorldGenerationComputePublishVerdict::Staged;
+  ok.identity = makeIdentity(3501, WorldGenerationComputeKernel::BiomeIdBucket);
+  ok.values = List<uint32_t>{0x12u};
+  ok.valueCount = 1;
+  ok.outputFingerprint = WorldGenerationComputeService::fingerprintInput(ok.values);
+  EXPECT_EQ(WorldGenerationComputePublishVerdict::PublishedLiveLimited, gate.applyToLiveWorld(ok));
+  EXPECT_TRUE(gate.hasLivePublication());
 }
 
 TEST(WorldGenerationComputeTest, DualContextPrepStubsCloudSafe) {
@@ -9120,6 +9157,8 @@ TEST(WorldGenerationComputeTest, DualContextPrepStubsCloudSafe) {
   EXPECT_EQ(WorldGenerationComputeGlContextRole::Inactive,
       WorldGenerationComputeGlDevice::contextRole());
   EXPECT_NE(nullptr, strstr(status, "stub_build"));
+#else
+  EXPECT_NE(nullptr, strstr(status, "desktop_validation=worldthread_hidden_ok"));
 #endif
 }
 
