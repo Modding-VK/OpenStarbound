@@ -932,3 +932,7 @@ integração: **nenhum**.
 - H3: `cursor/h3-kernels-publication-9f77` @ `3bdf1927` sem tip novo.
 - PRs abertos com base na INT: nenhum.
 - Build `46092595525` in_progress; tip final pendente; sem Actions nesta revisão.
+
+## Revisão 2026-11-28T01:31Z — lote H4 acd1be1a (idle antecipado)
+- Merge H4 tip `acd1be1a` (292/292) — cláusula 2.
+- Build `46092595525` intacto in_progress; hold 1 Build tip final; sem spam.

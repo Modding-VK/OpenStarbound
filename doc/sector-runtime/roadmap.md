@@ -586,10 +586,11 @@ do kernel CPU e do resultado versionado.
   rejectedDuplicatesLedger + rejectedDuplicatesMark +
   rejectedDuplicatesVoid + rejectedDuplicatesCatalog +
   rejectedDuplicatesMagnitude + rejectedDuplicatesOwns +
-  rejectedDuplicatesSweep
+  rejectedDuplicatesSweep + rejectedDuplicatesStamp +
+  rejectedDuplicatesBreadth + rejectedDuplicatesRegister
   (primeiro recorte 25%; integração WorldThread pendente).
 - [x] GPU-03: kernels densos DenseUint32* incl.
-  HalfIsqrtNibble/HalfPow2FillNibble/HalfLog2FloorNibble +
+  HalfGcdNibble/HalfLcmNibble/HalfCoprimeFillNibble +
   submitBatch; catálogo Kernel em uint16_t (primeiro recorte 25%;
   terreno/bioma/ganho pendentes).
 - [x] GPU-04: compareShadow/compareShadowBatch/compareShadowNamed +

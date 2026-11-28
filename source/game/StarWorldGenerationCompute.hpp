@@ -423,7 +423,16 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfNegIfSignNibble = 397, // (-n)&0xf if (p&8) else n; high ignored
   DenseUint32HalfIsqrtNibble = 398, // floor(sqrt(n)); parameter ignored
   DenseUint32HalfPow2FillNibble = 399, // 1 << (n & 3); parameter ignored
-  DenseUint32HalfLog2FloorNibble = 400 // floor(log2(n)), 0 if n==0; parameter ignored
+  DenseUint32HalfLog2FloorNibble = 400, // floor(log2(n)), 0 if n==0; parameter ignored
+  DenseUint32HalfCeilPow2Nibble = 401, // smallest pow2 >= n, sat 0xf; parameter ignored
+  DenseUint32HalfFloorPow2Nibble = 402, // largest pow2 <= n, 0 if n==0; parameter ignored
+  DenseUint32HalfToggleLowNibble = 403, // n ^ 1; parameter ignored
+  DenseUint32HalfAsrNibble = 404, // arithmetic shr by (parameter&3); high ignored
+  DenseUint32HalfMod3Nibble = 405, // n % 3; parameter ignored
+  DenseUint32HalfMod5Nibble = 406, // n % 5; parameter ignored
+  DenseUint32HalfGcdNibble = 407, // gcd(n, parameter&0xf); high ignored
+  DenseUint32HalfLcmNibble = 408, // lcm(n, parameter&0xf) sat 0xf; 0 if either 0; high ignored
+  DenseUint32HalfCoprimeFillNibble = 409 // 0xf if gcd(n,parameter&0xf)==1 else 0; high ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -806,6 +815,12 @@ public:
   bool rejectedDuplicatesOwns(WorldGenerationComputeTicket ticket) const;
   // Alias of clearRejectedDuplicates (asset-free observation naming).
   size_t rejectedDuplicatesSweep();
+  // Alias of fingerprintRejectedDuplicates (asset-free observation naming).
+  uint64_t rejectedDuplicatesStamp() const;
+  // Alias of rejectedDuplicatesCount (asset-free observation naming).
+  size_t rejectedDuplicatesBreadth() const;
+  // Alias of rejectedDuplicatesList (asset-free observation naming).
+  List<WorldGenerationComputeTicket> rejectedDuplicatesRegister() const;
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 
