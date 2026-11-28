@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-28  
 **Branch:** `cursor/h4-gpu-shadow-9f77`  
-**H4 tip (this ledger tip):** pending push after live-publish limited  
+**H4 tip:** live-publish `7a4d7140` (INT `8a38889f`); standby tip follows  
 **Desktop dual_context tip:** INT `462e2cbc` (contains `35f196c6`)  
 **Milestone percentage:** **25%** — **not claimed as 50%**
 
@@ -24,9 +24,9 @@ raising the percentage.
 | WorldThread runtime + fence pump | PASS | tip `76ab0fa2`+ |
 | Dual-context WorldThreadHidden (rehearsal off) | PASS | Desktop `462e2cbc`; probe SHA256 `9D52D121…`; contract `AB1C1B57…` |
 | Renderer↔compute **share** | OPEN | `renderer_share=0` by design |
-| Limited live publish (in-memory sink) | THIS TIP | opt-in; not WorldStorage |
-| Live sector / tile / `generateQueue` adoption | OPEN | still refused |
-| ≥2º vendor / driver family | OPEN | parked; blocks GPU-03/04 50% |
+| Limited live publish (in-memory sink) | PASS | tip `7a4d7140`; opt-in; not WorldStorage |
+| Live sector / tile / `generateQueue` adoption | OPEN / **not cloud-safe** | [standby](sector-runtime-h4-gpu-m50-worldstorage-adopt-standby-2026-11-28.md) |
+| ≥2º vendor / driver family | OPEN — **standby focus** | parked; blocks GPU-03/04 50% |
 | Measured GPU-05 transport cost | OPEN | heuristic only |
 | Project review (harness ≠ setores/s) | OPEN | required for adoption |
 
@@ -42,6 +42,6 @@ raising the percentage.
 
 ## Next highest impact
 
-1. Wire preparation feeder → limited sink (still no WorldStorage) **or**
-2. Collect 2º vendor when a second GPU host exists
-3. Keep renderer share and full sector adoption for later audited tips
+1. **Standby:** collect 2º vendor when a second GPU host exists
+2. WorldStorage adopt only with Desktop assets + Project review (not cloud)
+3. Renderer share later audited tip

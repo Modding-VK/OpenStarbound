@@ -41,12 +41,12 @@ entrega material, mesmo quando o percentual continuar igual.
 Frente ativa nesta branch H4: GPU-01…04 (WorldThread + publish stage + prep
 admission→staged; 2º vendor estacionado; sem claim 50%).
 Relatório atual:
+[WorldStorage adopt standby / 2º vendor](sector-runtime-h4-gpu-m50-worldstorage-adopt-standby-2026-11-28.md),
 [live publish limited](sector-runtime-h4-gpu-m50-live-publish-limited-2026-11-28.md),
 [criteria ledger NVIDIA](sector-runtime-h4-gpu-m50-criteria-ledger-nvidia-2026-11-28.md),
-[dual-context Desktop harness](sector-runtime-h4-gpu-m50-dualcontext-desktop-harness-2026-11-28.md),
-[prep admission→staged](sector-runtime-h4-gpu-m50-prep-admission-staged-2026-11-28.md),
 [multidriver path](sector-runtime-h4-gpu-m50-multidriver-path-2026-11-28.md),
 com [GPU-01](sector-runtime-h4-gpu01-compute-interface-2026-11-27.md).
+H4 **standby**: WorldStorage adopt não cloud-safe; aguarda 2º vendor ou autorização Desktop+assets.
 Desktop dual_context PASS: store `internal/h4-desktop-gl-probe-dualcontext-2026-11-28.md` (tip `462e2cbc`).
 H0 continua em `Experimental` com
 [Concurrent ocean](sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)

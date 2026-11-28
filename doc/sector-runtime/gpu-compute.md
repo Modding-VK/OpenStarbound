@@ -15,10 +15,11 @@ primeiro marco (25%). **STOP** DenseUint32 horizontal. Desktop: `gain_pipeline`
 `applyToLiveWorld` sempre recusa. Dual-context: stubs
 (`renderer_share=unsupported`). GPU-05 permanece 0% (seletor heurístico só).
 Desktop dual_context **PASS** INT `462e2cbc`. Live publish limitado = sink
-in-memory opt-in (não WorldStorage). **NVIDIA-only não autoriza 50%**
+in-memory. WorldStorage sector adopt **não é cloud-safe** → H4 em
+**standby 2º vendor**
+([standby](../sector-runtime-h4-gpu-m50-worldstorage-adopt-standby-2026-11-28.md)).
+**NVIDIA-only não autoriza 50%**
 ([ledger](../sector-runtime-h4-gpu-m50-criteria-ledger-nvidia-2026-11-28.md)).
-Falta ≥2º vendor, adoção de setor, renderer share, review Project. Ver
-[live publish limited](../sector-runtime-h4-gpu-m50-live-publish-limited-2026-11-28.md).
 
 ## GPU-01 — Interface e capacidades
 
