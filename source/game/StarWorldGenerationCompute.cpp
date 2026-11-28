@@ -4455,6 +4455,10 @@ size_t WorldGenerationComputeService::rejectedDuplicatesCardinality() const {
   return rejectedDuplicatesCount();
 }
 
+List<WorldGenerationComputeTicket> WorldGenerationComputeService::rejectedDuplicatesMembers() const {
+  return listRejectedDuplicates();
+}
+
 size_t WorldGenerationComputeService::clearRejectedDuplicates() {
   std::lock_guard<std::mutex> lock(m_mutex);
   if (!ownerAllowsLocked())
