@@ -2,7 +2,7 @@
 
 Atualizado em **28/11/2026**. Branch: `cursor/h4-gpu-shadow-9f77`
 (frente H4; H0 continua em `Experimental`).
-Base inspecionada: `2e374c5b`;
+Base inspecionada: `cd623ed4`;
 última implementação de runtime nesta frente: deferred GPU tickets → pumpFences +
 esboço TerrainField/Biome (CPU); marco 50% em progresso, sem claim.
 

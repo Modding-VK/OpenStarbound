@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-28
 **Branch:** `cursor/h4-gpu-shadow-9f77`
-**Tip:** `2e374c5b`
+**Tip:** `cd623ed4`
 **Milestone:** 25% (target 50%; **not claimed**)
 **DenseUint32 horizontal:** STOPPED
 
