@@ -2,12 +2,12 @@
 
 Atualizado em **28/11/2026**. Branch: `cursor/h4-gpu-shadow-9f77`
 (frente H4; H0 continua em `Experimental`).
-Base inspecionada: Desktop re-probe `3d37e0de` (gpu_faster=0 single-kernel) + INT
-`Equal` `77c2aa47`; última implementação: `dispatchPipeline` terreno (amortiza
-transfer); marco 50% em progresso, **sem claim** até `gpu_faster=1` + 2º driver.
+Base inspecionada: Desktop `gain_pipeline` PASS tip `509aaed0` (`gpu_faster=1`,
+ratio≈17–23, NVIDIA); path multi-driver documentado; marco 50% em progresso,
+**sem claim** até ≥2º vendor + review Project.
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico H4](../sector-runtime-h4-gpu-m50-gain-pipeline-2026-11-28.md)
+· [Último relatório técnico H4](../sector-runtime-h4-gpu-m50-multidriver-path-2026-11-28.md)
 · [Último relatório H0](../sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
 · [Backlog geral](../performance-backlog.md)
 
@@ -26,7 +26,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **5,6%** — 11 marcos verificados de 196 |
 | Contratos com avanço registrado | **11 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | Desktop re-probe PASS 6/6 `3d37e0de` (gpu_faster=0); cloud 319/319 + gain pipeline; multi-driver pendente; H0: 791 padrão +106 RealBlockInfo |
+| Última evidência de testes | Desktop gain_pipeline PASS `509aaed0` (gpu_faster=1 ratio~17–23); 1 vendor NVIDIA; multi-driver path aberto; H0: 791 padrão +106 RealBlockInfo |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 5,6% não significam que o jogo esteja só 5,6% pronto.** O runtime anterior
@@ -183,8 +183,8 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 32 | H3 | [IO-05](io-persistence-network.md) | Pacotes e aplicação no cliente | 0% | Medir entrega até o cliente, não apenas commit |
 | 33 | H4 | [GPU-01](gpu-compute.md) | Interface e capacidades CPU/GPU | 25% | submitNamed+runNamedKernel; probe GL opt-in |
 | 34 | H4 | [GPU-02](gpu-compute.md) | Contexto e buffers em voo | 25% | deferred GPU→pumpFences; WorldThread/GL real pendentes |
-| 35 | H4 | [GPU-03](gpu-compute.md) | Kernels e equivalência | 25% | Terrain/Biome CPU+GL + Desktop PASS; ganho `gpu_faster` pendente |
-| 36 | H4 | [GPU-04](gpu-compute.md) | Comparação em sombra | 25% | shadow + `driver_evidence` RTX; ≥2º vendor pendente |
+| 35 | H4 | [GPU-03](gpu-compute.md) | Kernels e equivalência | 25% | gain_pipeline `gpu_faster=1` (NVIDIA); 2º vendor / WorldThread pendentes |
+| 36 | H4 | [GPU-04](gpu-compute.md) | Comparação em sombra | 25% | `driver_evidence` NVIDIA OK; ≥2º vendor pendente |
 | 37 | H5 | [GPU-05](gpu-compute.md) | Seleção heterogênea e render | 0% | Escolher backend pelo custo de entrega, incluindo transporte |
 | 38 | H5 | [VAL-03](validation-and-telemetry.md) | Métricas e marcos de entrega | 0% | Cobertura integral do novo pipeline e CPU/RAM/VRAM |
 | 39 | H5 | [VAL-04](validation-and-telemetry.md) | Matriz de cenários | 0% | Escala, mundos, memória, GPU/fallback e multiplayer |
@@ -212,8 +212,8 @@ de todas as implementações antigas para conceder crédito retroativo.
 | CPU-01 | `bfbbf403` … [seletores](../sector-runtime-h0-selector-context-2026-11-26.md) e [composto](../sector-runtime-h0-composite-context-2026-11-26.md) | Falta gates H0 restantes antes de H1 |
 | GPU-01 | [named/backend](../sector-runtime-h4-gpu01-03-bswap-named-backend-2026-11-27.md) + [submitNamed](../sector-runtime-h4-gpu01-03-bitset-submitnamed-2026-11-27.md) | Sem 50% (publicação versionada / caps driver completas) |
 | GPU-02 | [gl-owner-fence](../sector-runtime-h4-gpu02-gl-owner-fence-harness-2026-11-28.md) + [deferred pump](../sector-runtime-h4-gpu02-deferred-gpu-pumpfences-terrain-sketch-2026-11-28.md) + Desktop probe PASS | Sem WorldThread wiring; sem 50% |
-| GPU-03 | [GL prep](../sector-runtime-h4-gpu-m50-terrain-biome-gl-prep-2026-11-28.md) + [GL-ON align](../sector-runtime-h4-gpu-m50-gl-on-tests-gain-multidriver-2026-11-28.md) | Sem ganho medido/`gpu_faster`; sem 50% |
-| GPU-04 | [shadowFp](../sector-runtime-h4-gpu03-04-nonzero-shadowfp-2026-11-27.md) + [GL-ON driver_evidence](../sector-runtime-h4-gpu-m50-gl-on-tests-gain-multidriver-2026-11-28.md) | Um vendor (RTX); falta ≥2º; sem 50% |
+| GPU-03 | [gain pipeline](../sector-runtime-h4-gpu-m50-gain-pipeline-2026-11-28.md) + Desktop `509aaed0` (`gpu_faster=1`) | Um vendor; sem 50% |
+| GPU-04 | [driver_evidence NVIDIA](../sector-runtime-h4-gpu-m50-multidriver-path-2026-11-28.md) | Falta ≥2º vendor; sem 50% |
 
 CPU-01 recebe o primeiro marco porque agora existe cálculo com dados próprios
 que independe da origem/Root após captura, não só callbacks/catálogos ou contagem
@@ -470,6 +470,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 28/11/2026 | GPU-02/03 m50 Terrain/Biome GL prep | Shaders TerrainField*/BiomeIdBucket + probe m50/timing/deferred; checklist Desktop V até 2026-11-29; H4 permanece 25% | 5,6% |
 | 28/11/2026 | GPU-02/03/04 m50 GL-ON test align | 3 FAIL stub/rehearsal vs GL real fechados; timing amortizado + driver_evidence; Desktop PASS `29672021`; H4 permanece 25% | 5,6% |
 | 28/11/2026 | GPU-03 m50 gain pipeline | `dispatchPipeline` Max2→Clamp→Biome × passes; Equal alinhado INT `77c2aa47`; H4 permanece 25% até Desktop `gpu_faster=1` | 5,6% |
+| 28/11/2026 | GPU-03/04 m50 gain PASS + multidriver path | Desktop `509aaed0` `gpu_faster=1` (ratio~17–23, NVIDIA); path 2º vendor documentado; H4 permanece 25% | 5,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

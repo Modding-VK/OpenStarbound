@@ -38,11 +38,11 @@ histórico, sem outra fila de prioridades. O
 [painel de progressão](sector-runtime/progress.md) consolida percentuais por
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
-Frente ativa nesta branch H4: GPU-01…04 (gain pipeline tip; `gpu_faster` Desktop
-pendente; sem claim 50%).
+Frente ativa nesta branch H4: GPU-01…04 (`gpu_faster=1` NVIDIA; falta 2º vendor;
+sem claim 50%).
 Relatório atual:
+[multidriver path](sector-runtime-h4-gpu-m50-multidriver-path-2026-11-28.md),
 [gain pipeline](sector-runtime-h4-gpu-m50-gain-pipeline-2026-11-28.md),
-[checklist Desktop V](sector-runtime-h4-gpu-m50-desktop-v-probe-checklist-2026-11-28.md),
 com [GPU-01](sector-runtime-h4-gpu01-compute-interface-2026-11-27.md).
 H0 continua em `Experimental` com
 [Concurrent ocean](sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
