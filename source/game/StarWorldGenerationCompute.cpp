@@ -6173,6 +6173,10 @@ List<WorldGenerationComputeTicket> WorldGenerationComputeService::rejectedDuplic
   return rejectedDuplicatesList();
 }
 
+uint64_t WorldGenerationComputeService::rejectedDuplicatesSigil() const {
+  return fingerprintRejectedDuplicates();
+}
+
 size_t WorldGenerationComputeService::clearRejectedDuplicates() {
   std::lock_guard<std::mutex> lock(m_mutex);
   if (!ownerAllowsLocked())
