@@ -372,7 +372,10 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfMulHiNibble = 346, // high nibble of n*(parameter&0xf); high ignored
   DenseUint32HalfSquareNibble = 347, // (n*n)&0xf per nibble; high ignored
   DenseUint32HalfIsOneFillNibble = 348, // 0xf if n==1 else 0; high ignored
-  DenseUint32HalfRevBitsNibble = 349 // reverse 4 bits of each nibble; high ignored
+  DenseUint32HalfRevBitsNibble = 349, // reverse 4 bits of each nibble; high ignored
+  DenseUint32HalfCubeNibble = 350, // (n*n*n)&0xf per nibble; high ignored
+  DenseUint32HalfSatSquareNibble = 351, // min(n*n, 0xf) per nibble; high ignored
+  DenseUint32HalfOnesCompNibble = 352 // n ^ 0xf per nibble; high ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
