@@ -469,6 +469,9 @@ GLuint g_halfMod5NibbleProgram = 0;
 GLuint g_halfGcdNibbleProgram = 0;
 GLuint g_halfLcmNibbleProgram = 0;
 GLuint g_halfCoprimeFillNibbleProgram = 0;
+GLuint g_halfIsDivisibleNibbleProgram = 0;
+GLuint g_halfShareNibbleProgram = 0;
+GLuint g_halfReduceNibbleProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -8497,6 +8500,86 @@ void main() {
 }
 )GLSL";
 
+char const* HalfIsDivisibleNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint p = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint outN = (p != 0u && (a % p) == 0u) ? 0xfu : 0u;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfShareNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint p = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint x = a;
+    uint y = p;
+    while (y != 0u) {
+      uint t = x % y;
+      x = y;
+      y = t;
+    }
+    uint outN = (x == 0u) ? 0u : (a / x);
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfReduceNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint p = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint x = a;
+    uint y = p;
+    while (y != 0u) {
+      uint t = x % y;
+      x = y;
+      y = t;
+    }
+    uint outN = (x == 0u) ? 0u : (p / x);
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -10181,6 +10264,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfCoprimeFillNibbleProgram);
     g_halfCoprimeFillNibbleProgram = 0;
   }
+  if (g_halfIsDivisibleNibbleProgram) {
+    glDeleteProgram(g_halfIsDivisibleNibbleProgram);
+    g_halfIsDivisibleNibbleProgram = 0;
+  }
+  if (g_halfShareNibbleProgram) {
+    glDeleteProgram(g_halfShareNibbleProgram);
+    g_halfShareNibbleProgram = 0;
+  }
+  if (g_halfReduceNibbleProgram) {
+    glDeleteProgram(g_halfReduceNibbleProgram);
+    g_halfReduceNibbleProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -10887,7 +10982,13 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfLcmNibbleProgram, HalfLcmNibbleShader,
             "DenseUint32HalfLcmNibble")
       || !requireProgram(g_halfCoprimeFillNibbleProgram, HalfCoprimeFillNibbleShader,
-            "DenseUint32HalfCoprimeFillNibble"))
+            "DenseUint32HalfCoprimeFillNibble")
+      || !requireProgram(g_halfIsDivisibleNibbleProgram, HalfIsDivisibleNibbleShader,
+            "DenseUint32HalfIsDivisibleNibble")
+      || !requireProgram(g_halfShareNibbleProgram, HalfShareNibbleShader,
+            "DenseUint32HalfShareNibble")
+      || !requireProgram(g_halfReduceNibbleProgram, HalfReduceNibbleShader,
+            "DenseUint32HalfReduceNibble"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -11770,6 +11871,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfLcmNibbleProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfCoprimeFillNibble)
     program = g_halfCoprimeFillNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfIsDivisibleNibble)
+    program = g_halfIsDivisibleNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfShareNibble)
+    program = g_halfShareNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfReduceNibble)
+    program = g_halfReduceNibbleProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
