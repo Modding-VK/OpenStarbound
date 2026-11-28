@@ -138,8 +138,8 @@ int runDriverEvidence(WorldGenerationComputeService& service) {
       "terrain_verdict=%u biome_verdict=%u\n",
       info.glVendor, info.glRenderer, info.glVersion, (unsigned long long)capsFp,
       (unsigned long long)shadowFp, (unsigned)terrain.verdict, (unsigned)biome.verdict);
-  if (terrain.verdict != WorldGenerationComputeShadowVerdict::equal
-      || biome.verdict != WorldGenerationComputeShadowVerdict::equal)
+  if (terrain.verdict != WorldGenerationComputeShadowVerdict::Equal
+      || biome.verdict != WorldGenerationComputeShadowVerdict::Equal)
     return 7;
   return 0;
 }

@@ -978,3 +978,7 @@ integração: **nenhum**.
 ## Revisão 2026-11-28T03:13Z — H4 material m50 889294ad (idle antecipado)
 - Merge H4 HEAD `889294ad` (GL-ON fixes + gain/multi-driver evidence) — cláusula 2.
 - Sem claim 50%. Build `46100835323` intacto in_progress; hold tip final; sem spam.
+
+## Fix 2026-11-28T03:20Z — CI Sector Runtime compile
+- CI Sector Runtime `46101849175` FAIL: `WorldGenerationComputeShadowVerdict::equal` → `Equal` no probe.
+- Fix na INT (não editar frentes). Sem spam Build; tip final `461022` intacto.
