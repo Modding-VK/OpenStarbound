@@ -986,3 +986,8 @@ integração: **nenhum**.
 ## Revisão 2026-11-28T03:27Z — H4 material 85ab73ba (idle antecipado)
 - Merge H4 HEAD `85ab73ba` (terrain GPU gain pipeline + Equal align) — cláusula 2.
 - Sem claim 50%. Build `46102201604` intacto; hold tip final → HEAD após terminal; sem spam.
+
+## Revisão 2026-11-28T03:32Z — H4 docs 8418c5f6 (idle; sem Build spam)
+- Merge H4 HEAD `8418c5f6` (multi-driver path docs; code base `85ab73ba`) — cláusula 2.
+- Tip docs-only: sem dispatch Build. Build `46102201604` intacto; tip final pós-terminal no HEAD.
+- Desktop `gpu_faster=1` NVIDIA; 50% sem claim até 2º vendor.

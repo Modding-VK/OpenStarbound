@@ -83,9 +83,14 @@ Esperado: **0 FAIL** (rehearsal força `gpu=false`; RealGl* SKIP só se probe n�
 
 Gravar log local (ex. `h4-m50-gl-probe-run.txt`); no Git só manifesto/hash se pedido.
 
+## Multi-driver (bloqueio 50%)
+
+Ganho NVIDIA (`gpu_faster=1`, tip `509aaed0`) **não** autoriza 50%.  
+Coleta do 2º vendor: [multidriver path](sector-runtime-h4-gpu-m50-multidriver-path-2026-11-28.md).
+
 ## Não fazer
 
-- Não claimar H4 50% só com um PASS
+- Não claimar H4 50% com um único vendor / um PASS
 - Não mergear INT a partir deste checklist
 - Não ligar a flag em builds/release normais
 - Não disparar GitHub Actions sem pedido

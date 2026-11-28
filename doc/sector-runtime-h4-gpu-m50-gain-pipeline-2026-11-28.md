@@ -2,14 +2,14 @@
 
 **Date:** 2026-11-28  
 **Branch:** `cursor/h4-gpu-shadow-9f77`  
-**Aligns with INT:** `77c2aa47` (`ShadowVerdict::Equal`)  
-**Desktop evidence:** re-probe tip `3d37e0de` — single-kernel `gpu_faster=0` (ratio ~0.26–0.32)
+**Aligns with INT:** `77c2aa47` (`ShadowVerdict::Equal`); Desktop gain tip `509aaed0`  
+**Desktop evidence:** `gain_pipeline` **`gpu_faster=1`** (ratio≈17–23, NVIDIA); single-kernel still 0
 
 ## Objective
 
 1. Align H4 probe with INT `Equal` enum fix (no dirty local needed)
 2. Add a transfer-amortized terrain GPU path where compute can dominate wall time
-3. Keep milestone at **25%** until Desktop reports `gpu_faster=1` on this harness (and multi-driver remains open)
+3. Keep milestone at **25%** — `gpu_faster=1` achieved on one vendor; multi-driver still open
 
 ## Why single-kernel timing lost
 
@@ -24,16 +24,12 @@ Desktop wall `gpu_submit_poll_us` includes SSBO upload + dispatch + ClientWaitSy
 | Probe `gain_pipeline` | Default n≈851968 (65536×edge), iters=8, passes=16; env `STAR_WORLDGEN_GL_GAIN_*` |
 | Test | `TerrainGainPipelineCpuReferenceMatchesStackedKernels` (+ GL check when claimed) |
 
-## Desktop next
+## Desktop result (consumed)
 
-```bat
-set STAR_WORLDGEN_GL_GAIN_REPEATS=65536
-set STAR_WORLDGEN_GL_GAIN_ITERS=8
-set STAR_WORLDGEN_GL_GAIN_PASSES=32
-world_generation_gl_compute_probe.exe
-```
+Tip `509aaed0`: `gpu_faster=1`, ratio≈17.4 (passes=32) / ≈23.3 (passes=64), equal=1.  
+Store: `internal/h4-desktop-gl-probe-gain-pipeline-2026-11-28.md`.
 
-Look for `gain_pipeline: ... gpu_faster=1`. Still **not** a 50% claim alone (need Project review + multi-driver).
+**Next:** [multidriver path](sector-runtime-h4-gpu-m50-multidriver-path-2026-11-28.md) — 2º vendor.
 
 ## Cloud validation
 
