@@ -441,7 +441,10 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfSupersetMaskNibble = 415, // 0xf if (p & ~n)==0 else 0; high ignored
   DenseUint32HalfHammingNibble = 416, // popcount(n^p); high ignored
   DenseUint32HalfIntersectPopNibble = 417, // popcount(n&p); high ignored
-  DenseUint32HalfUnionPopNibble = 418 // popcount(n|p); high ignored
+  DenseUint32HalfUnionPopNibble = 418, // popcount(n|p); high ignored
+  DenseUint32HalfDisjointFillNibble = 419, // 0xf if (n&p)==0 else 0; high ignored
+  DenseUint32HalfEqualPopNibble = 420, // 0xf if popcount(n)==popcount(p) else 0; high ignored
+  DenseUint32HalfGtPopNibble = 421 // 0xf if popcount(n)>popcount(p) else 0; high ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
