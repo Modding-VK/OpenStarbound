@@ -2,7 +2,7 @@
 
 Atualizado em **28/11/2026**. Branch: `cursor/h4-gpu-shadow-9f77`
 (frente H4; H0 continua em `Experimental`).
-Base inspecionada: `79710e14`;
+Base inspecionada: `6d7d1765`;
 última implementação de runtime nesta frente: DenseUint32 HalfZeroPopFillNibble/HalfFullPopFillNibble/HalfPopEqCountFillNibble +
 rejectedDuplicatesEvacuate (asset-free; catálogo uint16_t).
 
