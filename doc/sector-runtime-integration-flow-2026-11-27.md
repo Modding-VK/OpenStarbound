@@ -936,3 +936,8 @@ integração: **nenhum**.
 ## Revisão 2026-11-28T01:31Z — lote H4 acd1be1a (idle antecipado)
 - Merge H4 tip `acd1be1a` (292/292) — cláusula 2.
 - Build `46092595525` intacto in_progress; hold 1 Build tip final; sem spam.
+
+## Revisão 2026-11-28T01:39Z — lote H4 93588277 (idle antecipado)
+- Merge H4 tip `93588277` (298/298) — cláusula 2.
+- Build `46092595525` SUCCESS; 1 Build tip final; sem spam.
+- Limpeza Actions: 250 runs apagados (pass1 228 + pass2 22); Build tip final preservado.

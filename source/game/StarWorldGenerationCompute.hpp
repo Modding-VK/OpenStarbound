@@ -432,7 +432,16 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfMod5Nibble = 406, // n % 5; parameter ignored
   DenseUint32HalfGcdNibble = 407, // gcd(n, parameter&0xf); high ignored
   DenseUint32HalfLcmNibble = 408, // lcm(n, parameter&0xf) sat 0xf; 0 if either 0; high ignored
-  DenseUint32HalfCoprimeFillNibble = 409 // 0xf if gcd(n,parameter&0xf)==1 else 0; high ignored
+  DenseUint32HalfCoprimeFillNibble = 409, // 0xf if gcd(n,parameter&0xf)==1 else 0; high ignored
+  DenseUint32HalfIsDivisibleNibble = 410, // 0xf if p!=0 && n%p==0 else 0; high ignored
+  DenseUint32HalfShareNibble = 411, // n/gcd(n,p); 0 if gcd==0; high ignored
+  DenseUint32HalfReduceNibble = 412, // p/gcd(n,p); 0 if gcd==0; high ignored
+  DenseUint32HalfBitAndFillNibble = 413, // 0xf if (n&p)!=0 else 0; high ignored
+  DenseUint32HalfSubsetMaskNibble = 414, // 0xf if (n & ~p)==0 else 0; high ignored
+  DenseUint32HalfSupersetMaskNibble = 415, // 0xf if (p & ~n)==0 else 0; high ignored
+  DenseUint32HalfHammingNibble = 416, // popcount(n^p); high ignored
+  DenseUint32HalfIntersectPopNibble = 417, // popcount(n&p); high ignored
+  DenseUint32HalfUnionPopNibble = 418 // popcount(n|p); high ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -821,6 +830,12 @@ public:
   size_t rejectedDuplicatesBreadth() const;
   // Alias of rejectedDuplicatesList (asset-free observation naming).
   List<WorldGenerationComputeTicket> rejectedDuplicatesRegister() const;
+  // Alias of fingerprintRejectedDuplicates (asset-free observation naming).
+  uint64_t rejectedDuplicatesSigil() const;
+  // Alias of rejectedDuplicatesCount (asset-free observation naming).
+  size_t rejectedDuplicatesDepth() const;
+  // Alias of clearRejectedDuplicates (asset-free observation naming).
+  size_t rejectedDuplicatesWipe();
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 
