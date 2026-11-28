@@ -4575,6 +4575,22 @@ TEST(WorldGenerationComputeTest, DenseUint32HalfRotl2Rotl3AvgNibbleExactCpuAndSh
 
 
 
+
+TEST(WorldGenerationComputeTest, RejectedDuplicatesSweepAliasesClearRejectedDuplicates) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  EXPECT_EQ(0u, service.rejectedDuplicatesSweep());
+  auto ticket = service.submit(makeIdentity(2740), List<uint32_t>{4u}, 1u);
+  ASSERT_TRUE((bool)ticket);
+  EXPECT_EQ(1u, service.failContext());
+  WorldGenerationComputeResult result;
+  EXPECT_EQ(WorldGenerationComputePollStatus::Ready, service.poll(*ticket, &result));
+  EXPECT_EQ(1u, service.rejectedDuplicatesCount());
+  EXPECT_EQ(1u, service.rejectedDuplicatesSweep());
+  EXPECT_EQ(0u, service.rejectedDuplicatesCount());
+  EXPECT_EQ(0u, service.rejectedDuplicatesSweep());
+}
+
 TEST(WorldGenerationComputeTest, RejectedDuplicatesOwnsAliasesRejectedDuplicatesContains) {
   WorldGenerationComputeService service;
   service.setDeferredCpuCompletion(true);
