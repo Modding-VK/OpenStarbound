@@ -363,7 +363,10 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfBitDepositNibble = 337, // PDEP-like: deposit low bits of n into mask (parameter&0xf); high ignored
   DenseUint32HalfBitExtractNibble = 338, // PEXT-like: extract bits of n under mask (parameter&0xf) to low; high ignored
   DenseUint32HalfReversePairsNibble = 339, // swap adjacent bit pairs within nibble; high ignored
-  DenseUint32HalfSatShlNibble = 340 // saturate (n << (parameter&3)) to 0xf per nibble; high ignored
+  DenseUint32HalfSatShlNibble = 340, // saturate (n << (parameter&3)) to 0xf per nibble; high ignored
+  DenseUint32HalfRoundShrNibble = 341, // round-half-up (n >> (parameter&3)) for k>0; high ignored
+  DenseUint32HalfMinParamNibble = 342, // min(n, parameter&0xf) per nibble; high ignored
+  DenseUint32HalfAvgTruncNibble = 343 // (n + (parameter&0xf)) >> 1 per nibble; high ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
