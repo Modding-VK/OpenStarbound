@@ -669,6 +669,8 @@ public:
   List<WorldGenerationComputeTicket> rejectedDuplicatesMembers() const;
   // Alias of fingerprintRejectedDuplicates (asset-free observation naming).
   uint64_t rejectedDuplicatesDigest() const;
+  // Alias of clearRejectedDuplicates (asset-free observation naming).
+  size_t rejectedDuplicatesPurge();
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 
