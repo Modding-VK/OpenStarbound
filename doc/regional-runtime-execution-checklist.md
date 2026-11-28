@@ -39,11 +39,11 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Branch de integração: `cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+H4+H5+R1+R2).
-Tip INT: H4 material `76ab0fa2` (WorldThread runtime pump).
+Tip INT: H5 `dc05af64` (WorldThread scale adapter) + H4 `76ab0fa2`.
 H4 m50: `gpu_faster=1` NVIDIA; 2º vendor estacionado; sem claim 50%.
+[H5 WorldThread adapter](sector-runtime-h5-worldthread-scale-adapter-2026-11-28.md) ·
 [worldthread runtime](sector-runtime-h4-gpu-m50-worldthread-runtime-2026-11-28.md) ·
-[multidriver path](sector-runtime-h4-gpu-m50-multidriver-path-2026-11-28.md) ·
-[gain pipeline](sector-runtime-h4-gpu-m50-gain-pipeline-2026-11-28.md).
+[multidriver path](sector-runtime-h4-gpu-m50-multidriver-path-2026-11-28.md).
 Painel: [progress.md](sector-runtime/progress.md).
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 Frente desta branch (`cursor/r2-regional-ops-9f77`): R2 AuthoritativeOps. O

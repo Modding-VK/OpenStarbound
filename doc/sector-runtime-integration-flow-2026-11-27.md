@@ -1082,3 +1082,8 @@ integração: **nenhum**.
 - Ahead pós-merge: h0–h5/r1/r2=0 (H4 absorvido).
 - 50%: sem claim (2º vendor estacionado).
 - Tip-final Build: 1× após prior `46103478918` SUCCESS @`f6ada125`.
+
+## Merge 2026-11-28T07:17Z — H5 WorldThread scale adapter
+- Merge `--no-ff` H5 `dc05af64` em INT (idle; tip ready).
+- Build tip-final `46120464804` em voo @`191cb6e4` → hold; 1× HEAD pós-terminal.
+- Ahead pós-merge: h0–h5/r1/r2=0. 50% sem claim.
