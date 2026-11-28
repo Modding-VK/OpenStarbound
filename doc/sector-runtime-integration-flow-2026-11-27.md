@@ -895,3 +895,7 @@ integração: **nenhum**.
 1. **Timer 15–20 min CONTINUA:** ao vencer, merge o lote de tips ready mesmo se frentes ainda estiverem ativas.
 2. **Idle antecipado:** se **todas** as frentes de desenvolvimento ficarem idle **antes** do timer, merge imediato (não espera o ciclo).
 3. **Nunca tip-a-tip.** Após merge: 1 Build tip final se Build anterior terminal; Build em voo intacto; sem spam.
+
+## Revisão 2026-11-28T00:56Z — lote H4 6e6860aa (idle antecipado)
+- Merge H4 tip `6e6860aa` (264/264) — cláusula 2 (todas frentes idle).
+- Build `46089533286` intacto in_progress; hold 1 Build tip final; sem spam.

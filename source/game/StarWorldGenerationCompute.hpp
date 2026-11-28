@@ -372,7 +372,25 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfMulHiNibble = 346, // high nibble of n*(parameter&0xf); high ignored
   DenseUint32HalfSquareNibble = 347, // (n*n)&0xf per nibble; high ignored
   DenseUint32HalfIsOneFillNibble = 348, // 0xf if n==1 else 0; high ignored
-  DenseUint32HalfRevBitsNibble = 349 // reverse 4 bits of each nibble; high ignored
+  DenseUint32HalfRevBitsNibble = 349, // reverse 4 bits of each nibble; high ignored
+  DenseUint32HalfCubeNibble = 350, // (n*n*n)&0xf per nibble; high ignored
+  DenseUint32HalfSatSquareNibble = 351, // min(n*n, 0xf) per nibble; high ignored
+  DenseUint32HalfOnesCompNibble = 352, // n ^ 0xf per nibble; high ignored
+  DenseUint32HalfTwosCompNibble = 353, // (-n)&0xf per nibble; high ignored
+  DenseUint32HalfIncNibble = 354, // (n+1)&0xf per nibble; high ignored
+  DenseUint32HalfToggleBitNibble = 355, // n ^ (1<<(parameter&3)) per nibble; high ignored
+  DenseUint32HalfDecNibble = 356, // (n-1)&0xf per nibble; high ignored
+  DenseUint32HalfSetBitNibble = 357, // n | (1<<(parameter&3)) per nibble; high ignored
+  DenseUint32HalfClearBitNibble = 358, // n & ~(1<<(parameter&3)) per nibble; high ignored
+  DenseUint32HalfTestBitNibble = 359, // 0xf if bit (parameter&3) set else 0; high ignored
+  DenseUint32HalfExtractBitNibble = 360, // (n>>(parameter&3))&1 to low bit; high ignored
+  DenseUint32HalfKeepLowBitsNibble = 361, // n & ((1<<((parameter&3)+1))-1); high ignored
+  DenseUint32HalfAndNotNibble = 362, // n & ~(parameter&0xf) per nibble; high ignored
+  DenseUint32HalfOrNotNibble = 363, // (n | ~(parameter&0xf)) & 0xf; high ignored
+  DenseUint32HalfXorNotNibble = 364, // n ^ (~(parameter&0xf) & 0xf); high ignored
+  DenseUint32HalfKeepHighBitsNibble = 365, // keep high ((parameter&3)+1) bits; high ignored
+  DenseUint32HalfScatterLsbNibble = 366, // (n&1)<<(parameter&3); high ignored
+  DenseUint32HalfInsertBitNibble = 367 // clear bit (parameter&3), insert ((parameter>>2)&1); high ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -721,6 +739,18 @@ public:
   uint64_t rejectedDuplicatesChecksum() const;
   // Alias of anyRejectedDuplicates (asset-free observation naming).
   bool rejectedDuplicatesPresent() const;
+  // Alias of removeRejectedDuplicate (asset-free observation naming).
+  bool rejectedDuplicatesErase(WorldGenerationComputeTicket ticket);
+  // Alias of rejectedDuplicatesCount (asset-free observation naming).
+  size_t rejectedDuplicatesExtent() const;
+  // Alias of listRejectedDuplicates (asset-free observation naming).
+  List<WorldGenerationComputeTicket> rejectedDuplicatesInventory() const;
+  // Alias of listRejectedDuplicates (asset-free observation naming).
+  List<WorldGenerationComputeTicket> rejectedDuplicatesRoster() const;
+  // Alias of hasRejectedDuplicate (asset-free observation naming).
+  bool rejectedDuplicatesHolds(WorldGenerationComputeTicket ticket) const;
+  // Alias of clearRejectedDuplicates (asset-free observation naming).
+  size_t rejectedDuplicatesDrain();
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 
