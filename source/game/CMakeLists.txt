@@ -241,6 +241,7 @@ SET (star_game_HEADERS
     StarWorldGenerationTasks.hpp
     StarWorldGenerationCompute.hpp
     StarWorldGenerationComputeGl.hpp
+    StarWorldGenerationComputeRuntime.hpp
     StarWorldRegionPartition.hpp
     StarWorldRegionCoordinator.hpp
     StarWorldRegionOwner.hpp
@@ -555,6 +556,7 @@ SET (star_game_SOURCES
     StarWorldGenerationTasks.cpp
     StarWorldGenerationCompute.cpp
     StarWorldGenerationComputeGl.cpp
+    StarWorldGenerationComputeRuntime.cpp
     StarWorldRegionPartition.cpp
     StarWorldRegionCoordinator.cpp
     StarWorldRegionOwner.cpp

@@ -1075,3 +1075,10 @@ integração: **nenhum**.
 ## Sync 2026-11-28T07:00Z
 - Tip INT `4a650bc1` (flow/docs; tip-final base `f6ada125` Build SUCCESS).
 - Ahead h0–h5/r1/r2=0. H4 idle awaiting 2º vendor (50% sem claim). Sem spam.
+
+## Merge 2026-11-28T07:15Z — H4 WorldThread runtime (material)
+- Merge `--no-ff` H4 `76ab0fa2` (WorldThread compute runtime pump) em INT.
+- Material: GPU-02 WorldThread / WorldServerThread pump; 320/320 cloud-safe.
+- Ahead pós-merge: h0–h5/r1/r2=0 (H4 absorvido).
+- 50%: sem claim (2º vendor estacionado).
+- Tip-final Build: 1× após prior `46103478918` SUCCESS @`f6ada125`.

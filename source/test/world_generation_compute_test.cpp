@@ -1,5 +1,6 @@
 #include "StarWorldGenerationCompute.hpp"
 #include "StarWorldGenerationComputeGl.hpp"
+#include "StarWorldGenerationComputeRuntime.hpp"
 
 #include "gtest/gtest.h"
 
@@ -9060,6 +9061,50 @@ TEST(WorldGenerationComputeTest, TerrainBiomeFieldSketchExactCpuAndShadow) {
           makeIdentity(2973, WorldGenerationComputeKernel::BiomeIdBucket), input, 0x10u,
           WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
           .verdict);
+}
+
+TEST(WorldGenerationComputeTest, WorldThreadRuntimePumpRehearsalCloudSafe) {
+  // GPU-02 WorldThread vertical (cloud-safe): runtime adopts owners and pumps
+  // deferred GPU rehearsal tickets without publishing to a live world.
+  WorldGenerationComputeRuntime runtime;
+  EXPECT_FALSE(runtime.active());
+  EXPECT_EQ(0u, runtime.pumpUpdate());
+
+  WorldGenerationComputeRuntime::Options options;
+  options.enabled = true;
+  options.gpuFenceRehearsal = true;
+  options.deferredCompletion = true;
+  runtime.startOnWorldThread(options);
+  ASSERT_TRUE(runtime.active());
+  ASSERT_TRUE(runtime.rehearsal());
+  ASSERT_TRUE(runtime.service());
+
+  auto ticket = runtime.service()->submit(
+      makeIdentity(3100, WorldGenerationComputeKernel::TerrainFieldMax2),
+      List<uint32_t>{0x00200010u}, 0u, WorldGenerationComputeBackend::GpuOpenGlCompute);
+  ASSERT_TRUE(ticket);
+  WorldGenerationComputeResult early;
+  EXPECT_EQ(WorldGenerationComputePollStatus::Pending, runtime.service()->poll(*ticket, &early));
+
+  EXPECT_EQ(1u, runtime.pumpUpdate());
+  EXPECT_EQ(1u, runtime.lastPumpCompletions());
+  WorldGenerationComputeResult result;
+  EXPECT_EQ(WorldGenerationComputePollStatus::Ready, runtime.service()->poll(*ticket, &result));
+  ASSERT_EQ(1u, result.values.size());
+  EXPECT_EQ(0x0020u, result.values[0]);
+
+  // Config defaults keep the runtime disabled (safe for dedicated servers).
+  auto disabled = WorldGenerationComputeRuntime::optionsFromConfig(JsonObject());
+  EXPECT_FALSE(disabled.enabled);
+  EXPECT_TRUE(disabled.gpuFenceRehearsal);
+  auto enabled = WorldGenerationComputeRuntime::optionsFromConfig(JsonObject{
+      {"worldGenerationCompute", JsonObject{{"worldThreadPump", true}, {"gpuFenceRehearsal", false}}}});
+  EXPECT_TRUE(enabled.enabled);
+  EXPECT_FALSE(enabled.gpuFenceRehearsal);
+
+  runtime.stopOnWorldThread();
+  EXPECT_FALSE(runtime.active());
+  EXPECT_EQ(nullptr, runtime.service());
 }
 
 TEST(WorldGenerationComputeTest, TerrainGainPipelineCpuReferenceMatchesStackedKernels) {
