@@ -899,3 +899,8 @@ integração: **nenhum**.
 ## Revisão 2026-11-28T00:56Z — lote H4 6e6860aa (idle antecipado)
 - Merge H4 tip `6e6860aa` (264/264) — cláusula 2 (todas frentes idle).
 - Build `46089533286` intacto in_progress; hold 1 Build tip final; sem spam.
+
+## Sync 2026-11-28T01:00Z
+- Tip `1921eb91` (H4 `6e6860aa` 264/264 material).
+- Ahead: h0–h3/h5/r1–r2=0; H4 `d5750c50` ahead=3 (hold — H4 ativa / janela <15min).
+- Build `46089533286` in_progress @`52fdd2c7`; tip final pendente; sem dispatch.
