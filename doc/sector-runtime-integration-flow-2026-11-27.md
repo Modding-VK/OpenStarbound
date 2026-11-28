@@ -874,3 +874,7 @@ integração: **nenhum**.
 ## Revisão 2026-11-28T00:30Z — lote H4 d3423fa4
 - Merge H4 tip `d3423fa4` (240/240; inclui `a0dc7492`+).
 - Build `46088031631` intacto; 1 Build tip final após terminal; sem spam.
+
+## Sync 2026-11-28T00:30Z
+- Tip `39af9549` pós-merge H4 `d3423fa4`; ahead h*/r*=0 (H3 remote ausente).
+- Build `46088031631` intacto; sem dispatch extra.
