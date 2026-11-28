@@ -925,3 +925,10 @@ integração: **nenhum**.
 - Tip `e4ff2cff` (H4 `e4f89cf7` 286/286 material).
 - Ahead: h0–h3/h5/r1–r2=0; H4 `ac03782a` ahead=6 (hold).
 - Build `46092595525` in_progress @`65d2969a`; tip final pendente após terminal; sem dispatch.
+
+## Revisão multi-frente 2026-11-28T01:31:00Z
+- INT tip `9d355236` (material H4 `e4f89cf7`/`e4ff2cff`, 286/286).
+- Ahead vs INT: h0/h1/h2/h3/h5/r1/r2=0; **H4 `acd1be1a` ahead=9** (CeilPow2…Gcd/Lcm + Stamp/Breadth/Register) — hold (janela/early-idle).
+- H3: `cursor/h3-kernels-publication-9f77` @ `3bdf1927` sem tip novo.
+- PRs abertos com base na INT: nenhum.
+- Build `46092595525` in_progress; tip final pendente; sem Actions nesta revisão.
