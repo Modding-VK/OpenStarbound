@@ -1,4 +1,5 @@
 #include "StarWorldGenerationCompute.hpp"
+#include "StarWorldGenerationComputeAdmission.hpp"
 #include "StarWorldGenerationComputeGl.hpp"
 #include "StarWorldGenerationComputePublish.hpp"
 #include "StarWorldGenerationComputeRuntime.hpp"
@@ -9147,6 +9148,86 @@ TEST(WorldGenerationComputeTest, WorldThreadRuntimePublishGateWiring) {
 
   runtime.stopOnWorldThread();
   EXPECT_EQ(nullptr, runtime.publishGate());
+}
+
+TEST(WorldGenerationComputeTest, PreparationAdmissionStagesWithoutLiveApply) {
+  // m50 admission→staged vertical: Terrain/Biome only; DenseUint32 refused;
+  // stageReadyOpen never writes the live world.
+  EXPECT_TRUE(WorldGenerationComputeAdmission::isPreparationKernel(
+      WorldGenerationComputeKernel::TerrainFieldMax2));
+  EXPECT_TRUE(WorldGenerationComputeAdmission::isPreparationKernel(
+      WorldGenerationComputeKernel::BiomeIdBucket));
+  EXPECT_FALSE(WorldGenerationComputeAdmission::isPreparationKernel(
+      WorldGenerationComputeKernel::DenseUint32Xor));
+
+  WorldGenerationComputeCapabilities caps;
+  caps.cpuReference = true;
+  caps.gpuOpenGlCompute = false;
+  WorldGenerationComputeAdmissionRequest small;
+  small.identity = makeIdentity(3300, WorldGenerationComputeKernel::TerrainFieldMax2);
+  small.input = List<uint32_t>{0x00200010u};
+  auto smallDecision = WorldGenerationComputeAdmission::selectBackend(caps, small, true);
+  EXPECT_EQ(WorldGenerationComputeBackend::CpuReference, smallDecision.backend);
+  EXPECT_STREQ("cpu_small_job", smallDecision.reason);
+
+  WorldGenerationComputeAdmissionRequest large = small;
+  large.identity.sequence = 3301;
+  large.input = List<uint32_t>();
+  for (uint32_t i = 0; i < 80; ++i)
+    large.input.append(0x00200010u + i);
+  auto largeDecision = WorldGenerationComputeAdmission::selectBackend(caps, large, true);
+  EXPECT_EQ(WorldGenerationComputeBackend::GpuOpenGlCompute, largeDecision.backend);
+  EXPECT_STREQ("gpu_rehearsal_amortized", largeDecision.reason);
+
+  large.preferLowLatency = true;
+  auto urgent = WorldGenerationComputeAdmission::selectBackend(caps, large, true);
+  EXPECT_EQ(WorldGenerationComputeBackend::CpuReference, urgent.backend);
+  EXPECT_STREQ("cpu_low_latency", urgent.reason);
+
+  WorldGenerationComputeRuntime runtime;
+  WorldGenerationComputeRuntime::Options options;
+  options.enabled = true;
+  options.gpuFenceRehearsal = true;
+  options.deferredCompletion = true;
+  options.autoStageReady = true;
+  runtime.startOnWorldThread(options);
+  ASSERT_TRUE(runtime.active());
+  ASSERT_NE(nullptr, runtime.admission());
+
+  // DenseUint32 horizontal STOP — admission refuses.
+  WorldGenerationComputeAdmissionRequest dense;
+  dense.identity = makeIdentity(3302, WorldGenerationComputeKernel::DenseUint32Xor);
+  dense.input = List<uint32_t>{1u, 2u};
+  auto refused = runtime.admitPreparation(std::move(dense));
+  EXPECT_EQ(WorldGenerationComputeAdmissionVerdict::RefusedKernel, refused.verdict);
+  EXPECT_EQ(0u, runtime.admission()->pendingCount());
+
+  WorldGenerationComputeAdmissionRequest prep;
+  prep.identity = makeIdentity(3303, WorldGenerationComputeKernel::TerrainFieldMax2);
+  prep.input = List<uint32_t>{0x00400030u};
+  auto admitted = runtime.admitPreparation(std::move(prep));
+  EXPECT_EQ(WorldGenerationComputeAdmissionVerdict::Admitted, admitted.verdict);
+  EXPECT_EQ(1u, runtime.admission()->pendingCount());
+  EXPECT_EQ(WorldGenerationComputeBackend::CpuReference, admitted.backend);
+
+  EXPECT_GE(runtime.pumpUpdate(), 1u);
+  EXPECT_EQ(1u, runtime.lastAutoStaged());
+  EXPECT_EQ(0u, runtime.admission()->pendingCount());
+  ASSERT_NE(nullptr, runtime.publishGate());
+  EXPECT_EQ(1u, runtime.publishGate()->stagedCount());
+  auto staged = runtime.publishGate()->listStaged();
+  ASSERT_EQ(1u, staged.size());
+  EXPECT_EQ(WorldGenerationComputePublishVerdict::RefusedLiveWorld,
+      runtime.publishGate()->applyToLiveWorld(staged[0]));
+
+  auto cfg = WorldGenerationComputeRuntime::optionsFromConfig(JsonObject{
+      {"worldGenerationCompute",
+          JsonObject{{"worldThreadPump", true}, {"autoStageReady", true}}}});
+  EXPECT_TRUE(cfg.enabled);
+  EXPECT_TRUE(cfg.autoStageReady);
+
+  runtime.stopOnWorldThread();
+  EXPECT_EQ(nullptr, runtime.admission());
 }
 
 TEST(WorldGenerationComputeTest, WorldThreadRuntimePumpRehearsalCloudSafe) {

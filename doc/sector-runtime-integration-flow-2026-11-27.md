@@ -1093,3 +1093,9 @@ integração: **nenhum**.
 - Material: PublishGate stage-only + GlDevice dual-context stubs; 323/323.
 - Build tip-final `46120464804` em voo @`191cb6e4` → hold; 1× HEAD pós-terminal.
 - Ahead pós-merge: h0–h5/r1/r2=0. 50% sem claim.
+
+## Merge 2026-11-28T07:28Z — H4 prep admission→staged (material)
+- Merge `--no-ff` H4 `d746256c` em INT (idle).
+- Material: Admission Terrain/Biome → staged publish; 324/324.
+- Build tip-final `46120464804` em voo @`191cb6e4` → hold; 1× HEAD pós-terminal.
+- Ahead pós-merge: h0–h5/r1/r2=0. 50% sem claim.
