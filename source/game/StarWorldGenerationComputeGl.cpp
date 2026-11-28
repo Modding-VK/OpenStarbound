@@ -651,6 +651,10 @@ GLuint g_halfMaj3FillNibbleProgram = 0;
 GLuint g_halfZeroPopFillNibbleProgram = 0;
 GLuint g_halfFullPopFillNibbleProgram = 0;
 GLuint g_halfPopEqCountFillNibbleProgram = 0;
+GLuint g_terrainFieldMax2Program = 0;
+GLuint g_terrainFieldMin2Program = 0;
+GLuint g_terrainFieldClampU16Program = 0;
+GLuint g_biomeIdBucketProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -9455,6 +9459,77 @@ void main() {
 }
 )GLSL";
 
+char const* TerrainFieldMax2Shader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint value = values[i];
+  uint a = value & 0xffffu;
+  uint b = (value >> 16) & 0xffffu;
+  values[i] = (a > b) ? a : b;
+}
+)GLSL";
+
+char const* TerrainFieldMin2Shader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint value = values[i];
+  uint a = value & 0xffffu;
+  uint b = (value >> 16) & 0xffffu;
+  values[i] = (a < b) ? a : b;
+}
+)GLSL";
+
+char const* TerrainFieldClampU16Shader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint hi = uParameter & 0xffffu;
+  uint a = values[i] & 0xffffu;
+  values[i] = (a > hi) ? hi : a;
+}
+)GLSL";
+
+char const* BiomeIdBucketShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint width = uParameter & 0xffffu;
+  if (width == 0u)
+    width = 1u;
+  uint a = values[i] & 0xffffu;
+  uint id = a / width;
+  if (id > 255u)
+    id = 255u;
+  values[i] = id;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -11271,6 +11346,22 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfPopEqCountFillNibbleProgram);
     g_halfPopEqCountFillNibbleProgram = 0;
   }
+  if (g_terrainFieldMax2Program) {
+    glDeleteProgram(g_terrainFieldMax2Program);
+    g_terrainFieldMax2Program = 0;
+  }
+  if (g_terrainFieldMin2Program) {
+    glDeleteProgram(g_terrainFieldMin2Program);
+    g_terrainFieldMin2Program = 0;
+  }
+  if (g_terrainFieldClampU16Program) {
+    glDeleteProgram(g_terrainFieldClampU16Program);
+    g_terrainFieldClampU16Program = 0;
+  }
+  if (g_biomeIdBucketProgram) {
+    glDeleteProgram(g_biomeIdBucketProgram);
+    g_biomeIdBucketProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -12043,7 +12134,15 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfFullPopFillNibbleProgram, HalfFullPopFillNibbleShader,
             "DenseUint32HalfFullPopFillNibble")
       || !requireProgram(g_halfPopEqCountFillNibbleProgram, HalfPopEqCountFillNibbleShader,
-            "DenseUint32HalfPopEqCountFillNibble"))
+            "DenseUint32HalfPopEqCountFillNibble")
+      || !requireProgram(g_terrainFieldMax2Program, TerrainFieldMax2Shader,
+            "TerrainFieldMax2")
+      || !requireProgram(g_terrainFieldMin2Program, TerrainFieldMin2Shader,
+            "TerrainFieldMin2")
+      || !requireProgram(g_terrainFieldClampU16Program, TerrainFieldClampU16Shader,
+            "TerrainFieldClampU16")
+      || !requireProgram(g_biomeIdBucketProgram, BiomeIdBucketShader,
+            "BiomeIdBucket"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -13000,6 +13099,14 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfFullPopFillNibbleProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfPopEqCountFillNibble)
     program = g_halfPopEqCountFillNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::TerrainFieldMax2)
+    program = g_terrainFieldMax2Program;
+  else if (kernel == WorldGenerationComputeKernel::TerrainFieldMin2)
+    program = g_terrainFieldMin2Program;
+  else if (kernel == WorldGenerationComputeKernel::TerrainFieldClampU16)
+    program = g_terrainFieldClampU16Program;
+  else if (kernel == WorldGenerationComputeKernel::BiomeIdBucket)
+    program = g_biomeIdBucketProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
