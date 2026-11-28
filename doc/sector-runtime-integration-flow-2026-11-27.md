@@ -1138,3 +1138,8 @@ integração: **nenhum**.
 - Docs-only: WorldStorage adopt not cloud-safe; H4 standby 2º vendor.
 - Sem Build (tip ≠ material). Build tip-final `46121869802` intacto em voo.
 - Ahead pós-merge: h0–h5/r1/r2=0. 50% sem claim.
+
+## Sync 2026-11-28T08:00Z
+- Tip INT `9683d377` (H4 docs WorldStorage standby + material stack H5/H4).
+- Ahead h0–h5/r1/r2=0. H4 standby 2º vendor (50% sem claim).
+- Build tip-final `46123319091` in_progress @`9683d377` (Run CMake). Sem spam.
