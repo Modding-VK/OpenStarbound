@@ -1199,3 +1199,8 @@ integração: **nenhum**.
 - PRs abertos com base na INT: nenhum.
 - Gates: Build tip-final `46123319091` SUCCESS @`9683d377`; CI Int/SR SUCCESS @`8a38889f`.
 - H4 standby 2º vendor (50% sem claim). Sem Actions nesta revisão.
+
+## Política 2026-11-28T10:00Z — anti-loop docs (material)
+- Sync / Front-review com ahead h*/r*=0 e tip-final Build SUCCESS: **não** push tip só-docs.
+- Atualizar só `store/integration.md` local nesses ticks.
+- Push docs no INT somente se houver mudança material de política ou merge de código.
