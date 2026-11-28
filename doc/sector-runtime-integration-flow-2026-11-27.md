@@ -860,3 +860,9 @@ integração: **nenhum**.
 ## Sync 2026-11-28T00:03Z
 - Merge H4 tip `e641c669` (212/212; janela ≥15 min desde `66fe2851`).
 - Build `46084669866` intacto; 1 Build tip final após terminal; sem spam.
+
+## Front review / hold 2026-11-28T00:04Z
+- INT tip: `d3aa8d4f` (H4 lote `e641c669` 212/212).
+- H4 ahead=3 tip `67c54617` (`67c54617`+) — **hold** até janela 15 min desde merge `d3aa8d4f`.
+- H3/H5/r*: ahead=0. PRs base INT: nenhum.
+- Sem merge tip-a-tip; sem Actions neste tick.
