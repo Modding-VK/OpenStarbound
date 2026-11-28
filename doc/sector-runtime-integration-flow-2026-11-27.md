@@ -1099,3 +1099,12 @@ integração: **nenhum**.
 - Material: Admission Terrain/Biome → staged publish; 324/324.
 - Build tip-final `46120464804` em voo @`191cb6e4` → hold; 1× HEAD pós-terminal.
 - Ahead pós-merge: h0–h5/r1/r2=0. 50% sem claim.
+
+## Revisão 2026-11-28T07:30Z — front-review (idle)
+- INT tip `d5983159` (H4 admission→staged `d746256c` + H5/H4 WorldThread stack).
+- Ahead vs INT: h0/h1/h2/h3/h4/h5/r1/r2=0.
+- H3: `cursor/h3-kernels-publication-9f77` @ `3bdf1927` sem tip novo.
+- PRs abertos com base na INT: nenhum.
+- Gates: Build tip-final `46120464804` in_progress @`191cb6e4` (hold; 1× HEAD pós-terminal);
+  CI Int/SR in_progress @`d5983159`.
+- H4 m50: 2º vendor estacionado; 50% sem claim. Sem Actions nesta revisão.
