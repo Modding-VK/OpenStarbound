@@ -684,6 +684,8 @@ public:
   uint64_t rejectedDuplicatesHash() const;
   // Alias of rejectedDuplicatesEmpty (asset-free observation naming).
   bool rejectedDuplicatesVacant() const;
+  // Alias of rejectedDuplicatesCount (asset-free observation naming).
+  size_t rejectedDuplicatesPopulation() const;
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 
