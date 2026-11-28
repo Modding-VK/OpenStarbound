@@ -889,3 +889,9 @@ integração: **nenhum**.
 ## Revisão 2026-11-28T00:44Z — lote H4 f3fa4e4a
 - Merge H4 tip `f3fa4e4a` (252/252; inclui `76edca18`+).
 - Build `46088031631` SUCCESS; 1 Build tip final; sem spam.
+
+## Política user 2026-11-28T00:52:00Z — merge H4/H5 só com agentes idle
+- **Regra:** merge H4/H5 somente quando **todos** os agentes de desenvolvimento estiverem idle (parados).
+- **Não** merge só por janela 15–20 min se H4/H5 ainda estiverem produzindo tips.
+- Quando **idle + tips ready** → merge lote (`--no-ff`) + **1 Build tip final** se Build anterior terminal; sem spam.
+- Build em voo permanece intacto até terminal.
