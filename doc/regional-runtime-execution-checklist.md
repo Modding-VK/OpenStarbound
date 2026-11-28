@@ -662,3 +662,9 @@ etapa acima.
   bloqueio: examina cadeias posteriores já prontas antes do fallback legado de
   BaseTiles-only, sem escrita concorrente, TTL novo ou interesse implícito.
   Requer comparação de entrega, expirações, justiça e saves/mods.
+
+## Política merge H4/H5 (timer + idle antecipado)
+1. Timer 15–20 min CONTINUA — ao vencer, merge lote mesmo com frentes ativas.
+2. Idle antecipado — todas frentes de dev idle antes do timer → merge imediato.
+3. Nunca tip-a-tip. 1 Build tip final se Build anterior terminal; sem spam.
+
