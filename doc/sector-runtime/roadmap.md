@@ -531,7 +531,7 @@ do kernel CPU e do resultado versionado.
   rejectedDuplicatesSweep + rejectedDuplicatesStamp +
   rejectedDuplicatesBreadth + rejectedDuplicatesRegister +
   rejectedDuplicatesSigil + rejectedDuplicatesDepth +
-  GL owner+fence harness (m50)
+  deferred GPU→pumpFences + terrain sketch (m50)
   (primeiro recorte 25%; integração WorldThread pendente).
 - [x] GPU-03: kernels densos DenseUint32* incl.
   fence harness vertical; terreno/bioma +

@@ -27,20 +27,7 @@ struct WorldGenerationComputeGlProbeInfo {
   char const* failureReason = "";
 };
 
-enum class WorldGenerationComputeGlFenceStatus : uint8_t {
-  Invalid = 0,
-  Pending = 1,
-  Signaled = 2,
-  Failed = 3
-};
-
-struct WorldGenerationComputeGlFence {
-  uint64_t id = 0;
-
-  bool operator==(WorldGenerationComputeGlFence const& rhs) const { return id == rhs.id; }
-  bool operator!=(WorldGenerationComputeGlFence const& rhs) const { return id != rhs.id; }
-  explicit operator bool() const { return id != 0; }
-};
+// Fence status/ticket types live in StarWorldGenerationCompute.hpp.
 
 class WorldGenerationComputeGlDevice {
 public:

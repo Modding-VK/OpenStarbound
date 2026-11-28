@@ -9,11 +9,11 @@ liberar CPU para outros produtores. O renderer atual negocia contexto OpenGL
 moderno quando disponível, mas não fornece uma API de compute de worldgen.
 
 **Estado (28/11/2026, `cursor/h4-gpu-shadow-9f77`):** GPU-01/02/03/04 no
-primeiro marco (25%). **STOP** cobertura horizontal DenseUint32/Half*/reject-set.
-Pivot marco 50%: `WorldGenerationComputeGlDevice` owner-thread + fence harness
-não bloqueante (`createFence`/`pollFence`/`pumpFences`). Build **normal** não
-claima OpenGL compute. Ver [gl-owner-fence-harness](../sector-runtime-h4-gpu02-gl-owner-fence-harness-2026-11-28.md).
-Sem 50% enquanto GL 4.3+ real, WorldThread, terreno/bioma/ganho e multi-driver faltarem.
+primeiro marco (25%). **STOP** DenseUint32 horizontal. Pivot m50: GL owner+fence
+harness; deferred GPU tickets → `pumpFences` (rehearsal cloud-safe); esboço CPU
+`TerrainField*`/`BiomeIdBucket`. Sem claim 50%. Ver
+[deferred-gpu-pumpfences](../sector-runtime-h4-gpu02-deferred-gpu-pumpfences-terrain-sketch-2026-11-28.md).
+Sem 50% enquanto GL 4.3+ real, WorldThread, ganho medido e multi-driver faltarem.
 
 ## GPU-01 — Interface e capacidades
 

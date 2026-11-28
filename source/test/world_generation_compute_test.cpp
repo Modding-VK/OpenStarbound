@@ -488,9 +488,9 @@ TEST(WorldGenerationComputeTest, SupportedKernelsCatalogListsDenseFamily) {
   EXPECT_FALSE(WorldGenerationComputeService::isKernelSupported(
       WorldGenerationComputeKernel::DenseUint32Xor, 99u));
   auto kernels = WorldGenerationComputeService::supportedKernels();
-  ASSERT_EQ(442u, kernels.size());
+  ASSERT_EQ(446u, kernels.size());
   EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32Xor, kernels[0]);
-  EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32HalfPopEqCountFillNibble, kernels[kernels.size() - 1]);
+  EXPECT_EQ(WorldGenerationComputeKernel::BiomeIdBucket, kernels[kernels.size() - 1]);
   EXPECT_TRUE(WorldGenerationComputeService::supportedKernels(2u).empty());
 }
 
@@ -512,7 +512,7 @@ TEST(WorldGenerationComputeTest, CompareShadowBatchRunsIndependentKernels) {
     items.append(item);
   }
   auto reports = service.compareShadowBatch(input, std::move(items));
-  ASSERT_EQ(442u, reports.size());
+  ASSERT_EQ(446u, reports.size());
   for (auto const& report : reports) {
     EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal, report.verdict)
         << (int)report.identity.kernel;
@@ -8358,7 +8358,7 @@ TEST(WorldGenerationComputeTest, DenseUint32OrNotAvgIsPow2ExactCpuAndShadow) {
 }
 
 TEST(WorldGenerationComputeTest, FingerprintCapabilitiesAndSupportedKernelCount) {
-  EXPECT_EQ(442u, WorldGenerationComputeService::supportedKernelCount());
+  EXPECT_EQ(446u, WorldGenerationComputeService::supportedKernelCount());
   EXPECT_EQ(0u, WorldGenerationComputeService::supportedKernelCount(2u));
   EXPECT_EQ(WorldGenerationComputeService::supportedKernels().size(),
       WorldGenerationComputeService::supportedKernelCount());
@@ -8937,6 +8937,76 @@ TEST(WorldGenerationComputeTest, DenseUint32MinMaxSubExactCpuAndShadow) {
       service.compareShadow(makeIdentity(142, WorldGenerationComputeKernel::DenseUint32Sub), input,
           1u, WorldGenerationComputeBackend::CpuReference,
           WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+}
+
+
+TEST(WorldGenerationComputeTest, DeferredGpuTicketsCompleteViaPumpFencesRehearsal) {
+  // Milestone-50 cloud-safe: deferred GpuOpenGlCompute + fence rehearsal.
+  // Arms GlDevice fences; pump() advances fences non-blocking then materializes on CPU.
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  service.setGpuFenceRehearsal(true);
+  WorldGenerationComputeGlDevice::adoptOwnerThread();
+  service.adoptOwnerThread();
+
+  auto ticket = service.submit(makeIdentity(2970, WorldGenerationComputeKernel::TerrainFieldMax2),
+      List<uint32_t>{0x00200010u}, 0u, WorldGenerationComputeBackend::GpuOpenGlCompute);
+  ASSERT_TRUE(ticket);
+  EXPECT_GE(WorldGenerationComputeGlDevice::pendingFenceCount(), 1u);
+
+  WorldGenerationComputeResult early;
+  EXPECT_EQ(WorldGenerationComputePollStatus::Pending, service.poll(*ticket, &early));
+
+  EXPECT_EQ(1u, service.pump());
+  WorldGenerationComputeResult result;
+  EXPECT_EQ(WorldGenerationComputePollStatus::Ready, service.poll(*ticket, &result));
+  ASSERT_EQ(1u, result.values.size());
+  EXPECT_EQ(0x0020u, result.values[0]);
+  EXPECT_EQ(WorldGenerationComputeBackend::GpuOpenGlCompute, result.backend);
+  EXPECT_EQ(0u, WorldGenerationComputeGlDevice::pendingFenceCount());
+
+  service.clearOwnerThread();
+  WorldGenerationComputeGlDevice::clearOwnerThread();
+  WorldGenerationComputeGlDevice::shutdown();
+}
+
+TEST(WorldGenerationComputeTest, GpuSubmitRejectedWithoutCapabilityOrRehearsal) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  // rehearsal off, no GPU capability in normal build
+  auto ticket = service.submit(makeIdentity(2971, WorldGenerationComputeKernel::TerrainFieldMin2),
+      List<uint32_t>{0x00200010u}, 0u, WorldGenerationComputeBackend::GpuOpenGlCompute);
+  EXPECT_FALSE(ticket);
+}
+
+TEST(WorldGenerationComputeTest, TerrainBiomeFieldSketchExactCpuAndShadow) {
+  // Milestone-50 sketch only — CPU reference; does not claim 50% / no Desktop probe.
+  WorldGenerationComputeService service;
+  EXPECT_EQ(0x0020u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::TerrainFieldMax2, 1u, List<uint32_t>{0x00200010u}, 0u)[0]);
+  EXPECT_EQ(0x0010u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::TerrainFieldMin2, 1u, List<uint32_t>{0x00200010u}, 0u)[0]);
+  EXPECT_EQ(0x00ffu,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::TerrainFieldClampU16, 1u, List<uint32_t>{0x12340123u},
+          0x00ffu)[0]);
+  EXPECT_EQ(0x0012u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::BiomeIdBucket, 1u, List<uint32_t>{0x00000123u}, 0x10u)[0]);
+
+  auto input = edgeCorpus();
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(2972, WorldGenerationComputeKernel::TerrainFieldMax2), input, 0u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(2973, WorldGenerationComputeKernel::BiomeIdBucket), input, 0x10u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
           .verdict);
 }
 
