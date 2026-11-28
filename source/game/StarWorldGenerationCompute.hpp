@@ -453,7 +453,10 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfMinPopPickNibble = 427, // pop(n)<=pop(p) ? n : p; high ignored
   DenseUint32HalfPopDeltaNibble = 428, // |pop(n)-pop(p)|; high ignored
   DenseUint32HalfPopSumNibble = 429, // pop(n)+pop(p); high ignored
-  DenseUint32HalfPopParityFillNibble = 430 // 0xf if (pop(n)&1)==(pop(p)&1) else 0; high ignored
+  DenseUint32HalfPopParityFillNibble = 430, // 0xf if (pop(n)&1)==(pop(p)&1) else 0; high ignored
+  DenseUint32HalfPopSubSatNibble = 431, // sat(pop(n)-pop(p)); high ignored
+  DenseUint32HalfPopMulNibble = 432, // pop(n)*pop(p); high ignored
+  DenseUint32HalfEvenPopFillNibble = 433 // 0xf if (pop(n)&1)==0 else 0; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -856,6 +859,8 @@ public:
   uint64_t rejectedDuplicatesToken() const;
   // Alias of rejectedDuplicatesList (asset-free observation naming).
   List<WorldGenerationComputeTicket> rejectedDuplicatesRoll() const;
+  // Alias of clearRejectedDuplicates (asset-free observation naming).
+  size_t rejectedDuplicatesScrub();
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 

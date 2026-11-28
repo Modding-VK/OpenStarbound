@@ -490,6 +490,9 @@ GLuint g_halfMinPopPickNibbleProgram = 0;
 GLuint g_halfPopDeltaNibbleProgram = 0;
 GLuint g_halfPopSumNibbleProgram = 0;
 GLuint g_halfPopParityFillNibbleProgram = 0;
+GLuint g_halfPopSubSatNibbleProgram = 0;
+GLuint g_halfPopMulNibbleProgram = 0;
+GLuint g_halfEvenPopFillNibbleProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -9019,6 +9022,76 @@ void main() {
 }
 )GLSL";
 
+char const* HalfPopSubSatNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint p = uParameter & 0xfu;
+  uint pPop = ((p >> 0) & 1u) + ((p >> 1) & 1u) + ((p >> 2) & 1u) + ((p >> 3) & 1u);
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint aPop = ((a >> 0) & 1u) + ((a >> 1) & 1u) + ((a >> 2) & 1u) + ((a >> 3) & 1u);
+    uint outN = (aPop > pPop) ? (aPop - pPop) : 0u;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfPopMulNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint p = uParameter & 0xfu;
+  uint pPop = ((p >> 0) & 1u) + ((p >> 1) & 1u) + ((p >> 2) & 1u) + ((p >> 3) & 1u);
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint aPop = ((a >> 0) & 1u) + ((a >> 1) & 1u) + ((a >> 2) & 1u) + ((a >> 3) & 1u);
+    uint outN = aPop * pPop;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfEvenPopFillNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint aPop = ((a >> 0) & 1u) + ((a >> 1) & 1u) + ((a >> 2) & 1u) + ((a >> 3) & 1u);
+    uint outN = ((aPop & 1u) == 0u) ? 0xfu : 0u;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -10787,6 +10860,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfPopParityFillNibbleProgram);
     g_halfPopParityFillNibbleProgram = 0;
   }
+  if (g_halfPopSubSatNibbleProgram) {
+    glDeleteProgram(g_halfPopSubSatNibbleProgram);
+    g_halfPopSubSatNibbleProgram = 0;
+  }
+  if (g_halfPopMulNibbleProgram) {
+    glDeleteProgram(g_halfPopMulNibbleProgram);
+    g_halfPopMulNibbleProgram = 0;
+  }
+  if (g_halfEvenPopFillNibbleProgram) {
+    glDeleteProgram(g_halfEvenPopFillNibbleProgram);
+    g_halfEvenPopFillNibbleProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -11535,7 +11620,13 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfPopSumNibbleProgram, HalfPopSumNibbleShader,
             "DenseUint32HalfPopSumNibble")
       || !requireProgram(g_halfPopParityFillNibbleProgram, HalfPopParityFillNibbleShader,
-            "DenseUint32HalfPopParityFillNibble"))
+            "DenseUint32HalfPopParityFillNibble")
+      || !requireProgram(g_halfPopSubSatNibbleProgram, HalfPopSubSatNibbleShader,
+            "DenseUint32HalfPopSubSatNibble")
+      || !requireProgram(g_halfPopMulNibbleProgram, HalfPopMulNibbleShader,
+            "DenseUint32HalfPopMulNibble")
+      || !requireProgram(g_halfEvenPopFillNibbleProgram, HalfEvenPopFillNibbleShader,
+            "DenseUint32HalfEvenPopFillNibble"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -12460,6 +12551,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfPopSumNibbleProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfPopParityFillNibble)
     program = g_halfPopParityFillNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfPopSubSatNibble)
+    program = g_halfPopSubSatNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfPopMulNibble)
+    program = g_halfPopMulNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfEvenPopFillNibble)
+    program = g_halfEvenPopFillNibbleProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
