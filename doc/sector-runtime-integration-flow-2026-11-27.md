@@ -1183,3 +1183,7 @@ integração: **nenhum**.
 - PRs abertos com base na INT: nenhum.
 - Gates: Build tip-final `46123319091` SUCCESS @`9683d377`; CI Int/SR SUCCESS @`8a38889f`.
 - H4 standby 2º vendor (50% sem claim). Sem Actions nesta revisão.
+
+## Sync 2026-11-28T09:30Z
+- Tip INT `3d867881` (flow/docs; tip-final base `9683d377` Build SUCCESS).
+- Ahead h0–h5/r1/r2=0. H4 standby 2º vendor (50% sem claim). Sem spam.
