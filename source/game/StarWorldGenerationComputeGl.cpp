@@ -6,11 +6,28 @@
 
 #ifndef STAR_ENABLE_WORLDGEN_GL_COMPUTE
 
+#include <thread>
+#include <unordered_map>
+
 namespace Star {
 
 namespace {
 WorldGenerationComputeGlProbeInfo g_info{};
 std::once_flag g_once;
+std::mutex g_glMutex;
+std::thread::id g_ownerThread{};
+bool g_hasOwnerThread = false;
+uint64_t g_nextFenceId = 1;
+
+struct StubFenceEntry {
+  WorldGenerationComputeGlFenceStatus status = WorldGenerationComputeGlFenceStatus::Pending;
+};
+
+std::unordered_map<uint64_t, StubFenceEntry> g_fences;
+
+bool ownerAllowsUnlocked() noexcept {
+  return !g_hasOwnerThread || std::this_thread::get_id() == g_ownerThread;
+}
 }
 
 bool WorldGenerationComputeGlDevice::isBuildEnabled() noexcept {
@@ -18,6 +35,13 @@ bool WorldGenerationComputeGlDevice::isBuildEnabled() noexcept {
 }
 
 WorldGenerationComputeCapabilities WorldGenerationComputeGlDevice::probeCapabilities() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked()) {
+    WorldGenerationComputeCapabilities caps;
+    caps.cpuReference = true;
+    caps.gpuOpenGlCompute = false;
+    return caps;
+  }
   std::call_once(g_once, [] {
     g_info.buildEnabled = false;
     g_info.failureReason = "STAR_ENABLE_WORLDGEN_GL_COMPUTE not enabled in this build";
@@ -39,10 +63,93 @@ WorldGenerationComputeGlProbeInfo const& WorldGenerationComputeGlDevice::lastPro
 
 bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel, uint32_t,
     List<uint32_t> const&, uint32_t, List<uint32_t>&) {
+  std::lock_guard<std::mutex> lock(g_glMutex);
   return false;
 }
 
-void WorldGenerationComputeGlDevice::shutdown() noexcept {}
+void WorldGenerationComputeGlDevice::adoptOwnerThread() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  g_ownerThread = std::this_thread::get_id();
+  g_hasOwnerThread = true;
+}
+
+void WorldGenerationComputeGlDevice::clearOwnerThread() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  g_hasOwnerThread = false;
+  g_ownerThread = std::thread::id{};
+}
+
+bool WorldGenerationComputeGlDevice::hasOwnerThread() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  return g_hasOwnerThread;
+}
+
+bool WorldGenerationComputeGlDevice::isOwnerThread() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  return g_hasOwnerThread && std::this_thread::get_id() == g_ownerThread;
+}
+
+Maybe<WorldGenerationComputeGlFence> WorldGenerationComputeGlDevice::createFence() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked())
+    return {};
+  WorldGenerationComputeGlFence fence;
+  fence.id = g_nextFenceId++;
+  g_fences[fence.id] = StubFenceEntry{};
+  return fence;
+}
+
+WorldGenerationComputeGlFenceStatus WorldGenerationComputeGlDevice::pollFence(
+    WorldGenerationComputeGlFence fence) noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked() || fence.id == 0)
+    return WorldGenerationComputeGlFenceStatus::Invalid;
+  auto it = g_fences.find(fence.id);
+  if (it == g_fences.end())
+    return WorldGenerationComputeGlFenceStatus::Invalid;
+  return it->second.status;
+}
+
+size_t WorldGenerationComputeGlDevice::pumpFences(size_t maxCompletions) noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked())
+    return 0;
+  size_t completed = 0;
+  for (auto& pair : g_fences) {
+    if (maxCompletions && completed >= maxCompletions)
+      break;
+    if (pair.second.status != WorldGenerationComputeGlFenceStatus::Pending)
+      continue;
+    // Stub path: non-blocking signal (no GPU wait).
+    pair.second.status = WorldGenerationComputeGlFenceStatus::Signaled;
+    ++completed;
+  }
+  return completed;
+}
+
+bool WorldGenerationComputeGlDevice::retireFence(WorldGenerationComputeGlFence fence) noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked() || fence.id == 0)
+    return false;
+  return g_fences.erase(fence.id) != 0;
+}
+
+size_t WorldGenerationComputeGlDevice::pendingFenceCount() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  size_t n = 0;
+  for (auto const& pair : g_fences) {
+    if (pair.second.status == WorldGenerationComputeGlFenceStatus::Pending)
+      ++n;
+  }
+  return n;
+}
+
+void WorldGenerationComputeGlDevice::shutdown() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked())
+    return;
+  g_fences.clear();
+}
 
 }
 
@@ -51,6 +158,9 @@ void WorldGenerationComputeGlDevice::shutdown() noexcept {}
 #include "GL/glew.h"
 #include <SDL3/SDL.h>
 
+#include <thread>
+#include <unordered_map>
+
 namespace Star {
 
 namespace {
@@ -58,8 +168,47 @@ namespace {
 WorldGenerationComputeGlProbeInfo g_info{};
 std::once_flag g_probeOnce;
 std::mutex g_glMutex;
+std::thread::id g_ownerThread{};
+bool g_hasOwnerThread = false;
+uint64_t g_nextFenceId = 1;
 SDL_Window* g_window = nullptr;
 SDL_GLContext g_context = nullptr;
+
+struct GlFenceEntry {
+  WorldGenerationComputeGlFenceStatus status = WorldGenerationComputeGlFenceStatus::Pending;
+  GLsync sync = nullptr;
+};
+
+std::unordered_map<uint64_t, GlFenceEntry> g_fences;
+
+bool ownerAllowsUnlocked() noexcept {
+  return !g_hasOwnerThread || std::this_thread::get_id() == g_ownerThread;
+}
+
+void destroyFenceSyncUnlocked(GlFenceEntry& entry) noexcept {
+  if (entry.sync) {
+    glDeleteSync(entry.sync);
+    entry.sync = nullptr;
+  }
+}
+
+WorldGenerationComputeGlFenceStatus pollFenceEntryUnlocked(GlFenceEntry& entry) noexcept {
+  if (entry.status != WorldGenerationComputeGlFenceStatus::Pending)
+    return entry.status;
+  if (!entry.sync) {
+    // Simulated fence (no live GL sync): stays Pending until pumpFences.
+    return WorldGenerationComputeGlFenceStatus::Pending;
+  }
+  GLenum wait = glClientWaitSync(entry.sync, GL_SYNC_FLUSH_COMMANDS_BIT, 0);
+  if (wait == GL_ALREADY_SIGNALED || wait == GL_CONDITION_SATISFIED) {
+    destroyFenceSyncUnlocked(entry);
+    entry.status = WorldGenerationComputeGlFenceStatus::Signaled;
+  } else if (wait == GL_WAIT_FAILED) {
+    destroyFenceSyncUnlocked(entry);
+    entry.status = WorldGenerationComputeGlFenceStatus::Failed;
+  }
+  return entry.status;
+}
 GLuint g_xorProgram = 0;
 GLuint g_addProgram = 0;
 GLuint g_andProgram = 0;
@@ -11927,6 +12076,12 @@ bool WorldGenerationComputeGlDevice::isBuildEnabled() noexcept {
 
 WorldGenerationComputeCapabilities WorldGenerationComputeGlDevice::probeCapabilities() noexcept {
   std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked()) {
+    WorldGenerationComputeCapabilities caps;
+    caps.cpuReference = true;
+    caps.gpuOpenGlCompute = false;
+    return caps;
+  }
   std::call_once(g_probeOnce, runProbe);
   WorldGenerationComputeCapabilities caps;
   caps.cpuReference = true;
@@ -11953,6 +12108,8 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     uint32_t kernelVersion, List<uint32_t> const& input, uint32_t parameter,
     List<uint32_t>& output) {
   std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked())
+    return false;
   std::call_once(g_probeOnce, runProbe);
   if (!g_info.computeAvailable || !g_context || !g_window)
     return false;
@@ -12867,6 +13024,8 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
   glDispatchCompute(groups, 1, 1);
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
 
+  // Synchronous dispatch still waits here; async path uses createFence/pollFence/pumpFences
+  // so WorldThread can advance without a blocking ClientWaitSync on the update tick.
   GLsync fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
   if (!fence)
     return false;
@@ -12884,8 +13043,123 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
   return !clearGlErrors();
 }
 
+void WorldGenerationComputeGlDevice::adoptOwnerThread() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  g_ownerThread = std::this_thread::get_id();
+  g_hasOwnerThread = true;
+}
+
+void WorldGenerationComputeGlDevice::clearOwnerThread() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  g_hasOwnerThread = false;
+  g_ownerThread = std::thread::id{};
+}
+
+bool WorldGenerationComputeGlDevice::hasOwnerThread() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  return g_hasOwnerThread;
+}
+
+bool WorldGenerationComputeGlDevice::isOwnerThread() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  return g_hasOwnerThread && std::this_thread::get_id() == g_ownerThread;
+}
+
+Maybe<WorldGenerationComputeGlFence> WorldGenerationComputeGlDevice::createFence() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked())
+    return {};
+  std::call_once(g_probeOnce, runProbe);
+
+  GlFenceEntry entry;
+  if (g_info.computeAvailable && g_context && g_window && SDL_GL_MakeCurrent(g_window, g_context)) {
+    entry.sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    if (!entry.sync) {
+      entry.status = WorldGenerationComputeGlFenceStatus::Failed;
+    } else {
+      // Ensure the fence is flushable for non-blocking polls.
+      glFlush();
+    }
+  } else {
+    // No live compute context: simulated Pending fence (pumpFences signals).
+    entry.sync = nullptr;
+  }
+
+  WorldGenerationComputeGlFence fence;
+  fence.id = g_nextFenceId++;
+  g_fences[fence.id] = entry;
+  return fence;
+}
+
+WorldGenerationComputeGlFenceStatus WorldGenerationComputeGlDevice::pollFence(
+    WorldGenerationComputeGlFence fence) noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked() || fence.id == 0)
+    return WorldGenerationComputeGlFenceStatus::Invalid;
+  auto it = g_fences.find(fence.id);
+  if (it == g_fences.end())
+    return WorldGenerationComputeGlFenceStatus::Invalid;
+  if (it->second.sync && g_window && g_context)
+    SDL_GL_MakeCurrent(g_window, g_context);
+  return pollFenceEntryUnlocked(it->second);
+}
+
+size_t WorldGenerationComputeGlDevice::pumpFences(size_t maxCompletions) noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked())
+    return 0;
+  if (g_window && g_context)
+    SDL_GL_MakeCurrent(g_window, g_context);
+  size_t completed = 0;
+  for (auto& pair : g_fences) {
+    if (maxCompletions && completed >= maxCompletions)
+      break;
+    if (pair.second.status != WorldGenerationComputeGlFenceStatus::Pending)
+      continue;
+    if (pair.second.sync) {
+      auto before = pair.second.status;
+      pollFenceEntryUnlocked(pair.second);
+      if (pair.second.status != before
+          && pair.second.status != WorldGenerationComputeGlFenceStatus::Pending)
+        ++completed;
+    } else {
+      // Simulated fence: non-blocking signal.
+      pair.second.status = WorldGenerationComputeGlFenceStatus::Signaled;
+      ++completed;
+    }
+  }
+  return completed;
+}
+
+bool WorldGenerationComputeGlDevice::retireFence(WorldGenerationComputeGlFence fence) noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked() || fence.id == 0)
+    return false;
+  auto it = g_fences.find(fence.id);
+  if (it == g_fences.end())
+    return false;
+  destroyFenceSyncUnlocked(it->second);
+  g_fences.erase(it);
+  return true;
+}
+
+size_t WorldGenerationComputeGlDevice::pendingFenceCount() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  size_t n = 0;
+  for (auto const& pair : g_fences) {
+    if (pair.second.status == WorldGenerationComputeGlFenceStatus::Pending)
+      ++n;
+  }
+  return n;
+}
+
 void WorldGenerationComputeGlDevice::shutdown() noexcept {
   std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked())
+    return;
+  for (auto& pair : g_fences)
+    destroyFenceSyncUnlocked(pair.second);
+  g_fences.clear();
   destroyContextUnlocked();
   g_info.computeAvailable = false;
   g_info.contextCreated = false;

@@ -2,12 +2,12 @@
 
 Atualizado em **28/11/2026**. Branch: `cursor/h4-gpu-shadow-9f77`
 (frente H4; H0 continua em `Experimental`).
-Base inspecionada: `6d7d1765`;
-última implementação de runtime nesta frente: DenseUint32 HalfZeroPopFillNibble/HalfFullPopFillNibble/HalfPopEqCountFillNibble +
-rejectedDuplicatesEvacuate (asset-free; catálogo uint16_t).
+Base inspecionada: `PENDING`;
+última implementação de runtime nesta frente: GL owner-thread + fence harness não bloqueante
+(marco 50% em progresso; STOP cobertura horizontal DenseUint32).
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico H4](../sector-runtime-h4-gpu02-03-halfnibblezerofull-rejectedduplicatesevacuate-2026-11-28.md)
+· [Último relatório técnico H4](../sector-runtime-h4-gpu02-gl-owner-fence-harness-2026-11-28.md)
 · [Último relatório H0](../sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
 · [Backlog geral](../performance-backlog.md)
 
@@ -182,7 +182,7 @@ de todas as implementações antigas para conceder crédito retroativo.
 | 31 | H3 | [IO-04](io-persistence-network.md) | Unload, drain e retorno ao legado | 0% | Encerrar sem liberar buffers/produtores ainda ativos |
 | 32 | H3 | [IO-05](io-persistence-network.md) | Pacotes e aplicação no cliente | 0% | Medir entrega até o cliente, não apenas commit |
 | 33 | H4 | [GPU-01](gpu-compute.md) | Interface e capacidades CPU/GPU | 25% | submitNamed+runNamedKernel; probe GL opt-in |
-| 34 | H4 | [GPU-02](gpu-compute.md) | Contexto e buffers em voo | 25% | rejectedDuplicatesEvacuate; WorldThread pendente |
+| 34 | H4 | [GPU-02](gpu-compute.md) | Contexto e buffers em voo | 25% | GL owner+fence harness; WorldThread/GL real pendentes |
 | 35 | H4 | [GPU-03](gpu-compute.md) | Kernels e equivalência | 25% | DenseUint32* incl. HalfZeroPopFillNibble/HalfFullPopFillNibble/HalfPopEqCountFillNibble; terreno/ganho pendentes |
 | 36 | H4 | [GPU-04](gpu-compute.md) | Comparação em sombra | 25% | compareShadowNamed+fingerprintShadowSummary; multi-driver pendente |
 | 37 | H5 | [GPU-05](gpu-compute.md) | Seleção heterogênea e render | 0% | Escolher backend pelo custo de entrega, incluindo transporte |

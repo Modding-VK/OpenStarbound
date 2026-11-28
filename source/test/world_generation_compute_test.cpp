@@ -1,4 +1,5 @@
 #include "StarWorldGenerationCompute.hpp"
+#include "StarWorldGenerationComputeGl.hpp"
 
 #include "gtest/gtest.h"
 
@@ -8937,6 +8938,52 @@ TEST(WorldGenerationComputeTest, DenseUint32MinMaxSubExactCpuAndShadow) {
           1u, WorldGenerationComputeBackend::CpuReference,
           WorldGenerationComputeBackend::CpuReference)
           .verdict);
+}
+
+TEST(WorldGenerationComputeTest, GlOwnerThreadAndFenceHarnessNonBlocking) {
+  // Milestone-50 vertical step: GL device owner affinity + non-blocking fence pump.
+  // Stub build (no STAR_ENABLE_WORLDGEN_GL_COMPUTE) simulates Pending→Signaled on pumpFences
+  // without ClientWaitSync; real GL builds attach GLsync and poll with timeout 0.
+  EXPECT_FALSE(WorldGenerationComputeGlDevice::hasOwnerThread());
+  WorldGenerationComputeGlDevice::adoptOwnerThread();
+  EXPECT_TRUE(WorldGenerationComputeGlDevice::hasOwnerThread());
+  EXPECT_TRUE(WorldGenerationComputeGlDevice::isOwnerThread());
+
+  auto fence = WorldGenerationComputeGlDevice::createFence();
+  ASSERT_TRUE(fence);
+  EXPECT_EQ(WorldGenerationComputeGlFenceStatus::Pending,
+      WorldGenerationComputeGlDevice::pollFence(*fence));
+  EXPECT_EQ(1u, WorldGenerationComputeGlDevice::pendingFenceCount());
+
+  std::atomic<bool> foreignCreateOk{true};
+  std::atomic<bool> foreignPump{true};
+  std::thread foreign([&] {
+    foreignCreateOk = (bool)WorldGenerationComputeGlDevice::createFence();
+    foreignPump = WorldGenerationComputeGlDevice::pumpFences() != 0;
+  });
+  foreign.join();
+  EXPECT_FALSE(foreignCreateOk);
+  EXPECT_FALSE(foreignPump);
+  EXPECT_EQ(WorldGenerationComputeGlFenceStatus::Pending,
+      WorldGenerationComputeGlDevice::pollFence(*fence));
+
+  EXPECT_EQ(1u, WorldGenerationComputeGlDevice::pumpFences());
+  EXPECT_EQ(WorldGenerationComputeGlFenceStatus::Signaled,
+      WorldGenerationComputeGlDevice::pollFence(*fence));
+  EXPECT_EQ(0u, WorldGenerationComputeGlDevice::pendingFenceCount());
+  EXPECT_EQ(0u, WorldGenerationComputeGlDevice::pumpFences());
+  EXPECT_TRUE(WorldGenerationComputeGlDevice::retireFence(*fence));
+  EXPECT_EQ(WorldGenerationComputeGlFenceStatus::Invalid,
+      WorldGenerationComputeGlDevice::pollFence(*fence));
+
+  WorldGenerationComputeGlDevice::clearOwnerThread();
+  EXPECT_FALSE(WorldGenerationComputeGlDevice::hasOwnerThread());
+  // Without owner affinity, fence harness remains usable on the calling thread.
+  auto loose = WorldGenerationComputeGlDevice::createFence();
+  ASSERT_TRUE(loose);
+  EXPECT_EQ(1u, WorldGenerationComputeGlDevice::pumpFences());
+  EXPECT_TRUE(WorldGenerationComputeGlDevice::retireFence(*loose));
+  WorldGenerationComputeGlDevice::shutdown();
 }
 
 TEST(WorldGenerationComputeTest, OwnerThreadRejectsForeignMutations) {
