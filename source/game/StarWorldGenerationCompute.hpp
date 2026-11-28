@@ -294,7 +294,25 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfRotl1Nibble = 268, // rotate-left by 1 within each low16 nibble; parameter ignored
   DenseUint32HalfRotr1Nibble = 269, // rotate-right by 1 within each low16 nibble; parameter ignored
   DenseUint32HalfNegateNibble = 270, // bitwise not of each low16 nibble (&0xf); parameter ignored
-  DenseUint32HalfIncWrapNibble = 271 // (n+1)&0xf per low16 nibble; parameter ignored
+  DenseUint32HalfIncWrapNibble = 271, // (n+1)&0xf per low16 nibble; parameter ignored
+  DenseUint32HalfDecWrapNibble = 272, // (n-1)&0xf per low16 nibble; parameter ignored
+  DenseUint32HalfNandNibble = 273, // ~(n & (parameter&0xf)) & 0xf per low16 nibble
+  DenseUint32HalfNorNibble = 274, // ~(n | (parameter&0xf)) & 0xf per low16 nibble
+  DenseUint32HalfXnorNibble = 275, // ~(n ^ (parameter&0xf)) & 0xf per low16 nibble
+  DenseUint32HalfMajNibble = 276, // bitwise majority(n, parameter&0xf, (parameter>>4)&0xf) per nibble
+  DenseUint32HalfMuxNibble = 277, // (sel ? b : a) per bit; a=n, b=parameter&0xf, sel=(parameter>>4)&0xf
+  DenseUint32HalfImpliesNibble = 278, // (~n | (parameter&0xf)) & 0xf per low16 nibble
+  DenseUint32HalfNeqFillNibble = 279, // 0xf if nibble != (parameter&0xf), else 0
+  DenseUint32HalfAbsDiffNibble = 280, // abs(n - (parameter&0xf)) per low16 nibble
+  DenseUint32HalfEqFillNibble = 281, // 0xf if nibble == (parameter&0xf), else 0
+  DenseUint32HalfOddFillNibble = 282, // 0xf if nibble odd, else 0; parameter ignored
+  DenseUint32HalfEvenFillNibble = 283, // 0xf if nibble even, else 0; parameter ignored
+  DenseUint32HalfLtFillNibble = 284, // 0xf if nibble < (parameter&0xf), else 0
+  DenseUint32HalfLeFillNibble = 285, // 0xf if nibble <= (parameter&0xf), else 0
+  DenseUint32HalfGtFillNibble = 286, // 0xf if nibble > (parameter&0xf), else 0
+  DenseUint32HalfGeFillNibble = 287, // 0xf if nibble >= (parameter&0xf), else 0
+  DenseUint32HalfSatIncNibble = 288, // min(n+1, 0xf) per low16 nibble; parameter ignored
+  DenseUint32HalfSatDecNibble = 289 // max(n-1, 0) per low16 nibble; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -591,6 +609,18 @@ public:
   bool removeRejectedDuplicate(WorldGenerationComputeTicket ticket);
   // Order-independent XOR fingerprint of rejected-duplicate ticket ids (asset-free).
   uint64_t fingerprintRejectedDuplicates() const;
+  // True when the rejected-duplicate set is empty (asset-free observation naming).
+  bool rejectedDuplicatesEmpty() const;
+  // Alias of fingerprintRejectedDuplicates (asset-free observation naming).
+  uint64_t rejectedDuplicatesFingerprint() const;
+  // Alias of anyRejectedDuplicates (asset-free observation naming).
+  bool hasRejectedDuplicates() const;
+  // Alias of countRejectedDuplicates / rejectedDuplicateCount (asset-free naming).
+  size_t rejectedDuplicatesCount() const;
+  // Alias of listRejectedDuplicates (asset-free observation naming).
+  List<WorldGenerationComputeTicket> rejectedDuplicatesList() const;
+  // Alias of anyRejectedDuplicates / hasRejectedDuplicates (asset-free naming).
+  bool rejectedDuplicatesAny() const;
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 

@@ -856,3 +856,7 @@ integração: **nenhum**.
 ## Revisão 2026-11-27T23:47Z — lote H4 74c52528
 - Merge H4 tip `74c52528` (200/200; inclui `4c9e20e1`+).
 - Build `46083012409` intacto; 1 Build tip final após terminal; sem spam.
+
+## Sync 2026-11-28T00:03Z
+- Merge H4 tip `e641c669` (212/212; janela ≥15 min desde `66fe2851`).
+- Build `46084669866` intacto; 1 Build tip final após terminal; sem spam.
