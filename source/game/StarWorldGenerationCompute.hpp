@@ -405,7 +405,16 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfStepLtNibble = 379, // 0xf if n<(parameter&0xf) else 0; high ignored
   DenseUint32HalfPassLeNibble = 380, // n if n<=(parameter&0xf) else 0; high ignored
   DenseUint32HalfStepGtNibble = 381, // 0xf if n>(parameter&0xf) else 0; high ignored
-  DenseUint32HalfStepLeNibble = 382 // 0xf if n<=(parameter&0xf) else 0; high ignored
+  DenseUint32HalfStepLeNibble = 382, // 0xf if n<=(parameter&0xf) else 0; high ignored
+  DenseUint32HalfPassEqNibble = 383, // n if n==(parameter&0xf) else 0; high ignored
+  DenseUint32HalfPassNeNibble = 384, // n if n!=(parameter&0xf) else 0; high ignored
+  DenseUint32HalfStepNeNibble = 385, // 0xf if n!=(parameter&0xf) else 0; high ignored
+  DenseUint32HalfStepEqNibble = 386, // 0xf if n==(parameter&0xf) else 0; high ignored
+  DenseUint32HalfMirrorNibble = 387, // (p - n) & 0xf; p=parameter&0xf; high ignored
+  DenseUint32HalfSatMirrorNibble = 388, // p-n if n<=p else 0; p=parameter&0xf; high ignored
+  DenseUint32HalfScale15Nibble = 389, // (n * p) / 15; p=parameter&0xf; high ignored
+  DenseUint32HalfInvScale15Nibble = 390, // min((n*15)/p,0xf); p==0 -> 0; high ignored
+  DenseUint32HalfSquareDiffNibble = 391 // (|n-p|^2) & 0xf; p=parameter&0xf; high ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -776,6 +785,12 @@ public:
   size_t rejectedDuplicatesVolume() const;
   // Alias of rejectedDuplicatesList (asset-free observation naming).
   List<WorldGenerationComputeTicket> rejectedDuplicatesLedger() const;
+  // Alias of fingerprintRejectedDuplicates (asset-free observation naming).
+  uint64_t rejectedDuplicatesMark() const;
+  // Alias of rejectedDuplicatesEmpty (asset-free observation naming).
+  bool rejectedDuplicatesVoid() const;
+  // Alias of rejectedDuplicatesList (asset-free observation naming).
+  List<WorldGenerationComputeTicket> rejectedDuplicatesCatalog() const;
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 
