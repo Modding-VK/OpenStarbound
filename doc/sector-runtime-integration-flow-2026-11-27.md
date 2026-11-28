@@ -1051,3 +1051,11 @@ integração: **nenhum**.
 - PRs abertos com base na INT: nenhum.
 - Gates: Build tip-final `46103478918` SUCCESS @`f6ada125`; CI Int/SR SUCCESS @`509aaed0`.
 - H4 idle awaiting 2º vendor (50% sem claim). Sem Actions nesta revisão.
+
+## Revisão 2026-11-28T06:30Z — front-review (idle)
+- INT tip `90f74277` (flow/docs; tip-final base `f6ada125` Build SUCCESS).
+- Ahead vs INT: h0/h1/h2/h3/h4/h5/r1/r2=0.
+- H3: `cursor/h3-kernels-publication-9f77` @ `3bdf1927` sem tip novo.
+- PRs abertos com base na INT: nenhum.
+- Gates: Build tip-final `46103478918` SUCCESS @`f6ada125`; CI Int/SR SUCCESS @`509aaed0`.
+- H4 idle awaiting 2º vendor (50% sem claim). Sem Actions nesta revisão.
