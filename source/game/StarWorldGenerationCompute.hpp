@@ -819,6 +819,8 @@ public:
   uint64_t rejectedDuplicatesStamp() const;
   // Alias of rejectedDuplicatesCount (asset-free observation naming).
   size_t rejectedDuplicatesBreadth() const;
+  // Alias of rejectedDuplicatesList (asset-free observation naming).
+  List<WorldGenerationComputeTicket> rejectedDuplicatesRegister() const;
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 

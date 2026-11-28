@@ -6112,6 +6112,10 @@ size_t WorldGenerationComputeService::rejectedDuplicatesBreadth() const {
   return rejectedDuplicatesCount();
 }
 
+List<WorldGenerationComputeTicket> WorldGenerationComputeService::rejectedDuplicatesRegister() const {
+  return rejectedDuplicatesList();
+}
+
 size_t WorldGenerationComputeService::clearRejectedDuplicates() {
   std::lock_guard<std::mutex> lock(m_mutex);
   if (!ownerAllowsLocked())
