@@ -357,7 +357,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfBitMergeNibble
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfSatWeightedAddNibble
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfMaskSelectNibble
-      || kernel == WorldGenerationComputeKernel::DenseUint32HalfIfEqPickNibble;
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfIfEqPickNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfIfNePickNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfThresholdPickNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfModMulNibble;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -678,7 +681,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32HalfBitMergeNibble,
       WorldGenerationComputeKernel::DenseUint32HalfSatWeightedAddNibble,
       WorldGenerationComputeKernel::DenseUint32HalfMaskSelectNibble,
-      WorldGenerationComputeKernel::DenseUint32HalfIfEqPickNibble};
+      WorldGenerationComputeKernel::DenseUint32HalfIfEqPickNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfIfNePickNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfThresholdPickNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfModMulNibble};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -688,7 +694,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 313u;
+  return 316u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -1023,6 +1029,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32HalfSatWeightedAddNibble: return "DenseUint32HalfSatWeightedAddNibble";
     case WorldGenerationComputeKernel::DenseUint32HalfMaskSelectNibble: return "DenseUint32HalfMaskSelectNibble";
     case WorldGenerationComputeKernel::DenseUint32HalfIfEqPickNibble: return "DenseUint32HalfIfEqPickNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfIfNePickNibble: return "DenseUint32HalfIfNePickNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfThresholdPickNibble: return "DenseUint32HalfThresholdPickNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfModMulNibble: return "DenseUint32HalfModMulNibble";
   }
   return nullptr;
 }
@@ -3774,6 +3783,45 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
       for (uint32_t i = 0; i < 4; ++i) {
         uint32_t a = (lo >> (i * 4u)) & 0xfu;
         uint32_t outN = (a == eq) ? pick : a;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfIfNePickNibble) {
+    uint32_t ne = parameter & 0xfu;
+    uint32_t pick = (parameter >> 4) & 0xfu;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = (a != ne) ? pick : a;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfThresholdPickNibble) {
+    uint32_t thr = parameter & 0xfu;
+    uint32_t pick = (parameter >> 4) & 0xfu;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = (a >= thr) ? pick : a;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfModMulNibble) {
+    uint32_t mul = parameter & 0xfu;
+    uint32_t mod = (parameter >> 4) & 0xfu;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = mod ? ((a * mul) % mod) : 0u;
         result |= outN << (i * 4u);
       }
       out.append(result);

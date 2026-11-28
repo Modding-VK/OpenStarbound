@@ -373,6 +373,9 @@ GLuint g_halfBitMergeNibbleProgram = 0;
 GLuint g_halfSatWeightedAddNibbleProgram = 0;
 GLuint g_halfMaskSelectNibbleProgram = 0;
 GLuint g_halfIfEqPickNibbleProgram = 0;
+GLuint g_halfIfNePickNibbleProgram = 0;
+GLuint g_halfThresholdPickNibbleProgram = 0;
+GLuint g_halfModMulNibbleProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -6204,6 +6207,75 @@ void main() {
 }
 )GLSL";
 
+char const* HalfIfNePickNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint ne = uParameter & 0xfu;
+  uint pick = (uParameter >> 4u) & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint outN = (a != ne) ? pick : a;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfThresholdPickNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint thr = uParameter & 0xfu;
+  uint pick = (uParameter >> 4u) & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint outN = (a >= thr) ? pick : a;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfModMulNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint mul = uParameter & 0xfu;
+  uint mod = (uParameter >> 4u) & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint outN = mod != 0u ? ((a * mul) % mod) : 0u;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -7504,6 +7576,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfIfEqPickNibbleProgram);
     g_halfIfEqPickNibbleProgram = 0;
   }
+  if (g_halfIfNePickNibbleProgram) {
+    glDeleteProgram(g_halfIfNePickNibbleProgram);
+    g_halfIfNePickNibbleProgram = 0;
+  }
+  if (g_halfThresholdPickNibbleProgram) {
+    glDeleteProgram(g_halfThresholdPickNibbleProgram);
+    g_halfThresholdPickNibbleProgram = 0;
+  }
+  if (g_halfModMulNibbleProgram) {
+    glDeleteProgram(g_halfModMulNibbleProgram);
+    g_halfModMulNibbleProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -8018,7 +8102,13 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfMaskSelectNibbleProgram, HalfMaskSelectNibbleShader,
             "DenseUint32HalfMaskSelectNibble")
       || !requireProgram(g_halfIfEqPickNibbleProgram, HalfIfEqPickNibbleShader,
-            "DenseUint32HalfIfEqPickNibble"))
+            "DenseUint32HalfIfEqPickNibble")
+      || !requireProgram(g_halfIfNePickNibbleProgram, HalfIfNePickNibbleShader,
+            "DenseUint32HalfIfNePickNibble")
+      || !requireProgram(g_halfThresholdPickNibbleProgram, HalfThresholdPickNibbleShader,
+            "DenseUint32HalfThresholdPickNibble")
+      || !requireProgram(g_halfModMulNibbleProgram, HalfModMulNibbleShader,
+            "DenseUint32HalfModMulNibble"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -8709,6 +8799,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfMaskSelectNibbleProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfIfEqPickNibble)
     program = g_halfIfEqPickNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfIfNePickNibble)
+    program = g_halfIfNePickNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfThresholdPickNibble)
+    program = g_halfThresholdPickNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfModMulNibble)
+    program = g_halfModMulNibbleProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))

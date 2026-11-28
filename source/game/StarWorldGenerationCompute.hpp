@@ -336,7 +336,10 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfBitMergeNibble = 310, // (n & ~m) | (p & m); m=parameter&0xf, p=(parameter>>4)&0xf
   DenseUint32HalfSatWeightedAddNibble = 311, // min(0xf, n*w + p*(15-w)); w/p as WeightedAdd
   DenseUint32HalfMaskSelectNibble = 312, // (n & m) ? p : n; m=parameter&0xf, p=(parameter>>4)&0xf
-  DenseUint32HalfIfEqPickNibble = 313 // n==(parameter&0xf) ? ((parameter>>4)&0xf) : n
+  DenseUint32HalfIfEqPickNibble = 313, // n==(parameter&0xf) ? ((parameter>>4)&0xf) : n
+  DenseUint32HalfIfNePickNibble = 314, // n!=(parameter&0xf) ? ((parameter>>4)&0xf) : n
+  DenseUint32HalfThresholdPickNibble = 315, // n>=(parameter&0xf) ? ((parameter>>4)&0xf) : n
+  DenseUint32HalfModMulNibble = 316 // (n*(parameter&0xf)) % m; m=(parameter>>4)&0xf, m==0 -> 0
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
