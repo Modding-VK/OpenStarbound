@@ -414,7 +414,10 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfSatMirrorNibble = 388, // p-n if n<=p else 0; p=parameter&0xf; high ignored
   DenseUint32HalfScale15Nibble = 389, // (n * p) / 15; p=parameter&0xf; high ignored
   DenseUint32HalfInvScale15Nibble = 390, // min((n*15)/p,0xf); p==0 -> 0; high ignored
-  DenseUint32HalfSquareDiffNibble = 391 // (|n-p|^2) & 0xf; p=parameter&0xf; high ignored
+  DenseUint32HalfSquareDiffNibble = 391, // (|n-p|^2) & 0xf; p=parameter&0xf; high ignored
+  DenseUint32HalfSameSignNibble = 392, // 0xf if (n&8)==(p&8) else 0; high ignored
+  DenseUint32HalfDiffSignNibble = 393, // 0xf if (n&8)!=(p&8) else 0; high ignored
+  DenseUint32HalfParityMatchNibble = 394 // 0xf if (popcount(n)&1)==(p&1) else 0; high ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {

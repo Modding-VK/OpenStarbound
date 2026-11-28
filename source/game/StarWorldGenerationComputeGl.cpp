@@ -451,6 +451,9 @@ GLuint g_halfSatMirrorNibbleProgram = 0;
 GLuint g_halfScale15NibbleProgram = 0;
 GLuint g_halfInvScale15NibbleProgram = 0;
 GLuint g_halfSquareDiffNibbleProgram = 0;
+GLuint g_halfSameSignNibbleProgram = 0;
+GLuint g_halfDiffSignNibbleProgram = 0;
+GLuint g_halfParityMatchNibbleProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -8042,6 +8045,73 @@ void main() {
 }
 )GLSL";
 
+char const* HalfSameSignNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint p = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint outN = ((a & 8u) == (p & 8u)) ? 0xfu : 0u;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfDiffSignNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint p = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint outN = ((a & 8u) != (p & 8u)) ? 0xfu : 0u;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfParityMatchNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint p = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint aParity = ((a >> 0) & 1u) ^ ((a >> 1) & 1u) ^ ((a >> 2) & 1u) ^ ((a >> 3) & 1u);
+    uint outN = (aParity == (p & 1u)) ? 0xfu : 0u;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -9654,6 +9724,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfSquareDiffNibbleProgram);
     g_halfSquareDiffNibbleProgram = 0;
   }
+  if (g_halfSameSignNibbleProgram) {
+    glDeleteProgram(g_halfSameSignNibbleProgram);
+    g_halfSameSignNibbleProgram = 0;
+  }
+  if (g_halfDiffSignNibbleProgram) {
+    glDeleteProgram(g_halfDiffSignNibbleProgram);
+    g_halfDiffSignNibbleProgram = 0;
+  }
+  if (g_halfParityMatchNibbleProgram) {
+    glDeleteProgram(g_halfParityMatchNibbleProgram);
+    g_halfParityMatchNibbleProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -10324,7 +10406,13 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfInvScale15NibbleProgram, HalfInvScale15NibbleShader,
             "DenseUint32HalfInvScale15Nibble")
       || !requireProgram(g_halfSquareDiffNibbleProgram, HalfSquareDiffNibbleShader,
-            "DenseUint32HalfSquareDiffNibble"))
+            "DenseUint32HalfSquareDiffNibble")
+      || !requireProgram(g_halfSameSignNibbleProgram, HalfSameSignNibbleShader,
+            "DenseUint32HalfSameSignNibble")
+      || !requireProgram(g_halfDiffSignNibbleProgram, HalfDiffSignNibbleShader,
+            "DenseUint32HalfDiffSignNibble")
+      || !requireProgram(g_halfParityMatchNibbleProgram, HalfParityMatchNibbleShader,
+            "DenseUint32HalfParityMatchNibble"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -11171,6 +11259,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfInvScale15NibbleProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSquareDiffNibble)
     program = g_halfSquareDiffNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSameSignNibble)
+    program = g_halfSameSignNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfDiffSignNibble)
+    program = g_halfDiffSignNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfParityMatchNibble)
+    program = g_halfParityMatchNibbleProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))

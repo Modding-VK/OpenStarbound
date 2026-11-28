@@ -435,7 +435,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfSatMirrorNibble
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfScale15Nibble
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfInvScale15Nibble
-      || kernel == WorldGenerationComputeKernel::DenseUint32HalfSquareDiffNibble;
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfSquareDiffNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfSameSignNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfDiffSignNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfParityMatchNibble;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -834,7 +837,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32HalfSatMirrorNibble,
       WorldGenerationComputeKernel::DenseUint32HalfScale15Nibble,
       WorldGenerationComputeKernel::DenseUint32HalfInvScale15Nibble,
-      WorldGenerationComputeKernel::DenseUint32HalfSquareDiffNibble};
+      WorldGenerationComputeKernel::DenseUint32HalfSquareDiffNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfSameSignNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfDiffSignNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfParityMatchNibble};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -844,7 +850,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 391u;
+  return 394u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -1257,6 +1263,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32HalfScale15Nibble: return "DenseUint32HalfScale15Nibble";
     case WorldGenerationComputeKernel::DenseUint32HalfInvScale15Nibble: return "DenseUint32HalfInvScale15Nibble";
     case WorldGenerationComputeKernel::DenseUint32HalfSquareDiffNibble: return "DenseUint32HalfSquareDiffNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfSameSignNibble: return "DenseUint32HalfSameSignNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfDiffSignNibble: return "DenseUint32HalfDiffSignNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfParityMatchNibble: return "DenseUint32HalfParityMatchNibble";
   }
   return nullptr;
 }
@@ -4991,6 +5000,43 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
         uint32_t a = (lo >> (i * 4u)) & 0xfu;
         uint32_t d = a > p ? a - p : p - a;
         uint32_t outN = (d * d) & 0xfu;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSameSignNibble) {
+    uint32_t p = parameter & 0xfu;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = ((a & 8u) == (p & 8u)) ? 0xfu : 0u;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfDiffSignNibble) {
+    uint32_t p = parameter & 0xfu;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = ((a & 8u) != (p & 8u)) ? 0xfu : 0u;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfParityMatchNibble) {
+    uint32_t p = parameter & 0xfu;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t aParity = ((a >> 0) & 1u) ^ ((a >> 1) & 1u) ^ ((a >> 2) & 1u) ^ ((a >> 3) & 1u);
+        uint32_t outN = (aParity == (p & 1u)) ? 0xfu : 0u;
         result |= outN << (i * 4u);
       }
       out.append(result);
