@@ -999,3 +999,7 @@ integração: **nenhum**.
 - PRs abertos com base na INT: nenhum.
 - Gates: CI Integration `46103007335` SUCCESS @`509aaed0`; CI Sector Runtime `46103007331` SUCCESS; Build tip-final SUCCESS @`f6ada125`.
 - Desktop `gpu_faster=1` NVIDIA; H4 50% sem claim (2º vendor aberto). Sem Actions nesta revisão.
+
+## Sync 2026-11-28T04:00Z
+- Tip material/docs base `f6ada125`; flow-review tip `14c13d19`. Tip-final Build `46103478918` SUCCESS @`f6ada125`.
+- Ahead h0–h5/r1/r2=0. H4 idle awaiting 2º vendor (50% sem claim). Sem spam.
