@@ -4611,6 +4611,10 @@ size_t WorldGenerationComputeService::rejectedDuplicatesPurge() {
   return clearRejectedDuplicates();
 }
 
+uint64_t WorldGenerationComputeService::rejectedDuplicatesHash() const {
+  return fingerprintRejectedDuplicates();
+}
+
 size_t WorldGenerationComputeService::clearRejectedDuplicates() {
   std::lock_guard<std::mutex> lock(m_mutex);
   if (!ownerAllowsLocked())
