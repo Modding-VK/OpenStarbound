@@ -312,7 +312,31 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfGtFillNibble = 286, // 0xf if nibble > (parameter&0xf), else 0
   DenseUint32HalfGeFillNibble = 287, // 0xf if nibble >= (parameter&0xf), else 0
   DenseUint32HalfSatIncNibble = 288, // min(n+1, 0xf) per low16 nibble; parameter ignored
-  DenseUint32HalfSatDecNibble = 289 // max(n-1, 0) per low16 nibble; parameter ignored
+  DenseUint32HalfSatDecNibble = 289, // max(n-1, 0) per low16 nibble; parameter ignored
+  DenseUint32HalfRotl2Nibble = 290, // rotate-left by 2 within each low16 nibble; parameter ignored
+  DenseUint32HalfRotl3Nibble = 291, // rotate-left by 3 within each low16 nibble; parameter ignored
+  DenseUint32HalfAvgNibble = 292, // ((n + (parameter&0xf)) >> 1) per low16 nibble
+  DenseUint32HalfMidNibble = 293, // median(n, parameter&0xf, (parameter>>4)&0xf) per nibble
+  DenseUint32HalfMin3Nibble = 294, // min(n, parameter&0xf, (parameter>>4)&0xf) per nibble
+  DenseUint32HalfMax3Nibble = 295, // max(n, parameter&0xf, (parameter>>4)&0xf) per nibble
+  DenseUint32HalfRange3Nibble = 296, // max3-min3 of (n, parameter&0xf, (parameter>>4)&0xf) per nibble
+  DenseUint32HalfSum3Nibble = 297, // (n + (parameter&0xf) + ((parameter>>4)&0xf)) & 0xf per nibble
+  DenseUint32HalfSatSum3Nibble = 298, // min(0xf, n + (parameter&0xf) + ((parameter>>4)&0xf)) per nibble
+  DenseUint32HalfAvg3Nibble = 299, // (n + (parameter&0xf) + ((parameter>>4)&0xf)) / 3 per nibble
+  DenseUint32HalfXor3Nibble = 300, // n ^ (parameter&0xf) ^ ((parameter>>4)&0xf) per nibble
+  DenseUint32HalfMulAddNibble = 301, // (n * (parameter&0xf) + ((parameter>>4)&0xf)) & 0xf per nibble
+  DenseUint32HalfSatMulAddNibble = 302, // min(0xf, n*(parameter&0xf)+((parameter>>4)&0xf)) per nibble
+  DenseUint32HalfMulSubNibble = 303, // (n*(parameter&0xf) - ((parameter>>4)&0xf)) & 0xf per nibble
+  DenseUint32HalfEqual3FillNibble = 304, // 0xf if n==(parameter&0xf)==((parameter>>4)&0xf), else 0
+  DenseUint32HalfNeq3FillNibble = 305, // 0xf unless n==(parameter&0xf)==((parameter>>4)&0xf)
+  DenseUint32HalfAnyEqFillNibble = 306, // 0xf if any equality among n and two param nibbles
+  DenseUint32HalfAllDistinctFillNibble = 307, // 0xf if n and two param nibbles are pairwise distinct
+  DenseUint32HalfBlendNibble = 308, // ((n*(15-w)+p*w)/15); w=parameter&0xf, p=(parameter>>4)&0xf
+  DenseUint32HalfWeightedAddNibble = 309, // (n*w + p*(15-w)) & 0xf; w/p as Blend
+  DenseUint32HalfBitMergeNibble = 310, // (n & ~m) | (p & m); m=parameter&0xf, p=(parameter>>4)&0xf
+  DenseUint32HalfSatWeightedAddNibble = 311, // min(0xf, n*w + p*(15-w)); w/p as WeightedAdd
+  DenseUint32HalfMaskSelectNibble = 312, // (n & m) ? p : n; m=parameter&0xf, p=(parameter>>4)&0xf
+  DenseUint32HalfIfEqPickNibble = 313 // n==(parameter&0xf) ? ((parameter>>4)&0xf) : n
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -621,6 +645,22 @@ public:
   List<WorldGenerationComputeTicket> rejectedDuplicatesList() const;
   // Alias of anyRejectedDuplicates / hasRejectedDuplicates (asset-free naming).
   bool rejectedDuplicatesAny() const;
+  // Alias of clearRejectedDuplicates (asset-free observation naming).
+  size_t rejectedDuplicatesClear();
+  // Alias of rejectedDuplicatesCount (asset-free observation naming).
+  size_t rejectedDuplicatesSize() const;
+  // Alias of hasRejectedDuplicate (asset-free observation naming).
+  bool rejectedDuplicatesContains(WorldGenerationComputeTicket ticket) const;
+  // Alias of removeRejectedDuplicate (asset-free observation naming).
+  bool rejectedDuplicatesRemove(WorldGenerationComputeTicket ticket);
+  // Alias of clearRejectedDuplicates (asset-free observation naming).
+  size_t rejectedDuplicatesReset();
+  // Alias of rejectedDuplicatesEmpty (asset-free observation naming).
+  bool rejectedDuplicatesIsEmpty() const;
+  // Alias of rejectedDuplicatesCount (asset-free observation naming).
+  size_t rejectedDuplicatesCardinality() const;
+  // Alias of listRejectedDuplicates (asset-free observation naming).
+  List<WorldGenerationComputeTicket> rejectedDuplicatesMembers() const;
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 

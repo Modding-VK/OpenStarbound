@@ -866,3 +866,7 @@ integração: **nenhum**.
 - H4 ahead=3 tip `67c54617` (`67c54617`+) — **hold** até janela 15 min desde merge `d3aa8d4f`.
 - H3/H5/r*: ahead=0. PRs base INT: nenhum.
 - Sem merge tip-a-tip; sem Actions neste tick.
+
+## Revisão 2026-11-28T00:17Z — lote H4 4f3e2990
+- Merge H4 tip `4f3e2990` (228/228; inclui `f869d7dd`/`d995cbab`+).
+- Build `46086470698` intacto; 1 Build tip final após terminal; sem spam.
