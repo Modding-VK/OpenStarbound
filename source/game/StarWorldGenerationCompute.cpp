@@ -444,7 +444,10 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfNegIfSignNibble
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfIsqrtNibble
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfPow2FillNibble
-      || kernel == WorldGenerationComputeKernel::DenseUint32HalfLog2FloorNibble;
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfLog2FloorNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfCeilPow2Nibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfFloorPow2Nibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfToggleLowNibble;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -852,7 +855,10 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32HalfNegIfSignNibble,
       WorldGenerationComputeKernel::DenseUint32HalfIsqrtNibble,
       WorldGenerationComputeKernel::DenseUint32HalfPow2FillNibble,
-      WorldGenerationComputeKernel::DenseUint32HalfLog2FloorNibble};
+      WorldGenerationComputeKernel::DenseUint32HalfLog2FloorNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfCeilPow2Nibble,
+      WorldGenerationComputeKernel::DenseUint32HalfFloorPow2Nibble,
+      WorldGenerationComputeKernel::DenseUint32HalfToggleLowNibble};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -862,7 +868,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 400u;
+  return 403u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -1284,6 +1290,9 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32HalfIsqrtNibble: return "DenseUint32HalfIsqrtNibble";
     case WorldGenerationComputeKernel::DenseUint32HalfPow2FillNibble: return "DenseUint32HalfPow2FillNibble";
     case WorldGenerationComputeKernel::DenseUint32HalfLog2FloorNibble: return "DenseUint32HalfLog2FloorNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfCeilPow2Nibble: return "DenseUint32HalfCeilPow2Nibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfFloorPow2Nibble: return "DenseUint32HalfFloorPow2Nibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfToggleLowNibble: return "DenseUint32HalfToggleLowNibble";
   }
   return nullptr;
 }
@@ -5129,6 +5138,54 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
           while ((1u << (outN + 1u)) <= a)
             ++outN;
         }
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfCeilPow2Nibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = 0;
+        if (a != 0u) {
+          outN = 1u;
+          while (outN < a) {
+            if (outN >= 8u) {
+              outN = 0xfu;
+              break;
+            }
+            outN <<= 1u;
+          }
+        }
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfFloorPow2Nibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = 0;
+        if (a != 0u) {
+          outN = 1u;
+          while ((outN << 1u) <= a)
+            outN <<= 1u;
+        }
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfToggleLowNibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = a ^ 1u;
         result |= outN << (i * 4u);
       }
       out.append(result);
