@@ -2,7 +2,7 @@
 
 Atualizado em **28/11/2026**. Branch: `cursor/h4-gpu-shadow-9f77`
 (frente H4; H0 continua em `Experimental`).
-Base inspecionada: `507bc943`;
+Base inspecionada: `51dd6867`;
 última implementação de runtime nesta frente: GL owner-thread + fence harness não bloqueante
 (marco 50% em progresso; STOP cobertura horizontal DenseUint32).
 
