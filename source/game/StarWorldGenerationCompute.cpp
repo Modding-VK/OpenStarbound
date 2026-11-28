@@ -5268,6 +5268,10 @@ List<WorldGenerationComputeTicket> WorldGenerationComputeService::rejectedDuplic
   return listRejectedDuplicates();
 }
 
+List<WorldGenerationComputeTicket> WorldGenerationComputeService::rejectedDuplicatesRoster() const {
+  return listRejectedDuplicates();
+}
+
 size_t WorldGenerationComputeService::clearRejectedDuplicates() {
   std::lock_guard<std::mutex> lock(m_mutex);
   if (!ownerAllowsLocked())
