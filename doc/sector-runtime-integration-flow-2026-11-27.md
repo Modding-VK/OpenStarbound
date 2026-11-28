@@ -908,3 +908,7 @@ integração: **nenhum**.
 ## Revisão 2026-11-28T01:01Z — lote H4 8a28de68 (idle antecipado)
 - Merge H4 tip `8a28de68` (268/268) — cláusula 2.
 - Build `46089533286` intacto in_progress; hold 1 Build tip final; sem spam.
+
+## Revisão 2026-11-28T01:09Z — lote H4 07d36f45 (idle antecipado)
+- Merge H4 tip `07d36f45` (274/274) — cláusula 2.
+- Build `46091149638` intacto in_progress; hold 1 Build tip final; sem spam.
