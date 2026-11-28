@@ -870,3 +870,7 @@ integração: **nenhum**.
 ## Revisão 2026-11-28T00:17Z — lote H4 4f3e2990
 - Merge H4 tip `4f3e2990` (228/228; inclui `f869d7dd`/`d995cbab`+).
 - Build `46086470698` intacto; 1 Build tip final após terminal; sem spam.
+
+## Revisão 2026-11-28T00:30Z — lote H4 d3423fa4
+- Merge H4 tip `d3423fa4` (240/240; inclui `a0dc7492`+).
+- Build `46088031631` intacto; 1 Build tip final após terminal; sem spam.
