@@ -991,3 +991,11 @@ integração: **nenhum**.
 - Merge H4 HEAD `8418c5f6` (multi-driver path docs; code base `85ab73ba`) — cláusula 2.
 - Tip docs-only: sem dispatch Build. Build `46102201604` intacto; tip final pós-terminal no HEAD.
 - Desktop `gpu_faster=1` NVIDIA; 50% sem claim até 2º vendor.
+
+## Revisão 2026-11-28T04:00Z — front-review (idle)
+- INT tip `f6ada125` (H4 docs `8418c5f6` + code `85ab73ba`; tip-final Build `46103478918` SUCCESS).
+- Ahead vs INT: h0/h1/h2/h3/h4/h5/r1/r2=0.
+- H3: `cursor/h3-kernels-publication-9f77` @ `3bdf1927` sem tip novo.
+- PRs abertos com base na INT: nenhum.
+- Gates: CI Integration `46103007335` SUCCESS @`509aaed0`; CI Sector Runtime `46103007331` SUCCESS; Build tip-final SUCCESS @`f6ada125`.
+- Desktop `gpu_faster=1` NVIDIA; H4 50% sem claim (2º vendor aberto). Sem Actions nesta revisão.
