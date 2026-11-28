@@ -2,6 +2,7 @@
 #include "StarWorldGenerationComputeGl.hpp"
 #include "StarFormat.hpp"
 
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 
@@ -39,6 +40,95 @@ int runShadow(WorldGenerationComputeService& service, WorldGenerationComputeKern
   std::printf("  firstDivergence=%zu primary=%u shadow=%u\n", report.firstDivergenceIndex,
       report.primarySample, report.shadowSample);
   return 3;
+}
+
+List<uint32_t> timingCorpus(size_t repeats) {
+  auto base = edgeCorpus();
+  List<uint32_t> out;
+  out.reserve(base.size() * repeats);
+  for (size_t r = 0; r < repeats; ++r) {
+    for (uint32_t v : base)
+      out.append(v);
+  }
+  return out;
+}
+
+int runTiming(WorldGenerationComputeService& service, WorldGenerationComputeKernel kernel,
+    uint32_t parameter, char const* name, size_t repeats) {
+  auto input = timingCorpus(repeats);
+  auto t0 = std::chrono::steady_clock::now();
+  auto cpu = WorldGenerationComputeService::runKernel(kernel, 1u, input, parameter);
+  auto t1 = std::chrono::steady_clock::now();
+  auto ticket = service.submit(makeIdentity(9000ull + (uint64_t)kernel, kernel), input, parameter,
+      WorldGenerationComputeBackend::GpuOpenGlCompute);
+  if (!ticket) {
+    std::printf("timing %s: gpu submit refused\n", name);
+    return 4;
+  }
+  WorldGenerationComputeResult result;
+  auto status = service.poll(*ticket, &result);
+  auto t2 = std::chrono::steady_clock::now();
+  auto cpuUs = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
+  auto gpuUs = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+  bool equal = status == WorldGenerationComputePollStatus::Ready
+      && result.backend == WorldGenerationComputeBackend::GpuOpenGlCompute
+      && result.values.size() == cpu.size();
+  if (equal) {
+    for (size_t i = 0; i < cpu.size(); ++i) {
+      if (result.values[i] != cpu[i]) {
+        equal = false;
+        break;
+      }
+    }
+  }
+  std::printf("timing %s: n=%zu cpu_us=%lld gpu_submit_poll_us=%lld status=%u equal=%d\n", name,
+      input.size(), (long long)cpuUs, (long long)gpuUs, (unsigned)status, equal ? 1 : 0);
+  return equal ? 0 : 5;
+}
+
+int runDeferredGpuPump(WorldGenerationComputeService& service) {
+  // Real-GL deferred path: fence arms on submit; pump advances non-blocking then dispatches.
+  service.setDeferredCpuCompletion(true);
+  WorldGenerationComputeGlDevice::adoptOwnerThread();
+  service.adoptOwnerThread();
+
+  auto ticket = service.submit(makeIdentity(9100, WorldGenerationComputeKernel::TerrainFieldMax2),
+      List<uint32_t>{0x00200010u, 0x00010002u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute);
+  if (!ticket) {
+    std::printf("deferred TerrainFieldMax2: submit refused\n");
+    service.clearOwnerThread();
+    WorldGenerationComputeGlDevice::clearOwnerThread();
+    return 6;
+  }
+
+  WorldGenerationComputeResult early;
+  auto earlyStatus = service.poll(*ticket, &early);
+  std::printf("deferred TerrainFieldMax2: early_status=%u pending_fences=%zu\n",
+      (unsigned)earlyStatus, WorldGenerationComputeGlDevice::pendingFenceCount());
+  if (earlyStatus != WorldGenerationComputePollStatus::Pending) {
+    service.clearOwnerThread();
+    WorldGenerationComputeGlDevice::clearOwnerThread();
+    return 6;
+  }
+
+  size_t pumped = 0;
+  for (int i = 0; i < 64 && earlyStatus == WorldGenerationComputePollStatus::Pending; ++i) {
+    pumped += service.pump();
+    earlyStatus = service.poll(*ticket, &early);
+  }
+  std::printf("deferred TerrainFieldMax2: pumped=%zu final_status=%u values=%zu\n", pumped,
+      (unsigned)earlyStatus, early.values.size());
+  int rc = 0;
+  if (earlyStatus != WorldGenerationComputePollStatus::Ready || early.values.size() != 2
+      || early.values[0] != 0x0020u || early.values[1] != 0x0002u
+      || early.backend != WorldGenerationComputeBackend::GpuOpenGlCompute)
+    rc = 6;
+
+  service.clearOwnerThread();
+  WorldGenerationComputeGlDevice::clearOwnerThread();
+  service.setDeferredCpuCompletion(false);
+  return rc;
 }
 
 }
@@ -940,6 +1030,14 @@ int main() {
   rc |= runShadow(service, WorldGenerationComputeKernel::DenseUint32HalfPopEqCountFillNibble, 0x2u,
       "DenseUint32HalfPopEqCountFillNibble");
 
+  // Milestone-50 focus (no further DenseUint32 horizontal): terrain/biome GL shadow.
+  std::printf("--- m50 terrain/biome ---\n");
+  rc |= runShadow(service, WorldGenerationComputeKernel::TerrainFieldMax2, 0u, "TerrainFieldMax2");
+  rc |= runShadow(service, WorldGenerationComputeKernel::TerrainFieldMin2, 0u, "TerrainFieldMin2");
+  rc |= runShadow(service, WorldGenerationComputeKernel::TerrainFieldClampU16, 0x00ffu,
+      "TerrainFieldClampU16");
+  rc |= runShadow(service, WorldGenerationComputeKernel::BiomeIdBucket, 0x10u, "BiomeIdBucket");
+
   auto ticket = service.submit(makeIdentity(99, WorldGenerationComputeKernel::DenseUint32Xor),
       edgeCorpus(), 0x55aa55aau, WorldGenerationComputeBackend::GpuOpenGlCompute);
   if (!ticket) {
@@ -955,9 +1053,18 @@ int main() {
       rc |= 4;
   }
 
+  // Wall timing (informative; not a 50% claim). Repeats enlarge corpus for measurable us.
+  rc |= runTiming(service, WorldGenerationComputeKernel::TerrainFieldMax2, 0u, "TerrainFieldMax2",
+      4096u);
+  rc |= runTiming(service, WorldGenerationComputeKernel::BiomeIdBucket, 0x10u, "BiomeIdBucket",
+      4096u);
+
+  rc |= runDeferredGpuPump(service);
+
   WorldGenerationComputeGlDevice::shutdown();
   if (rc == 0)
-    std::printf("PASS: probe + DenseUint32* CPU↔GPU shadow equal\n");
+    std::printf(
+        "PASS: probe + DenseUint32* + TerrainField/Biome CPU↔GPU shadow + deferred pump\n");
   else
     std::printf("FAIL: rc=%d\n", rc);
   return rc == 0 ? 0 : 1;

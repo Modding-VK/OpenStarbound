@@ -967,3 +967,10 @@ integração: **nenhum**.
 - Merge H4 HEAD `84378eb7` (GlOwnerThread + FenceHarness + deferred pumpFences + terrain sketch; 318/318) — cláusula 2.
 - Tip material 50% em progresso (sem claim). DenseUint32 micro absorvido sob tip material.
 - Build `46096658167` intacto in_progress; hold 1 Build tip final; sem spam.
+
+## Sync 2026-11-28T03:00Z
+- Tip `132c2868` ALL GREEN. Ahead: h0–h3/h5/r1–r2=0; H4 `c624921b` ahead=2 material (Desktop GL probe em curso).
+
+## Revisão 2026-11-28T03:00Z — H4 material m50 c624921b (idle/janela)
+- Merge H4 HEAD `c624921b` (Terrain/Biome GL shaders + Desktop V probe prep) — cláusulas 1+2.
+- Sem claim 50% até evidência Desktop. 1 Build tip final (tip anterior green). Sem spam.
