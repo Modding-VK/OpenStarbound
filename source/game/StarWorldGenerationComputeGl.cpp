@@ -463,6 +463,9 @@ GLuint g_halfLog2FloorNibbleProgram = 0;
 GLuint g_halfCeilPow2NibbleProgram = 0;
 GLuint g_halfFloorPow2NibbleProgram = 0;
 GLuint g_halfToggleLowNibbleProgram = 0;
+GLuint g_halfAsrNibbleProgram = 0;
+GLuint g_halfMod3NibbleProgram = 0;
+GLuint g_halfMod5NibbleProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -8333,6 +8336,74 @@ void main() {
 }
 )GLSL";
 
+char const* HalfAsrNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint k = uParameter & 3u;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint outN = a;
+    for (uint s = 0u; s < k; ++s) {
+      uint sign = outN & 8u;
+      outN = (outN >> 1u) | sign;
+    }
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfMod3NibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint outN = a % 3u;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfMod5NibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint outN = a % 5u;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -9993,6 +10064,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfToggleLowNibbleProgram);
     g_halfToggleLowNibbleProgram = 0;
   }
+  if (g_halfAsrNibbleProgram) {
+    glDeleteProgram(g_halfAsrNibbleProgram);
+    g_halfAsrNibbleProgram = 0;
+  }
+  if (g_halfMod3NibbleProgram) {
+    glDeleteProgram(g_halfMod3NibbleProgram);
+    g_halfMod3NibbleProgram = 0;
+  }
+  if (g_halfMod5NibbleProgram) {
+    glDeleteProgram(g_halfMod5NibbleProgram);
+    g_halfMod5NibbleProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -10687,7 +10770,13 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfFloorPow2NibbleProgram, HalfFloorPow2NibbleShader,
             "DenseUint32HalfFloorPow2Nibble")
       || !requireProgram(g_halfToggleLowNibbleProgram, HalfToggleLowNibbleShader,
-            "DenseUint32HalfToggleLowNibble"))
+            "DenseUint32HalfToggleLowNibble")
+      || !requireProgram(g_halfAsrNibbleProgram, HalfAsrNibbleShader,
+            "DenseUint32HalfAsrNibble")
+      || !requireProgram(g_halfMod3NibbleProgram, HalfMod3NibbleShader,
+            "DenseUint32HalfMod3Nibble")
+      || !requireProgram(g_halfMod5NibbleProgram, HalfMod5NibbleShader,
+            "DenseUint32HalfMod5Nibble"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -11558,6 +11647,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfFloorPow2NibbleProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfToggleLowNibble)
     program = g_halfToggleLowNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfAsrNibble)
+    program = g_halfAsrNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfMod3Nibble)
+    program = g_halfMod3NibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfMod5Nibble)
+    program = g_halfMod5NibbleProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))

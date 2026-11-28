@@ -426,7 +426,10 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfLog2FloorNibble = 400, // floor(log2(n)), 0 if n==0; parameter ignored
   DenseUint32HalfCeilPow2Nibble = 401, // smallest pow2 >= n, sat 0xf; parameter ignored
   DenseUint32HalfFloorPow2Nibble = 402, // largest pow2 <= n, 0 if n==0; parameter ignored
-  DenseUint32HalfToggleLowNibble = 403 // n ^ 1; parameter ignored
+  DenseUint32HalfToggleLowNibble = 403, // n ^ 1; parameter ignored
+  DenseUint32HalfAsrNibble = 404, // arithmetic shr by (parameter&3); high ignored
+  DenseUint32HalfMod3Nibble = 405, // n % 3; parameter ignored
+  DenseUint32HalfMod5Nibble = 406 // n % 5; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
