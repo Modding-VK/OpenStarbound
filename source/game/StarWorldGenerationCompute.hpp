@@ -414,7 +414,16 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfSatMirrorNibble = 388, // p-n if n<=p else 0; p=parameter&0xf; high ignored
   DenseUint32HalfScale15Nibble = 389, // (n * p) / 15; p=parameter&0xf; high ignored
   DenseUint32HalfInvScale15Nibble = 390, // min((n*15)/p,0xf); p==0 -> 0; high ignored
-  DenseUint32HalfSquareDiffNibble = 391 // (|n-p|^2) & 0xf; p=parameter&0xf; high ignored
+  DenseUint32HalfSquareDiffNibble = 391, // (|n-p|^2) & 0xf; p=parameter&0xf; high ignored
+  DenseUint32HalfSameSignNibble = 392, // 0xf if (n&8)==(p&8) else 0; high ignored
+  DenseUint32HalfDiffSignNibble = 393, // 0xf if (n&8)!=(p&8) else 0; high ignored
+  DenseUint32HalfParityMatchNibble = 394, // 0xf if (popcount(n)&1)==(p&1) else 0; high ignored
+  DenseUint32HalfSignCopyNibble = 395, // (n & 7) | (p & 8); high ignored
+  DenseUint32HalfMagnitudeNibble = 396, // n & 7; parameter ignored
+  DenseUint32HalfNegIfSignNibble = 397, // (-n)&0xf if (p&8) else n; high ignored
+  DenseUint32HalfIsqrtNibble = 398, // floor(sqrt(n)); parameter ignored
+  DenseUint32HalfPow2FillNibble = 399, // 1 << (n & 3); parameter ignored
+  DenseUint32HalfLog2FloorNibble = 400 // floor(log2(n)), 0 if n==0; parameter ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -791,6 +800,12 @@ public:
   bool rejectedDuplicatesVoid() const;
   // Alias of rejectedDuplicatesList (asset-free observation naming).
   List<WorldGenerationComputeTicket> rejectedDuplicatesCatalog() const;
+  // Alias of rejectedDuplicatesCount (asset-free observation naming).
+  size_t rejectedDuplicatesMagnitude() const;
+  // Alias of rejectedDuplicatesContains (asset-free observation naming).
+  bool rejectedDuplicatesOwns(WorldGenerationComputeTicket ticket) const;
+  // Alias of clearRejectedDuplicates (asset-free observation naming).
+  size_t rejectedDuplicatesSweep();
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 
