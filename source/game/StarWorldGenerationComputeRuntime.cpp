@@ -60,9 +60,18 @@ void WorldGenerationComputeRuntime::stopOnWorldThread() {
   WorldGenerationComputeGlDevice::clearOwnerThread();
   WorldGenerationComputeGlDevice::shutdown();
   m_service.reset();
+  m_publishGate.clearStaged();
   m_active = false;
   m_rehearsal = false;
   m_lastPumpCompletions = 0;
+}
+
+char const* WorldGenerationComputeRuntime::dualContextPrepStatus() noexcept {
+  return WorldGenerationComputeGlDevice::dualContextPrepStatus();
+}
+
+bool WorldGenerationComputeRuntime::rendererShareSupported() noexcept {
+  return WorldGenerationComputeGlDevice::rendererShareSupported();
 }
 
 }

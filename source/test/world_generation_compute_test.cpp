@@ -1,10 +1,12 @@
 #include "StarWorldGenerationCompute.hpp"
 #include "StarWorldGenerationComputeGl.hpp"
+#include "StarWorldGenerationComputePublish.hpp"
 #include "StarWorldGenerationComputeRuntime.hpp"
 
 #include "gtest/gtest.h"
 
 #include <atomic>
+#include <cstring>
 #include <thread>
 
 using namespace Star;
@@ -9061,6 +9063,90 @@ TEST(WorldGenerationComputeTest, TerrainBiomeFieldSketchExactCpuAndShadow) {
           makeIdentity(2973, WorldGenerationComputeKernel::BiomeIdBucket), input, 0x10u,
           WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
           .verdict);
+}
+
+TEST(WorldGenerationComputeTest, PublishGateStagesAndRefusesLiveWorld) {
+  // m50 publish-live vertical (cloud-safe): stage Ready results; refuse live apply.
+  WorldGenerationComputeService service;
+  auto identity = makeIdentity(3200, WorldGenerationComputeKernel::TerrainFieldMax2);
+  List<uint32_t> input{0x00200010u};
+  uint64_t inputFp = WorldGenerationComputeService::fingerprintInput(input);
+  auto ticket = service.submit(identity, input, 0u, WorldGenerationComputeBackend::CpuReference);
+  ASSERT_TRUE(ticket);
+
+  WorldGenerationComputePublishGate gate;
+  auto staged = gate.stageReady(service, *ticket, identity, inputFp);
+  EXPECT_EQ(WorldGenerationComputePublishVerdict::Staged, staged.verdict);
+  EXPECT_EQ(1u, gate.stagedCount());
+  EXPECT_EQ(1u, staged.valueCount);
+  EXPECT_EQ(0x0020u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::TerrainFieldMax2, 1u, input, 0u)[0]);
+  EXPECT_STREQ("Staged", WorldGenerationComputePublishGate::publishVerdictName(staged.verdict));
+
+  EXPECT_EQ(WorldGenerationComputePublishVerdict::RefusedLiveWorld, gate.applyToLiveWorld(staged));
+  EXPECT_EQ(WorldGenerationComputePublishVerdict::RefusedLiveWorld,
+      gate.applyToLiveWorld(WorldGenerationComputePublishRecord{}));
+
+  // Ticket consumed by commit inside stageReady.
+  WorldGenerationComputeResult gone;
+  EXPECT_EQ(WorldGenerationComputePollStatus::UnknownTicket, service.poll(*ticket, &gone));
+
+  // Stale identity refuses staging.
+  auto ticket2 = service.submit(identity, input, 0u, WorldGenerationComputeBackend::CpuReference);
+  ASSERT_TRUE(ticket2);
+  auto staleId = identity;
+  staleId.sequence ^= 1ull;
+  auto refused = gate.stageReady(service, *ticket2, staleId, inputFp);
+  EXPECT_EQ(WorldGenerationComputePublishVerdict::StaleIdentity, refused.verdict);
+
+  EXPECT_EQ(1u, gate.clearStaged());
+  EXPECT_EQ(0u, gate.stagedCount());
+}
+
+TEST(WorldGenerationComputeTest, DualContextPrepStubsCloudSafe) {
+  // Dual-context prep: observation stubs only; renderer share unsupported.
+  EXPECT_FALSE(WorldGenerationComputeGlDevice::rendererShareSupported());
+  EXPECT_FALSE(WorldGenerationComputeRuntime::rendererShareSupported());
+  char const* status = WorldGenerationComputeGlDevice::dualContextPrepStatus();
+  ASSERT_NE(nullptr, status);
+  EXPECT_NE(nullptr, strstr(status, "renderer_share=unsupported"));
+  EXPECT_NE(nullptr, strstr(status, "desktop_validation=pending"));
+  EXPECT_EQ(status, WorldGenerationComputeRuntime::dualContextPrepStatus());
+#ifndef STAR_ENABLE_WORLDGEN_GL_COMPUTE
+  EXPECT_EQ(WorldGenerationComputeGlContextRole::Inactive,
+      WorldGenerationComputeGlDevice::contextRole());
+#endif
+}
+
+TEST(WorldGenerationComputeTest, WorldThreadRuntimePublishGateWiring) {
+  WorldGenerationComputeRuntime runtime;
+  EXPECT_EQ(nullptr, runtime.publishGate());
+
+  WorldGenerationComputeRuntime::Options options;
+  options.enabled = true;
+  options.gpuFenceRehearsal = true;
+  options.deferredCompletion = true;
+  runtime.startOnWorldThread(options);
+  ASSERT_TRUE(runtime.active());
+  ASSERT_NE(nullptr, runtime.publishGate());
+  ASSERT_NE(nullptr, runtime.service());
+
+  auto identity = makeIdentity(3210, WorldGenerationComputeKernel::TerrainFieldMax2);
+  List<uint32_t> input{0x00300020u};
+  uint64_t inputFp = WorldGenerationComputeService::fingerprintInput(input);
+  auto ticket = runtime.service()->submit(
+      identity, input, 0u, WorldGenerationComputeBackend::CpuReference);
+  ASSERT_TRUE(ticket);
+  // Deferred CPU completion needs a pump before commit/stage.
+  EXPECT_GE(runtime.pumpUpdate(), 1u);
+  auto staged = runtime.publishGate()->stageReady(*runtime.service(), *ticket, identity, inputFp);
+  EXPECT_EQ(WorldGenerationComputePublishVerdict::Staged, staged.verdict);
+  EXPECT_EQ(WorldGenerationComputePublishVerdict::RefusedLiveWorld,
+      runtime.publishGate()->applyToLiveWorld(staged));
+
+  runtime.stopOnWorldThread();
+  EXPECT_EQ(nullptr, runtime.publishGate());
 }
 
 TEST(WorldGenerationComputeTest, WorldThreadRuntimePumpRehearsalCloudSafe) {

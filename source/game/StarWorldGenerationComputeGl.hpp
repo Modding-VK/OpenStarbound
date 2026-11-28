@@ -29,9 +29,22 @@ struct WorldGenerationComputeGlProbeInfo {
 
 // Fence status/ticket types live in StarWorldGenerationCompute.hpp.
 
+// Dual-context prep (m50 stub): WorldThread owns a hidden SDL compute context.
+// Sharing with the client renderer is NOT implemented — Desktop must validate.
+enum class WorldGenerationComputeGlContextRole : uint8_t {
+  Inactive = 0,
+  WorldThreadHidden = 1,
+  RendererShared = 2 // reserved; rendererShareSupported() is always false today
+};
+
 class WorldGenerationComputeGlDevice {
 public:
   static bool isBuildEnabled() noexcept;
+
+  // Dual-context observation (cloud-safe stubs; no claim of dual-context readiness).
+  static WorldGenerationComputeGlContextRole contextRole() noexcept;
+  static bool rendererShareSupported() noexcept;
+  static char const* dualContextPrepStatus() noexcept;
 
   // Creates (or reuses) the hidden context and reports capabilities. Never claims
   // gpuOpenGlCompute unless compute shaders are actually detected.
