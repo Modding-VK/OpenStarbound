@@ -41,6 +41,7 @@ entrega material, mesmo quando o percentual continuar igual.
 Frente ativa nesta branch H4: GPU-01…04 (WorldThread + publish stage + prep
 admission→staged; 2º vendor estacionado; sem claim 50%).
 Relatório atual:
+[dual-context Desktop harness](sector-runtime-h4-gpu-m50-dualcontext-desktop-harness-2026-11-28.md),
 [prep admission→staged](sector-runtime-h4-gpu-m50-prep-admission-staged-2026-11-28.md),
 [publish/dual-context prep](sector-runtime-h4-gpu-m50-publish-dualcontext-prep-2026-11-28.md),
 [worldthread runtime](sector-runtime-h4-gpu-m50-worldthread-runtime-2026-11-28.md),

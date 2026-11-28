@@ -14,9 +14,10 @@ primeiro marco (25%). **STOP** DenseUint32 horizontal. Desktop: `gain_pipeline`
 (pump; rehearsal; publish stage; **admission** Terrain/Biome → staged).
 `applyToLiveWorld` sempre recusa. Dual-context: stubs
 (`renderer_share=unsupported`). GPU-05 permanece 0% (seletor heurístico só).
-Sem claim 50%: falta ≥2º vendor, publish live real, custo medido, dual-context
-Desktop, review Project. Ver
-[prep admission→staged](../sector-runtime-h4-gpu-m50-prep-admission-staged-2026-11-28.md).
+Sem claim 50%: falta ≥2º vendor, publish live real, custo medido, PASS Desktop
+dual-context, review Project. Caminho ativo: dual-context Desktop (auth até
+2026-11-29). Ver
+[dual-context harness](../sector-runtime-h4-gpu-m50-dualcontext-desktop-harness-2026-11-28.md).
 
 ## GPU-01 — Interface e capacidades
 

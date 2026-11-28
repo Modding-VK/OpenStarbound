@@ -38,12 +38,22 @@ WorldGenerationComputeGlContextRole WorldGenerationComputeGlDevice::contextRole(
   return WorldGenerationComputeGlContextRole::Inactive;
 }
 
+char const* WorldGenerationComputeGlDevice::contextRoleName(
+    WorldGenerationComputeGlContextRole role) noexcept {
+  switch (role) {
+    case WorldGenerationComputeGlContextRole::Inactive: return "Inactive";
+    case WorldGenerationComputeGlContextRole::WorldThreadHidden: return "WorldThreadHidden";
+    case WorldGenerationComputeGlContextRole::RendererShared: return "RendererShared";
+  }
+  return "Unknown";
+}
+
 bool WorldGenerationComputeGlDevice::rendererShareSupported() noexcept {
   return false;
 }
 
 char const* WorldGenerationComputeGlDevice::dualContextPrepStatus() noexcept {
-  return "stub_build; role=Inactive; renderer_share=unsupported; desktop_validation=pending";
+  return "stub_build; role=Inactive; renderer_share=unsupported; desktop_validation=n/a";
 }
 
 WorldGenerationComputeCapabilities WorldGenerationComputeGlDevice::probeCapabilities() noexcept {
@@ -12194,11 +12204,21 @@ bool WorldGenerationComputeGlDevice::isBuildEnabled() noexcept {
 
 WorldGenerationComputeGlContextRole WorldGenerationComputeGlDevice::contextRole() noexcept {
   // Hidden SDL compute context owned by WorldThread when a probe has succeeded.
-  // RendererShared is reserved until Desktop validates dual-context sharing.
+  // RendererShared is reserved — share with the client renderer is not implemented.
   std::lock_guard<std::mutex> lock(g_glMutex);
   if (!g_info.computeAvailable || !g_context)
     return WorldGenerationComputeGlContextRole::Inactive;
   return WorldGenerationComputeGlContextRole::WorldThreadHidden;
+}
+
+char const* WorldGenerationComputeGlDevice::contextRoleName(
+    WorldGenerationComputeGlContextRole role) noexcept {
+  switch (role) {
+    case WorldGenerationComputeGlContextRole::Inactive: return "Inactive";
+    case WorldGenerationComputeGlContextRole::WorldThreadHidden: return "WorldThreadHidden";
+    case WorldGenerationComputeGlContextRole::RendererShared: return "RendererShared";
+  }
+  return "Unknown";
 }
 
 bool WorldGenerationComputeGlDevice::rendererShareSupported() noexcept {
@@ -12206,8 +12226,12 @@ bool WorldGenerationComputeGlDevice::rendererShareSupported() noexcept {
 }
 
 char const* WorldGenerationComputeGlDevice::dualContextPrepStatus() noexcept {
-  return "gl_build; role=WorldThreadHidden_when_probed; renderer_share=unsupported; "
-         "desktop_validation=pending";
+  // Observation string for Desktop harness. renderer_share stays unsupported.
+  auto role = contextRole();
+  if (role == WorldGenerationComputeGlContextRole::WorldThreadHidden)
+    return "gl_build; role=WorldThreadHidden; renderer_share=unsupported; "
+           "desktop_validation=awaiting_harness";
+  return "gl_build; role=Inactive; renderer_share=unsupported; desktop_validation=awaiting_harness";
 }
 
 WorldGenerationComputeCapabilities WorldGenerationComputeGlDevice::probeCapabilities() noexcept {

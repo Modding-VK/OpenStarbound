@@ -41,8 +41,10 @@ class WorldGenerationComputeGlDevice {
 public:
   static bool isBuildEnabled() noexcept;
 
-  // Dual-context observation (cloud-safe stubs; no claim of dual-context readiness).
+  // Dual-context observation. WorldThreadHidden = real hidden SDL compute context.
+  // RendererShared remains unsupported (share with client renderer not implemented).
   static WorldGenerationComputeGlContextRole contextRole() noexcept;
+  static char const* contextRoleName(WorldGenerationComputeGlContextRole role) noexcept;
   static bool rendererShareSupported() noexcept;
   static char const* dualContextPrepStatus() noexcept;
 

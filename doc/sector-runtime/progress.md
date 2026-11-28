@@ -7,7 +7,7 @@ prep admission→staged (cloud-safe); 2º vendor estacionado; marco 50% em
 progresso, **sem claim**.
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico H4](../sector-runtime-h4-gpu-m50-prep-admission-staged-2026-11-28.md)
+· [Último relatório técnico H4](../sector-runtime-h4-gpu-m50-dualcontext-desktop-harness-2026-11-28.md)
 · [Último relatório H0](../sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
 · [Backlog geral](../performance-backlog.md)
 
@@ -474,6 +474,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 28/11/2026 | GPU-02 m50 WorldThread runtime | `WorldGenerationComputeRuntime` opt-in + pump em `WorldServerThread`; 2º vendor estacionado; H4 permanece 25% | 5,6% |
 | 28/11/2026 | GPU-02 m50 publish + dual-context prep | `PublishGate` stage-only + GlDevice dual-context stubs; apply live sempre recusa; 323/323; H4 permanece 25% | 5,6% |
 | 28/11/2026 | GPU-02 m50 prep admission→staged | `Admission` Terrain/Biome + heurística backend + `autoStageReady`; DenseUint32 recusado; 324/324; H4 25%; GPU-05 0% | 5,6% |
+| 28/11/2026 | GPU-02 m50 dual-context Desktop harness | Probe WorldThreadHidden + rehearsal OFF; path (1) auth→2026-11-29; aguarda PASS Desktop; H4 25% | 5,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.
