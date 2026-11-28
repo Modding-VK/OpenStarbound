@@ -8943,10 +8943,16 @@ TEST(WorldGenerationComputeTest, DenseUint32MinMaxSubExactCpuAndShadow) {
 
 TEST(WorldGenerationComputeTest, DeferredGpuTicketsCompleteViaPumpFencesRehearsal) {
   // Milestone-50 cloud-safe: deferred GpuOpenGlCompute + fence rehearsal.
-  // Arms GlDevice fences; pump() advances fences non-blocking then materializes on CPU.
-  WorldGenerationComputeService service;
+  // Force gpuOpenGlCompute=false so GL-ON Desktop builds still exercise rehearsal
+  // (CPU materialize), not the live GLsync path covered by the probe / RealGl test.
+  WorldGenerationComputeCapabilities caps;
+  caps.cpuReference = true;
+  caps.gpuOpenGlCompute = false;
+  WorldGenerationComputeService service(caps);
   service.setDeferredCpuCompletion(true);
   service.setGpuFenceRehearsal(true);
+  WorldGenerationComputeGlDevice::clearOwnerThread();
+  WorldGenerationComputeGlDevice::shutdown();
   WorldGenerationComputeGlDevice::adoptOwnerThread();
   service.adoptOwnerThread();
 
@@ -8972,13 +8978,59 @@ TEST(WorldGenerationComputeTest, DeferredGpuTicketsCompleteViaPumpFencesRehearsa
 }
 
 TEST(WorldGenerationComputeTest, GpuSubmitRejectedWithoutCapabilityOrRehearsal) {
-  WorldGenerationComputeService service;
+  // Explicitly without GPU capability and without rehearsal — even on GL-ON builds.
+  WorldGenerationComputeCapabilities caps;
+  caps.cpuReference = true;
+  caps.gpuOpenGlCompute = false;
+  WorldGenerationComputeService service(caps);
   service.setDeferredCpuCompletion(true);
-  // rehearsal off, no GPU capability in normal build
   auto ticket = service.submit(makeIdentity(2971, WorldGenerationComputeKernel::TerrainFieldMin2),
       List<uint32_t>{0x00200010u}, 0u, WorldGenerationComputeBackend::GpuOpenGlCompute);
   EXPECT_FALSE(ticket);
 }
+
+#ifdef STAR_ENABLE_WORLDGEN_GL_COMPUTE
+TEST(WorldGenerationComputeTest, RealGlDeferredTerrainFieldCompletesViaPump) {
+  // Desktop GL-ON: live deferred GpuOpenGlCompute + non-blocking pump (may need several pumps).
+  auto probed = WorldGenerationComputeService::probeCapabilities();
+  if (!probed.gpuOpenGlCompute)
+    GTEST_SKIP() << "OpenGL compute not claimed in this environment";
+
+  WorldGenerationComputeGlDevice::clearOwnerThread();
+  WorldGenerationComputeGlDevice::shutdown();
+  probed = WorldGenerationComputeService::probeCapabilities();
+  if (!probed.gpuOpenGlCompute)
+    GTEST_SKIP() << "OpenGL compute unavailable after device reset";
+
+  WorldGenerationComputeService service(probed);
+  service.setDeferredCpuCompletion(true);
+  WorldGenerationComputeGlDevice::adoptOwnerThread();
+  service.adoptOwnerThread();
+
+  auto ticket = service.submit(makeIdentity(2974, WorldGenerationComputeKernel::TerrainFieldMax2),
+      List<uint32_t>{0x00200010u}, 0u, WorldGenerationComputeBackend::GpuOpenGlCompute);
+  ASSERT_TRUE(ticket);
+  WorldGenerationComputeResult early;
+  EXPECT_EQ(WorldGenerationComputePollStatus::Pending, service.poll(*ticket, &early));
+
+  WorldGenerationComputeResult result;
+  auto status = WorldGenerationComputePollStatus::Pending;
+  size_t pumped = 0;
+  for (int i = 0; i < 64 && status == WorldGenerationComputePollStatus::Pending; ++i) {
+    pumped += service.pump();
+    status = service.poll(*ticket, &result);
+  }
+  EXPECT_GE(pumped, 1u);
+  EXPECT_EQ(WorldGenerationComputePollStatus::Ready, status);
+  ASSERT_EQ(1u, result.values.size());
+  EXPECT_EQ(0x0020u, result.values[0]);
+  EXPECT_EQ(WorldGenerationComputeBackend::GpuOpenGlCompute, result.backend);
+
+  service.clearOwnerThread();
+  WorldGenerationComputeGlDevice::clearOwnerThread();
+  WorldGenerationComputeGlDevice::shutdown();
+}
+#endif
 
 TEST(WorldGenerationComputeTest, TerrainBiomeFieldSketchExactCpuAndShadow) {
   // Milestone-50 sketch only — CPU reference; does not claim 50% / no Desktop probe.
@@ -9012,8 +9064,10 @@ TEST(WorldGenerationComputeTest, TerrainBiomeFieldSketchExactCpuAndShadow) {
 
 TEST(WorldGenerationComputeTest, GlOwnerThreadAndFenceHarnessNonBlocking) {
   // Milestone-50 vertical step: GL device owner affinity + non-blocking fence pump.
-  // Stub build (no STAR_ENABLE_WORLDGEN_GL_COMPUTE) simulates Pending→Signaled on pumpFences
-  // without ClientWaitSync; real GL builds attach GLsync and poll with timeout 0.
+  // Stub: Pending→Signaled on pumpFences. Real GL: idle GLsync may already be Signaled
+  // on the first timeout-0 poll; reset device first to drop residual fences.
+  WorldGenerationComputeGlDevice::clearOwnerThread();
+  WorldGenerationComputeGlDevice::shutdown();
   EXPECT_FALSE(WorldGenerationComputeGlDevice::hasOwnerThread());
   WorldGenerationComputeGlDevice::adoptOwnerThread();
   EXPECT_TRUE(WorldGenerationComputeGlDevice::hasOwnerThread());
@@ -9021,9 +9075,9 @@ TEST(WorldGenerationComputeTest, GlOwnerThreadAndFenceHarnessNonBlocking) {
 
   auto fence = WorldGenerationComputeGlDevice::createFence();
   ASSERT_TRUE(fence);
-  EXPECT_EQ(WorldGenerationComputeGlFenceStatus::Pending,
-      WorldGenerationComputeGlDevice::pollFence(*fence));
-  EXPECT_EQ(1u, WorldGenerationComputeGlDevice::pendingFenceCount());
+  auto initial = WorldGenerationComputeGlDevice::pollFence(*fence);
+  EXPECT_TRUE(initial == WorldGenerationComputeGlFenceStatus::Pending
+      || initial == WorldGenerationComputeGlFenceStatus::Signaled);
 
   std::atomic<bool> foreignCreateOk{true};
   std::atomic<bool> foreignPump{true};
@@ -9034,10 +9088,17 @@ TEST(WorldGenerationComputeTest, GlOwnerThreadAndFenceHarnessNonBlocking) {
   foreign.join();
   EXPECT_FALSE(foreignCreateOk);
   EXPECT_FALSE(foreignPump);
-  EXPECT_EQ(WorldGenerationComputeGlFenceStatus::Pending,
-      WorldGenerationComputeGlDevice::pollFence(*fence));
 
-  EXPECT_EQ(1u, WorldGenerationComputeGlDevice::pumpFences());
+  if (initial == WorldGenerationComputeGlFenceStatus::Pending) {
+    EXPECT_EQ(1u, WorldGenerationComputeGlDevice::pendingFenceCount());
+    EXPECT_EQ(WorldGenerationComputeGlFenceStatus::Pending,
+        WorldGenerationComputeGlDevice::pollFence(*fence));
+    EXPECT_EQ(1u, WorldGenerationComputeGlDevice::pumpFences());
+  } else {
+    // Real GL idle fence already complete; pump should not invent work.
+    EXPECT_EQ(0u, WorldGenerationComputeGlDevice::pendingFenceCount());
+    EXPECT_EQ(0u, WorldGenerationComputeGlDevice::pumpFences());
+  }
   EXPECT_EQ(WorldGenerationComputeGlFenceStatus::Signaled,
       WorldGenerationComputeGlDevice::pollFence(*fence));
   EXPECT_EQ(0u, WorldGenerationComputeGlDevice::pendingFenceCount());
@@ -9051,7 +9112,11 @@ TEST(WorldGenerationComputeTest, GlOwnerThreadAndFenceHarnessNonBlocking) {
   // Without owner affinity, fence harness remains usable on the calling thread.
   auto loose = WorldGenerationComputeGlDevice::createFence();
   ASSERT_TRUE(loose);
-  EXPECT_EQ(1u, WorldGenerationComputeGlDevice::pumpFences());
+  auto looseStatus = WorldGenerationComputeGlDevice::pollFence(*loose);
+  if (looseStatus == WorldGenerationComputeGlFenceStatus::Pending)
+    EXPECT_EQ(1u, WorldGenerationComputeGlDevice::pumpFences());
+  else
+    EXPECT_EQ(WorldGenerationComputeGlFenceStatus::Signaled, looseStatus);
   EXPECT_TRUE(WorldGenerationComputeGlDevice::retireFence(*loose));
   WorldGenerationComputeGlDevice::shutdown();
 }

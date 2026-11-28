@@ -39,10 +39,10 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Branch de integração: `cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+H4+H5+R1+R2).
-Tip INT: `132c2868` material H4 `84378eb7` ALL GREEN → merge m50 `c624921b` em curso.
-H4 m50: Terrain/Biome GL prep + Desktop V probe (autorizado até 2026-11-29);
-[prep](sector-runtime-h4-gpu-m50-terrain-biome-gl-prep-2026-11-28.md) · [checklist Desktop V](sector-runtime-h4-gpu-m50-desktop-v-probe-checklist-2026-11-28.md).
-Sem claim 50% até evidência Desktop. Painel: [progress.md](sector-runtime/progress.md).
+Tip INT: merge m50 `889294ad` (GL-ON + gain/multi-driver evidence) sobre `29672021`/`c624921b`.
+H4 m50: Desktop probe PASS; gain + multi-driver gates abertos; sem claim 50%.
+[GL-ON/gain](sector-runtime-h4-gpu-m50-gl-on-tests-gain-multidriver-2026-11-28.md) · [checklist Desktop V](sector-runtime-h4-gpu-m50-desktop-v-probe-checklist-2026-11-28.md).
+Painel: [progress.md](sector-runtime/progress.md).
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 Frente desta branch (`cursor/r2-regional-ops-9f77`): R2 AuthoritativeOps. O
 [cross-op sombra](sector-runtime-r2-cross-op-shadow-2026-11-27.md).

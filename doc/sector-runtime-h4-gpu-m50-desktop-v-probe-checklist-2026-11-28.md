@@ -53,19 +53,23 @@ cd dist
 - `shadow TerrainFieldMin2: verdict=0`
 - `shadow TerrainFieldClampU16: verdict=0`
 - `shadow BiomeIdBucket: verdict=0`
-- `timing TerrainFieldMax2: ... equal=1`
+- `timing TerrainFieldMax2: ... equal=1` (e `ratio_cpu_over_gpu` / `gpu_faster`)
 - `timing BiomeIdBucket: ... equal=1`
 - `deferred TerrainFieldMax2: ... final_status=1` (Ready) com valores corretos
-- `PASS: probe + DenseUint32* + TerrainField/Biome CPU↔GPU shadow + deferred pump`
+- `driver_evidence vendor=... caps_fp=... shadow_fp=... terrain_verdict=0 biome_verdict=0`
+- `PASS: ... + driver_evidence`
 - exit code `0`
+
+Opcional (ganho):  
+`set STAR_WORLDGEN_GL_TIMING_REPEATS=65536` e `STAR_WORLDGEN_GL_TIMING_ITERS=16` antes do exe.
 
 ## Contrato (flag ON)
 
 ```bat
-.\world_generation_contract_tests.exe --gtest_filter=WorldGenerationComputeTest.*
+.\world_generation_contract_tests.exe --gtest_filter=WorldGenerationComputeTest.DeferredGpuTicketsCompleteViaPumpFencesRehearsal:WorldGenerationComputeTest.GpuSubmitRejectedWithoutCapabilityOrRehearsal:WorldGenerationComputeTest.GlOwnerThreadAndFenceHarnessNonBlocking:WorldGenerationComputeTest.TerrainBiomeFieldSketchExactCpuAndShadow:WorldGenerationComputeTest.RealGlDeferredTerrainFieldCompletesViaPump:WorldGenerationComputeTest.OwnerThreadRejectsForeignMutations
 ```
 
-Esperado: todos PASS (inclui rehearsal deferred + sketch Terrain/Biome).
+Esperado: **0 FAIL** (rehearsal força `gpu=false`; RealGl* SKIP só se probe não claimar).
 
 ## Reportar ao Project / H4
 

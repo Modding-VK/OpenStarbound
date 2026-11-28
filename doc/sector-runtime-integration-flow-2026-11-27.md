@@ -974,3 +974,7 @@ integração: **nenhum**.
 ## Revisão 2026-11-28T03:00Z — H4 material m50 c624921b (idle/janela)
 - Merge H4 HEAD `c624921b` (Terrain/Biome GL shaders + Desktop V probe prep) — cláusulas 1+2.
 - Sem claim 50% até evidência Desktop. 1 Build tip final (tip anterior green). Sem spam.
+
+## Revisão 2026-11-28T03:13Z — H4 material m50 889294ad (idle antecipado)
+- Merge H4 HEAD `889294ad` (GL-ON fixes + gain/multi-driver evidence) — cláusula 2.
+- Sem claim 50%. Build `46100835323` intacto in_progress; hold tip final; sem spam.

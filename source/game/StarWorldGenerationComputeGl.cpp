@@ -158,6 +158,7 @@ void WorldGenerationComputeGlDevice::shutdown() noexcept {
 #include "GL/glew.h"
 #include <SDL3/SDL.h>
 
+#include <new>
 #include <thread>
 #include <unordered_map>
 
@@ -13268,8 +13269,13 @@ void WorldGenerationComputeGlDevice::shutdown() noexcept {
     destroyFenceSyncUnlocked(pair.second);
   g_fences.clear();
   destroyContextUnlocked();
-  g_info.computeAvailable = false;
-  g_info.contextCreated = false;
+  // Preserve buildEnabled; clear live probe state so a later probeCapabilities()
+  // can recreate the context (tests / multi-driver harness isolation).
+  bool buildEnabled = g_info.buildEnabled;
+  g_info = {};
+  g_info.buildEnabled = buildEnabled;
+  g_probeOnce.~once_flag();
+  new (&g_probeOnce) std::once_flag();
 }
 
 }
