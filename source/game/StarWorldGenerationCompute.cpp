@@ -5170,6 +5170,10 @@ bool WorldGenerationComputeService::rejectedDuplicatesErase(
   return removeRejectedDuplicate(ticket);
 }
 
+size_t WorldGenerationComputeService::rejectedDuplicatesExtent() const {
+  return rejectedDuplicatesCount();
+}
+
 size_t WorldGenerationComputeService::clearRejectedDuplicates() {
   std::lock_guard<std::mutex> lock(m_mutex);
   if (!ownerAllowsLocked())
