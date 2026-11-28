@@ -355,6 +355,9 @@ GLuint g_halfAvgNibbleProgram = 0;
 GLuint g_halfMidNibbleProgram = 0;
 GLuint g_halfMin3NibbleProgram = 0;
 GLuint g_halfMax3NibbleProgram = 0;
+GLuint g_halfRange3NibbleProgram = 0;
+GLuint g_halfSum3NibbleProgram = 0;
+GLuint g_halfSatSum3NibbleProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -5766,6 +5769,79 @@ void main() {
 }
 )GLSL";
 
+char const* HalfRange3NibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint b = uParameter & 0xfu;
+  uint cbits = (uParameter >> 4u) & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint mn = a < b ? a : b;
+    mn = mn < cbits ? mn : cbits;
+    uint mx = a > b ? a : b;
+    mx = mx > cbits ? mx : cbits;
+    result |= ((mx - mn) & 0xfu) << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfSum3NibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint b = uParameter & 0xfu;
+  uint cbits = (uParameter >> 4u) & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint outN = (a + b + cbits) & 0xfu;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfSatSum3NibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint b = uParameter & 0xfu;
+  uint cbits = (uParameter >> 4u) & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint sum = a + b + cbits;
+    uint outN = sum > 0xfu ? 0xfu : sum;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -6994,6 +7070,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfMax3NibbleProgram);
     g_halfMax3NibbleProgram = 0;
   }
+  if (g_halfRange3NibbleProgram) {
+    glDeleteProgram(g_halfRange3NibbleProgram);
+    g_halfRange3NibbleProgram = 0;
+  }
+  if (g_halfSum3NibbleProgram) {
+    glDeleteProgram(g_halfSum3NibbleProgram);
+    g_halfSum3NibbleProgram = 0;
+  }
+  if (g_halfSatSum3NibbleProgram) {
+    glDeleteProgram(g_halfSatSum3NibbleProgram);
+    g_halfSatSum3NibbleProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -7472,7 +7560,13 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfMin3NibbleProgram, HalfMin3NibbleShader,
             "DenseUint32HalfMin3Nibble")
       || !requireProgram(g_halfMax3NibbleProgram, HalfMax3NibbleShader,
-            "DenseUint32HalfMax3Nibble"))
+            "DenseUint32HalfMax3Nibble")
+      || !requireProgram(g_halfRange3NibbleProgram, HalfRange3NibbleShader,
+            "DenseUint32HalfRange3Nibble")
+      || !requireProgram(g_halfSum3NibbleProgram, HalfSum3NibbleShader,
+            "DenseUint32HalfSum3Nibble")
+      || !requireProgram(g_halfSatSum3NibbleProgram, HalfSatSum3NibbleShader,
+            "DenseUint32HalfSatSum3Nibble"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -8127,6 +8221,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfMin3NibbleProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfMax3Nibble)
     program = g_halfMax3NibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfRange3Nibble)
+    program = g_halfRange3NibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSum3Nibble)
+    program = g_halfSum3NibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSatSum3Nibble)
+    program = g_halfSatSum3NibbleProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
