@@ -34,6 +34,18 @@ bool WorldGenerationComputeGlDevice::isBuildEnabled() noexcept {
   return false;
 }
 
+WorldGenerationComputeGlContextRole WorldGenerationComputeGlDevice::contextRole() noexcept {
+  return WorldGenerationComputeGlContextRole::Inactive;
+}
+
+bool WorldGenerationComputeGlDevice::rendererShareSupported() noexcept {
+  return false;
+}
+
+char const* WorldGenerationComputeGlDevice::dualContextPrepStatus() noexcept {
+  return "stub_build; role=Inactive; renderer_share=unsupported; desktop_validation=pending";
+}
+
 WorldGenerationComputeCapabilities WorldGenerationComputeGlDevice::probeCapabilities() noexcept {
   std::lock_guard<std::mutex> lock(g_glMutex);
   if (!ownerAllowsUnlocked()) {
@@ -12178,6 +12190,24 @@ void runProbe() {
 
 bool WorldGenerationComputeGlDevice::isBuildEnabled() noexcept {
   return true;
+}
+
+WorldGenerationComputeGlContextRole WorldGenerationComputeGlDevice::contextRole() noexcept {
+  // Hidden SDL compute context owned by WorldThread when a probe has succeeded.
+  // RendererShared is reserved until Desktop validates dual-context sharing.
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!g_info.computeAvailable || !g_context)
+    return WorldGenerationComputeGlContextRole::Inactive;
+  return WorldGenerationComputeGlContextRole::WorldThreadHidden;
+}
+
+bool WorldGenerationComputeGlDevice::rendererShareSupported() noexcept {
+  return false;
+}
+
+char const* WorldGenerationComputeGlDevice::dualContextPrepStatus() noexcept {
+  return "gl_build; role=WorldThreadHidden_when_probed; renderer_share=unsupported; "
+         "desktop_validation=pending";
 }
 
 WorldGenerationComputeCapabilities WorldGenerationComputeGlDevice::probeCapabilities() noexcept {

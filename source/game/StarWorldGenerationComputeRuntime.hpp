@@ -1,6 +1,7 @@
 #pragma once
 
 #include "StarWorldGenerationCompute.hpp"
+#include "StarWorldGenerationComputePublish.hpp"
 #include "StarJson.hpp"
 
 #include <memory>
@@ -9,13 +10,14 @@ namespace Star {
 
 STAR_CLASS(WorldGenerationComputeRuntime);
 
-// GPU-02 WorldThread vertical (cloud-safe):
+// GPU-02 WorldThread + publish-gate vertical (cloud-safe):
 // Adopt compute + GlDevice owners on the world thread and pump fences each update
-// without blocking. Results never write the live world. Default inactive.
+// without blocking. Results may be staged for review via PublishGate; live world
+// apply always refuses. Default inactive.
 //
 // Does not claim H4 50%. Real GL on this thread still needs Desktop validation
-// (hidden SDL context is separate from the renderer; dedicated servers stay on
-// rehearsal). Multi-driver evidence remains a separate gate.
+// (hidden SDL context is separate from the renderer; dual-context prep is stubbed).
+// Multi-driver evidence remains a separate gate.
 class WorldGenerationComputeRuntime {
 public:
   struct Options {
@@ -49,12 +51,23 @@ public:
   size_t lastPumpCompletions() const noexcept { return m_lastPumpCompletions; }
   WorldGenerationComputeService* service() noexcept { return m_service.get(); }
   WorldGenerationComputeService const* service() const noexcept { return m_service.get(); }
+  WorldGenerationComputePublishGate* publishGate() noexcept {
+    return m_active ? &m_publishGate : nullptr;
+  }
+  WorldGenerationComputePublishGate const* publishGate() const noexcept {
+    return m_active ? &m_publishGate : nullptr;
+  }
+
+  // Observation helpers for dual-context prep (no live sharing claim).
+  static char const* dualContextPrepStatus() noexcept;
+  static bool rendererShareSupported() noexcept;
 
 private:
   bool m_active = false;
   bool m_rehearsal = false;
   size_t m_lastPumpCompletions = 0;
   std::unique_ptr<WorldGenerationComputeService> m_service;
+  WorldGenerationComputePublishGate m_publishGate;
 };
 
 }

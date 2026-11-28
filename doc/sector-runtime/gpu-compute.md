@@ -11,9 +11,12 @@ moderno quando disponível, mas não fornece uma API de compute de worldgen.
 **Estado (28/11/2026, `cursor/h4-gpu-shadow-9f77`):** GPU-01/02/03/04 no
 primeiro marco (25%). **STOP** DenseUint32 horizontal. Desktop: `gain_pipeline`
 `gpu_faster=1` (NVIDIA). WorldThread: `WorldGenerationComputeRuntime` opt-in
-(pump não bloqueante; default off; rehearsal cloud-safe). Sem claim 50%: falta
-≥2º vendor, publish live, validação GL dual-context, review Project. Ver
-[worldthread runtime](../sector-runtime-h4-gpu-m50-worldthread-runtime-2026-11-28.md).
+(pump não bloqueante; default off; rehearsal cloud-safe). Publish gate:
+`WorldGenerationComputePublishGate` só **stage** (review); `applyToLiveWorld`
+sempre recusa. Dual-context: stubs de observação (`renderer_share=unsupported`).
+Sem claim 50%: falta ≥2º vendor, publish live real, validação GL dual-context
+Desktop, review Project. Ver
+[publish/dual-context prep](../sector-runtime-h4-gpu-m50-publish-dualcontext-prep-2026-11-28.md).
 
 ## GPU-01 — Interface e capacidades
 

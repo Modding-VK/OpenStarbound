@@ -1087,3 +1087,9 @@ integração: **nenhum**.
 - Merge `--no-ff` H5 `dc05af64` em INT (idle; tip ready).
 - Build tip-final `46120464804` em voo @`191cb6e4` → hold; 1× HEAD pós-terminal.
 - Ahead pós-merge: h0–h5/r1/r2=0. 50% sem claim.
+
+## Merge 2026-11-28T07:23Z — H4 publish gate + dual-context prep (material)
+- Merge `--no-ff` H4 `f7440265` em INT (idle).
+- Material: PublishGate stage-only + GlDevice dual-context stubs; 323/323.
+- Build tip-final `46120464804` em voo @`191cb6e4` → hold; 1× HEAD pós-terminal.
+- Ahead pós-merge: h0–h5/r1/r2=0. 50% sem claim.
