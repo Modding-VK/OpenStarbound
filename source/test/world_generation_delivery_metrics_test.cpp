@@ -17,7 +17,7 @@ TEST(WorldGenerationDeliveryMetricsTest, StartsEmptyAndTracksMask) {
 
 TEST(WorldGenerationDeliveryMetricsTest, ObservedCostRequiresCompleteResourceCoverage) {
   WorldGenerationDeliveryMetricsRecorder recorder;
-  recorder.recordPreparation({9, 10, 18, WorldGenerationComputeBackend::Cpu, 64, 4, false});
+  recorder.recordPreparation({9, 10, 18, WorldGenerationHardwareRoutingBackend::Cpu, 64, 4, false});
   WorldGenerationDeliveryCost cost;
   EXPECT_FALSE(recorder.tryObservedDeliveryCost(cost));
 
@@ -52,7 +52,7 @@ TEST(WorldGenerationDeliveryMetricsTest, RecordsEveryMilestoneIndependently) {
 
 TEST(WorldGenerationDeliveryMetricsTest, CalibratedTransferMsOnlyWhenFlagged) {
   WorldGenerationDeliveryMetricsRecorder recorder;
-  recorder.recordPreparation({1, 0, 5, WorldGenerationComputeBackend::Gpu, 32, 1, false});
+  recorder.recordPreparation({1, 0, 5, WorldGenerationHardwareRoutingBackend::Gpu, 32, 1, false});
   WorldGenerationResourceMetric resources;
   resources.gpuWaitMs = 0.5;
   resources.transferMs = 1.25;

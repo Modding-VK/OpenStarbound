@@ -1120,3 +1120,9 @@ integração: **nenhum**.
 - Material: dual-context WorldThread Desktop harness; Desktop GL-ON PASS pendente.
 - Build tip-final `46120464804` em voo @`191cb6e4` → hold; 1× HEAD pós-terminal.
 - Ahead pós-merge: h0–h5/r1/r2=0. 50% sem claim.
+
+## Merge 2026-11-28T07:35Z — H5 WorldThreadScale wiring
+- Confirmado ahead H5=2 (`1fc652c5` + merge INT); H4 ahead=0.
+- Merge `--no-ff` H5 `1fc652c5` em INT (idle).
+- Build tip-final `46121869802` em voo @`462e2cbc` → hold; 1× HEAD pós-terminal.
+- Ahead pós-merge: h0–h5/r1/r2=0. 50% sem claim.

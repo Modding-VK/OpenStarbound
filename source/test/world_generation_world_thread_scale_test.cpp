@@ -4,6 +4,20 @@
 
 using namespace Star;
 
+namespace {
+
+WorldGenerationComputeInputIdentity makeScaleIdentity(uint64_t sequence,
+    WorldGenerationComputeKernel kernel) {
+  WorldGenerationComputeInputIdentity id;
+  id.worldEpoch = 7;
+  id.sequence = sequence;
+  id.kernelVersion = 1;
+  id.kernel = kernel;
+  return id;
+}
+
+}
+
 TEST(WorldGenerationWorldThreadScaleTest, RehearsalPumpNeverYieldsMeasuredGain) {
   WorldGenerationWorldThreadScaleRecorder recorder;
   WorldGenerationWorldThreadPumpObservation o;
@@ -23,7 +37,7 @@ TEST(WorldGenerationWorldThreadScaleTest, RehearsalPumpNeverYieldsMeasuredGain) 
   WorldGenerationHardwareSelector selector;
   auto choice = selectFromWorldThreadScale(
       selector, recorder, WorldGenerationPerformanceMode::Dynamic);
-  EXPECT_EQ(choice.backend, WorldGenerationComputeBackend::Cpu);
+  EXPECT_EQ(choice.backend, WorldGenerationHardwareRoutingBackend::Cpu);
   EXPECT_EQ(choice.reason, WorldGenerationHardwareSelectionReason::CpuOnlyCapability);
 }
 
@@ -48,7 +62,7 @@ TEST(WorldGenerationWorldThreadScaleTest, LivePumpWithGainSelectsGpu) {
   WorldGenerationHardwareSelector selector;
   auto choice = selectFromWorldThreadScale(
       selector, recorder, WorldGenerationPerformanceMode::Dynamic);
-  EXPECT_EQ(choice.backend, WorldGenerationComputeBackend::Gpu);
+  EXPECT_EQ(choice.backend, WorldGenerationHardwareRoutingBackend::Gpu);
   EXPECT_EQ(choice.reason, WorldGenerationHardwareSelectionReason::LowerDeliveryCost);
 }
 
@@ -72,4 +86,39 @@ TEST(WorldGenerationWorldThreadScaleTest, RejectsCalibratedInvalidCosts) {
   o.gpuCost = {1, 0, 0, 0};
   EXPECT_FALSE(recorder.recordPump(o));
   EXPECT_EQ(recorder.snapshot().pumpTicks, 0u);
+}
+
+TEST(WorldGenerationWorldThreadScaleTest, ObserveRealComputeRuntimeRehearsal) {
+  // INT tip 191cb6e4: observe the real WorldGenerationComputeRuntime pump.
+  WorldGenerationComputeRuntime runtime;
+  WorldGenerationComputeRuntime::Options options;
+  options.enabled = true;
+  options.gpuFenceRehearsal = true;
+  options.deferredCompletion = true;
+  runtime.startOnWorldThread(options);
+  ASSERT_TRUE(runtime.active());
+  ASSERT_TRUE(runtime.rehearsal());
+  ASSERT_TRUE(runtime.service());
+
+  auto ticket = runtime.service()->submit(
+      makeScaleIdentity(4201, WorldGenerationComputeKernel::TerrainFieldMax2),
+      List<uint32_t>{0x00200010u}, 0u, WorldGenerationComputeBackend::GpuOpenGlCompute);
+  ASSERT_TRUE(ticket);
+  EXPECT_EQ(1u, runtime.pumpUpdate());
+
+  auto observation = observeWorldGenerationComputeRuntime(runtime);
+  EXPECT_TRUE(observation.runtimeActive);
+  EXPECT_TRUE(observation.rehearsal);
+  EXPECT_EQ(observation.lastPumpCompletions, 1u);
+  EXPECT_FALSE(observation.deliveryCostsCalibrated);
+
+  WorldGenerationWorldThreadScaleRecorder recorder;
+  EXPECT_TRUE(recorder.recordPump(observation));
+  EXPECT_TRUE(recorder.snapshot().worldThreadSignalsReady);
+  EXPECT_EQ(recorder.snapshot().rehearsalTicks, 1u);
+  EXPECT_EQ(recorder.snapshot().livePumpTicks, 0u);
+  EXPECT_FALSE(recorder.snapshot().measuredGainFromLivePump);
+  EXPECT_FALSE(recorder.tryRoutingSample().ready);
+
+  runtime.stopOnWorldThread();
 }

@@ -86,6 +86,6 @@ TEST(WorldGenerationScenarioCampaignTest, GovernorPrefersGpuFromScaleGain) {
 
   auto advice = adviseWorldGenerationResourcesFromScale(
       binding, observation, selector, scale, WorldGenerationPerformanceMode::Dynamic);
-  EXPECT_EQ(advice.preferredBackend, WorldGenerationComputeBackend::Gpu);
+  EXPECT_EQ(advice.preferredBackend, WorldGenerationHardwareRoutingBackend::Gpu);
   EXPECT_EQ(advice.action, WorldGenerationGovernorAction::PreferGpuBackend);
 }

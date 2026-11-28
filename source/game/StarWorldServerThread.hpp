@@ -2,6 +2,7 @@
 
 #include "StarWorldServer.hpp"
 #include "StarWorldGenerationComputeRuntime.hpp"
+#include "StarWorldGenerationWorldThreadScale.hpp"
 #include "StarThread.hpp"
 #include "StarRpcPromise.hpp"
 
@@ -98,6 +99,8 @@ private:
   unique_ptr<NpcActorBridge> m_npcActorBridge;
   // GPU-02 opt-in: owned/pumped only on this world thread; never publishes to the live world.
   unique_ptr<WorldGenerationComputeRuntime> m_computeRuntime;
+  // H5 / GPU-05: observe pump signals only; rehearsal never counts as measured gain.
+  WorldGenerationWorldThreadScaleRecorder m_worldThreadScale;
   WorldId m_worldId;
   WorldServerAction m_updateAction;
 

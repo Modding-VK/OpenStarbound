@@ -47,7 +47,7 @@ struct WorldGenerationPreparationMetric {
   uint64_t reservationId = 0;
   double startMs = 0;
   double endMs = 0;
-  WorldGenerationComputeBackend backend = WorldGenerationComputeBackend::Cpu;
+  WorldGenerationHardwareRoutingBackend backend = WorldGenerationHardwareRoutingBackend::Cpu;
   size_t bytes = 0;
   uint64_t inputRevision = 0;
   bool recorded = false;

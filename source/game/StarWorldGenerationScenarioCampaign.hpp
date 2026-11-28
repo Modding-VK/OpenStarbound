@@ -181,11 +181,11 @@ inline WorldGenerationGovernorAdvice adviseWorldGenerationResourcesFromScale(
   auto advice = adviseWorldGenerationResources(binding, observation, hardware);
   auto routing = scale.tryRoutingSample();
   if (routing.ready && routing.measuredDeliveryGain
-      && hardware.backend == WorldGenerationComputeBackend::Gpu
+      && hardware.backend == WorldGenerationHardwareRoutingBackend::Gpu
       && advice.action == WorldGenerationGovernorAction::Hold
       && !observation.memoryPressure && !observation.renderPressure) {
     advice.action = WorldGenerationGovernorAction::PreferGpuBackend;
-    advice.preferredBackend = WorldGenerationComputeBackend::Gpu;
+    advice.preferredBackend = WorldGenerationHardwareRoutingBackend::Gpu;
   }
   return advice;
 }

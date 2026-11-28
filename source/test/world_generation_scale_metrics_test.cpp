@@ -65,7 +65,7 @@ TEST(WorldGenerationScaleMetricsTest, RoutingStaysCpuWithoutProbeClaim) {
   WorldGenerationHardwareSelector selector;
   auto choice = selectFromScaleMetrics(
       selector, recorder, WorldGenerationPerformanceMode::Adaptive);
-  EXPECT_EQ(choice.backend, WorldGenerationComputeBackend::Cpu);
+  EXPECT_EQ(choice.backend, WorldGenerationHardwareRoutingBackend::Cpu);
   EXPECT_EQ(choice.reason, WorldGenerationHardwareSelectionReason::CpuOnlyCapability);
 }
 
@@ -77,7 +77,7 @@ TEST(WorldGenerationScaleMetricsTest, SelectsGpuWhenProbeAndGainAgree) {
   WorldGenerationHardwareSelector selector;
   auto choice = selectFromScaleMetrics(
       selector, recorder, WorldGenerationPerformanceMode::Dynamic);
-  EXPECT_EQ(choice.backend, WorldGenerationComputeBackend::Gpu);
+  EXPECT_EQ(choice.backend, WorldGenerationHardwareRoutingBackend::Gpu);
   EXPECT_EQ(choice.reason, WorldGenerationHardwareSelectionReason::LowerDeliveryCost);
 }
 
