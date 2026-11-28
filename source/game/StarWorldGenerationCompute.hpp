@@ -809,6 +809,8 @@ public:
   bool rejectedDuplicatesOwns(WorldGenerationComputeTicket ticket) const;
   // Alias of clearRejectedDuplicates (asset-free observation naming).
   size_t rejectedDuplicatesSweep();
+  // Alias of fingerprintRejectedDuplicates (asset-free observation naming).
+  uint64_t rejectedDuplicatesStamp() const;
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 
