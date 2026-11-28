@@ -1003,3 +1003,11 @@ integração: **nenhum**.
 ## Sync 2026-11-28T04:00Z
 - Tip material/docs base `f6ada125`; flow-review tip `14c13d19`. Tip-final Build `46103478918` SUCCESS @`f6ada125`.
 - Ahead h0–h5/r1/r2=0. H4 idle awaiting 2º vendor (50% sem claim). Sem spam.
+
+## Revisão 2026-11-28T04:30Z — front-review (idle)
+- INT tip `77866090` (flow/sync docs sobre tip-final base `f6ada125`).
+- Ahead vs INT: h0/h1/h2/h3/h4/h5/r1/r2=0.
+- H3: `cursor/h3-kernels-publication-9f77` @ `3bdf1927` sem tip novo.
+- PRs abertos com base na INT: nenhum.
+- Gates: Build tip-final `46103478918` SUCCESS @`f6ada125`; CI Int/SR SUCCESS @`509aaed0`.
+- H4 idle awaiting 2º vendor (50% sem claim). Sem Actions nesta revisão.
