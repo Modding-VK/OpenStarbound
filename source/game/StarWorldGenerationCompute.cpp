@@ -4402,6 +4402,10 @@ bool WorldGenerationComputeService::rejectedDuplicatesIsEmpty() const {
   return rejectedDuplicatesEmpty();
 }
 
+size_t WorldGenerationComputeService::rejectedDuplicatesCardinality() const {
+  return rejectedDuplicatesCount();
+}
+
 size_t WorldGenerationComputeService::clearRejectedDuplicates() {
   std::lock_guard<std::mutex> lock(m_mutex);
   if (!ownerAllowsLocked())

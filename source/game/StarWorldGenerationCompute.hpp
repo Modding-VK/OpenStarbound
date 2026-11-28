@@ -654,6 +654,8 @@ public:
   size_t rejectedDuplicatesReset();
   // Alias of rejectedDuplicatesEmpty (asset-free observation naming).
   bool rejectedDuplicatesIsEmpty() const;
+  // Alias of rejectedDuplicatesCount (asset-free observation naming).
+  size_t rejectedDuplicatesCardinality() const;
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 
