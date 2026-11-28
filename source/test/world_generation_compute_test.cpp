@@ -9062,6 +9062,47 @@ TEST(WorldGenerationComputeTest, TerrainBiomeFieldSketchExactCpuAndShadow) {
           .verdict);
 }
 
+TEST(WorldGenerationComputeTest, TerrainGainPipelineCpuReferenceMatchesStackedKernels) {
+  // Gain pipeline contract (CPU): Max2 → ClampU16 → BiomeIdBucket, two passes.
+  List<uint32_t> input{0x00200010u, 0x00ff0001u, 0x12340123u};
+  List<uint32_t> cur = input;
+  for (int pass = 0; pass < 2; ++pass) {
+    cur = WorldGenerationComputeService::runKernel(
+        WorldGenerationComputeKernel::TerrainFieldMax2, 1u, cur, 0u);
+    cur = WorldGenerationComputeService::runKernel(
+        WorldGenerationComputeKernel::TerrainFieldClampU16, 1u, cur, 0xffffu);
+    cur = WorldGenerationComputeService::runKernel(
+        WorldGenerationComputeKernel::BiomeIdBucket, 1u, cur, 0x10u);
+  }
+  ASSERT_EQ(3u, cur.size());
+  // pass0 Max2: 0x20, 0xff, 0x1234 → Clamp → Biome /16: 2, 15, min(255,0x123)=255
+  // pass1 Max2 (high=0): same → Biome /16: 0, 0, 15
+  EXPECT_EQ(0u, cur[0]);
+  EXPECT_EQ(0u, cur[1]);
+  EXPECT_EQ(15u, cur[2]);
+
+#ifdef STAR_ENABLE_WORLDGEN_GL_COMPUTE
+  auto probed = WorldGenerationComputeService::probeCapabilities();
+  if (probed.gpuOpenGlCompute) {
+    List<WorldGenerationComputeKernel> kernels;
+    kernels.append(WorldGenerationComputeKernel::TerrainFieldMax2);
+    kernels.append(WorldGenerationComputeKernel::TerrainFieldClampU16);
+    kernels.append(WorldGenerationComputeKernel::BiomeIdBucket);
+    List<uint32_t> parameters;
+    parameters.append(0u);
+    parameters.append(0xffffu);
+    parameters.append(0x10u);
+    List<uint32_t> gpu;
+    ASSERT_TRUE(WorldGenerationComputeGlDevice::dispatchPipeline(
+        kernels, parameters, 1u, input, gpu, 2u));
+    ASSERT_EQ(cur.size(), gpu.size());
+    for (size_t i = 0; i < cur.size(); ++i)
+      EXPECT_EQ(cur[i], gpu[i]);
+    WorldGenerationComputeGlDevice::shutdown();
+  }
+#endif
+}
+
 TEST(WorldGenerationComputeTest, GlOwnerThreadAndFenceHarnessNonBlocking) {
   // Milestone-50 vertical step: GL device owner affinity + non-blocking fence pump.
   // Stub: Pending→Signaled on pumpFences. Real GL: idle GLsync may already be Signaled

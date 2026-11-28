@@ -39,11 +39,18 @@ public:
 
   static WorldGenerationComputeGlProbeInfo const& lastProbeInfo() noexcept;
 
-  // Exact-integer DenseUint32* dispatch. Returns false on any GL error
+  // Exact-integer DenseUint32* / TerrainField* dispatch. Returns false on any GL error
   // or if compute is unavailable. Uses SSBO + fence; does not publish world data.
   // Requires owner thread when one has been adopted.
   static bool dispatch(WorldGenerationComputeKernel kernel, uint32_t kernelVersion,
       List<uint32_t> const& input, uint32_t parameter, List<uint32_t>& output);
+
+  // Milestone-50 gain path: one SSBO upload, then `passes` × sequential kernel list
+  // with memory barriers only (no per-kernel readback), one ClientWaitSync, one readback.
+  // kernels.size() must equal parameters.size(); empty/unequal → false.
+  static bool dispatchPipeline(List<WorldGenerationComputeKernel> const& kernels,
+      List<uint32_t> const& parameters, uint32_t kernelVersion, List<uint32_t> const& input,
+      List<uint32_t>& output, uint32_t passes = 1u);
 
   // GPU-02 / milestone-50: GL context owner affinity (separate from service owner).
   // When adopted, probe/dispatch/fence/shutdown refuse foreign threads.

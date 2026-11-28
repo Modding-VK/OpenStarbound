@@ -39,9 +39,9 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Branch de integração: `cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+H4+H5+R1+R2).
-Tip INT: merge m50 `889294ad` (GL-ON + gain/multi-driver evidence) sobre `29672021`/`c624921b`.
-H4 m50: Desktop probe PASS; gain + multi-driver gates abertos; sem claim 50%.
-[GL-ON/gain](sector-runtime-h4-gpu-m50-gl-on-tests-gain-multidriver-2026-11-28.md) · [checklist Desktop V](sector-runtime-h4-gpu-m50-desktop-v-probe-checklist-2026-11-28.md).
+Tip INT: merge material `85ab73ba` (terrain gain pipeline) sobre `77c2aa47`/`889294ad`.
+H4 m50: gain pipeline tip; `gpu_faster` Desktop + multi-driver abertos; sem claim 50%.
+[gain pipeline](sector-runtime-h4-gpu-m50-gain-pipeline-2026-11-28.md) · [checklist Desktop V](sector-runtime-h4-gpu-m50-desktop-v-probe-checklist-2026-11-28.md).
 Painel: [progress.md](sector-runtime/progress.md).
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 Frente desta branch (`cursor/r2-regional-ops-9f77`): R2 AuthoritativeOps. O

@@ -982,3 +982,7 @@ integração: **nenhum**.
 ## Fix 2026-11-28T03:20Z — CI Sector Runtime compile
 - CI Sector Runtime `46101849175` FAIL: `WorldGenerationComputeShadowVerdict::equal` → `Equal` no probe.
 - Fix na INT (não editar frentes). Sem spam Build; tip final `461022` intacto.
+
+## Revisão 2026-11-28T03:27Z — H4 material 85ab73ba (idle antecipado)
+- Merge H4 HEAD `85ab73ba` (terrain GPU gain pipeline + Equal align) — cláusula 2.
+- Sem claim 50%. Build `46102201604` intacto; hold tip final → HEAD após terminal; sem spam.
