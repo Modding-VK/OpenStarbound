@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-28
 **Branch:** `cursor/h4-gpu-shadow-9f77`
-**Tip:** `279bf77d`
+**Tip:** `e9c9906e`
 **Base tip absorbed by INT:** `ebb7fe61` → `e07fcdbc`
 **Milestone:** 25% (unchanged)
 
