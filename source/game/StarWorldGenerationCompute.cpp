@@ -375,7 +375,25 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfBitPairSwapNibble
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfNibbleMirror
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfXorShiftNibble
-      || kernel == WorldGenerationComputeKernel::DenseUint32HalfAddCarryFillNibble;
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfAddCarryFillNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfSubBorrowFillNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfMulOverflowFillNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfInterleaveLowNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfDeinterleaveEvenNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfDeinterleaveOddNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfBitDepositNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfBitExtractNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfReversePairsNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfSatShlNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfRoundShrNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfMinParamNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfAvgTruncNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfMaxParamNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfAbsDiffParamNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfMulHiNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfSquareNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfIsOneFillNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfRevBitsNibble;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -714,7 +732,25 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32HalfBitPairSwapNibble,
       WorldGenerationComputeKernel::DenseUint32HalfNibbleMirror,
       WorldGenerationComputeKernel::DenseUint32HalfXorShiftNibble,
-      WorldGenerationComputeKernel::DenseUint32HalfAddCarryFillNibble};
+      WorldGenerationComputeKernel::DenseUint32HalfAddCarryFillNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfSubBorrowFillNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfMulOverflowFillNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfInterleaveLowNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfDeinterleaveEvenNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfDeinterleaveOddNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfBitDepositNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfBitExtractNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfReversePairsNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfSatShlNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfRoundShrNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfMinParamNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfAvgTruncNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfMaxParamNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfAbsDiffParamNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfMulHiNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfSquareNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfIsOneFillNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfRevBitsNibble};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -724,7 +760,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 331u;
+  return 349u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -1077,6 +1113,24 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32HalfNibbleMirror: return "DenseUint32HalfNibbleMirror";
     case WorldGenerationComputeKernel::DenseUint32HalfXorShiftNibble: return "DenseUint32HalfXorShiftNibble";
     case WorldGenerationComputeKernel::DenseUint32HalfAddCarryFillNibble: return "DenseUint32HalfAddCarryFillNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfSubBorrowFillNibble: return "DenseUint32HalfSubBorrowFillNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfMulOverflowFillNibble: return "DenseUint32HalfMulOverflowFillNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfInterleaveLowNibble: return "DenseUint32HalfInterleaveLowNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfDeinterleaveEvenNibble: return "DenseUint32HalfDeinterleaveEvenNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfDeinterleaveOddNibble: return "DenseUint32HalfDeinterleaveOddNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfBitDepositNibble: return "DenseUint32HalfBitDepositNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfBitExtractNibble: return "DenseUint32HalfBitExtractNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfReversePairsNibble: return "DenseUint32HalfReversePairsNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfSatShlNibble: return "DenseUint32HalfSatShlNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfRoundShrNibble: return "DenseUint32HalfRoundShrNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfMinParamNibble: return "DenseUint32HalfMinParamNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfAvgTruncNibble: return "DenseUint32HalfAvgTruncNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfMaxParamNibble: return "DenseUint32HalfMaxParamNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfAbsDiffParamNibble: return "DenseUint32HalfAbsDiffParamNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfMulHiNibble: return "DenseUint32HalfMulHiNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfSquareNibble: return "DenseUint32HalfSquareNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfIsOneFillNibble: return "DenseUint32HalfIsOneFillNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfRevBitsNibble: return "DenseUint32HalfRevBitsNibble";
   }
   return nullptr;
 }
@@ -4056,6 +4110,245 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
       }
       out.append(result);
     }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSubBorrowFillNibble) {
+    uint32_t sub = parameter & 0xfu;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = (a < sub) ? 0xfu : 0u;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfMulOverflowFillNibble) {
+    uint32_t mul = parameter & 0xfu;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = (a * mul > 0xfu) ? 0xfu : 0u;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfInterleaveLowNibble) {
+    uint32_t p = parameter & 0xfu;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = 0u;
+        for (uint32_t b = 0; b < 2u; ++b) {
+          if (a & (1u << b))
+            outN |= 1u << (2u * b + 1u);
+          if (p & (1u << b))
+            outN |= 1u << (2u * b);
+        }
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfDeinterleaveEvenNibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = ((a >> 0u) & 1u) | (((a >> 2u) & 1u) << 1u);
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfDeinterleaveOddNibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = ((a >> 1u) & 1u) | (((a >> 3u) & 1u) << 1u);
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfBitDepositNibble) {
+    uint32_t mask = parameter & 0xfu;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t src = a;
+        uint32_t outN = 0u;
+        for (uint32_t b = 0; b < 4u; ++b) {
+          if (mask & (1u << b)) {
+            if (src & 1u)
+              outN |= 1u << b;
+            src >>= 1u;
+          }
+        }
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfBitExtractNibble) {
+    uint32_t mask = parameter & 0xfu;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = 0u;
+        uint32_t bit = 0u;
+        for (uint32_t b = 0; b < 4u; ++b) {
+          if (mask & (1u << b)) {
+            if (a & (1u << b))
+              outN |= 1u << bit;
+            ++bit;
+          }
+        }
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfReversePairsNibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = ((a & 0xau) >> 1u) | ((a & 0x5u) << 1u);
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSatShlNibble) {
+    uint32_t k = parameter & 3u;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t shifted = a << k;
+        uint32_t outN = shifted > 0xfu ? 0xfu : shifted;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfRoundShrNibble) {
+    uint32_t k = parameter & 3u;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = a;
+        if (k != 0u)
+          outN = (a + (1u << (k - 1u))) >> k;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfMinParamNibble) {
+    uint32_t lim = parameter & 0xfu;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = a < lim ? a : lim;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfAvgTruncNibble) {
+    uint32_t p = parameter & 0xfu;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = (a + p) >> 1u;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfMaxParamNibble) {
+    uint32_t p = parameter & 0xfu;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = a > p ? a : p;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfAbsDiffParamNibble) {
+    uint32_t p = parameter & 0xfu;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = a > p ? a - p : p - a;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfMulHiNibble) {
+    uint32_t p = parameter & 0xfu;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = (a * p) >> 4u;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSquareNibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = (a * a) & 0xfu;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfIsOneFillNibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = (a == 1u) ? 0xfu : 0u;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfRevBitsNibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t outN = 0u;
+        for (uint32_t b = 0; b < 4u; ++b) {
+          if (a & (1u << b))
+            outN |= 1u << (3u - b);
+        }
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
   }
   return out;
 }
@@ -4759,6 +5052,31 @@ size_t WorldGenerationComputeService::rejectedDuplicatesPopulation() const {
 
 List<WorldGenerationComputeTicket> WorldGenerationComputeService::rejectedDuplicatesSnapshot() const {
   return listRejectedDuplicates();
+}
+
+bool WorldGenerationComputeService::rejectedDuplicatesIncludes(
+    WorldGenerationComputeTicket ticket) const {
+  return hasRejectedDuplicate(ticket);
+}
+
+size_t WorldGenerationComputeService::rejectedDuplicatesLength() const {
+  return rejectedDuplicatesCount();
+}
+
+List<WorldGenerationComputeTicket> WorldGenerationComputeService::rejectedDuplicatesCollection() const {
+  return listRejectedDuplicates();
+}
+
+size_t WorldGenerationComputeService::rejectedDuplicatesFlush() {
+  return clearRejectedDuplicates();
+}
+
+uint64_t WorldGenerationComputeService::rejectedDuplicatesChecksum() const {
+  return fingerprintRejectedDuplicates();
+}
+
+bool WorldGenerationComputeService::rejectedDuplicatesPresent() const {
+  return anyRejectedDuplicates();
 }
 
 size_t WorldGenerationComputeService::clearRejectedDuplicates() {

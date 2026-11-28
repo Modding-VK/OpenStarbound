@@ -354,7 +354,25 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfBitPairSwapNibble = 328, // swap bit-pairs (1:0)<->(3:2); parameter ignored
   DenseUint32HalfNibbleMirror = 329, // reverse 4 bits in each low16 nibble; parameter ignored
   DenseUint32HalfXorShiftNibble = 330, // (n ^ (n<<(parameter&3))) & 0xf; high ignored
-  DenseUint32HalfAddCarryFillNibble = 331 // 0xf if n+(parameter&0xf) > 15 else 0; high ignored
+  DenseUint32HalfAddCarryFillNibble = 331, // 0xf if n+(parameter&0xf) > 15 else 0; high ignored
+  DenseUint32HalfSubBorrowFillNibble = 332, // 0xf if n < (parameter&0xf) else 0; high ignored
+  DenseUint32HalfMulOverflowFillNibble = 333, // 0xf if n*(parameter&0xf) > 15 else 0; high ignored
+  DenseUint32HalfInterleaveLowNibble = 334, // interleave low2 of n with low2 of (parameter&0xf); high ignored
+  DenseUint32HalfDeinterleaveEvenNibble = 335, // pack even bits of n into low2; high ignored
+  DenseUint32HalfDeinterleaveOddNibble = 336, // pack odd bits of n into low2; high ignored
+  DenseUint32HalfBitDepositNibble = 337, // PDEP-like: deposit low bits of n into mask (parameter&0xf); high ignored
+  DenseUint32HalfBitExtractNibble = 338, // PEXT-like: extract bits of n under mask (parameter&0xf) to low; high ignored
+  DenseUint32HalfReversePairsNibble = 339, // swap adjacent bit pairs within nibble; high ignored
+  DenseUint32HalfSatShlNibble = 340, // saturate (n << (parameter&3)) to 0xf per nibble; high ignored
+  DenseUint32HalfRoundShrNibble = 341, // round-half-up (n >> (parameter&3)) for k>0; high ignored
+  DenseUint32HalfMinParamNibble = 342, // min(n, parameter&0xf) per nibble; high ignored
+  DenseUint32HalfAvgTruncNibble = 343, // (n + (parameter&0xf)) >> 1 per nibble; high ignored
+  DenseUint32HalfMaxParamNibble = 344, // max(n, parameter&0xf) per nibble; high ignored
+  DenseUint32HalfAbsDiffParamNibble = 345, // |n - (parameter&0xf)| per nibble; high ignored
+  DenseUint32HalfMulHiNibble = 346, // high nibble of n*(parameter&0xf); high ignored
+  DenseUint32HalfSquareNibble = 347, // (n*n)&0xf per nibble; high ignored
+  DenseUint32HalfIsOneFillNibble = 348, // 0xf if n==1 else 0; high ignored
+  DenseUint32HalfRevBitsNibble = 349 // reverse 4 bits of each nibble; high ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -691,6 +709,18 @@ public:
   size_t rejectedDuplicatesPopulation() const;
   // Alias of listRejectedDuplicates (asset-free observation naming).
   List<WorldGenerationComputeTicket> rejectedDuplicatesSnapshot() const;
+  // Alias of hasRejectedDuplicate (asset-free observation naming).
+  bool rejectedDuplicatesIncludes(WorldGenerationComputeTicket ticket) const;
+  // Alias of rejectedDuplicatesCount (asset-free observation naming).
+  size_t rejectedDuplicatesLength() const;
+  // Alias of listRejectedDuplicates (asset-free observation naming).
+  List<WorldGenerationComputeTicket> rejectedDuplicatesCollection() const;
+  // Alias of clearRejectedDuplicates (asset-free observation naming).
+  size_t rejectedDuplicatesFlush();
+  // Alias of fingerprintRejectedDuplicates (asset-free observation naming).
+  uint64_t rejectedDuplicatesChecksum() const;
+  // Alias of anyRejectedDuplicates (asset-free observation naming).
+  bool rejectedDuplicatesPresent() const;
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 

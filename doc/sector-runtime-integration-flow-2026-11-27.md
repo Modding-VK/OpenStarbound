@@ -885,3 +885,7 @@ integração: **nenhum**.
 - H3 remote: `cursor/h3-kernels-publication-9f77` @ `3bdf1927` (sem tip novo).
 - PRs abertos com base na INT: nenhum.
 - Sem merge `main`; sem dispatch Actions nesta revisão.
+
+## Revisão 2026-11-28T00:44Z — lote H4 f3fa4e4a
+- Merge H4 tip `f3fa4e4a` (252/252; inclui `76edca18`+).
+- Build `46088031631` SUCCESS; 1 Build tip final; sem spam.
