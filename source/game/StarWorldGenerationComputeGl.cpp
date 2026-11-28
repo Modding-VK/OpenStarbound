@@ -475,6 +475,9 @@ GLuint g_halfReduceNibbleProgram = 0;
 GLuint g_halfBitAndFillNibbleProgram = 0;
 GLuint g_halfSubsetMaskNibbleProgram = 0;
 GLuint g_halfSupersetMaskNibbleProgram = 0;
+GLuint g_halfHammingNibbleProgram = 0;
+GLuint g_halfIntersectPopNibbleProgram = 0;
+GLuint g_halfUnionPopNibbleProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -8649,6 +8652,75 @@ void main() {
 }
 )GLSL";
 
+char const* HalfHammingNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint p = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint x = a ^ p;
+    uint outN = ((x >> 0) & 1u) + ((x >> 1) & 1u) + ((x >> 2) & 1u) + ((x >> 3) & 1u);
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfIntersectPopNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint p = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint x = a & p;
+    uint outN = ((x >> 0) & 1u) + ((x >> 1) & 1u) + ((x >> 2) & 1u) + ((x >> 3) & 1u);
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfUnionPopNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint p = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint x = a | p;
+    uint outN = ((x >> 0) & 1u) + ((x >> 1) & 1u) + ((x >> 2) & 1u) + ((x >> 3) & 1u);
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -10357,6 +10429,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfSupersetMaskNibbleProgram);
     g_halfSupersetMaskNibbleProgram = 0;
   }
+  if (g_halfHammingNibbleProgram) {
+    glDeleteProgram(g_halfHammingNibbleProgram);
+    g_halfHammingNibbleProgram = 0;
+  }
+  if (g_halfIntersectPopNibbleProgram) {
+    glDeleteProgram(g_halfIntersectPopNibbleProgram);
+    g_halfIntersectPopNibbleProgram = 0;
+  }
+  if (g_halfUnionPopNibbleProgram) {
+    glDeleteProgram(g_halfUnionPopNibbleProgram);
+    g_halfUnionPopNibbleProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -11075,7 +11159,13 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfSubsetMaskNibbleProgram, HalfSubsetMaskNibbleShader,
             "DenseUint32HalfSubsetMaskNibble")
       || !requireProgram(g_halfSupersetMaskNibbleProgram, HalfSupersetMaskNibbleShader,
-            "DenseUint32HalfSupersetMaskNibble"))
+            "DenseUint32HalfSupersetMaskNibble")
+      || !requireProgram(g_halfHammingNibbleProgram, HalfHammingNibbleShader,
+            "DenseUint32HalfHammingNibble")
+      || !requireProgram(g_halfIntersectPopNibbleProgram, HalfIntersectPopNibbleShader,
+            "DenseUint32HalfIntersectPopNibble")
+      || !requireProgram(g_halfUnionPopNibbleProgram, HalfUnionPopNibbleShader,
+            "DenseUint32HalfUnionPopNibble"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -11970,6 +12060,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfSubsetMaskNibbleProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfSupersetMaskNibble)
     program = g_halfSupersetMaskNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfHammingNibble)
+    program = g_halfHammingNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfIntersectPopNibble)
+    program = g_halfIntersectPopNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfUnionPopNibble)
+    program = g_halfUnionPopNibbleProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
