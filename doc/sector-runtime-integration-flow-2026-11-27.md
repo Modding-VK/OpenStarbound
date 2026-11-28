@@ -920,3 +920,8 @@ integração: **nenhum**.
 ## Revisão 2026-11-28T01:23Z — lote H4 e4f89cf7 (idle antecipado)
 - Merge H4 tip `e4f89cf7` (286/286) — cláusula 2.
 - Build `46092595525` intacto in_progress; hold 1 Build tip final; sem spam.
+
+## Sync 2026-11-28T01:30Z
+- Tip `e4ff2cff` (H4 `e4f89cf7` 286/286 material).
+- Ahead: h0–h3/h5/r1–r2=0; H4 `ac03782a` ahead=6 (hold).
+- Build `46092595525` in_progress @`65d2969a`; tip final pendente após terminal; sem dispatch.
