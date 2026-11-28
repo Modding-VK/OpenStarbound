@@ -759,6 +759,8 @@ public:
   size_t rejectedDuplicatesDrain();
   // Alias of fingerprintRejectedDuplicates (asset-free observation naming).
   uint64_t rejectedDuplicatesSeal() const;
+  // Alias of rejectedDuplicatesCount (asset-free observation naming).
+  size_t rejectedDuplicatesSpan() const;
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 
