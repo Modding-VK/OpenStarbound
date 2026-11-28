@@ -5877,6 +5877,10 @@ size_t WorldGenerationComputeService::rejectedDuplicatesMagnitude() const {
   return rejectedDuplicatesCount();
 }
 
+bool WorldGenerationComputeService::rejectedDuplicatesOwns(WorldGenerationComputeTicket ticket) const {
+  return rejectedDuplicatesContains(ticket);
+}
+
 size_t WorldGenerationComputeService::clearRejectedDuplicates() {
   std::lock_guard<std::mutex> lock(m_mutex);
   if (!ownerAllowsLocked())
