@@ -1,4 +1,5 @@
 #include "StarWorldGenerationCompute.hpp"
+#include "StarWorldGenerationComputeGl.hpp"
 
 #include "gtest/gtest.h"
 
@@ -487,9 +488,9 @@ TEST(WorldGenerationComputeTest, SupportedKernelsCatalogListsDenseFamily) {
   EXPECT_FALSE(WorldGenerationComputeService::isKernelSupported(
       WorldGenerationComputeKernel::DenseUint32Xor, 99u));
   auto kernels = WorldGenerationComputeService::supportedKernels();
-  ASSERT_EQ(436u, kernels.size());
+  ASSERT_EQ(446u, kernels.size());
   EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32Xor, kernels[0]);
-  EXPECT_EQ(WorldGenerationComputeKernel::DenseUint32HalfPopMaxNibble, kernels[kernels.size() - 1]);
+  EXPECT_EQ(WorldGenerationComputeKernel::BiomeIdBucket, kernels[kernels.size() - 1]);
   EXPECT_TRUE(WorldGenerationComputeService::supportedKernels(2u).empty());
 }
 
@@ -511,7 +512,7 @@ TEST(WorldGenerationComputeTest, CompareShadowBatchRunsIndependentKernels) {
     items.append(item);
   }
   auto reports = service.compareShadowBatch(input, std::move(items));
-  ASSERT_EQ(436u, reports.size());
+  ASSERT_EQ(446u, reports.size());
   for (auto const& report : reports) {
     EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal, report.verdict)
         << (int)report.identity.kernel;
@@ -4588,6 +4589,39 @@ TEST(WorldGenerationComputeTest, DenseUint32HalfRotl2Rotl3AvgNibbleExactCpuAndSh
 
 
 
+
+
+TEST(WorldGenerationComputeTest, RejectedDuplicatesEvacuateAliasesClearRejectedDuplicates) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  auto ticket = service.submit(makeIdentity(2943), List<uint32_t>{4u}, 1u);
+  ASSERT_TRUE((bool)ticket);
+  EXPECT_EQ(1u, service.failContext());
+  WorldGenerationComputeResult result;
+  EXPECT_EQ(WorldGenerationComputePollStatus::Ready, service.poll(*ticket, &result));
+  EXPECT_TRUE(service.anyRejectedDuplicates());
+  EXPECT_EQ(1u, service.rejectedDuplicatesEvacuate());
+  EXPECT_FALSE(service.anyRejectedDuplicates());
+  EXPECT_EQ(0u, service.rejectedDuplicatesEvacuate());
+}
+
+TEST(WorldGenerationComputeTest, RejectedDuplicatesDocketAliasesRejectedDuplicatesList) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  EXPECT_TRUE(service.rejectedDuplicatesDocket().empty());
+  auto ticket = service.submit(makeIdentity(2933), List<uint32_t>{4u}, 1u);
+  ASSERT_TRUE((bool)ticket);
+  EXPECT_EQ(1u, service.failContext());
+  WorldGenerationComputeResult result;
+  EXPECT_EQ(WorldGenerationComputePollStatus::Ready, service.poll(*ticket, &result));
+  auto docket = service.rejectedDuplicatesDocket();
+  EXPECT_EQ(1u, docket.size());
+  EXPECT_EQ(service.rejectedDuplicatesList().size(), docket.size());
+  EXPECT_EQ(service.rejectedDuplicatesRoll().size(), docket.size());
+  EXPECT_EQ(1u, service.clearRejectedDuplicates());
+  EXPECT_TRUE(service.rejectedDuplicatesDocket().empty());
+}
+
 TEST(WorldGenerationComputeTest, RejectedDuplicatesCipherAliasesRejectedDuplicatesFingerprint) {
   WorldGenerationComputeService service;
   service.setDeferredCpuCompletion(true);
@@ -5663,6 +5697,82 @@ TEST(WorldGenerationComputeTest, DenseUint32HalfHammingIntersectUnionPopNibbleEx
 
 
 
+
+
+
+TEST(WorldGenerationComputeTest, DenseUint32HalfZeroFullPopEqCountFillNibbleExactCpuAndShadow) {
+  WorldGenerationComputeService service;
+  auto input = edgeCorpus();
+  EXPECT_EQ(0x0000u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32HalfZeroPopFillNibble, 1u, List<uint32_t>{0x12345678u},
+          0x6u)[0]);
+  EXPECT_EQ(0x0000u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32HalfFullPopFillNibble, 1u, List<uint32_t>{0x12345678u},
+          0x6u)[0]);
+  EXPECT_EQ(0x000fu,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32HalfZeroPopFillNibble, 1u, List<uint32_t>{0x12345670u},
+          0x6u)[0]);
+  EXPECT_EQ(0x000fu,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32HalfFullPopFillNibble, 1u, List<uint32_t>{0x1234567fu},
+          0x6u)[0]);
+  EXPECT_EQ(0xff00u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32HalfPopEqCountFillNibble, 1u, List<uint32_t>{0x12345678u},
+          0x2u)[0]);
+
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(2940, WorldGenerationComputeKernel::DenseUint32HalfZeroPopFillNibble), input, 0x6u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(2941, WorldGenerationComputeKernel::DenseUint32HalfFullPopFillNibble), input, 0x6u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(2942, WorldGenerationComputeKernel::DenseUint32HalfPopEqCountFillNibble), input, 0x2u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+}
+
+TEST(WorldGenerationComputeTest, DenseUint32HalfOddPopMod3Maj3FillNibbleExactCpuAndShadow) {
+  WorldGenerationComputeService service;
+  auto input = edgeCorpus();
+  EXPECT_EQ(0x00ffu,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32HalfOddPopFillNibble, 1u, List<uint32_t>{0x12345678u},
+          0x6u)[0]);
+  EXPECT_EQ(0x2201u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32HalfPopMod3Nibble, 1u, List<uint32_t>{0x12345678u},
+          0x6u)[0]);
+  EXPECT_EQ(0x00f0u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::DenseUint32HalfMaj3FillNibble, 1u, List<uint32_t>{0x12345678u},
+          0x6u)[0]);
+
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(2930, WorldGenerationComputeKernel::DenseUint32HalfOddPopFillNibble), input, 0x6u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(2931, WorldGenerationComputeKernel::DenseUint32HalfPopMod3Nibble), input, 0x6u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(2932, WorldGenerationComputeKernel::DenseUint32HalfMaj3FillNibble), input, 0x6u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+}
 
 TEST(WorldGenerationComputeTest, DenseUint32HalfNePopFillPopMinMaxNibbleExactCpuAndShadow) {
   WorldGenerationComputeService service;
@@ -8248,7 +8358,7 @@ TEST(WorldGenerationComputeTest, DenseUint32OrNotAvgIsPow2ExactCpuAndShadow) {
 }
 
 TEST(WorldGenerationComputeTest, FingerprintCapabilitiesAndSupportedKernelCount) {
-  EXPECT_EQ(436u, WorldGenerationComputeService::supportedKernelCount());
+  EXPECT_EQ(446u, WorldGenerationComputeService::supportedKernelCount());
   EXPECT_EQ(0u, WorldGenerationComputeService::supportedKernelCount(2u));
   EXPECT_EQ(WorldGenerationComputeService::supportedKernels().size(),
       WorldGenerationComputeService::supportedKernelCount());
@@ -8828,6 +8938,122 @@ TEST(WorldGenerationComputeTest, DenseUint32MinMaxSubExactCpuAndShadow) {
           1u, WorldGenerationComputeBackend::CpuReference,
           WorldGenerationComputeBackend::CpuReference)
           .verdict);
+}
+
+
+TEST(WorldGenerationComputeTest, DeferredGpuTicketsCompleteViaPumpFencesRehearsal) {
+  // Milestone-50 cloud-safe: deferred GpuOpenGlCompute + fence rehearsal.
+  // Arms GlDevice fences; pump() advances fences non-blocking then materializes on CPU.
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  service.setGpuFenceRehearsal(true);
+  WorldGenerationComputeGlDevice::adoptOwnerThread();
+  service.adoptOwnerThread();
+
+  auto ticket = service.submit(makeIdentity(2970, WorldGenerationComputeKernel::TerrainFieldMax2),
+      List<uint32_t>{0x00200010u}, 0u, WorldGenerationComputeBackend::GpuOpenGlCompute);
+  ASSERT_TRUE(ticket);
+  EXPECT_GE(WorldGenerationComputeGlDevice::pendingFenceCount(), 1u);
+
+  WorldGenerationComputeResult early;
+  EXPECT_EQ(WorldGenerationComputePollStatus::Pending, service.poll(*ticket, &early));
+
+  EXPECT_EQ(1u, service.pump());
+  WorldGenerationComputeResult result;
+  EXPECT_EQ(WorldGenerationComputePollStatus::Ready, service.poll(*ticket, &result));
+  ASSERT_EQ(1u, result.values.size());
+  EXPECT_EQ(0x0020u, result.values[0]);
+  EXPECT_EQ(WorldGenerationComputeBackend::GpuOpenGlCompute, result.backend);
+  EXPECT_EQ(0u, WorldGenerationComputeGlDevice::pendingFenceCount());
+
+  service.clearOwnerThread();
+  WorldGenerationComputeGlDevice::clearOwnerThread();
+  WorldGenerationComputeGlDevice::shutdown();
+}
+
+TEST(WorldGenerationComputeTest, GpuSubmitRejectedWithoutCapabilityOrRehearsal) {
+  WorldGenerationComputeService service;
+  service.setDeferredCpuCompletion(true);
+  // rehearsal off, no GPU capability in normal build
+  auto ticket = service.submit(makeIdentity(2971, WorldGenerationComputeKernel::TerrainFieldMin2),
+      List<uint32_t>{0x00200010u}, 0u, WorldGenerationComputeBackend::GpuOpenGlCompute);
+  EXPECT_FALSE(ticket);
+}
+
+TEST(WorldGenerationComputeTest, TerrainBiomeFieldSketchExactCpuAndShadow) {
+  // Milestone-50 sketch only — CPU reference; does not claim 50% / no Desktop probe.
+  WorldGenerationComputeService service;
+  EXPECT_EQ(0x0020u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::TerrainFieldMax2, 1u, List<uint32_t>{0x00200010u}, 0u)[0]);
+  EXPECT_EQ(0x0010u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::TerrainFieldMin2, 1u, List<uint32_t>{0x00200010u}, 0u)[0]);
+  EXPECT_EQ(0x00ffu,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::TerrainFieldClampU16, 1u, List<uint32_t>{0x12340123u},
+          0x00ffu)[0]);
+  EXPECT_EQ(0x0012u,
+      WorldGenerationComputeService::runKernel(
+          WorldGenerationComputeKernel::BiomeIdBucket, 1u, List<uint32_t>{0x00000123u}, 0x10u)[0]);
+
+  auto input = edgeCorpus();
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(2972, WorldGenerationComputeKernel::TerrainFieldMax2), input, 0u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+  EXPECT_EQ(WorldGenerationComputeShadowVerdict::Equal,
+      service.compareShadow(
+          makeIdentity(2973, WorldGenerationComputeKernel::BiomeIdBucket), input, 0x10u,
+          WorldGenerationComputeBackend::CpuReference, WorldGenerationComputeBackend::CpuReference)
+          .verdict);
+}
+
+TEST(WorldGenerationComputeTest, GlOwnerThreadAndFenceHarnessNonBlocking) {
+  // Milestone-50 vertical step: GL device owner affinity + non-blocking fence pump.
+  // Stub build (no STAR_ENABLE_WORLDGEN_GL_COMPUTE) simulates Pending→Signaled on pumpFences
+  // without ClientWaitSync; real GL builds attach GLsync and poll with timeout 0.
+  EXPECT_FALSE(WorldGenerationComputeGlDevice::hasOwnerThread());
+  WorldGenerationComputeGlDevice::adoptOwnerThread();
+  EXPECT_TRUE(WorldGenerationComputeGlDevice::hasOwnerThread());
+  EXPECT_TRUE(WorldGenerationComputeGlDevice::isOwnerThread());
+
+  auto fence = WorldGenerationComputeGlDevice::createFence();
+  ASSERT_TRUE(fence);
+  EXPECT_EQ(WorldGenerationComputeGlFenceStatus::Pending,
+      WorldGenerationComputeGlDevice::pollFence(*fence));
+  EXPECT_EQ(1u, WorldGenerationComputeGlDevice::pendingFenceCount());
+
+  std::atomic<bool> foreignCreateOk{true};
+  std::atomic<bool> foreignPump{true};
+  std::thread foreign([&] {
+    foreignCreateOk = (bool)WorldGenerationComputeGlDevice::createFence();
+    foreignPump = WorldGenerationComputeGlDevice::pumpFences() != 0;
+  });
+  foreign.join();
+  EXPECT_FALSE(foreignCreateOk);
+  EXPECT_FALSE(foreignPump);
+  EXPECT_EQ(WorldGenerationComputeGlFenceStatus::Pending,
+      WorldGenerationComputeGlDevice::pollFence(*fence));
+
+  EXPECT_EQ(1u, WorldGenerationComputeGlDevice::pumpFences());
+  EXPECT_EQ(WorldGenerationComputeGlFenceStatus::Signaled,
+      WorldGenerationComputeGlDevice::pollFence(*fence));
+  EXPECT_EQ(0u, WorldGenerationComputeGlDevice::pendingFenceCount());
+  EXPECT_EQ(0u, WorldGenerationComputeGlDevice::pumpFences());
+  EXPECT_TRUE(WorldGenerationComputeGlDevice::retireFence(*fence));
+  EXPECT_EQ(WorldGenerationComputeGlFenceStatus::Invalid,
+      WorldGenerationComputeGlDevice::pollFence(*fence));
+
+  WorldGenerationComputeGlDevice::clearOwnerThread();
+  EXPECT_FALSE(WorldGenerationComputeGlDevice::hasOwnerThread());
+  // Without owner affinity, fence harness remains usable on the calling thread.
+  auto loose = WorldGenerationComputeGlDevice::createFence();
+  ASSERT_TRUE(loose);
+  EXPECT_EQ(1u, WorldGenerationComputeGlDevice::pumpFences());
+  EXPECT_TRUE(WorldGenerationComputeGlDevice::retireFence(*loose));
+  WorldGenerationComputeGlDevice::shutdown();
 }
 
 TEST(WorldGenerationComputeTest, OwnerThreadRejectsForeignMutations) {

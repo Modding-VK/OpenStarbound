@@ -22,6 +22,23 @@ enum class WorldGenerationComputeBackend : uint8_t {
   GpuOpenGlCompute = 1
 };
 
+// Milestone-50 fence ticket (shared by service + GlDevice; defined here to avoid
+// a Compute↔Gl header cycle).
+enum class WorldGenerationComputeGlFenceStatus : uint8_t {
+  Invalid = 0,
+  Pending = 1,
+  Signaled = 2,
+  Failed = 3
+};
+
+struct WorldGenerationComputeGlFence {
+  uint64_t id = 0;
+
+  bool operator==(WorldGenerationComputeGlFence const& rhs) const { return id == rhs.id; }
+  bool operator!=(WorldGenerationComputeGlFence const& rhs) const { return id != rhs.id; }
+  explicit operator bool() const { return id != 0; }
+};
+
 enum class WorldGenerationComputeKernel : uint16_t {
   // Exact-integer dense transforms (GPU-03 first candidate family; asset-free).
   DenseUint32Xor = 1,
@@ -459,7 +476,20 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfEvenPopFillNibble = 433, // 0xf if (pop(n)&1)==0 else 0; parameter ignored
   DenseUint32HalfNePopFillNibble = 434, // 0xf if pop(n)!=pop(p) else 0; high ignored
   DenseUint32HalfPopMinNibble = 435, // min(pop(n),pop(p)); high ignored
-  DenseUint32HalfPopMaxNibble = 436 // max(pop(n),pop(p)); high ignored
+  DenseUint32HalfPopMaxNibble = 436, // max(pop(n),pop(p)); high ignored
+  DenseUint32HalfOddPopFillNibble = 437, // 0xf if (pop(n)&1)!=0 else 0; parameter ignored
+  DenseUint32HalfPopMod3Nibble = 438, // pop(n)%3; parameter ignored
+  DenseUint32HalfMaj3FillNibble = 439, // 0xf if pop(n)>=3 else 0; parameter ignored
+  DenseUint32HalfZeroPopFillNibble = 440, // 0xf if pop(n)==0 else 0; parameter ignored
+  DenseUint32HalfFullPopFillNibble = 441, // 0xf if pop(n)==4 else 0; parameter ignored
+  DenseUint32HalfPopEqCountFillNibble = 442, // 0xf if pop(n)==(parameter&7) else 0; high ignored
+  // Milestone-50 terrain/biome field sketch (CPU reference first; GL on Desktop V).
+  // Not a DenseUint32 Half* coverage lot — exact integer field ops for Max/Min/Clamp
+  // and a coarse biome bucket. Does NOT claim the 50% milestone.
+  TerrainFieldMax2 = 443, // max(low16, high16); parameter ignored
+  TerrainFieldMin2 = 444, // min(low16, high16); parameter ignored
+  TerrainFieldClampU16 = 445, // clamp(low16, 0, parameter&0xffff); high cleared
+  BiomeIdBucket = 446 // min(255, low16 / max(1, parameter&0xffff)); high ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -866,6 +896,10 @@ public:
   size_t rejectedDuplicatesScrub();
   // Alias of rejectedDuplicatesFingerprint (asset-free observation naming).
   uint64_t rejectedDuplicatesCipher() const;
+  // Alias of rejectedDuplicatesList (asset-free observation naming).
+  List<WorldGenerationComputeTicket> rejectedDuplicatesDocket() const;
+  // Alias of clearRejectedDuplicates (asset-free observation naming).
+  size_t rejectedDuplicatesEvacuate();
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 
@@ -933,6 +967,12 @@ public:
   // mode (default) finishes CPU work before submit returns.
   void setDeferredCpuCompletion(bool deferred) noexcept;
 
+  // Milestone-50 cloud-safe rehearsal: with deferred completion, admit GpuOpenGlCompute
+  // tickets even when gpuOpenGlCompute is false. Arms GlDevice fences and materializes
+  // via CPU on pumpFences. Never claims real GL capability / never raises milestone %.
+  void setGpuFenceRehearsal(bool enabled) noexcept;
+  bool gpuFenceRehearsal() const noexcept;
+
   Maybe<WorldGenerationComputeTicket> submit(WorldGenerationComputeInputIdentity identity,
       List<uint32_t> input, uint32_t parameter,
       WorldGenerationComputeBackend backend = WorldGenerationComputeBackend::CpuReference);
@@ -947,7 +987,8 @@ public:
   Maybe<List<WorldGenerationComputeTicket>> submitBatch(List<WorldGenerationComputeBatchItem> items,
       WorldGenerationComputeBackend backend = WorldGenerationComputeBackend::CpuReference);
 
-  // Advances deferred fences without blocking the caller on GPU/GL.
+  // Advances deferred work without blocking: pumps GlDevice fences (timeout 0),
+  // then completes ready GPU-deferred tickets and remaining CPU-deferred tickets.
   size_t pump(size_t maxCompletions = 0);
 
   bool complete(WorldGenerationComputeTicket ticket);
@@ -1104,6 +1145,9 @@ private:
     uint64_t stagingBytes = 0;
     bool publicationRevoked = false;
     bool contextFailed = false;
+    // Milestone-50: deferred GPU tickets arm a GlDevice fence; pump polls non-blocking.
+    bool hasGlFence = false;
+    WorldGenerationComputeGlFence glFence{};
   };
 
   static bool supported(WorldGenerationComputeKernel kernel, uint32_t version) noexcept;
@@ -1111,6 +1155,8 @@ private:
   List<uint32_t> acquireBuffer(size_t size);
   void releaseBuffer(List<uint32_t>&& buffer);
   void completeEntry(Entry& entry);
+  void retireGlFenceLocked(Entry& entry) noexcept;
+  bool armGlFenceLocked(Entry& entry) noexcept;
   bool runBackendKernel(WorldGenerationComputeBackend backend,
       WorldGenerationComputeKernel kernel, uint32_t kernelVersion, List<uint32_t> const& input,
       uint32_t parameter, List<uint32_t>& out) const;
@@ -1123,6 +1169,7 @@ private:
 
   WorldGenerationComputeCapabilities m_capabilities;
   bool m_deferredCpu = false;
+  bool m_gpuFenceRehearsal = false;
   bool m_hasOwnerThread = false;
   std::thread::id m_ownerThread;
   mutable std::mutex m_mutex;

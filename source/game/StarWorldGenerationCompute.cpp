@@ -480,7 +480,17 @@ bool WorldGenerationComputeService::isKernelSupported(WorldGenerationComputeKern
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfEvenPopFillNibble
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfNePopFillNibble
       || kernel == WorldGenerationComputeKernel::DenseUint32HalfPopMinNibble
-      || kernel == WorldGenerationComputeKernel::DenseUint32HalfPopMaxNibble;
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfPopMaxNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfOddPopFillNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfPopMod3Nibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfMaj3FillNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfZeroPopFillNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfFullPopFillNibble
+      || kernel == WorldGenerationComputeKernel::DenseUint32HalfPopEqCountFillNibble
+      || kernel == WorldGenerationComputeKernel::TerrainFieldMax2
+      || kernel == WorldGenerationComputeKernel::TerrainFieldMin2
+      || kernel == WorldGenerationComputeKernel::TerrainFieldClampU16
+      || kernel == WorldGenerationComputeKernel::BiomeIdBucket;
 }
 
 List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKernels(
@@ -924,7 +934,17 @@ List<WorldGenerationComputeKernel> WorldGenerationComputeService::supportedKerne
       WorldGenerationComputeKernel::DenseUint32HalfEvenPopFillNibble,
       WorldGenerationComputeKernel::DenseUint32HalfNePopFillNibble,
       WorldGenerationComputeKernel::DenseUint32HalfPopMinNibble,
-      WorldGenerationComputeKernel::DenseUint32HalfPopMaxNibble};
+      WorldGenerationComputeKernel::DenseUint32HalfPopMaxNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfOddPopFillNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfPopMod3Nibble,
+      WorldGenerationComputeKernel::DenseUint32HalfMaj3FillNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfZeroPopFillNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfFullPopFillNibble,
+      WorldGenerationComputeKernel::DenseUint32HalfPopEqCountFillNibble,
+      WorldGenerationComputeKernel::TerrainFieldMax2,
+      WorldGenerationComputeKernel::TerrainFieldMin2,
+      WorldGenerationComputeKernel::TerrainFieldClampU16,
+      WorldGenerationComputeKernel::BiomeIdBucket};
   for (auto kernel : all)
     out.append(kernel);
   return out;
@@ -934,7 +954,7 @@ size_t WorldGenerationComputeService::supportedKernelCount(uint32_t kernelVersio
   if (kernelVersion != 1u)
     return 0;
   // Keep in sync with the catalog array in supportedKernels().
-  return 436u;
+  return 446u;
 }
 
 List<uint32_t> WorldGenerationComputeService::runNamedKernel(char const* name,
@@ -1392,6 +1412,16 @@ char const* WorldGenerationComputeService::kernelName(WorldGenerationComputeKern
     case WorldGenerationComputeKernel::DenseUint32HalfNePopFillNibble: return "DenseUint32HalfNePopFillNibble";
     case WorldGenerationComputeKernel::DenseUint32HalfPopMinNibble: return "DenseUint32HalfPopMinNibble";
     case WorldGenerationComputeKernel::DenseUint32HalfPopMaxNibble: return "DenseUint32HalfPopMaxNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfOddPopFillNibble: return "DenseUint32HalfOddPopFillNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfPopMod3Nibble: return "DenseUint32HalfPopMod3Nibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfMaj3FillNibble: return "DenseUint32HalfMaj3FillNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfZeroPopFillNibble: return "DenseUint32HalfZeroPopFillNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfFullPopFillNibble: return "DenseUint32HalfFullPopFillNibble";
+    case WorldGenerationComputeKernel::DenseUint32HalfPopEqCountFillNibble: return "DenseUint32HalfPopEqCountFillNibble";
+    case WorldGenerationComputeKernel::TerrainFieldMax2: return "TerrainFieldMax2";
+    case WorldGenerationComputeKernel::TerrainFieldMin2: return "TerrainFieldMin2";
+    case WorldGenerationComputeKernel::TerrainFieldClampU16: return "TerrainFieldClampU16";
+    case WorldGenerationComputeKernel::BiomeIdBucket: return "BiomeIdBucket";
   }
   return nullptr;
 }
@@ -5756,6 +5786,108 @@ List<uint32_t> WorldGenerationComputeService::runKernel(WorldGenerationComputeKe
       }
       out.append(result);
     }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfOddPopFillNibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t aPop = ((a >> 0) & 1u) + ((a >> 1) & 1u) + ((a >> 2) & 1u) + ((a >> 3) & 1u);
+        uint32_t outN = ((aPop & 1u) != 0u) ? 0xfu : 0u;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfPopMod3Nibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t aPop = ((a >> 0) & 1u) + ((a >> 1) & 1u) + ((a >> 2) & 1u) + ((a >> 3) & 1u);
+        uint32_t outN = aPop % 3u;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfMaj3FillNibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t aPop = ((a >> 0) & 1u) + ((a >> 1) & 1u) + ((a >> 2) & 1u) + ((a >> 3) & 1u);
+        uint32_t outN = (aPop >= 3u) ? 0xfu : 0u;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfZeroPopFillNibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t aPop = ((a >> 0) & 1u) + ((a >> 1) & 1u) + ((a >> 2) & 1u) + ((a >> 3) & 1u);
+        uint32_t outN = (aPop == 0u) ? 0xfu : 0u;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfFullPopFillNibble) {
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t aPop = ((a >> 0) & 1u) + ((a >> 1) & 1u) + ((a >> 2) & 1u) + ((a >> 3) & 1u);
+        uint32_t outN = (aPop == 4u) ? 0xfu : 0u;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfPopEqCountFillNibble) {
+    uint32_t target = parameter & 7u;
+    for (uint32_t value : input) {
+      uint32_t lo = value & 0xffffu;
+      uint32_t result = 0;
+      for (uint32_t i = 0; i < 4; ++i) {
+        uint32_t a = (lo >> (i * 4u)) & 0xfu;
+        uint32_t aPop = ((a >> 0) & 1u) + ((a >> 1) & 1u) + ((a >> 2) & 1u) + ((a >> 3) & 1u);
+        uint32_t outN = (aPop == target) ? 0xfu : 0u;
+        result |= outN << (i * 4u);
+      }
+      out.append(result);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::TerrainFieldMax2) {
+    for (uint32_t value : input) {
+      uint32_t a = value & 0xffffu;
+      uint32_t b = (value >> 16) & 0xffffu;
+      out.append(a > b ? a : b);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::TerrainFieldMin2) {
+    for (uint32_t value : input) {
+      uint32_t a = value & 0xffffu;
+      uint32_t b = (value >> 16) & 0xffffu;
+      out.append(a < b ? a : b);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::TerrainFieldClampU16) {
+    uint32_t hi = parameter & 0xffffu;
+    for (uint32_t value : input) {
+      uint32_t a = value & 0xffffu;
+      out.append(a > hi ? hi : a);
+    }
+  } else if (kernel == WorldGenerationComputeKernel::BiomeIdBucket) {
+    uint32_t width = parameter & 0xffffu;
+    if (width == 0u)
+      width = 1u;
+    for (uint32_t value : input) {
+      uint32_t a = value & 0xffffu;
+      uint32_t id = a / width;
+      if (id > 255u)
+        id = 255u;
+      out.append(id);
+    }
   }
   return out;
 }
@@ -5810,6 +5942,18 @@ void WorldGenerationComputeService::setDeferredCpuCompletion(bool deferred) noex
   if (!ownerAllowsLocked())
     return;
   m_deferredCpu = deferred;
+}
+
+void WorldGenerationComputeService::setGpuFenceRehearsal(bool enabled) noexcept {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if (!ownerAllowsLocked())
+    return;
+  m_gpuFenceRehearsal = enabled;
+}
+
+bool WorldGenerationComputeService::gpuFenceRehearsal() const noexcept {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  return m_gpuFenceRehearsal;
 }
 
 size_t WorldGenerationComputeService::openTickets() const {
@@ -6604,6 +6748,14 @@ uint64_t WorldGenerationComputeService::rejectedDuplicatesCipher() const {
   return rejectedDuplicatesFingerprint();
 }
 
+List<WorldGenerationComputeTicket> WorldGenerationComputeService::rejectedDuplicatesDocket() const {
+  return rejectedDuplicatesList();
+}
+
+size_t WorldGenerationComputeService::rejectedDuplicatesEvacuate() {
+  return clearRejectedDuplicates();
+}
+
 size_t WorldGenerationComputeService::clearRejectedDuplicates() {
   std::lock_guard<std::mutex> lock(m_mutex);
   if (!ownerAllowsLocked())
@@ -6793,6 +6945,7 @@ size_t WorldGenerationComputeService::discardPendingOpenTicketsByKernel(
     if (entry.state != EntryState::Pending || entry.identity.kernel != kernel)
       continue;
     entry.publicationRevoked = true;
+    retireGlFenceLocked(entry);
     entry.state = EntryState::Cancelled;
     entry.output.clear();
     WorldGenerationComputeTicket ticket;
@@ -6817,6 +6970,7 @@ size_t WorldGenerationComputeService::discardPendingOpenTickets() {
     if (entry.state != EntryState::Pending)
       continue;
     entry.publicationRevoked = true;
+    retireGlFenceLocked(entry);
     entry.state = EntryState::Cancelled;
     entry.output.clear();
     WorldGenerationComputeTicket ticket;
@@ -7070,9 +7224,13 @@ bool WorldGenerationComputeService::runBackendKernel(WorldGenerationComputeBacke
   if (!supported(kernel, kernelVersion))
     return false;
   if (backend == WorldGenerationComputeBackend::GpuOpenGlCompute) {
-    if (!m_capabilities.gpuOpenGlCompute)
+    if (m_capabilities.gpuOpenGlCompute)
+      return WorldGenerationComputeGlDevice::dispatch(kernel, kernelVersion, input, parameter, out);
+    // Cloud-safe rehearsal: materialize on CPU when real GL is unavailable.
+    if (!m_gpuFenceRehearsal || !m_capabilities.cpuReference)
       return false;
-    return WorldGenerationComputeGlDevice::dispatch(kernel, kernelVersion, input, parameter, out);
+    out = runKernel(kernel, kernelVersion, input, parameter);
+    return true;
   }
   if (backend != WorldGenerationComputeBackend::CpuReference || !m_capabilities.cpuReference)
     return false;
@@ -7080,18 +7238,38 @@ bool WorldGenerationComputeService::runBackendKernel(WorldGenerationComputeBacke
   return true;
 }
 
+void WorldGenerationComputeService::retireGlFenceLocked(Entry& entry) noexcept {
+  if (!entry.hasGlFence)
+    return;
+  WorldGenerationComputeGlDevice::retireFence(entry.glFence);
+  entry.hasGlFence = false;
+  entry.glFence = {};
+}
+
+bool WorldGenerationComputeService::armGlFenceLocked(Entry& entry) noexcept {
+  auto fence = WorldGenerationComputeGlDevice::createFence();
+  if (!fence)
+    return false;
+  entry.hasGlFence = true;
+  entry.glFence = *fence;
+  return true;
+}
+
 void WorldGenerationComputeService::completeEntry(Entry& entry) {
   if (entry.publicationRevoked || entry.contextFailed) {
+    retireGlFenceLocked(entry);
     entry.state = EntryState::Cancelled;
     entry.output.clear();
     return;
   }
   if (!runBackendKernel(entry.backend, entry.identity.kernel, entry.identity.kernelVersion,
           entry.input, entry.parameter, entry.output)) {
+    retireGlFenceLocked(entry);
     entry.state = EntryState::Failed;
     entry.output.clear();
     return;
   }
+  retireGlFenceLocked(entry);
   entry.state = EntryState::Ready;
 }
 
@@ -7101,7 +7279,8 @@ Maybe<WorldGenerationComputeTicket> WorldGenerationComputeService::submitLocked(
   if (!supported(identity.kernel, identity.kernelVersion))
     return {};
   if (backend == WorldGenerationComputeBackend::GpuOpenGlCompute) {
-    if (!m_capabilities.gpuOpenGlCompute)
+    if (!m_capabilities.gpuOpenGlCompute
+        && !(m_deferredCpu && m_gpuFenceRehearsal && m_capabilities.cpuReference))
       return {};
   } else if (backend != WorldGenerationComputeBackend::CpuReference
       || !m_capabilities.cpuReference) {
@@ -7136,12 +7315,17 @@ Maybe<WorldGenerationComputeTicket> WorldGenerationComputeService::submitLocked(
   if (m_stagingBytes > m_peakStagingBytes)
     m_peakStagingBytes = m_stagingBytes;
 
-  // GPU completions use the same sync/deferred switch as CPU for the first
-  // harness: deferred leaves Pending until pump()/complete(); sync runs now.
-  if (!m_deferredCpu)
+  // Deferred GPU: arm a GlDevice fence and leave Pending until pump() sees it signaled.
+  // Sync mode still completes inline (blocking dispatch when real GL is present).
+  if (!m_deferredCpu) {
     completeEntry(entry);
-  else
+  } else if (backend == WorldGenerationComputeBackend::GpuOpenGlCompute) {
+    if (!armGlFenceLocked(entry))
+      return {};
     entry.state = EntryState::Pending;
+  } else {
+    entry.state = EntryState::Pending;
+  }
 
   m_entries.emplace(ticket.id, std::move(entry));
   if (m_entries.size() > m_peakOpenTickets)
@@ -7221,6 +7405,10 @@ size_t WorldGenerationComputeService::pump(size_t maxCompletions) {
   std::lock_guard<std::mutex> lock(m_mutex);
   if (!ownerAllowsLocked())
     return 0;
+
+  // Non-blocking fence advance (stub signals immediately; real GL uses timeout 0).
+  WorldGenerationComputeGlDevice::pumpFences(maxCompletions);
+
   size_t completed = 0;
   for (auto& pair : m_entries) {
     if (maxCompletions && completed >= maxCompletions)
@@ -7228,6 +7416,25 @@ size_t WorldGenerationComputeService::pump(size_t maxCompletions) {
     Entry& entry = pair.second;
     if (entry.state != EntryState::Pending)
       continue;
+
+    if (entry.backend == WorldGenerationComputeBackend::GpuOpenGlCompute && entry.hasGlFence) {
+      auto status = WorldGenerationComputeGlDevice::pollFence(entry.glFence);
+      if (status == WorldGenerationComputeGlFenceStatus::Pending)
+        continue;
+      if (status == WorldGenerationComputeGlFenceStatus::Failed
+          || status == WorldGenerationComputeGlFenceStatus::Invalid) {
+        retireGlFenceLocked(entry);
+        entry.state = EntryState::Failed;
+        entry.output.clear();
+        ++completed;
+        continue;
+      }
+      // Signaled: materialize (GL dispatch or rehearsal CPU).
+      completeEntry(entry);
+      ++completed;
+      continue;
+    }
+
     completeEntry(entry);
     ++completed;
   }
@@ -7346,6 +7553,7 @@ bool WorldGenerationComputeService::cancel(WorldGenerationComputeTicket ticket) 
     return false;
   it->second.publicationRevoked = true;
   if (it->second.state == EntryState::Pending || it->second.state == EntryState::Ready) {
+    retireGlFenceLocked(it->second);
     it->second.state = EntryState::Cancelled;
     it->second.output.clear();
   }
@@ -7369,6 +7577,7 @@ List<bool> WorldGenerationComputeService::cancelBatch(List<WorldGenerationComput
     }
     it->second.publicationRevoked = true;
     if (it->second.state == EntryState::Pending || it->second.state == EntryState::Ready) {
+      retireGlFenceLocked(it->second);
       it->second.state = EntryState::Cancelled;
       it->second.output.clear();
     }
@@ -7388,6 +7597,7 @@ size_t WorldGenerationComputeService::cancelAll() {
       continue;
     entry.publicationRevoked = true;
     if (entry.state == EntryState::Pending || entry.state == EntryState::Ready) {
+      retireGlFenceLocked(entry);
       entry.state = EntryState::Cancelled;
       entry.output.clear();
     }
@@ -7410,6 +7620,7 @@ size_t WorldGenerationComputeService::cancelOpenTicketsByKernel(
       continue;
     entry.publicationRevoked = true;
     if (entry.state == EntryState::Pending || entry.state == EntryState::Ready) {
+      retireGlFenceLocked(entry);
       entry.state = EntryState::Cancelled;
       entry.output.clear();
     }

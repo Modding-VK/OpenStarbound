@@ -6,11 +6,28 @@
 
 #ifndef STAR_ENABLE_WORLDGEN_GL_COMPUTE
 
+#include <thread>
+#include <unordered_map>
+
 namespace Star {
 
 namespace {
 WorldGenerationComputeGlProbeInfo g_info{};
 std::once_flag g_once;
+std::mutex g_glMutex;
+std::thread::id g_ownerThread{};
+bool g_hasOwnerThread = false;
+uint64_t g_nextFenceId = 1;
+
+struct StubFenceEntry {
+  WorldGenerationComputeGlFenceStatus status = WorldGenerationComputeGlFenceStatus::Pending;
+};
+
+std::unordered_map<uint64_t, StubFenceEntry> g_fences;
+
+bool ownerAllowsUnlocked() noexcept {
+  return !g_hasOwnerThread || std::this_thread::get_id() == g_ownerThread;
+}
 }
 
 bool WorldGenerationComputeGlDevice::isBuildEnabled() noexcept {
@@ -18,6 +35,13 @@ bool WorldGenerationComputeGlDevice::isBuildEnabled() noexcept {
 }
 
 WorldGenerationComputeCapabilities WorldGenerationComputeGlDevice::probeCapabilities() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked()) {
+    WorldGenerationComputeCapabilities caps;
+    caps.cpuReference = true;
+    caps.gpuOpenGlCompute = false;
+    return caps;
+  }
   std::call_once(g_once, [] {
     g_info.buildEnabled = false;
     g_info.failureReason = "STAR_ENABLE_WORLDGEN_GL_COMPUTE not enabled in this build";
@@ -39,10 +63,93 @@ WorldGenerationComputeGlProbeInfo const& WorldGenerationComputeGlDevice::lastPro
 
 bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel, uint32_t,
     List<uint32_t> const&, uint32_t, List<uint32_t>&) {
+  std::lock_guard<std::mutex> lock(g_glMutex);
   return false;
 }
 
-void WorldGenerationComputeGlDevice::shutdown() noexcept {}
+void WorldGenerationComputeGlDevice::adoptOwnerThread() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  g_ownerThread = std::this_thread::get_id();
+  g_hasOwnerThread = true;
+}
+
+void WorldGenerationComputeGlDevice::clearOwnerThread() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  g_hasOwnerThread = false;
+  g_ownerThread = std::thread::id{};
+}
+
+bool WorldGenerationComputeGlDevice::hasOwnerThread() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  return g_hasOwnerThread;
+}
+
+bool WorldGenerationComputeGlDevice::isOwnerThread() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  return g_hasOwnerThread && std::this_thread::get_id() == g_ownerThread;
+}
+
+Maybe<WorldGenerationComputeGlFence> WorldGenerationComputeGlDevice::createFence() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked())
+    return {};
+  WorldGenerationComputeGlFence fence;
+  fence.id = g_nextFenceId++;
+  g_fences[fence.id] = StubFenceEntry{};
+  return fence;
+}
+
+WorldGenerationComputeGlFenceStatus WorldGenerationComputeGlDevice::pollFence(
+    WorldGenerationComputeGlFence fence) noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked() || fence.id == 0)
+    return WorldGenerationComputeGlFenceStatus::Invalid;
+  auto it = g_fences.find(fence.id);
+  if (it == g_fences.end())
+    return WorldGenerationComputeGlFenceStatus::Invalid;
+  return it->second.status;
+}
+
+size_t WorldGenerationComputeGlDevice::pumpFences(size_t maxCompletions) noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked())
+    return 0;
+  size_t completed = 0;
+  for (auto& pair : g_fences) {
+    if (maxCompletions && completed >= maxCompletions)
+      break;
+    if (pair.second.status != WorldGenerationComputeGlFenceStatus::Pending)
+      continue;
+    // Stub path: non-blocking signal (no GPU wait).
+    pair.second.status = WorldGenerationComputeGlFenceStatus::Signaled;
+    ++completed;
+  }
+  return completed;
+}
+
+bool WorldGenerationComputeGlDevice::retireFence(WorldGenerationComputeGlFence fence) noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked() || fence.id == 0)
+    return false;
+  return g_fences.erase(fence.id) != 0;
+}
+
+size_t WorldGenerationComputeGlDevice::pendingFenceCount() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  size_t n = 0;
+  for (auto const& pair : g_fences) {
+    if (pair.second.status == WorldGenerationComputeGlFenceStatus::Pending)
+      ++n;
+  }
+  return n;
+}
+
+void WorldGenerationComputeGlDevice::shutdown() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked())
+    return;
+  g_fences.clear();
+}
 
 }
 
@@ -51,6 +158,9 @@ void WorldGenerationComputeGlDevice::shutdown() noexcept {}
 #include "GL/glew.h"
 #include <SDL3/SDL.h>
 
+#include <thread>
+#include <unordered_map>
+
 namespace Star {
 
 namespace {
@@ -58,8 +168,47 @@ namespace {
 WorldGenerationComputeGlProbeInfo g_info{};
 std::once_flag g_probeOnce;
 std::mutex g_glMutex;
+std::thread::id g_ownerThread{};
+bool g_hasOwnerThread = false;
+uint64_t g_nextFenceId = 1;
 SDL_Window* g_window = nullptr;
 SDL_GLContext g_context = nullptr;
+
+struct GlFenceEntry {
+  WorldGenerationComputeGlFenceStatus status = WorldGenerationComputeGlFenceStatus::Pending;
+  GLsync sync = nullptr;
+};
+
+std::unordered_map<uint64_t, GlFenceEntry> g_fences;
+
+bool ownerAllowsUnlocked() noexcept {
+  return !g_hasOwnerThread || std::this_thread::get_id() == g_ownerThread;
+}
+
+void destroyFenceSyncUnlocked(GlFenceEntry& entry) noexcept {
+  if (entry.sync) {
+    glDeleteSync(entry.sync);
+    entry.sync = nullptr;
+  }
+}
+
+WorldGenerationComputeGlFenceStatus pollFenceEntryUnlocked(GlFenceEntry& entry) noexcept {
+  if (entry.status != WorldGenerationComputeGlFenceStatus::Pending)
+    return entry.status;
+  if (!entry.sync) {
+    // Simulated fence (no live GL sync): stays Pending until pumpFences.
+    return WorldGenerationComputeGlFenceStatus::Pending;
+  }
+  GLenum wait = glClientWaitSync(entry.sync, GL_SYNC_FLUSH_COMMANDS_BIT, 0);
+  if (wait == GL_ALREADY_SIGNALED || wait == GL_CONDITION_SATISFIED) {
+    destroyFenceSyncUnlocked(entry);
+    entry.status = WorldGenerationComputeGlFenceStatus::Signaled;
+  } else if (wait == GL_WAIT_FAILED) {
+    destroyFenceSyncUnlocked(entry);
+    entry.status = WorldGenerationComputeGlFenceStatus::Failed;
+  }
+  return entry.status;
+}
 GLuint g_xorProgram = 0;
 GLuint g_addProgram = 0;
 GLuint g_andProgram = 0;
@@ -496,6 +645,12 @@ GLuint g_halfEvenPopFillNibbleProgram = 0;
 GLuint g_halfNePopFillNibbleProgram = 0;
 GLuint g_halfPopMinNibbleProgram = 0;
 GLuint g_halfPopMaxNibbleProgram = 0;
+GLuint g_halfOddPopFillNibbleProgram = 0;
+GLuint g_halfPopMod3NibbleProgram = 0;
+GLuint g_halfMaj3FillNibbleProgram = 0;
+GLuint g_halfZeroPopFillNibbleProgram = 0;
+GLuint g_halfFullPopFillNibbleProgram = 0;
+GLuint g_halfPopEqCountFillNibbleProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -9167,6 +9322,139 @@ void main() {
 }
 )GLSL";
 
+char const* HalfOddPopFillNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint aPop = ((a >> 0) & 1u) + ((a >> 1) & 1u) + ((a >> 2) & 1u) + ((a >> 3) & 1u);
+    uint outN = ((aPop & 1u) != 0u) ? 0xfu : 0u;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfPopMod3NibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint aPop = ((a >> 0) & 1u) + ((a >> 1) & 1u) + ((a >> 2) & 1u) + ((a >> 3) & 1u);
+    uint outN = aPop % 3u;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfMaj3FillNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint aPop = ((a >> 0) & 1u) + ((a >> 1) & 1u) + ((a >> 2) & 1u) + ((a >> 3) & 1u);
+    uint outN = (aPop >= 3u) ? 0xfu : 0u;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfZeroPopFillNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint aPop = ((a >> 0) & 1u) + ((a >> 1) & 1u) + ((a >> 2) & 1u) + ((a >> 3) & 1u);
+    uint outN = (aPop == 0u) ? 0xfu : 0u;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfFullPopFillNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint aPop = ((a >> 0) & 1u) + ((a >> 1) & 1u) + ((a >> 2) & 1u) + ((a >> 3) & 1u);
+    uint outN = (aPop == 4u) ? 0xfu : 0u;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfPopEqCountFillNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint target = uParameter & 7u;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint aPop = ((a >> 0) & 1u) + ((a >> 1) & 1u) + ((a >> 2) & 1u) + ((a >> 3) & 1u);
+    uint outN = (aPop == target) ? 0xfu : 0u;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -10959,6 +11247,30 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfPopMaxNibbleProgram);
     g_halfPopMaxNibbleProgram = 0;
   }
+  if (g_halfOddPopFillNibbleProgram) {
+    glDeleteProgram(g_halfOddPopFillNibbleProgram);
+    g_halfOddPopFillNibbleProgram = 0;
+  }
+  if (g_halfPopMod3NibbleProgram) {
+    glDeleteProgram(g_halfPopMod3NibbleProgram);
+    g_halfPopMod3NibbleProgram = 0;
+  }
+  if (g_halfMaj3FillNibbleProgram) {
+    glDeleteProgram(g_halfMaj3FillNibbleProgram);
+    g_halfMaj3FillNibbleProgram = 0;
+  }
+  if (g_halfZeroPopFillNibbleProgram) {
+    glDeleteProgram(g_halfZeroPopFillNibbleProgram);
+    g_halfZeroPopFillNibbleProgram = 0;
+  }
+  if (g_halfFullPopFillNibbleProgram) {
+    glDeleteProgram(g_halfFullPopFillNibbleProgram);
+    g_halfFullPopFillNibbleProgram = 0;
+  }
+  if (g_halfPopEqCountFillNibbleProgram) {
+    glDeleteProgram(g_halfPopEqCountFillNibbleProgram);
+    g_halfPopEqCountFillNibbleProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -11719,7 +12031,19 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfPopMinNibbleProgram, HalfPopMinNibbleShader,
             "DenseUint32HalfPopMinNibble")
       || !requireProgram(g_halfPopMaxNibbleProgram, HalfPopMaxNibbleShader,
-            "DenseUint32HalfPopMaxNibble"))
+            "DenseUint32HalfPopMaxNibble")
+      || !requireProgram(g_halfOddPopFillNibbleProgram, HalfOddPopFillNibbleShader,
+            "DenseUint32HalfOddPopFillNibble")
+      || !requireProgram(g_halfPopMod3NibbleProgram, HalfPopMod3NibbleShader,
+            "DenseUint32HalfPopMod3Nibble")
+      || !requireProgram(g_halfMaj3FillNibbleProgram, HalfMaj3FillNibbleShader,
+            "DenseUint32HalfMaj3FillNibble")
+      || !requireProgram(g_halfZeroPopFillNibbleProgram, HalfZeroPopFillNibbleShader,
+            "DenseUint32HalfZeroPopFillNibble")
+      || !requireProgram(g_halfFullPopFillNibbleProgram, HalfFullPopFillNibbleShader,
+            "DenseUint32HalfFullPopFillNibble")
+      || !requireProgram(g_halfPopEqCountFillNibbleProgram, HalfPopEqCountFillNibbleShader,
+            "DenseUint32HalfPopEqCountFillNibble"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -11752,6 +12076,12 @@ bool WorldGenerationComputeGlDevice::isBuildEnabled() noexcept {
 
 WorldGenerationComputeCapabilities WorldGenerationComputeGlDevice::probeCapabilities() noexcept {
   std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked()) {
+    WorldGenerationComputeCapabilities caps;
+    caps.cpuReference = true;
+    caps.gpuOpenGlCompute = false;
+    return caps;
+  }
   std::call_once(g_probeOnce, runProbe);
   WorldGenerationComputeCapabilities caps;
   caps.cpuReference = true;
@@ -11778,6 +12108,8 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     uint32_t kernelVersion, List<uint32_t> const& input, uint32_t parameter,
     List<uint32_t>& output) {
   std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked())
+    return false;
   std::call_once(g_probeOnce, runProbe);
   if (!g_info.computeAvailable || !g_context || !g_window)
     return false;
@@ -12656,6 +12988,18 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfPopMinNibbleProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfPopMaxNibble)
     program = g_halfPopMaxNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfOddPopFillNibble)
+    program = g_halfOddPopFillNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfPopMod3Nibble)
+    program = g_halfPopMod3NibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfMaj3FillNibble)
+    program = g_halfMaj3FillNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfZeroPopFillNibble)
+    program = g_halfZeroPopFillNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfFullPopFillNibble)
+    program = g_halfFullPopFillNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfPopEqCountFillNibble)
+    program = g_halfPopEqCountFillNibbleProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
@@ -12680,6 +13024,8 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
   glDispatchCompute(groups, 1, 1);
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
 
+  // Synchronous dispatch still waits here; async path uses createFence/pollFence/pumpFences
+  // so WorldThread can advance without a blocking ClientWaitSync on the update tick.
   GLsync fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
   if (!fence)
     return false;
@@ -12697,8 +13043,123 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
   return !clearGlErrors();
 }
 
+void WorldGenerationComputeGlDevice::adoptOwnerThread() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  g_ownerThread = std::this_thread::get_id();
+  g_hasOwnerThread = true;
+}
+
+void WorldGenerationComputeGlDevice::clearOwnerThread() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  g_hasOwnerThread = false;
+  g_ownerThread = std::thread::id{};
+}
+
+bool WorldGenerationComputeGlDevice::hasOwnerThread() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  return g_hasOwnerThread;
+}
+
+bool WorldGenerationComputeGlDevice::isOwnerThread() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  return g_hasOwnerThread && std::this_thread::get_id() == g_ownerThread;
+}
+
+Maybe<WorldGenerationComputeGlFence> WorldGenerationComputeGlDevice::createFence() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked())
+    return {};
+  std::call_once(g_probeOnce, runProbe);
+
+  GlFenceEntry entry;
+  if (g_info.computeAvailable && g_context && g_window && SDL_GL_MakeCurrent(g_window, g_context)) {
+    entry.sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    if (!entry.sync) {
+      entry.status = WorldGenerationComputeGlFenceStatus::Failed;
+    } else {
+      // Ensure the fence is flushable for non-blocking polls.
+      glFlush();
+    }
+  } else {
+    // No live compute context: simulated Pending fence (pumpFences signals).
+    entry.sync = nullptr;
+  }
+
+  WorldGenerationComputeGlFence fence;
+  fence.id = g_nextFenceId++;
+  g_fences[fence.id] = entry;
+  return fence;
+}
+
+WorldGenerationComputeGlFenceStatus WorldGenerationComputeGlDevice::pollFence(
+    WorldGenerationComputeGlFence fence) noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked() || fence.id == 0)
+    return WorldGenerationComputeGlFenceStatus::Invalid;
+  auto it = g_fences.find(fence.id);
+  if (it == g_fences.end())
+    return WorldGenerationComputeGlFenceStatus::Invalid;
+  if (it->second.sync && g_window && g_context)
+    SDL_GL_MakeCurrent(g_window, g_context);
+  return pollFenceEntryUnlocked(it->second);
+}
+
+size_t WorldGenerationComputeGlDevice::pumpFences(size_t maxCompletions) noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked())
+    return 0;
+  if (g_window && g_context)
+    SDL_GL_MakeCurrent(g_window, g_context);
+  size_t completed = 0;
+  for (auto& pair : g_fences) {
+    if (maxCompletions && completed >= maxCompletions)
+      break;
+    if (pair.second.status != WorldGenerationComputeGlFenceStatus::Pending)
+      continue;
+    if (pair.second.sync) {
+      auto before = pair.second.status;
+      pollFenceEntryUnlocked(pair.second);
+      if (pair.second.status != before
+          && pair.second.status != WorldGenerationComputeGlFenceStatus::Pending)
+        ++completed;
+    } else {
+      // Simulated fence: non-blocking signal.
+      pair.second.status = WorldGenerationComputeGlFenceStatus::Signaled;
+      ++completed;
+    }
+  }
+  return completed;
+}
+
+bool WorldGenerationComputeGlDevice::retireFence(WorldGenerationComputeGlFence fence) noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked() || fence.id == 0)
+    return false;
+  auto it = g_fences.find(fence.id);
+  if (it == g_fences.end())
+    return false;
+  destroyFenceSyncUnlocked(it->second);
+  g_fences.erase(it);
+  return true;
+}
+
+size_t WorldGenerationComputeGlDevice::pendingFenceCount() noexcept {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  size_t n = 0;
+  for (auto const& pair : g_fences) {
+    if (pair.second.status == WorldGenerationComputeGlFenceStatus::Pending)
+      ++n;
+  }
+  return n;
+}
+
 void WorldGenerationComputeGlDevice::shutdown() noexcept {
   std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked())
+    return;
+  for (auto& pair : g_fences)
+    destroyFenceSyncUnlocked(pair.second);
+  g_fences.clear();
   destroyContextUnlocked();
   g_info.computeAvailable = false;
   g_info.contextCreated = false;

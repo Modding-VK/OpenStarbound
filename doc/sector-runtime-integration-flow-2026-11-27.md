@@ -962,3 +962,8 @@ integração: **nenhum**.
 - Próximos tips H4 elegíveis: **material rumo a 50%** — GL/terreno/bioma, WorldThread, multi-driver, ganho medido (GPU-03 seguinte / GPU-02 WorldThread).
 - Idle/timer 3 cláusulas CONTINUAM, mas só para tips **reais/materiais** (H4 filtrado acima; H5 inalterado).
 - Build tip final: só após tip material absorvido + Build anterior terminal; sem spam.
+
+## Revisão 2026-11-28T02:14Z — H4 material 84378eb7 (idle antecipado)
+- Merge H4 HEAD `84378eb7` (GlOwnerThread + FenceHarness + deferred pumpFences + terrain sketch; 318/318) — cláusula 2.
+- Tip material 50% em progresso (sem claim). DenseUint32 micro absorvido sob tip material.
+- Build `46096658167` intacto in_progress; hold 1 Build tip final; sem spam.
