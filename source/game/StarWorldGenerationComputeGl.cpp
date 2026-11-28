@@ -382,6 +382,9 @@ GLuint g_halfCeilDivNibbleProgram = 0;
 GLuint g_halfFloorDivNibbleProgram = 0;
 GLuint g_halfRoundDivNibbleProgram = 0;
 GLuint g_halfRemNibbleProgram = 0;
+GLuint g_halfShlWrapNibbleProgram = 0;
+GLuint g_halfShrWrapNibbleProgram = 0;
+GLuint g_halfFunnelShiftNibbleProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -6420,6 +6423,73 @@ void main() {
 }
 )GLSL";
 
+char const* HalfShlWrapNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint k = uParameter & 3u;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint outN = (a << k) & 0xfu;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfShrWrapNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint k = uParameter & 3u;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint outN = a >> k;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfFunnelShiftNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint k = uParameter & 3u;
+  uint p = (uParameter >> 4u) & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint outN = k != 0u ? (((a << k) | (p >> (4u - k))) & 0xfu) : a;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -7756,6 +7826,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfRemNibbleProgram);
     g_halfRemNibbleProgram = 0;
   }
+  if (g_halfShlWrapNibbleProgram) {
+    glDeleteProgram(g_halfShlWrapNibbleProgram);
+    g_halfShlWrapNibbleProgram = 0;
+  }
+  if (g_halfShrWrapNibbleProgram) {
+    glDeleteProgram(g_halfShrWrapNibbleProgram);
+    g_halfShrWrapNibbleProgram = 0;
+  }
+  if (g_halfFunnelShiftNibbleProgram) {
+    glDeleteProgram(g_halfFunnelShiftNibbleProgram);
+    g_halfFunnelShiftNibbleProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -8288,7 +8370,13 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfRoundDivNibbleProgram, HalfRoundDivNibbleShader,
             "DenseUint32HalfRoundDivNibble")
       || !requireProgram(g_halfRemNibbleProgram, HalfRemNibbleShader,
-            "DenseUint32HalfRemNibble"))
+            "DenseUint32HalfRemNibble")
+      || !requireProgram(g_halfShlWrapNibbleProgram, HalfShlWrapNibbleShader,
+            "DenseUint32HalfShlWrapNibble")
+      || !requireProgram(g_halfShrWrapNibbleProgram, HalfShrWrapNibbleShader,
+            "DenseUint32HalfShrWrapNibble")
+      || !requireProgram(g_halfFunnelShiftNibbleProgram, HalfFunnelShiftNibbleShader,
+            "DenseUint32HalfFunnelShiftNibble"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -8997,6 +9085,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfRoundDivNibbleProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfRemNibble)
     program = g_halfRemNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfShlWrapNibble)
+    program = g_halfShlWrapNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfShrWrapNibble)
+    program = g_halfShrWrapNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfFunnelShiftNibble)
+    program = g_halfFunnelShiftNibbleProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
