@@ -1,5 +1,6 @@
 #include "StarWorldGenerationCompute.hpp"
 #include "StarWorldGenerationComputeGl.hpp"
+#include "StarWorldGenerationComputeRuntime.hpp"
 #include "StarFormat.hpp"
 
 #include <chrono>
@@ -249,6 +250,68 @@ int runDeferredGpuPump(WorldGenerationComputeService& service) {
   service.clearOwnerThread();
   WorldGenerationComputeGlDevice::clearOwnerThread();
   service.setDeferredCpuCompletion(false);
+  return rc;
+}
+
+// Dual-context Desktop vertical: WorldThread owns the hidden GL compute context
+// with rehearsal OFF (real GpuOpenGlCompute). Renderer share remains unsupported.
+int runDualContextWorldThread() {
+  std::printf("--- m50 dual-context WorldThread ---\n");
+  WorldGenerationComputeGlDevice::clearOwnerThread();
+  WorldGenerationComputeGlDevice::shutdown();
+
+  WorldGenerationComputeRuntime runtime;
+  WorldGenerationComputeRuntime::Options options;
+  options.enabled = true;
+  options.gpuFenceRehearsal = false;
+  options.deferredCompletion = true;
+  options.autoStageReady = false;
+  runtime.startOnWorldThread(options);
+  if (!runtime.active() || !runtime.service()) {
+    std::printf("dual_context: runtime start failed\n");
+    return 9;
+  }
+
+  auto role = WorldGenerationComputeGlDevice::contextRole();
+  char const* status = WorldGenerationComputeGlDevice::dualContextPrepStatus();
+  int share = WorldGenerationComputeGlDevice::rendererShareSupported() ? 1 : 0;
+  std::printf("dual_context: role=%s(%u) renderer_share=%d status='%s'\n",
+      WorldGenerationComputeGlDevice::contextRoleName(role), (unsigned)role, share,
+      status ? status : "");
+
+  int rc = 0;
+  if (role != WorldGenerationComputeGlContextRole::WorldThreadHidden)
+    rc = 9;
+  if (share != 0)
+    rc = 9;
+
+  auto ticket = runtime.service()->submit(
+      makeIdentity(9200, WorldGenerationComputeKernel::TerrainFieldMax2),
+      List<uint32_t>{0x00200010u, 0x00010002u}, 0u,
+      WorldGenerationComputeBackend::GpuOpenGlCompute);
+  if (!ticket) {
+    std::printf("dual_context: GpuOpenGlCompute submit refused (rehearsal=0)\n");
+    runtime.stopOnWorldThread();
+    return 9;
+  }
+
+  WorldGenerationComputeResult result;
+  auto pollStatus = WorldGenerationComputePollStatus::Pending;
+  size_t pumped = 0;
+  for (int i = 0; i < 64 && pollStatus == WorldGenerationComputePollStatus::Pending; ++i) {
+    pumped += runtime.pumpUpdate();
+    pollStatus = runtime.service()->poll(*ticket, &result);
+  }
+  std::printf("dual_context: pumped=%zu status=%u backend=%u values=%zu\n", pumped,
+      (unsigned)pollStatus, (unsigned)result.backend, result.values.size());
+  if (pollStatus != WorldGenerationComputePollStatus::Ready || result.values.size() != 2
+      || result.values[0] != 0x0020u || result.values[1] != 0x0002u
+      || result.backend != WorldGenerationComputeBackend::GpuOpenGlCompute)
+    rc = 9;
+
+  runtime.stopOnWorldThread();
+  if (rc == 0)
+    std::printf("dual_context: WorldThreadHidden OK; renderer_share unsupported (expected)\n");
   return rc;
 }
 
@@ -1218,11 +1281,17 @@ int main() {
   rc |= runDeferredGpuPump(service);
   rc |= runDriverEvidence(service);
 
+  // Tear down standalone service owners before WorldThread dual-context section.
+  service.cancelAll();
+  WorldGenerationComputeGlDevice::clearOwnerThread();
+  WorldGenerationComputeGlDevice::shutdown();
+  rc |= runDualContextWorldThread();
+
   WorldGenerationComputeGlDevice::shutdown();
   if (rc == 0)
     std::printf(
         "PASS: probe + DenseUint32* + TerrainField/Biome CPU↔GPU shadow + deferred pump + "
-        "driver_evidence + gain_pipeline\n");
+        "driver_evidence + gain_pipeline + dual_context\n");
   else
     std::printf("FAIL: rc=%d\n", rc);
   return rc == 0 ? 0 : 1;

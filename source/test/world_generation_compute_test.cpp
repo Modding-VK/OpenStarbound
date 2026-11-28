@@ -9106,19 +9106,71 @@ TEST(WorldGenerationComputeTest, PublishGateStagesAndRefusesLiveWorld) {
 }
 
 TEST(WorldGenerationComputeTest, DualContextPrepStubsCloudSafe) {
-  // Dual-context prep: observation stubs only; renderer share unsupported.
+  // Dual-context observation: renderer share unsupported on stub and GL builds.
   EXPECT_FALSE(WorldGenerationComputeGlDevice::rendererShareSupported());
   EXPECT_FALSE(WorldGenerationComputeRuntime::rendererShareSupported());
   char const* status = WorldGenerationComputeGlDevice::dualContextPrepStatus();
   ASSERT_NE(nullptr, status);
   EXPECT_NE(nullptr, strstr(status, "renderer_share=unsupported"));
-  EXPECT_NE(nullptr, strstr(status, "desktop_validation=pending"));
+  EXPECT_STREQ("Inactive",
+      WorldGenerationComputeGlDevice::contextRoleName(
+          WorldGenerationComputeGlContextRole::Inactive));
   EXPECT_EQ(status, WorldGenerationComputeRuntime::dualContextPrepStatus());
 #ifndef STAR_ENABLE_WORLDGEN_GL_COMPUTE
   EXPECT_EQ(WorldGenerationComputeGlContextRole::Inactive,
       WorldGenerationComputeGlDevice::contextRole());
+  EXPECT_NE(nullptr, strstr(status, "stub_build"));
 #endif
 }
+
+#ifdef STAR_ENABLE_WORLDGEN_GL_COMPUTE
+TEST(WorldGenerationComputeTest, RealGlDualContextWorldThreadHidden) {
+  // Desktop GL-ON: WorldThread runtime owns hidden compute context (rehearsal OFF).
+  // Renderer share remains unsupported — dual-context share is not claimed here.
+  auto probed = WorldGenerationComputeService::probeCapabilities();
+  if (!probed.gpuOpenGlCompute)
+    GTEST_SKIP() << "OpenGL compute not claimed in this environment";
+
+  WorldGenerationComputeGlDevice::clearOwnerThread();
+  WorldGenerationComputeGlDevice::shutdown();
+
+  WorldGenerationComputeRuntime runtime;
+  WorldGenerationComputeRuntime::Options options;
+  options.enabled = true;
+  options.gpuFenceRehearsal = false;
+  options.deferredCompletion = true;
+  runtime.startOnWorldThread(options);
+  ASSERT_TRUE(runtime.active());
+  ASSERT_TRUE(runtime.service());
+
+  EXPECT_EQ(WorldGenerationComputeGlContextRole::WorldThreadHidden,
+      WorldGenerationComputeGlDevice::contextRole());
+  EXPECT_FALSE(WorldGenerationComputeGlDevice::rendererShareSupported());
+  char const* status = WorldGenerationComputeGlDevice::dualContextPrepStatus();
+  ASSERT_NE(nullptr, status);
+  EXPECT_NE(nullptr, strstr(status, "role=WorldThreadHidden"));
+  EXPECT_NE(nullptr, strstr(status, "renderer_share=unsupported"));
+
+  auto ticket = runtime.service()->submit(
+      makeIdentity(3400, WorldGenerationComputeKernel::TerrainFieldMax2),
+      List<uint32_t>{0x00200010u}, 0u, WorldGenerationComputeBackend::GpuOpenGlCompute);
+  ASSERT_TRUE(ticket);
+  WorldGenerationComputeResult result;
+  auto statusPoll = WorldGenerationComputePollStatus::Pending;
+  for (int i = 0; i < 64 && statusPoll == WorldGenerationComputePollStatus::Pending; ++i) {
+    runtime.pumpUpdate();
+    statusPoll = runtime.service()->poll(*ticket, &result);
+  }
+  EXPECT_EQ(WorldGenerationComputePollStatus::Ready, statusPoll);
+  ASSERT_EQ(1u, result.values.size());
+  EXPECT_EQ(0x0020u, result.values[0]);
+  EXPECT_EQ(WorldGenerationComputeBackend::GpuOpenGlCompute, result.backend);
+
+  runtime.stopOnWorldThread();
+  EXPECT_EQ(WorldGenerationComputeGlContextRole::Inactive,
+      WorldGenerationComputeGlDevice::contextRole());
+}
+#endif
 
 TEST(WorldGenerationComputeTest, WorldThreadRuntimePublishGateWiring) {
   WorldGenerationComputeRuntime runtime;

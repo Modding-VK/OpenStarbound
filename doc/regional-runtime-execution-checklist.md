@@ -39,11 +39,11 @@ histórico, sem outra fila de prioridades. O
 marcos e ordem das 49 tarefas; atualizar junto com roadmap/relatório a cada
 entrega material, mesmo quando o percentual continuar igual.
 Branch de integração: `cursor/integration-sector-runtime-7342` (H0+H1+H2+H3+H4+H5+R1+R2).
-Tip INT: H4 material `d746256c` (prep admission→staged).
+Tip INT: H4 material `35f196c6` (dual-context Desktop harness).
 H4 m50: `gpu_faster=1` NVIDIA; 2º vendor estacionado; sem claim 50%.
+[dual-context Desktop harness](sector-runtime-h4-gpu-m50-dualcontext-desktop-harness-2026-11-28.md) ·
 [prep admission→staged](sector-runtime-h4-gpu-m50-prep-admission-staged-2026-11-28.md) ·
-[publish/dual-context prep](sector-runtime-h4-gpu-m50-publish-dualcontext-prep-2026-11-28.md) ·
-[worldthread runtime](sector-runtime-h4-gpu-m50-worldthread-runtime-2026-11-28.md).
+[publish/dual-context prep](sector-runtime-h4-gpu-m50-publish-dualcontext-prep-2026-11-28.md).
 Painel: [progress.md](sector-runtime/progress.md).
 [contrato de cobertura/exclusões](sector-runtime-memory-envelope.md).
 Frente desta branch (`cursor/r2-regional-ops-9f77`): R2 AuthoritativeOps. O

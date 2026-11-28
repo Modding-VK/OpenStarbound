@@ -1114,3 +1114,9 @@ integração: **nenhum**.
 - Ahead h0–h5/r1/r2=0. H4/H5 ativos (tips absorvidos; frentes em trabalho).
 - Build `46120464804` in_progress @`191cb6e4` (Upload Artifacts); hold tip-final → 1× HEAD pós-terminal.
 - 50% sem claim. Sem spam.
+
+## Merge 2026-11-28T07:34Z — H4 dual-context Desktop harness (material)
+- Merge `--no-ff` H4 `35f196c6` em INT (idle).
+- Material: dual-context WorldThread Desktop harness; Desktop GL-ON PASS pendente.
+- Build tip-final `46120464804` em voo @`191cb6e4` → hold; 1× HEAD pós-terminal.
+- Ahead pós-merge: h0–h5/r1/r2=0. 50% sem claim.
