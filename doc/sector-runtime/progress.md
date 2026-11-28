@@ -2,13 +2,12 @@
 
 Atualizado em **28/11/2026**. Branch: `cursor/h4-gpu-shadow-9f77`
 (frente H4; H0 continua em `Experimental`).
-Base inspecionada: tip pós-probe Desktop PASS `29672021` + alinhamento testes GL-ON;
-última implementação: fechar 3 FAIL stub/rehearsal vs GL real; timing amortizado +
-`driver_evidence` multi-driver; marco 50% em progresso, **sem claim** (ganho +
-2º driver ainda abertos).
+Base inspecionada: Desktop re-probe `3d37e0de` (gpu_faster=0 single-kernel) + INT
+`Equal` `77c2aa47`; última implementação: `dispatchPipeline` terreno (amortiza
+transfer); marco 50% em progresso, **sem claim** até `gpu_faster=1` + 2º driver.
 
 [Programa principal](README.md) · [Roadmap e dependências](roadmap.md)
-· [Último relatório técnico H4](../sector-runtime-h4-gpu-m50-gl-on-tests-gain-multidriver-2026-11-28.md)
+· [Último relatório técnico H4](../sector-runtime-h4-gpu-m50-gain-pipeline-2026-11-28.md)
 · [Último relatório H0](../sector-runtime-h0-sector-shadow-concurrent-ocean-2026-11-26.md)
 · [Backlog geral](../performance-backlog.md)
 
@@ -27,7 +26,7 @@ ordem de trabalho. Não é uma estimativa da conclusão de todo o OpenStarbound.
 | Progresso de maturidade do programa | **5,6%** — 11 marcos verificados de 196 |
 | Contratos com avanço registrado | **11 de 49**; todos ainda parciais |
 | Contratos integralmente aceitos | **0 de 49 (0%)** no novo programa |
-| Última evidência de testes | Desktop probe PASS `29672021`; cloud 318/318 flag OFF (3 FAIL GL-ON alinhados); gain/multi-driver pendentes; H0: 791 padrão +106 RealBlockInfo |
+| Última evidência de testes | Desktop re-probe PASS 6/6 `3d37e0de` (gpu_faster=0); cloud 319/319 + gain pipeline; multi-driver pendente; H0: 791 padrão +106 RealBlockInfo |
 | Ganho de setores/s da nova arquitetura | Ainda não demonstrado por benchmark integrado equivalente |
 
 **Os 5,6% não significam que o jogo esteja só 5,6% pronto.** O runtime anterior
@@ -470,6 +469,7 @@ painel junto com roadmap, relatório e checklist. A regra também consta no
 | 28/11/2026 | GPU-02 gl-owner-fence-harness (m50) | GL adoptOwnerThread + createFence/pollFence/pumpFences não bloqueante; DenseUint32 horizontal STOP; H4 permanece 25% até GL real/ganho | 5,6% |
 | 28/11/2026 | GPU-02/03 m50 Terrain/Biome GL prep | Shaders TerrainField*/BiomeIdBucket + probe m50/timing/deferred; checklist Desktop V até 2026-11-29; H4 permanece 25% | 5,6% |
 | 28/11/2026 | GPU-02/03/04 m50 GL-ON test align | 3 FAIL stub/rehearsal vs GL real fechados; timing amortizado + driver_evidence; Desktop PASS `29672021`; H4 permanece 25% | 5,6% |
+| 28/11/2026 | GPU-03 m50 gain pipeline | `dispatchPipeline` Max2→Clamp→Biome × passes; Equal alinhado INT `77c2aa47`; H4 permanece 25% até Desktop `gpu_faster=1` | 5,6% |
 
 Compatibilidade com mods/saves/multiplayer e fallback CPU são gates essenciais.
 Externalização de NPCs permanece suspensa; Linux Clang continua adiado.

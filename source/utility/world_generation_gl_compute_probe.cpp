@@ -138,9 +138,72 @@ int runDriverEvidence(WorldGenerationComputeService& service) {
       "terrain_verdict=%u biome_verdict=%u\n",
       info.glVendor, info.glRenderer, info.glVersion, (unsigned long long)capsFp,
       (unsigned long long)shadowFp, (unsigned)terrain.verdict, (unsigned)biome.verdict);
-  if (terrain.verdict != WorldGenerationComputeShadowVerdict::equal
-      || biome.verdict != WorldGenerationComputeShadowVerdict::equal)
+  if (terrain.verdict != WorldGenerationComputeShadowVerdict::Equal
+      || biome.verdict != WorldGenerationComputeShadowVerdict::Equal)
     return 7;
+  return 0;
+}
+
+List<uint32_t> runCpuTerrainPipeline(List<uint32_t> input, uint32_t passes) {
+  // Same in-place terrain stack the GPU pipeline runs: Max2 → ClampU16 → BiomeIdBucket.
+  for (uint32_t pass = 0; pass < passes; ++pass) {
+    input = WorldGenerationComputeService::runKernel(
+        WorldGenerationComputeKernel::TerrainFieldMax2, 1u, input, 0u);
+    input = WorldGenerationComputeService::runKernel(
+        WorldGenerationComputeKernel::TerrainFieldClampU16, 1u, input, 0xffffu);
+    input = WorldGenerationComputeService::runKernel(
+        WorldGenerationComputeKernel::BiomeIdBucket, 1u, input, 0x10u);
+  }
+  return input;
+}
+
+int runGainPipeline(size_t repeats, size_t iters, uint32_t passes) {
+  // Gain harness: one upload + multi-kernel terrain stack × passes + one readback.
+  // Sync per-kernel submit/poll loses to CPU on small ALU; pipeline amortizes transfer.
+  std::printf("--- m50 gain pipeline ---\n");
+  auto input = timingCorpus(repeats);
+  List<WorldGenerationComputeKernel> kernels;
+  kernels.append(WorldGenerationComputeKernel::TerrainFieldMax2);
+  kernels.append(WorldGenerationComputeKernel::TerrainFieldClampU16);
+  kernels.append(WorldGenerationComputeKernel::BiomeIdBucket);
+  List<uint32_t> parameters;
+  parameters.append(0u);
+  parameters.append(0xffffu);
+  parameters.append(0x10u);
+
+  // Warmup
+  auto warmCpu = runCpuTerrainPipeline(input, passes);
+  List<uint32_t> warmGpu;
+  if (!WorldGenerationComputeGlDevice::dispatchPipeline(
+          kernels, parameters, 1u, input, warmGpu, passes)
+      || !valuesEqual(warmCpu, warmGpu)) {
+    std::printf("gain_pipeline: warmup mismatch or dispatch failed\n");
+    return 8;
+  }
+
+  long long cpuUs = 0;
+  long long gpuUs = 0;
+  for (size_t i = 0; i < iters; ++i) {
+    auto t0 = std::chrono::steady_clock::now();
+    auto cpu = runCpuTerrainPipeline(input, passes);
+    auto t1 = std::chrono::steady_clock::now();
+    List<uint32_t> gpu;
+    if (!WorldGenerationComputeGlDevice::dispatchPipeline(
+            kernels, parameters, 1u, input, gpu, passes)
+        || !valuesEqual(cpu, gpu)) {
+      std::printf("gain_pipeline: iter %zu mismatch\n", i);
+      return 8;
+    }
+    auto t2 = std::chrono::steady_clock::now();
+    cpuUs += std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
+    gpuUs += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+  }
+  double ratio = gpuUs > 0 ? (double)cpuUs / (double)gpuUs : 0.0;
+  int gpuFaster = (gpuUs > 0 && cpuUs > gpuUs) ? 1 : 0;
+  std::printf(
+      "gain_pipeline: n=%zu iters=%zu passes=%u kernels=3 cpu_us=%lld gpu_pipeline_us=%lld "
+      "ratio_cpu_over_gpu=%.3f gpu_faster=%d equal=1\n",
+      input.size(), iters, passes, cpuUs, gpuUs, ratio, gpuFaster);
   return 0;
 }
 
@@ -1130,6 +1193,28 @@ int main() {
   rc |= runTiming(service, WorldGenerationComputeKernel::BiomeIdBucket, 0x10u, "BiomeIdBucket",
       timingRepeats, timingIters);
 
+  // Gain pipeline: larger default corpus + multi-pass terrain stack (transfer amortized).
+  // Env: STAR_WORLDGEN_GL_GAIN_REPEATS / STAR_WORLDGEN_GL_GAIN_ITERS / STAR_WORLDGEN_GL_GAIN_PASSES
+  size_t gainRepeats = 65536u;
+  size_t gainIters = 8u;
+  uint32_t gainPasses = 16u;
+  if (char const* envRep = std::getenv("STAR_WORLDGEN_GL_GAIN_REPEATS")) {
+    unsigned long v = std::strtoul(envRep, nullptr, 10);
+    if (v >= 1ul && v <= 1000000ul)
+      gainRepeats = (size_t)v;
+  }
+  if (char const* envIt = std::getenv("STAR_WORLDGEN_GL_GAIN_ITERS")) {
+    unsigned long v = std::strtoul(envIt, nullptr, 10);
+    if (v >= 1ul && v <= 1000ul)
+      gainIters = (size_t)v;
+  }
+  if (char const* envPass = std::getenv("STAR_WORLDGEN_GL_GAIN_PASSES")) {
+    unsigned long v = std::strtoul(envPass, nullptr, 10);
+    if (v >= 1ul && v <= 10000ul)
+      gainPasses = (uint32_t)v;
+  }
+  rc |= runGainPipeline(gainRepeats, gainIters, gainPasses);
+
   rc |= runDeferredGpuPump(service);
   rc |= runDriverEvidence(service);
 
@@ -1137,7 +1222,7 @@ int main() {
   if (rc == 0)
     std::printf(
         "PASS: probe + DenseUint32* + TerrainField/Biome CPU↔GPU shadow + deferred pump + "
-        "driver_evidence\n");
+        "driver_evidence + gain_pipeline\n");
   else
     std::printf("FAIL: rc=%d\n", rc);
   return rc == 0 ? 0 : 1;

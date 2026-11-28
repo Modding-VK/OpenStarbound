@@ -55,18 +55,21 @@ cd dist
 - `shadow BiomeIdBucket: verdict=0`
 - `timing TerrainFieldMax2: ... equal=1` (e `ratio_cpu_over_gpu` / `gpu_faster`)
 - `timing BiomeIdBucket: ... equal=1`
+- `--- m50 gain pipeline ---` + `gain_pipeline: ... equal=1` (alvo: `gpu_faster=1`)
 - `deferred TerrainFieldMax2: ... final_status=1` (Ready) com valores corretos
 - `driver_evidence vendor=... caps_fp=... shadow_fp=... terrain_verdict=0 biome_verdict=0`
-- `PASS: ... + driver_evidence`
+- `PASS: ... + driver_evidence + gain_pipeline`
 - exit code `0`
 
-Opcional (ganho):  
-`set STAR_WORLDGEN_GL_TIMING_REPEATS=65536` e `STAR_WORLDGEN_GL_TIMING_ITERS=16` antes do exe.
+Opcional (ganho pipeline — preferir sobre timing single-kernel):  
+`set STAR_WORLDGEN_GL_GAIN_REPEATS=65536`  
+`set STAR_WORLDGEN_GL_GAIN_ITERS=8`  
+`set STAR_WORLDGEN_GL_GAIN_PASSES=32`
 
 ## Contrato (flag ON)
 
 ```bat
-.\world_generation_contract_tests.exe --gtest_filter=WorldGenerationComputeTest.DeferredGpuTicketsCompleteViaPumpFencesRehearsal:WorldGenerationComputeTest.GpuSubmitRejectedWithoutCapabilityOrRehearsal:WorldGenerationComputeTest.GlOwnerThreadAndFenceHarnessNonBlocking:WorldGenerationComputeTest.TerrainBiomeFieldSketchExactCpuAndShadow:WorldGenerationComputeTest.RealGlDeferredTerrainFieldCompletesViaPump:WorldGenerationComputeTest.OwnerThreadRejectsForeignMutations
+.\world_generation_contract_tests.exe --gtest_filter=WorldGenerationComputeTest.DeferredGpuTicketsCompleteViaPumpFencesRehearsal:WorldGenerationComputeTest.GpuSubmitRejectedWithoutCapabilityOrRehearsal:WorldGenerationComputeTest.GlOwnerThreadAndFenceHarnessNonBlocking:WorldGenerationComputeTest.TerrainBiomeFieldSketchExactCpuAndShadow:WorldGenerationComputeTest.TerrainGainPipelineCpuReferenceMatchesStackedKernels:WorldGenerationComputeTest.RealGlDeferredTerrainFieldCompletesViaPump:WorldGenerationComputeTest.OwnerThreadRejectsForeignMutations
 ```
 
 Esperado: **0 FAIL** (rehearsal força `gpu=false`; RealGl* SKIP só se probe não claimar).
@@ -74,7 +77,7 @@ Esperado: **0 FAIL** (rehearsal força `gpu=false`; RealGl* SKIP só se probe n�
 ## Reportar ao Project / H4
 
 1. `git rev-parse --short HEAD`
-2. Trecho do harness: probe + `m50 terrain/biome` + timing + deferred + PASS/FAIL
+2. Trecho: `m50 terrain/biome` + **`gain_pipeline`** (`gpu_faster`) + deferred + `driver_evidence`
 3. `gl version / vendor / renderer / glsl`
 4. Se FAIL: `failure:` literal (sem tokens/paths pessoais)
 

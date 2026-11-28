@@ -67,6 +67,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel, uint
   return false;
 }
 
+bool WorldGenerationComputeGlDevice::dispatchPipeline(List<WorldGenerationComputeKernel> const&,
+    List<uint32_t> const&, uint32_t, List<uint32_t> const&, List<uint32_t>&, uint32_t) {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  return false;
+}
+
 void WorldGenerationComputeGlDevice::adoptOwnerThread() noexcept {
   std::lock_guard<std::mutex> lock(g_glMutex);
   g_ownerThread = std::this_thread::get_id();
@@ -13134,6 +13140,78 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
 
   // Synchronous dispatch still waits here; async path uses createFence/pollFence/pumpFences
   // so WorldThread can advance without a blocking ClientWaitSync on the update tick.
+  GLsync fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+  if (!fence)
+    return false;
+  GLenum wait = glClientWaitSync(fence, GL_SYNC_FLUSH_COMMANDS_BIT, 5'000'000'000ULL);
+  glDeleteSync(fence);
+  if (wait != GL_ALREADY_SIGNALED && wait != GL_CONDITION_SATISFIED)
+    return false;
+
+  output = List<uint32_t>(count, 0u);
+  if (count)
+    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, (GLsizeiptr)(count * sizeof(uint32_t)),
+        output.ptr());
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+  glUseProgram(0);
+  return !clearGlErrors();
+}
+
+GLuint terrainProgramFor(WorldGenerationComputeKernel kernel) {
+  if (kernel == WorldGenerationComputeKernel::TerrainFieldMax2)
+    return g_terrainFieldMax2Program;
+  if (kernel == WorldGenerationComputeKernel::TerrainFieldMin2)
+    return g_terrainFieldMin2Program;
+  if (kernel == WorldGenerationComputeKernel::TerrainFieldClampU16)
+    return g_terrainFieldClampU16Program;
+  if (kernel == WorldGenerationComputeKernel::BiomeIdBucket)
+    return g_biomeIdBucketProgram;
+  return 0;
+}
+
+bool WorldGenerationComputeGlDevice::dispatchPipeline(List<WorldGenerationComputeKernel> const& kernels,
+    List<uint32_t> const& parameters, uint32_t kernelVersion, List<uint32_t> const& input,
+    List<uint32_t>& output, uint32_t passes) {
+  std::lock_guard<std::mutex> lock(g_glMutex);
+  if (!ownerAllowsUnlocked())
+    return false;
+  std::call_once(g_probeOnce, runProbe);
+  if (!g_info.computeAvailable || !g_context || !g_window)
+    return false;
+  if (kernelVersion != 1u || passes == 0u || kernels.empty() || kernels.size() != parameters.size())
+    return false;
+  if (!SDL_GL_MakeCurrent(g_window, g_context))
+    return false;
+
+  for (WorldGenerationComputeKernel kernel : kernels) {
+    if (!terrainProgramFor(kernel))
+      return false;
+  }
+
+  clearGlErrors();
+  uint32_t count = (uint32_t)input.size();
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_ssbo);
+  glBufferData(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)(count * sizeof(uint32_t)),
+      count ? input.ptr() : nullptr, GL_DYNAMIC_COPY);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, g_ssbo);
+
+  GLuint groups = count == 0 ? 1u : (count + 63u) / 64u;
+  for (uint32_t pass = 0; pass < passes; ++pass) {
+    for (size_t i = 0; i < kernels.size(); ++i) {
+      GLuint program = terrainProgramFor(kernels[i]);
+      glUseProgram(program);
+      GLint locParam = glGetUniformLocation(program, "uParameter");
+      GLint locCount = glGetUniformLocation(program, "uCount");
+      if (locParam >= 0)
+        glUniform1ui(locParam, parameters[i]);
+      if (locCount >= 0)
+        glUniform1ui(locCount, count);
+      glDispatchCompute(groups, 1, 1);
+      glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    }
+  }
+  glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
+
   GLsync fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
   if (!fence)
     return false;
