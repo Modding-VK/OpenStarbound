@@ -4244,6 +4244,11 @@ bool WorldGenerationComputeService::rejectedDuplicatesContains(
   return hasRejectedDuplicate(ticket);
 }
 
+bool WorldGenerationComputeService::rejectedDuplicatesRemove(
+    WorldGenerationComputeTicket ticket) {
+  return removeRejectedDuplicate(ticket);
+}
+
 size_t WorldGenerationComputeService::clearRejectedDuplicates() {
   std::lock_guard<std::mutex> lock(m_mutex);
   if (!ownerAllowsLocked())
