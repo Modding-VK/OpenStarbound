@@ -436,6 +436,9 @@ GLuint g_halfPrevMultipleNibbleProgram = 0;
 GLuint g_halfMulSatNibbleProgram = 0;
 GLuint g_halfStepNibbleProgram = 0;
 GLuint g_halfGateNibbleProgram = 0;
+GLuint g_halfPassLtNibbleProgram = 0;
+GLuint g_halfPassGtNibbleProgram = 0;
+GLuint g_halfStepLtNibbleProgram = 0;
 GLuint g_ssbo = 0;
 std::string g_version;
 std::string g_vendor;
@@ -7692,6 +7695,72 @@ void main() {
 }
 )GLSL";
 
+char const* HalfPassLtNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint p = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint outN = a < p ? a : 0u;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfPassGtNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint p = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint outN = a > p ? a : 0u;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
+char const* HalfStepLtNibbleShader = R"GLSL(
+#version 430
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Data { uint values[]; };
+uniform uint uParameter;
+uniform uint uCount;
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= uCount)
+    return;
+  uint p = uParameter & 0xfu;
+  uint lo = values[i] & 0xffffu;
+  uint result = 0u;
+  for (uint n = 0u; n < 4u; ++n) {
+    uint a = (lo >> (n * 4u)) & 0xfu;
+    uint outN = a < p ? 0xfu : 0u;
+    result |= outN << (n * 4u);
+  }
+  values[i] = result;
+}
+)GLSL";
+
 bool clearGlErrors() {
   bool had = false;
   while (glGetError() != GL_NO_ERROR)
@@ -9244,6 +9313,18 @@ void destroyContextUnlocked() {
     glDeleteProgram(g_halfGateNibbleProgram);
     g_halfGateNibbleProgram = 0;
   }
+  if (g_halfPassLtNibbleProgram) {
+    glDeleteProgram(g_halfPassLtNibbleProgram);
+    g_halfPassLtNibbleProgram = 0;
+  }
+  if (g_halfPassGtNibbleProgram) {
+    glDeleteProgram(g_halfPassGtNibbleProgram);
+    g_halfPassGtNibbleProgram = 0;
+  }
+  if (g_halfStepLtNibbleProgram) {
+    glDeleteProgram(g_halfStepLtNibbleProgram);
+    g_halfStepLtNibbleProgram = 0;
+  }
   if (g_context) {
     SDL_GL_DestroyContext(g_context);
     g_context = nullptr;
@@ -9884,7 +9965,13 @@ bool createContext(std::string& failure) {
       || !requireProgram(g_halfStepNibbleProgram, HalfStepNibbleShader,
             "DenseUint32HalfStepNibble")
       || !requireProgram(g_halfGateNibbleProgram, HalfGateNibbleShader,
-            "DenseUint32HalfGateNibble"))
+            "DenseUint32HalfGateNibble")
+      || !requireProgram(g_halfPassLtNibbleProgram, HalfPassLtNibbleShader,
+            "DenseUint32HalfPassLtNibble")
+      || !requireProgram(g_halfPassGtNibbleProgram, HalfPassGtNibbleShader,
+            "DenseUint32HalfPassGtNibble")
+      || !requireProgram(g_halfStepLtNibbleProgram, HalfStepLtNibbleShader,
+            "DenseUint32HalfStepLtNibble"))
     return false;
   glGenBuffers(1, &g_ssbo);
   if (!g_ssbo) {
@@ -10701,6 +10788,12 @@ bool WorldGenerationComputeGlDevice::dispatch(WorldGenerationComputeKernel kerne
     program = g_halfStepNibbleProgram;
   else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfGateNibble)
     program = g_halfGateNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfPassLtNibble)
+    program = g_halfPassLtNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfPassGtNibble)
+    program = g_halfPassGtNibbleProgram;
+  else if (kernel == WorldGenerationComputeKernel::DenseUint32HalfStepLtNibble)
+    program = g_halfStepLtNibbleProgram;
   else
     return false;
   if (!program || !SDL_GL_MakeCurrent(g_window, g_context))
