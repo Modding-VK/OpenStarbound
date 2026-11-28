@@ -949,3 +949,10 @@ integração: **nenhum**.
 ## Revisão 2026-11-28T01:54Z — lote H4 2796b301 (idle antecipado)
 - Merge H4 tip `2796b301` (310/310) — cláusula 2.
 - Build `46095423615` intacto in_progress; hold 1 Build tip final; sem spam.
+
+## Revisão multi-frente 2026-11-28T02:00Z
+- INT tip `a89ad754` (material H4 `2796b301`, 310/310).
+- Ahead vs INT: h0/h1/h2/h3/h4/h5/r1/r2=0.
+- H3: `cursor/h3-kernels-publication-9f77` @ `3bdf1927` sem tip novo; `h3-tmx-shadow-9f77` remote ausente.
+- PRs abertos com base na INT: nenhum.
+- Build `46095423615` in_progress @`e07fcdbc`; tip final pendente após terminal; sem Actions nesta revisão.
