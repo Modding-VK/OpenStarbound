@@ -1132,3 +1132,9 @@ integração: **nenhum**.
 - Material: limited live publish sink + criteria ledger; dual_context PASS consumido.
 - Build tip-final `46121869802` em voo @`462e2cbc` → hold; 1× HEAD pós-terminal.
 - Ahead pós-merge: h0–h5/r1/r2=0. 50% sem claim.
+
+## Merge 2026-11-28T07:47Z — H4 WorldStorage standby (docs-only)
+- Merge `--no-ff` H4 `3fd20f75` em INT.
+- Docs-only: WorldStorage adopt not cloud-safe; H4 standby 2º vendor.
+- Sem Build (tip ≠ material). Build tip-final `46121869802` intacto em voo.
+- Ahead pós-merge: h0–h5/r1/r2=0. 50% sem claim.

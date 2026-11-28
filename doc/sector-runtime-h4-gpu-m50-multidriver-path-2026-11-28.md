@@ -74,6 +74,11 @@ Manifesto privacy-safe: nome do log, bytes, SHA256, UTC, `git rev-parse --short 
 
 ## Próximo acionável
 
-1. Agendar worker no 2º vendor (Desktop alternativo / lab) com o tip H4/`85ab73ba`+ absorvido  
+H4 entrou em **standby** neste path (28/11/2026): WorldStorage sector adopt
+não é cloud-safe
+([standby](sector-runtime-h4-gpu-m50-worldstorage-adopt-standby-2026-11-28.md)).
+
+1. Agendar worker no 2º vendor (Desktop alternativo / lab) com tip INT ≥ `8a38889f` / H4 standby tip  
 2. H4 consome `driver_evidence` + `gain_pipeline` do 2º log  
-3. Só então Project avalia inputs do marco 50%
+3. Só então Project avalia inputs do marco 50%  
+4. WorldStorage adopt só com host Desktop+assets e tip auditado separado
