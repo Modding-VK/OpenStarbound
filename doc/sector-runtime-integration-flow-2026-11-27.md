@@ -945,3 +945,7 @@ integração: **nenhum**.
 ## Revisão 2026-11-28T01:48Z — lote H4 ebb7fe61 (idle antecipado)
 - Merge H4 HEAD `ebb7fe61` (304/304; tip final; não `02c86d66`).
 - Build `46094212518` intacto in_progress; hold 1 Build tip final; sem spam.
+
+## Revisão 2026-11-28T01:54Z — lote H4 2796b301 (idle antecipado)
+- Merge H4 tip `2796b301` (310/310) — cláusula 2.
+- Build `46095423615` intacto in_progress; hold 1 Build tip final; sem spam.
