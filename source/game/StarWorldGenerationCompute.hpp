@@ -390,7 +390,13 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfXorNotNibble = 364, // n ^ (~(parameter&0xf) & 0xf); high ignored
   DenseUint32HalfKeepHighBitsNibble = 365, // keep high ((parameter&3)+1) bits; high ignored
   DenseUint32HalfScatterLsbNibble = 366, // (n&1)<<(parameter&3); high ignored
-  DenseUint32HalfInsertBitNibble = 367 // clear bit (parameter&3), insert ((parameter>>2)&1); high ignored
+  DenseUint32HalfInsertBitNibble = 367, // clear bit (parameter&3), insert ((parameter>>2)&1); high ignored
+  DenseUint32HalfAvgRoundNibble = 368, // (n+(parameter&0xf)+1)>>1 per nibble; high ignored
+  DenseUint32HalfMulLoNibble = 369, // (n*(parameter&0xf))&0xf per nibble; high ignored
+  DenseUint32HalfAddSatParamNibble = 370, // min(n+(parameter&0xf), 0xf); high ignored
+  DenseUint32HalfSubSatParamNibble = 371, // max(n-(parameter&0xf), 0); high ignored
+  DenseUint32HalfNextMultipleNibble = 372, // align-up to multiple of (parameter&0xf), sat 0xf; high ignored
+  DenseUint32HalfPrevMultipleNibble = 373 // align-down to multiple of (parameter&0xf); high ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
@@ -751,6 +757,10 @@ public:
   bool rejectedDuplicatesHolds(WorldGenerationComputeTicket ticket) const;
   // Alias of clearRejectedDuplicates (asset-free observation naming).
   size_t rejectedDuplicatesDrain();
+  // Alias of fingerprintRejectedDuplicates (asset-free observation naming).
+  uint64_t rejectedDuplicatesSeal() const;
+  // Alias of rejectedDuplicatesCount (asset-free observation naming).
+  size_t rejectedDuplicatesSpan() const;
   // Clears the rejected-duplicate set (asset-free harness reset; owner-thread gated).
   size_t clearRejectedDuplicates();
 

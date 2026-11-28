@@ -904,3 +904,7 @@ integração: **nenhum**.
 - Tip `1921eb91` (H4 `6e6860aa` 264/264 material).
 - Ahead: h0–h3/h5/r1–r2=0; H4 `d5750c50` ahead=3 (hold — H4 ativa / janela <15min).
 - Build `46089533286` in_progress @`52fdd2c7`; tip final pendente; sem dispatch.
+
+## Revisão 2026-11-28T01:01Z — lote H4 8a28de68 (idle antecipado)
+- Merge H4 tip `8a28de68` (268/268) — cláusula 2.
+- Build `46089533286` intacto in_progress; hold 1 Build tip final; sem spam.
