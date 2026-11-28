@@ -435,7 +435,10 @@ enum class WorldGenerationComputeKernel : uint16_t {
   DenseUint32HalfCoprimeFillNibble = 409, // 0xf if gcd(n,parameter&0xf)==1 else 0; high ignored
   DenseUint32HalfIsDivisibleNibble = 410, // 0xf if p!=0 && n%p==0 else 0; high ignored
   DenseUint32HalfShareNibble = 411, // n/gcd(n,p); 0 if gcd==0; high ignored
-  DenseUint32HalfReduceNibble = 412 // p/gcd(n,p); 0 if gcd==0; high ignored
+  DenseUint32HalfReduceNibble = 412, // p/gcd(n,p); 0 if gcd==0; high ignored
+  DenseUint32HalfBitAndFillNibble = 413, // 0xf if (n&p)!=0 else 0; high ignored
+  DenseUint32HalfSubsetMaskNibble = 414, // 0xf if (n & ~p)==0 else 0; high ignored
+  DenseUint32HalfSupersetMaskNibble = 415 // 0xf if (p & ~n)==0 else 0; high ignored
 };
 
 enum class WorldGenerationComputePollStatus : uint8_t {
